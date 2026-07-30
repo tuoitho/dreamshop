@@ -1,0 +1,14 @@
+_format_version: "3.0"
+services:
+  - name: identity-service
+    url: http://identity-service:8080
+    routes:
+      - name: identity-public
+        paths: ["/auth", "/users"]
+        strip_path: true
+  - name: bff-service
+    url: http://bff-service:8080
+    routes:
+      - name: commerce-api
+        paths: ["/api"]
+        strip_path: true

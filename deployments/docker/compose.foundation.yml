@@ -1,0 +1,124 @@
+networks:
+  ecommerce-net:
+    driver: bridge
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ecommerce-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ecommerce}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local-only}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ../postgres/init/01-create-databases.sql:/docker-entrypoint-initdb.d/01-create-databases.sql:ro
+    networks:
+      - ecommerce-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ecommerce}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: ecommerce-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - ecommerce-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: ecommerce-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-ecommerce}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-change-me-local-only}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - ecommerce-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  kong:
+    image: kong:3.8-ubuntu
+    container_name: ecommerce-kong
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: "/usr/local/kong/declarative/kong.yml"
+      KONG_PROXY_ACCESS_LOG: "/dev/stdout"
+      KONG_ADMIN_ACCESS_LOG: "/dev/stdout"
+      KONG_PROXY_ERROR_LOG: "/dev/stderr"
+      KONG_ADMIN_ERROR_LOG: "/dev/stderr"
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+    volumes:
+      - ../kong/kong.yaml:/usr/local/kong/declarative/kong.yml:ro
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+    networks:
+      - ecommerce-net
+    depends_on:
+      - bff-service
+      - identity-service
+
+  bff-service:
+    build:
+      context: ../..
+      dockerfile: services/bff-service/Dockerfile
+    container_name: bff-service
+    environment:
+      HTTP_ADDR: ":8080"
+    networks:
+      - ecommerce-net
+
+  catalog-service:
+    build:
+      context: ../..
+      dockerfile: services/catalog-service/Dockerfile
+    container_name: catalog-service
+    environment:
+      HTTP_ADDR: ":8081"
+    networks:
+      - ecommerce-net
+
+  inventory-service:
+    build:
+      context: ../..
+      dockerfile: services/inventory-service/Dockerfile
+    container_name: inventory-service
+    environment:
+      HTTP_ADDR: ":8082"
+    networks:
+      - ecommerce-net
+
+  identity-service:
+    build:
+      context: ../..
+      dockerfile: services/identity-service/Dockerfile
+    container_name: identity-service
+    environment:
+      SERVER_PORT: "8080"
+    networks:
+      - ecommerce-net
+
+  order-service:
+    build:
+      context: ../..
+      dockerfile: services/order-service/Dockerfile
+    container_name: order-service
+    environment:
+      SERVER_PORT: "8083"
+    networks:
+      - ecommerce-net
