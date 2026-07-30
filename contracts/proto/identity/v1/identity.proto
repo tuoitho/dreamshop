@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package ecommerce.identity.v1;
+
+option go_package = "ecommerce.local/contracts/go/identity/v1;identityv1";
+option java_multiple_files = true;
+option java_package = "com.ecommerce.contracts.identity.v1";
+
+service IdentityService {
+  rpc GetUser (GetUserRequest) returns (GetUserResponse);
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message GetUserResponse {
+  string user_id = 1;
+  string email = 2;
+  string full_name = 3;
+}

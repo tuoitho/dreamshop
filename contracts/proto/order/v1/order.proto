@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package ecommerce.order.v1;
+
+import "common/v1/common.proto";
+
+option go_package = "ecommerce.local/contracts/go/order/v1;orderv1";
+option java_multiple_files = true;
+option java_package = "com.ecommerce.contracts.order.v1";
+
+service OrderService {
+  rpc CreateOrder (CreateOrderRequest) returns (CreateOrderResponse);
+}
+
+message OrderItem {
+  string product_id = 1;
+  int32 quantity = 2;
+  ecommerce.common.v1.Money unit_price = 3;
+}
+
+message CreateOrderRequest {
+  string user_id = 1;
+  repeated OrderItem items = 2;
+}
+
+message CreateOrderResponse {
+  string order_id = 1;
+  string status = 2;
+  ecommerce.common.v1.Money total_amount = 3;
+}
