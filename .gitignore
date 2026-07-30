@@ -1,0 +1,9 @@
+.env
+.idea/
+.vscode/
+**/target/
+**/tmp/
+**/*.pem
+**/*.key
+contracts/go/**/*.pb.go
+contracts/java/src/main/generated/
