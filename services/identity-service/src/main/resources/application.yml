@@ -1,5 +1,24 @@
 server:
-  port: 8090
+  port: ${SERVER_PORT:8090}
+spring:
+  datasource:
+    url: ${IDENTITY_DB_URL:jdbc:postgresql://localhost:5432/identity_db}
+    username: ${IDENTITY_DB_USERNAME:ecommerce}
+    password: ${IDENTITY_DB_PASSWORD:change-me-local-only}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+identity:
+  jwt:
+    issuer: ${IDENTITY_JWT_ISSUER:http://localhost:8090}
+    audience: ${IDENTITY_JWT_AUDIENCE:ecommerce-api}
+    private-key-path: ${IDENTITY_JWT_PRIVATE_KEY_PATH:deployments/secrets/identity/private.pem}
+    public-key-path: ${IDENTITY_JWT_PUBLIC_KEY_PATH:deployments/secrets/identity/public.pem}
+    key-id: ${IDENTITY_JWT_KEY_ID:identity-dev-2026-01}
+    access-ttl: ${IDENTITY_JWT_ACCESS_TTL:15m}
 management:
   endpoints:
     web:
@@ -7,5 +26,9 @@ management:
         include: health,info
   endpoint:
     health:
+      validate-group-membership: false
       probes:
         enabled: true
+      group:
+        readiness:
+          include: readinessState,db
