@@ -111,6 +111,7 @@ Expected: FAIL because `IdentityJwtProperties` does not exist.
 <dependency>
     <groupId>org.bouncycastle</groupId>
     <artifactId>bcprov-jdk18on</artifactId>
+    <version>1.85</version>
 </dependency>
 <dependency>
     <groupId>org.springframework.boot</groupId>
