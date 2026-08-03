@@ -61,6 +61,38 @@ Các API công khai duy nhất được định tuyến qua Kong API Gateway (c�
   mvn test
   ```
 
+## Identity A: register, login and JWKS
+
+Khởi tạo RSA key pair local (không commit PEM), chạy Compose, rồi xác minh register/login/JWKS qua Kong:
+
+```bash
+make identity-keys
+make up
+make verify-identity
+```
+
+Các public endpoint qua Kong là:
+
+- `POST http://localhost:8000/api/v1/auth/register`
+- `POST http://localhost:8000/api/v1/auth/login`
+- `GET http://localhost:8000/api/v1/auth/.well-known/jwks.json`
+
+Ví dụ body giả lập cho register:
+
+```json
+{"email":"customer@example.test","password":"local-only-example-password","full_name":"Example Customer"}
+```
+
+Ví dụ body giả lập cho login:
+
+```json
+{"email":"customer@example.test","password":"local-only-example-password"}
+```
+
+Identity dùng port `8090` khi chạy local trực tiếp; trong container service lắng nghe port `8080` và không public host port. Access token mặc định có TTL 15 phút. PEM được tạo chỉ dành cho local development, nằm ở `deployments/secrets/identity/`, và tuyệt đối không được commit hoặc tái sử dụng cho môi trường khác.
+
+Slice này chưa có refresh token, logout, profile endpoint, hoặc Kong JWT enforcement.
+
 ## Verification
 
 Tiện ích kiểm thử nền tảng kiểm tra tự động tất cả các tệp hợp đồng, cấu hình Docker Compose, linting Protobuf, tính sẵn sàng của hệ thống API qua Kong, và sự tồn tại của hướng dẫn vận hành trong README.md.
