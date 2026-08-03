@@ -239,8 +239,8 @@ git commit -m "feat(identity): add validated auth configuration"
 public abstract class PostgresIntegrationTestSupport {
     @Container
     @ServiceConnection
-    protected static final PostgreSQLContainer<?> POSTGRES =
-            new PostgreSQLContainer<>("postgres:16-alpine")
+    protected static final PostgreSQLContainer POSTGRES =
+            new PostgreSQLContainer("postgres:16-alpine")
                     .withDatabaseName("identity_test")
                     .withUsername("identity")
                     .withPassword("identity");
