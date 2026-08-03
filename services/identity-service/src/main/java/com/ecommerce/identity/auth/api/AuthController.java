@@ -2,6 +2,8 @@ package com.ecommerce.identity.auth.api;
 
 import com.ecommerce.identity.auth.application.RegisterCommand;
 import com.ecommerce.identity.auth.application.RegisterUserService;
+import com.ecommerce.identity.auth.application.LoginCommand;
+import com.ecommerce.identity.auth.application.LoginService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,9 +16,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping
 public class AuthController {
     private final RegisterUserService registerUserService;
+    private final LoginService loginService;
 
-    public AuthController(RegisterUserService registerUserService) {
+    public AuthController(RegisterUserService registerUserService, LoginService loginService) {
         this.registerUserService = registerUserService;
+        this.loginService = loginService;
     }
 
     @PostMapping("/register")
@@ -24,5 +28,10 @@ public class AuthController {
     RegisterResponse register(@Valid @RequestBody RegisterRequest request) {
         return RegisterResponse.from(registerUserService.register(
                 new RegisterCommand(request.email(), request.password(), request.fullName())));
+    }
+
+    @PostMapping("/login")
+    LoginResponse login(@Valid @RequestBody LoginRequest request) {
+        return LoginResponse.from(loginService.login(new LoginCommand(request.email(), request.password())));
     }
 }
