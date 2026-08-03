@@ -192,6 +192,7 @@ management:
     health:
       probes:
         enabled: true
+      validate-group-membership: false
       group:
         readiness:
           include: readinessState,db
