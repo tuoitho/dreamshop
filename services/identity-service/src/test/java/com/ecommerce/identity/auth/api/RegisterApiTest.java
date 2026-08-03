@@ -87,5 +87,11 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
 
         mockMvc.perform(get("/private"))
                 .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/login"))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/.well-known/jwks.json"))
+                .andExpect(status().isForbidden());
     }
 }
