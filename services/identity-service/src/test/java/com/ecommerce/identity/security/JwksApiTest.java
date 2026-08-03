@@ -131,8 +131,9 @@ class JwksApiTest extends PostgresIntegrationTestSupport {
     }
 
     private String tamperSignature(String token) {
-        char finalCharacter = token.charAt(token.length() - 1);
-        char replacement = finalCharacter == 'a' ? 'b' : 'a';
-        return token.substring(0, token.length() - 1) + replacement;
+        int signatureStart = token.lastIndexOf('.') + 1;
+        char firstSignatureCharacter = token.charAt(signatureStart);
+        char replacement = firstSignatureCharacter == 'A' ? 'B' : 'A';
+        return token.substring(0, signatureStart) + replacement + token.substring(signatureStart + 1);
     }
 }
