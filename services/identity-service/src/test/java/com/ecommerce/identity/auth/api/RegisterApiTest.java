@@ -81,7 +81,7 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
     }
 
     @Test
-    void permitsHealthButDeniesUnlistedEndpoints() throws Exception {
+    void permitsPublicEndpointsButDeniesUnlistedEndpoints() throws Exception {
         mockMvc.perform(get("/actuator/health"))
                 .andExpect(status().isOk());
 
@@ -92,6 +92,6 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(status().isForbidden());
 
         mockMvc.perform(get("/.well-known/jwks.json"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
     }
 }
