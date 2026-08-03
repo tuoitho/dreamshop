@@ -1,10 +1,9 @@
 package com.ecommerce.identity;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import com.ecommerce.identity.support.PostgresIntegrationTestSupport;
 
-@SpringBootTest
-class IdentityApplicationTest {
+class IdentityApplicationTest extends PostgresIntegrationTestSupport {
     @Test
     void contextLoads() {
     }
