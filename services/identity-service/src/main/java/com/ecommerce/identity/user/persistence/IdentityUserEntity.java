@@ -16,6 +16,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
@@ -63,7 +64,9 @@ public class IdentityUserEntity {
         IdentityUserEntity user = new IdentityUserEntity();
         user.id = Objects.requireNonNull(id, "id");
         user.email = Objects.requireNonNull(email, "email");
-        user.normalizedEmail = Objects.requireNonNull(normalizedEmail, "normalizedEmail");
+        user.normalizedEmail = Objects.requireNonNull(normalizedEmail, "normalizedEmail")
+                .trim()
+                .toLowerCase(Locale.ROOT);
         user.passwordHash = Objects.requireNonNull(passwordHash, "passwordHash");
         user.status = Objects.requireNonNull(status, "status");
         user.createdAt = Objects.requireNonNull(now, "now");

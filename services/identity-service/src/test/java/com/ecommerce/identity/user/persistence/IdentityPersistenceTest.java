@@ -44,6 +44,17 @@ class IdentityPersistenceTest extends PostgresIntegrationTestSupport {
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
+    @Test
+    void normalizesEmailForAggregateAndExistenceLookup() {
+        RoleEntity customer = roles.findByCode("CUSTOMER").orElseThrow();
+        var user = user("User@example.com", " User@Example.com ", customer);
+
+        assertThat(user.normalizedEmail()).isEqualTo("user@example.com");
+        users.saveAndFlush(user);
+
+        assertThat(users.existsByNormalizedEmail("user@example.com")).isTrue();
+    }
+
     private IdentityUserEntity user(String email, String normalizedEmail, RoleEntity customer) {
         return IdentityUserEntity.create(UUID.randomUUID(), email, normalizedEmail, "{argon2id}hash",
                 AccountStatus.ACTIVE, Instant.parse("2026-08-03T00:00:00Z"), "Nguyen Van A",
