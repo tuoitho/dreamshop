@@ -67,6 +67,17 @@ class RegisterUserServiceTest extends PostgresIntegrationTestSupport {
     }
 
     @Test
+    void rejectsExistingEmailBeforeLookingUpCustomerRole() {
+        service.register(new RegisterCommand("user@example.com", "password", "Nguyen Van A"));
+        jdbcTemplate.update("delete from user_roles");
+        jdbcTemplate.update("delete from roles");
+
+        assertThatThrownBy(() -> service.register(
+                new RegisterCommand("USER@example.com", "password", "Nguyen Van B")))
+                .isInstanceOf(EmailAlreadyRegisteredException.class);
+    }
+
+    @Test
     void doesNotCommitUserOrProfileWhenCustomerRoleIsMissing() {
         roles.delete(roles.findByCode("CUSTOMER").orElseThrow());
         roles.flush();

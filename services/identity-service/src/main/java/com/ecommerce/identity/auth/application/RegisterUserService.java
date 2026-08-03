@@ -38,6 +38,9 @@ public class RegisterUserService {
     @Transactional
     public RegisteredUser register(RegisterCommand command) {
         String normalizedEmail = EmailNormalizer.normalize(command.email());
+        if (users.existsByNormalizedEmail(normalizedEmail)) {
+            throw new EmailAlreadyRegisteredException();
+        }
         RoleEntity customer = roles.findByCode(CUSTOMER_ROLE)
                 .orElseThrow(() -> new IllegalStateException("CUSTOMER role is not configured"));
         String passwordHash = passwordEncoder.encode(command.password());
