@@ -51,6 +51,21 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
     }
 
     @Test
+    void trimsEmailAndFullNameBeforeValidationAndPersistence() throws Exception {
+        mockMvc.perform(post("/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"  User@Example.com  ","password":"correct horse battery staple","full_name":"  Nguyen Van A  "}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.email").value("user@example.com"))
+                .andExpect(jsonPath("$.full_name").value("Nguyen Van A"));
+
+        org.assertj.core.api.Assertions.assertThat(jdbcTemplate.queryForObject(
+                "select full_name from identity_profiles", String.class)).isEqualTo("Nguyen Van A");
+    }
+
+    @Test
     void rejectsInvalidRegistrationWithSafeValidationError() throws Exception {
         mockMvc.perform(post("/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -86,10 +101,16 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/private"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Access is denied"))
+                .andExpect(jsonPath("$.trace_id", matchesPattern("[0-9a-f]{32}")));
 
         mockMvc.perform(post("/private"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Access is denied"))
+                .andExpect(jsonPath("$.trace_id", matchesPattern("[0-9a-f]{32}")));
 
         mockMvc.perform(get("/.well-known/jwks.json"))
                 .andExpect(status().isOk());

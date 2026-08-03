@@ -60,6 +60,16 @@ class LoginApiTest extends PostgresIntegrationTestSupport {
     }
 
     @Test
+    void authenticatesWhitespacePaddedEmail() throws Exception {
+        register("user@example.com", "correct horse battery staple");
+        when(jwtTokenService.issue(any(), any())).thenReturn(new AccessTokenResult("access-token", 900));
+
+        login("  user@example.com  ", "correct horse battery staple")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.access_token").value("access-token"));
+    }
+
+    @Test
     void rejectsUnknownEmailWithGenericCredentialsError() throws Exception {
         login("unknown@example.com", "correct horse battery staple")
                 .andExpect(status().isUnauthorized())

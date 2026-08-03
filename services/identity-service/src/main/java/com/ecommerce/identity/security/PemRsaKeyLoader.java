@@ -5,10 +5,12 @@ import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.RSAKey;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
+import java.security.Signature;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -18,6 +20,8 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class PemRsaKeyLoader {
+    private static final byte[] KEY_PAIR_CHALLENGE = "identity-key-pair-check".getBytes(StandardCharsets.US_ASCII);
+
     public SigningKeyMaterial load(IdentityJwtProperties properties) {
         try {
             RSAPublicKey publicKey = readPublicKey(properties.publicKeyPath());
@@ -59,6 +63,19 @@ public class PemRsaKeyLoader {
         }
         if (!publicKey.getModulus().equals(privateKey.getModulus())) {
             throw new IllegalArgumentException("RSA signing keys do not match");
+        }
+        try {
+            Signature signature = Signature.getInstance("SHA256withRSA");
+            signature.initSign(privateKey);
+            signature.update(KEY_PAIR_CHALLENGE);
+            byte[] challengeSignature = signature.sign();
+            signature.initVerify(publicKey);
+            signature.update(KEY_PAIR_CHALLENGE);
+            if (!signature.verify(challengeSignature)) {
+                throw new IllegalArgumentException("RSA signing keys do not match");
+            }
+        } catch (GeneralSecurityException exception) {
+            throw new IllegalArgumentException("RSA signing keys do not match", exception);
         }
     }
 }
