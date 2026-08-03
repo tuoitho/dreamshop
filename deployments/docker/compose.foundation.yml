@@ -110,8 +110,22 @@ services:
     container_name: identity-service
     environment:
       SERVER_PORT: "8080"
+      IDENTITY_DB_URL: jdbc:postgresql://postgres:5432/identity_db
+      IDENTITY_DB_USERNAME: ${POSTGRES_USER:-ecommerce}
+      IDENTITY_DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local-only}
+      IDENTITY_JWT_ISSUER: ${IDENTITY_JWT_ISSUER:-http://identity-service:8080}
+      IDENTITY_JWT_AUDIENCE: ${IDENTITY_JWT_AUDIENCE:-ecommerce-api}
+      IDENTITY_JWT_PRIVATE_KEY_PATH: /run/secrets/identity/private.pem
+      IDENTITY_JWT_PUBLIC_KEY_PATH: /run/secrets/identity/public.pem
+      IDENTITY_JWT_KEY_ID: ${IDENTITY_JWT_KEY_ID:-identity-dev-2026-01}
+      IDENTITY_JWT_ACCESS_TTL: ${IDENTITY_JWT_ACCESS_TTL:-15m}
+    volumes:
+      - ../secrets/identity:/run/secrets/identity:ro
     networks:
       - ecommerce-net
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   order-service:
     build:

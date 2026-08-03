@@ -1,6 +1,6 @@
-.PHONY: up down logs proto lint verify
+.PHONY: up down logs proto lint verify identity-keys
 
-up:
+up: identity-keys
 	docker compose -f deployments/docker/compose.foundation.yml up -d --build
 	docker compose -f deployments/docker/compose.foundation.yml up -d --force-recreate --no-deps kong
 
@@ -18,3 +18,6 @@ lint:
 
 verify:
 	pwsh -File scripts/verify-foundation.ps1
+
+identity-keys:
+	pwsh -NoProfile -File scripts/generate-identity-dev-keys.ps1
