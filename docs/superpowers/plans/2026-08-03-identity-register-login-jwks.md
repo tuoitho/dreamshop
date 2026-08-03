@@ -708,7 +708,7 @@ mockMvc.perform(post("/login")
 Unknown email, wrong password and disabled account must each return 401, `INVALID_CREDENTIALS`, exactly `Email or password is invalid.`, and a non-empty trace ID.
 
 Mock `JwtTokenService` to throw `AuthenticationUnavailableException` for otherwise valid credentials and assert `503 AUTHENTICATION_UNAVAILABLE`; the response must contain neither key path nor encoder exception detail.
-
+/
 - [ ] **Step 4: Implement login DTO and mapping**
 
 ```java

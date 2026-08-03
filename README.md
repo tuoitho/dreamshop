@@ -46,8 +46,9 @@ Hệ thống bao gồm 5 dịch vụ microservices:
 ## Public routes
 
 Các API công khai duy nhất được định tuyến qua Kong API Gateway (cổng `8000`):
-- `/auth` -> Định tuyến tới `identity-service` (ví dụ: `/auth/actuator/health`)
-- `/api` -> Định tuyến tới `bff-service` (ví dụ: `/api/healthz`)
+- `/api/v1/auth` -> Định tuyến tới `identity-service` (ví dụ: `/api/v1/auth/actuator/health`)
+- `/api/v1/users` -> Định tuyến tới `identity-service`
+- `/api/v1/storefront` -> Định tuyến tới `bff-service` (ví dụ: `/api/v1/storefront/healthz`)
 
 ## Local development
 

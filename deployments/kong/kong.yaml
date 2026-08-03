@@ -4,11 +4,11 @@ services:
     url: http://identity-service:8080
     routes:
       - name: identity-public
-        paths: ["/auth", "/users"]
+        paths: ["/api/v1/auth", "/api/v1/users"]
         strip_path: true
   - name: bff-service
     url: http://bff-service:8080
     routes:
-      - name: commerce-api
-        paths: ["/api"]
+      - name: storefront-api
+        paths: ["/api/v1/storefront"]
         strip_path: true

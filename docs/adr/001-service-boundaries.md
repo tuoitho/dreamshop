@@ -18,7 +18,7 @@ MVP có năm service:
 - Order (Java/Spring Boot) sở hữu order state, idempotency và outbox.
 - Inventory (Go) sở hữu stock/reservation và event consumer.
 
-Mỗi service sở hữu database/schema riêng, không query hay foreign key xuyên service. Kong expose BFF và Identity Service: chỉ `/auth/register`, `/auth/login`, `/auth/refresh` là anonymous; profile và commerce endpoint cần JWT. Microservice nội bộ giao tiếp trực tiếp bằng gRPC hoặc RabbitMQ.
+Mỗi service sở hữu database/schema riêng, không query hay foreign key xuyên service. Kong expose BFF và Identity Service: chỉ `/api/v1/auth/register`, `/api/v1/auth/login`, `/api/v1/auth/refresh` là anonymous; profile và commerce endpoint cần JWT. Microservice nội bộ giao tiếp trực tiếp bằng gRPC hoặc RabbitMQ.
 
 ## Consequences
 

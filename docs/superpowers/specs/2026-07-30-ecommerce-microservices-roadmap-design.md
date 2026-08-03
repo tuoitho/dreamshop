@@ -43,7 +43,7 @@ Browser / API client
         ▼
 Kong Gateway ─────────────── public ingress: route, rate limit, JWT validation for protected routes
    │                         │
-   │ /auth/*, /users/me      └─ /api/*
+   │ /api/v1/auth/*, /api/v1/users/me      └─ /api/v1/storefront/*
    ▼                              ▼
 Identity (Java) ──► identity_db   BFF (Go, REST) ── gRPC ─► Catalog (Go) ─► catalog_db + Redis
    │ JWT + JWKS                      │
@@ -60,7 +60,7 @@ Identity (Java) ──► identity_db   BFF (Go, REST) ── gRPC ─► Catalo
 
 - Mỗi service sở hữu database/schema của mình. Trong local có thể dùng cùng một PostgreSQL instance, nhưng **không query hay foreign key xuyên service**.
 - BFF là edge adapter cho client; BFF không là “bus” để microservice gọi nhau.
-- Kong chỉ expose BFF và Identity Service: `/auth/*` là ngoại lệ public; `/users/me` cần JWT. Catalog, Order và Inventory chỉ nghe trên network nội bộ.
+- Kong chỉ expose BFF và Identity Service qua namespace chung `/api/v1/`: `/api/v1/auth/*` là ngoại lệ public; `/api/v1/users/me` cần JWT. Catalog, Order và Inventory chỉ nghe trên network nội bộ.
 - gRPC dùng cho truy vấn/command đồng bộ có phản hồi cần ngay; RabbitMQ dùng cho event sau khi state đã được commit.
 - RabbitMQ giao hàng **at-least-once**, do đó mọi consumer phải chịu được bản tin trùng.
 - `identity_user_id` là UUID từ Identity Service; Order lưu nó như external identifier, không tạo foreign key xuyên database.
@@ -83,11 +83,11 @@ Identity (Java) ──► identity_db   BFF (Go, REST) ── gRPC ─► Catalo
 
 Identity Service là **first-party authentication service**, không phải OAuth/OIDC provider tổng quát. Nó tự quản lý credential của e-commerce và phát JWT cho chính client của hệ thống.
 
-1. Client gọi `POST /auth/register` qua Kong đến Identity Service. Service validate input, hash password, tạo user/profile/role mặc định `CUSTOMER` và không log password.
-2. Client gọi `POST /auth/login`; nếu credential hợp lệ, service trả access token ngắn hạn và refresh token. Login fail trả lỗi chung để không tiết lộ email có tồn tại hay không.
+1. Client gọi `POST /api/v1/auth/register` qua Kong đến Identity Service. Service validate input, hash password, tạo user/profile/role mặc định `CUSTOMER` và không log password.
+2. Client gọi `POST /api/v1/auth/login`; nếu credential hợp lệ, service trả access token ngắn hạn và refresh token. Login fail trả lỗi chung để không tiết lộ email có tồn tại hay không.
 3. Các request protected mang access JWT. Kong chặn token sai ở ingress; BFF/Identity xác minh signature/claim qua public key của Identity Service trước khi tạo caller context.
-4. `POST /auth/refresh` xoay refresh token: token cũ bị revoke, token mới được tạo cùng token family. Reuse refresh token đã revoke làm revoke toàn bộ session family.
-5. `POST /auth/logout` revoke session/refresh token. `GET/PATCH /users/me` đi thẳng Identity Service qua Kong; user chỉ được đọc/sửa profile của mình.
+4. `POST /api/v1/auth/refresh` xoay refresh token: token cũ bị revoke, token mới được tạo cùng token family. Reuse refresh token đã revoke làm revoke toàn bộ session family.
+5. `POST /api/v1/auth/logout` revoke session/refresh token. `GET/PATCH /api/v1/users/me` đi thẳng Identity Service qua Kong; user chỉ được đọc/sửa profile của mình.
 
 Access token chứa tối thiểu `sub` (UUID user), `roles`, `iss`, `aud`, `exp`, `iat`, `jti` và `kid`. Identity Service ký bằng key bất đối xứng, public key được publish dưới JWKS endpoint để Kong/BFF cache và verify. Password reset, email verification, MFA, social login và third-party OAuth/OIDC được hoãn sau MVP.
 
@@ -100,7 +100,7 @@ Access token chứa tối thiểu `sub` (UUID user), `roles`, `iss`, `aud`, `exp
 | Order tạo `PENDING_STOCK` rồi Inventory reserve kho | Đúng hướng nhưng thiếu nhánh thất bại và compensation muộn. Bắt buộc thêm `InventoryReservationRejected → Order CANCELLED`, retry/DLQ, idempotent consumer và `ReservationReleaseRequested` khi reservation đến sau cancel. |
 | Publish RabbitMQ sau khi lưu DB | Cần **transactional outbox**. Nếu không, process có thể chết giữa DB commit và publish khiến order kẹt mãi. |
 | JWT chỉ check ở Kong, service “ngây thơ” | Identity Service là issuer JWT. Kong nên chặn request ở ingress, nhưng downstream không được tin header tùy ý từ public network. Giữ service private, strip/overwrite header tại gateway, BFF verify claim trước khi tạo caller context, và kiểm tra authorization/ownership ở service xử lý dữ liệu nhạy cảm. |
-| Kong route thẳng service hoặc BFF | Về kỹ thuật làm được; với dự án này mặc định route vào BFF. Ngoại lệ hẹp: Identity endpoint (`/auth/*`, `/users/me`) và payment webhook sau này. Không công khai generic internal service endpoint chỉ để “cho đủ microservice”. |
+| Kong route thẳng service hoặc BFF | Về kỹ thuật làm được; với dự án này mặc định dùng chung namespace `/api/v1/*` nhưng có route thẳng. Ngoại lệ hẹp đi thẳng: Identity endpoint (`/api/v1/auth/*`, `/api/v1/users/me`) và payment webhook sau này. Không công khai generic internal service endpoint chỉ để “cho đủ microservice”. |
 | gRPC call mặc định timeout 30 giây | Không nên giả định vậy. Java gRPC thường không có deadline mặc định nếu app không đặt. Mọi outbound call phải đặt deadline rõ ràng; timeout ngắn hơn request budget. |
 | Circuit breaker trả giá `0` khi Catalog down | Không an toàn cho checkout. Với read-only product page có thể trả cached/stale data; với tạo order phải fail rõ `PRODUCT_UNAVAILABLE`, không dùng giá fallback. |
 | OpenTelemetry “bắn logs/metrics/traces” thẳng mọi nơi | Tách pipeline: traces qua OTLP Collector → Jaeger; Prometheus scrape metrics endpoint; logs JSON có `trace_id` (Loki là tùy chọn). Message headers phải propagate W3C Trace Context qua RabbitMQ. |

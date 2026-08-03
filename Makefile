@@ -2,6 +2,7 @@
 
 up:
 	docker compose -f deployments/docker/compose.foundation.yml up -d --build
+	docker compose -f deployments/docker/compose.foundation.yml up -d --force-recreate --no-deps kong
 
 down:
 	docker compose -f deployments/docker/compose.foundation.yml down

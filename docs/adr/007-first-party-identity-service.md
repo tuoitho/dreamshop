@@ -10,7 +10,7 @@ E-commerce cần đăng ký, đăng nhập, profile và quyền cơ bản. Dùng
 
 ## Decision
 
-Tạo một Identity Service bằng Java + Spring Boot/Spring Security, chỉ phục vụ first-party clients của dự án. Service sở hữu user/profile, role, password credential, session và refresh token; public qua Kong tại `/auth/*` và `/users/me`.
+Tạo một Identity Service bằng Java + Spring Boot/Spring Security, chỉ phục vụ first-party clients của dự án. Service sở hữu user/profile, role, password credential, session và refresh token; public qua Kong tại `/api/v1/auth/*` và `/api/v1/users/me`.
 
 Password được hash bằng Argon2id (bcrypt là fallback có ghi rõ lý do). Access JWT ký bất đối xứng, có `sub`, role, issuer, audience, expiry, token ID và `kid`; JWKS public phục vụ verify/key rotation. Refresh token lưu hash, rotate mỗi lần refresh, có token family/revocation; reuse token revoked revoke toàn family. BFF/Identity verify issuer, audience và signature trước khi tạo caller context; Order vẫn làm authorization ownership.
 

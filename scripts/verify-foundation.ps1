@@ -27,14 +27,14 @@ $containers = docker compose -f deployments/docker/compose.foundation.yml ps -q
 if ($containers) {
     Write-Host 'Checking public routes through Kong gateway...'
     try {
-        $bffResp = Invoke-WebRequest -Uri 'http://localhost:8000/api/healthz' -UseBasicParsing -TimeoutSec 5
+        $bffResp = Invoke-WebRequest -Uri 'http://localhost:8000/api/v1/storefront/healthz' -UseBasicParsing -TimeoutSec 5
         if ($bffResp.StatusCode -ne 200) { throw "BFF health route returned status $($bffResp.StatusCode)" }
     } catch {
         throw "Failed to reach BFF through Kong: $_"
     }
 
     try {
-        $identityResp = Invoke-WebRequest -Uri 'http://localhost:8000/auth/actuator/health' -UseBasicParsing -TimeoutSec 5
+        $identityResp = Invoke-WebRequest -Uri 'http://localhost:8000/api/v1/auth/actuator/health' -UseBasicParsing -TimeoutSec 5
         if ($identityResp.StatusCode -ne 200) { throw "Identity health route returned status $($identityResp.StatusCode)" }
     } catch {
         throw "Failed to reach Identity through Kong: $_"
@@ -44,7 +44,11 @@ if ($containers) {
 # Documentation assertions
 if (Test-Path 'README.md') {
     $readmeContent = Get-Content 'README.md' -Raw
-    $requiredTerms = @('make up', 'make proto', 'make verify', 'bff-service', 'catalog-service', 'inventory-service', 'identity-service', 'order-service', '/api', '/auth')
+    $requiredTerms = @(
+        'make up', 'make proto', 'make verify',
+        'bff-service', 'catalog-service', 'inventory-service', 'identity-service', 'order-service',
+        '/api/v1/auth', '/api/v1/users', '/api/v1/storefront'
+    )
     foreach ($term in $requiredTerms) {
         if ($readmeContent -notlike "*$term*") {
             throw "README.md is missing required instruction or term: $term"

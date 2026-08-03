@@ -196,13 +196,13 @@ services:
     url: http://identity-service:8080
     routes:
       - name: identity-public
-        paths: ["/auth", "/users"]
+        paths: ["/api/v1/auth", "/api/v1/users"]
         strip_path: true
   - name: bff-service
     url: http://bff-service:8080
     routes:
-      - name: commerce-api
-        paths: ["/api"]
+      - name: storefront-api
+        paths: ["/api/v1/storefront"]
         strip_path: true
 ```
 
@@ -465,7 +465,7 @@ git commit -m "feat: add Java service health skeletons"
 
 - [ ] **Step 1: Add a failing route smoke test**
 
-Append a check to `scripts/verify-foundation.ps1` that, after Compose is up, requires `http://localhost:8000/api/healthz` and `http://localhost:8000/auth/actuator/health` to return non-5xx responses.
+Append a check to `scripts/verify-foundation.ps1` that, after Compose is up, requires `http://localhost:8000/api/v1/storefront/healthz` and `http://localhost:8000/api/v1/auth/actuator/health` to return non-5xx responses.
 
 - [ ] **Step 2: Run the route check before application containers are added**
 
@@ -481,8 +481,8 @@ Each Dockerfile must use a multi-stage build and run as a non-root user where th
 
 Update `kong.yaml` so:
 
-- `/auth` and `/users` route to Identity;
-- `/api` routes to BFF;
+- `/api/v1/auth` and `/api/v1/users` route to Identity;
+- `/api/v1/storefront` routes to BFF;
 - Catalog, Order and Inventory have no Kong route;
 - Kong's JWT enforcement is not enabled until Identity can issue valid tokens in Phase 1.
 
@@ -529,7 +529,7 @@ It must document:
 
 - copy `.env.example` to `.env` and replace local-only passwords;
 - `make proto`, `make up`, `make verify`, `make down`;
-- Kong exposes only `/auth`, `/users` and `/api`;
+- Kong exposes endpoints grouped under `/api/v1/*`;
 - Identity has no functional login/JWT yet in Phase 0;
 - no command uses `docker compose down -v` by default.
 
