@@ -3,6 +3,8 @@ package com.ecommerce.identity.support;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -11,6 +13,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @SpringBootTest
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public abstract class PostgresIntegrationTestSupport {
+    private static final TestRsaKeyFiles KEYS = TestRsaKeyFiles.create(2048);
+
     @Container
     @ServiceConnection
     protected static final PostgreSQLContainer POSTGRES =
@@ -18,4 +22,14 @@ public abstract class PostgresIntegrationTestSupport {
                     .withDatabaseName("identity_test")
                     .withUsername("identity")
                     .withPassword("identity");
+
+    @DynamicPropertySource
+    static void jwtProperties(DynamicPropertyRegistry registry) {
+        registry.add("identity.jwt.private-key-path", () -> KEYS.privateKeyPath().toString());
+        registry.add("identity.jwt.public-key-path", () -> KEYS.publicKeyPath().toString());
+        registry.add("identity.jwt.key-id", () -> "identity-test-key");
+        registry.add("identity.jwt.issuer", () -> "identity-test");
+        registry.add("identity.jwt.audience", () -> "ecommerce-api");
+        registry.add("identity.jwt.access-ttl", () -> "15m");
+    }
 }

@@ -1,6 +1,7 @@
 package com.ecommerce.identity.common.error;
 
 import com.ecommerce.identity.auth.domain.EmailAlreadyRegisteredException;
+import com.ecommerce.identity.auth.domain.AuthenticationUnavailableException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -18,6 +19,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(EmailAlreadyRegisteredException.class)
     ResponseEntity<ApiError> handleDuplicateEmail(EmailAlreadyRegisteredException exception) {
         return error(HttpStatus.CONFLICT, "EMAIL_ALREADY_REGISTERED", "Email is already registered");
+    }
+
+    @ExceptionHandler(AuthenticationUnavailableException.class)
+    ResponseEntity<ApiError> handleAuthenticationUnavailable(AuthenticationUnavailableException exception) {
+        return error(HttpStatus.SERVICE_UNAVAILABLE, "AUTHENTICATION_UNAVAILABLE",
+                "Authentication is temporarily unavailable.");
     }
 
     @ExceptionHandler(Exception.class)
