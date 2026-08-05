@@ -1,17 +1,8 @@
-import { createContext, useCallback, useMemo, useState, type ReactNode } from "react"
+import { useCallback, useMemo, useState, type ReactNode } from "react"
 import { login as loginRequest, register as registerRequest } from "@/lib/api"
 import { clearAccessToken, getAccessToken, setAccessToken } from "@/lib/token-storage"
 import type { LoginRequest, RegisterRequest } from "@/lib/types"
-
-interface AuthContextValue {
-  token: string | null
-  isAuthenticated: boolean
-  login: (payload: LoginRequest) => Promise<void>
-  register: (payload: RegisterRequest) => Promise<void>
-  logout: () => void
-}
-
-export const AuthContext = createContext<AuthContextValue | null>(null)
+import { AuthContext, type AuthContextValue } from "./auth-context"
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => getAccessToken())
