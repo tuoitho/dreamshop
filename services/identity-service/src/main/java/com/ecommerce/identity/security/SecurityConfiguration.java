@@ -20,20 +20,14 @@ import org.springframework.security.web.access.intercept.AuthorizationFilter;
 @Configuration
 public class SecurityConfiguration {
     @Bean
-    CallerContextFilter callerContextFilter() {
-        return new CallerContextFilter();
-    }
-
-    @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, CallerContextFilter callerContextFilter,
-            ObjectMapper objectMapper) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper objectMapper) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)
-                .addFilterBefore(callerContextFilter, AuthorizationFilter.class)
+                .addFilterBefore(new CallerContextFilter(), AuthorizationFilter.class)
                 .exceptionHandling(exceptionHandling -> exceptionHandling
                         .authenticationEntryPoint((request, response, exception) -> writeUnauthorized(objectMapper, response))
                         .accessDeniedHandler((request, response, exception) -> writeDenied(objectMapper, response)))
