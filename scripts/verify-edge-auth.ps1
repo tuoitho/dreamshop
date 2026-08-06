@@ -60,6 +60,18 @@ if (($anonymous.Content | ConvertFrom-Json).code -ne 'UNAUTHORIZED') {
     throw 'Unauthenticated /users/me did not return UNAUTHORIZED.'
 }
 
+$tokenParts = $accessToken.Split('.')
+if ($tokenParts.Count -ne 3) {
+    throw 'Access token is not a three-part JWT.'
+}
+$tamperedSignature = $tokenParts[2].Substring(0, $tokenParts[2].Length - 1) + $(if ($tokenParts[2].EndsWith('x')) { 'y' } else { 'x' })
+$tamperedToken = "$($tokenParts[0]).$($tokenParts[1]).$tamperedSignature"
+$tampered = Invoke-WebRequest -Uri "$usersBase/me" -Headers @{ Authorization = "Bearer $tamperedToken" } -SkipHttpErrorCheck
+Assert-StatusCode $tampered 401 'Tampered-token /users/me'
+if (($tampered.Content | ConvertFrom-Json).code -ne 'UNAUTHORIZED') {
+    throw 'Kong accepted a tampered token signature.'
+}
+
 $forgedHeaders = @{ Authorization = "Bearer $accessToken"; 'X-User-Id' = [Guid]::NewGuid().ToString() }
 $forged = Invoke-WebRequest -Uri "$usersBase/me" -Headers $forgedHeaders -SkipHttpErrorCheck
 Assert-StatusCode $forged 200 'Forged-header /users/me'
