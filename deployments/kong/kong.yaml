@@ -4,9 +4,18 @@ services:
   - name: identity-service
     url: http://identity-service:8080
     routes:
-      - name: identity-public
-        paths: ["/api/v1/auth", "/api/v1/users"]
+      - name: identity-auth-public
+        paths: ["/api/v1/auth"]
         strip_path: true
+      - name: identity-users-protected
+        paths: ["/api/v1/users"]
+        strip_path: true
+        plugins:
+          - name: caller-context
+            config:
+              jwks_uri: http://identity-service:8080/.well-known/jwks.json
+              issuer: http://identity-service:8080
+              audience: ecommerce-api
   - name: bff-service
     url: http://bff-service:8080
     routes:
