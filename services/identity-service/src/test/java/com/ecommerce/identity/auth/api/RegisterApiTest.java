@@ -101,15 +101,15 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/private"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
-                .andExpect(jsonPath("$.message").value("Access is denied"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.message").value("Missing or invalid access token"))
                 .andExpect(jsonPath("$.trace_id", matchesPattern("[0-9a-f]{32}")));
 
         mockMvc.perform(post("/private"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
-                .andExpect(jsonPath("$.message").value("Access is denied"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.message").value("Missing or invalid access token"))
                 .andExpect(jsonPath("$.trace_id", matchesPattern("[0-9a-f]{32}")));
 
         mockMvc.perform(get("/.well-known/jwks.json"))
