@@ -80,12 +80,14 @@ return {
           { cache_ttl_seconds = { type = "integer", default = 300 } },
           { clock_skew_seconds = { type = "integer", default = 0 } },
         },
-        required = { "jwks_uri", "issuer", "audience" },
       } },
     },
-  },
-}
+  }
 ```
+
+> **Schema gotchas (discovered during Task 7 smoke testing):**
+> - The last line must be `}` (no trailing comma). `return { ... },` is a syntax error and Kong fails to load the schema.
+> - Do not put `required = { "jwks_uri", ... }` inside the `config` record. Kong validates that key as the field-definition property `required` (a boolean), not as a record constraint. Required config fields are expressed with `required = true` on each field, as done above.
 
 - [ ] **Step 2: Create the plugin handler**
 
@@ -323,7 +325,7 @@ services:
         paths: ["/api/v1/auth"]
         strip_path: true
       - name: identity-users-protected
-        paths: ["/api/v1/users"]
+        paths: ["/api/v1"]
         strip_path: true
         plugins:
           - name: caller-context
@@ -338,6 +340,8 @@ services:
         paths: ["/api/v1/storefront"]
         strip_path: true
 ```
+
+> **Why `/api/v1` and not `/api/v1/users`:** Kong's `strip_path` removes the *entire* matched prefix, so a route at `/api/v1/users` would forward `GET /api/v1/users/me` upstream as `/me`. Identity serves `GET /users/me` (mirroring the `/register`, `/login` leaf-path convention), so the protected route must strip only `/api/v1`, forwarding `/users/me`. Kong resolves the more specific routes first (`/api/v1/auth` and `/api/v1/storefront` are longer prefixes and win for their requests), so auth and storefront routing is unaffected.
 
 The global CORS `plugins:` block at the bottom of the file stays unchanged.
 

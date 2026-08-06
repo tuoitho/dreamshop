@@ -61,9 +61,11 @@ The current `identity-public` route covers both `/api/v1/auth` and `/api/v1/user
 | Route | Paths | Auth |
 |---|---|---|
 | `identity-auth-public` | `/api/v1/auth` | none |
-| `identity-users-protected` | `/api/v1/users` | `caller-context` plugin |
+| `identity-users-protected` | `/api/v1` | `caller-context` plugin |
 
 Both route to `http://identity-service:8080` with `strip_path: true`.
+
+> **Why the protected route matches `/api/v1` (not `/api/v1/users`):** Kong's `strip_path` removes the *entire* matched prefix, so a route at `/api/v1/users` forwards `GET /api/v1/users/me` upstream as `/me`. Identity serves `GET /users/me` (its leaf-path convention: `/register`, `/login`), so the protected route strips only `/api/v1` and forwards `/users/me`. The more specific `/api/v1/auth` and `/api/v1/storefront` prefixes still win for their own requests.
 
 ### 4.4 Identity consumes headers via a Spring Security filter
 
@@ -155,7 +157,7 @@ services:
         paths: ["/api/v1/auth"]
         strip_path: true
       - name: identity-users-protected
-        paths: ["/api/v1/users"]
+        paths: ["/api/v1"]
         strip_path: true
         plugins:
           - name: caller-context
@@ -173,7 +175,7 @@ The `kong` service in `deployments/docker/compose.foundation.yml` switches from 
 
 ## 7. Identity `/users/me` contract
 
-Kong routes `/api/v1/users` to Identity with `strip_path: true`, so the upstream path is `/users/me`.
+Kong routes `/api/v1` to Identity with `strip_path: true`, so the upstream path is `/users/me`.
 
 | Capability | Public path | Identity upstream path | Auth |
 |---|---|---|---|

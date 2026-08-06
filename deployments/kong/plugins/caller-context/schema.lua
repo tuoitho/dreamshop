@@ -12,8 +12,6 @@ return {
           { cache_ttl_seconds = { type = "integer", default = 300 } },
           { clock_skew_seconds = { type = "integer", default = 0 } },
         },
-        required = { "jwks_uri", "issuer", "audience" },
       } },
     },
-  },
-}
+  }
