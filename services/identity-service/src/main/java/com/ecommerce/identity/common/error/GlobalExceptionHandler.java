@@ -3,6 +3,7 @@ package com.ecommerce.identity.common.error;
 import com.ecommerce.identity.auth.domain.EmailAlreadyRegisteredException;
 import com.ecommerce.identity.auth.domain.AuthenticationUnavailableException;
 import com.ecommerce.identity.auth.domain.InvalidCredentialsException;
+import com.ecommerce.identity.user.domain.UserNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -31,6 +32,11 @@ public class GlobalExceptionHandler {
     ResponseEntity<ApiError> handleAuthenticationUnavailable(AuthenticationUnavailableException exception) {
         return error(HttpStatus.SERVICE_UNAVAILABLE, "AUTHENTICATION_UNAVAILABLE",
                 "Authentication is temporarily unavailable.");
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    ResponseEntity<ApiError> handleUserNotFound(UserNotFoundException exception) {
+        return error(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found");
     }
 
     @ExceptionHandler(Exception.class)
