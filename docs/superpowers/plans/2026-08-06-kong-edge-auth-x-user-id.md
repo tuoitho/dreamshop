@@ -469,10 +469,10 @@ class MeApiTest extends PostgresIntegrationTestSupport {
 Run (from repo root; Docker must be running for Testcontainers):
 
 ```bash
-mvn -q -pl services/identity-service -am test -Dtest=MeApiTest
+mvn -q -pl services/identity-service -am test -Dtest=MeApiTest -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-Expected: FAIL. `GET /users/me` currently returns `403` (`denyAll`), so `status().isOk()` / `isUnauthorized()` / `isNotFound()` assertions fail. (Compilation succeeds because the test only uses MockMvc and existing classes.)
+Expected: FAIL. `GET /users/me` currently returns `403` (`denyAll`), so `status().isOk()` / `isUnauthorized()` / `isNotFound()` assertions fail. (Compilation succeeds because the test only uses MockMvc and existing classes.) Note the `-Dsurefire.failIfNoSpecifiedTests=false` flag: without it, Maven's upstream `contracts` module (which has no tests) aborts the run with "No tests were executed".
 
 ---
 
@@ -678,7 +678,7 @@ Note: `CallerContextFilter` is a `@Bean` but **not** a `@Component`, so Spring d
 - [ ] **Step 5: Run the failing test to confirm progress**
 
 ```bash
-mvn -q -pl services/identity-service -am test -Dtest=MeApiTest
+mvn -q -pl services/identity-service -am test -Dtest=MeApiTest -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
 Expected: `rejectsRequestWithoutCallerHeader`, `rejectsMalformedCallerHeader` now PASS (401). `returnsCallerProfileForVerifiedUserIdHeader` still FAILS (404: no controller). `returnsNotFoundForUnknownUser` / `returnsNotFoundForDisabledAccount` still FAIL (404/500: no controller or exception mapping).
@@ -831,7 +831,7 @@ import com.ecommerce.identity.user.domain.UserNotFoundException;
 - [ ] **Step 8: Run the test to verify it passes**
 
 ```bash
-mvn -q -pl services/identity-service -am test -Dtest=MeApiTest
+mvn -q -pl services/identity-service -am test -Dtest=MeApiTest -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
 Expected: all five `MeApiTest` cases PASS.
