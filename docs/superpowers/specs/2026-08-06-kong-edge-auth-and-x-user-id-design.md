@@ -303,5 +303,5 @@ This slice delivers the Kong plugin, route split, Identity `/users/me`, and end-
 ## 16. References
 
 - [ADR-007: First-party Identity Service](../../adr/007-first-party-identity-service.md)
-- [Hybrid REST/BFF/gRPC edge-routing design](../2026-07-30-hybrid-rest-grpc-edge-routing-design.md)
-- [Identity A: Register, Login and JWKS design](../2026-08-03-identity-register-login-jwks-design.md)
+- [Hybrid REST/BFF/gRPC edge-routing design](./2026-07-30-hybrid-rest-grpc-edge-routing-design.md)
+- [Identity A: Register, Login and JWKS design](./2026-08-03-identity-register-login-jwks-design.md)
