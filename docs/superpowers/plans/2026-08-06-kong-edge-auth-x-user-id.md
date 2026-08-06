@@ -624,6 +624,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 
@@ -646,7 +647,7 @@ public class SecurityConfiguration {
                 .addFilterBefore(callerContextFilter, AuthorizationFilter.class)
                 .exceptionHandling(exceptionHandling -> exceptionHandling
                         .authenticationEntryPoint((request, response, exception) -> writeUnauthorized(objectMapper, response))
-                        .accessDeniedHandler((request, response, exception) -> writeForbidden(objectMapper, response)))
+                        .accessDeniedHandler((request, response, exception) -> writeDenied(objectMapper, response)))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.POST, "/register").permitAll()
                         .requestMatchers(HttpMethod.POST, "/login").permitAll()
@@ -670,10 +671,20 @@ public class SecurityConfiguration {
         objectMapper.writeValue(response.getOutputStream(),
                 new ApiError("FORBIDDEN", "Access is denied", TraceIdProvider.current()));
     }
+
+    private static void writeDenied(ObjectMapper objectMapper, HttpServletResponse response) throws IOException {
+        if (SecurityContextHolder.getContext().getAuthentication() instanceof CallerContextPrincipal) {
+            writeForbidden(objectMapper, response);
+        } else {
+            writeUnauthorized(objectMapper, response);
+        }
+    }
 }
 ```
 
 Note: `CallerContextFilter` is a `@Bean` but **not** a `@Component`, so Spring does not register it as a standalone servlet filter and it runs exactly once, inside the security chain.
+
+Note on 401-vs-403: with Spring Security 7.1 the `ExceptionTranslationFilter` sends denied requests to the `authenticationEntryPoint` (401) only when the context holds an *anonymous* or *remember-me* authentication; a null context falls through to the `accessDeniedHandler` (403). This app does not install an anonymous token, so a missing/malformed `X-User-Id` produced 403 instead of the contract's 401. The `accessDeniedHandler` therefore decides on the actual authentication type: only a real `CallerContextPrincipal` that still fails authorization is 403; everything else is 401.
 
 - [ ] **Step 5: Run the failing test to confirm progress**
 
