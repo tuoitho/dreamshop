@@ -48,6 +48,17 @@ class MeApiTest extends PostgresIntegrationTestSupport {
     }
 
     @Test
+    void loadsRolesFromDatabaseNotFromForgedRolesHeader() throws Exception {
+        String userId = registerUser("roles@example.com");
+
+        mockMvc.perform(get("/users/me")
+                        .header("X-User-Id", userId)
+                        .header("X-User-Roles", "ADMIN"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.roles[0]").value("CUSTOMER"));
+    }
+
+    @Test
     void rejectsRequestWithoutCallerHeader() throws Exception {
         mockMvc.perform(get("/users/me"))
                 .andExpect(status().isUnauthorized())
