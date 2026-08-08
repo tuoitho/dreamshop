@@ -1,0 +1,29 @@
+### Identity Service REST API Client
+@baseUrl = http://localhost:8090
+
+### Health Check
+GET {{baseUrl}}/actuator/health
+Accept: application/json
+
+### JWKS Public Keys
+GET {{baseUrl}}/.well-known/jwks.json
+Accept: application/json
+
+### Register New User
+POST {{baseUrl}}/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "SecurePassword123!",
+  "full_name": "Nguyen Van A"
+}
+
+### Login
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "SecurePassword123!"
+}

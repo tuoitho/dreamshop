@@ -1,0 +1,280 @@
+import { useState } from "react"
+import { Link, useParams } from "react-router-dom"
+import {
+  ChevronRight,
+  Heart,
+  Minus,
+  Plus,
+  RotateCcw,
+  Share2,
+  ShieldCheck,
+  ShoppingCart,
+  Star,
+  Truck,
+} from "lucide-react"
+import { formatVND, getProductById, getRelatedProducts } from "@/data/products"
+import { ProductCard } from "@/components/product-card"
+import { ProductImage } from "@/components/product-image"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { useCart } from "@/hooks/use-cart"
+import { cn } from "@/lib/utils"
+
+export default function ProductDetailPage() {
+  const { id } = useParams<{ id: string }>()
+  const product = id ? getProductById(id) : undefined
+  const related = product ? getRelatedProducts(product) : []
+  const { addItem } = useCart()
+
+  const [variantIndex, setVariantIndex] = useState(0)
+  const [quantity, setQuantity] = useState(1)
+  const [added, setAdded] = useState(false)
+
+  if (!product) {
+    return (
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-center px-4 py-24 text-center">
+        <span className="text-5xl">🤷</span>
+        <h1 className="mt-4 text-xl font-bold">Không tìm thấy sản phẩm</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Sản phẩm không tồn tại hoặc đã bị gỡ khỏi gian hàng.
+        </p>
+        <Button className="mt-6" asChild>
+          <Link to="/">Về trang chủ</Link>
+        </Button>
+      </div>
+    )
+  }
+
+  const discount = product.originalPrice > product.price
+    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    : 0
+
+  const handleAddToCart = () => {
+    addItem(product.id, variantIndex, quantity)
+    setAdded(true)
+    window.setTimeout(() => setAdded(false), 1600)
+  }
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-6">
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-1 text-xs text-muted-foreground">
+        <Link to="/" className="hover:text-primary">Trang chủ</Link>
+        <ChevronRight className="size-3.5" />
+        <Link
+          to={`/tim-kiem?danh-muc=${product.categoryId}`}
+          className="hover:text-primary"
+        >
+          {product.categoryName}
+        </Link>
+        <ChevronRight className="size-3.5" />
+        <span className="line-clamp-1 max-w-60">{product.name}</span>
+      </nav>
+
+      <div className="mt-6 grid gap-8 lg:grid-cols-2">
+        {/* Gallery */}
+        <div className="relative overflow-hidden rounded-3xl ring-1 ring-foreground/10">
+          <ProductImage
+            emoji={product.emoji}
+            hue={product.imageHue}
+            seed={product.id}
+            label={product.name}
+            className="aspect-square"
+          />
+          {discount > 0 && (
+            <span className="absolute top-4 left-4 rounded-lg bg-red-600 px-2 py-1 text-xs font-bold text-white">
+              -{discount}%
+            </span>
+          )}
+        </div>
+
+        {/* Info */}
+        <div>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">{product.brand}</Badge>
+            {product.badge === "new" && <Badge variant="success">Mới về</Badge>}
+            {product.badge === "hot" && <Badge variant="sale">🔥 Bán chạy</Badge>}
+          </div>
+
+          <h1 className="mt-3 text-2xl leading-snug font-bold sm:text-3xl">{product.name}</h1>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+            <div className="flex items-center gap-1">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star
+                  key={i}
+                  className={cn(
+                    "size-4",
+                    i < Math.round(product.rating)
+                      ? "fill-amber-400 text-amber-400"
+                      : "text-muted"
+                  )}
+                />
+              ))}
+            </div>
+            <span className="font-semibold">{product.rating}</span>
+            <span className="text-muted-foreground">
+              ({product.reviewCount.toLocaleString("vi-VN")} đánh giá)
+            </span>
+            <span className="text-muted-foreground">·</span>
+            <span className="text-muted-foreground">
+              Đã bán {product.soldCount.toLocaleString("vi-VN")}
+            </span>
+          </div>
+
+          <div className="mt-5 rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
+            <div className="flex items-end gap-3">
+              <span className="text-3xl font-extrabold text-red-600">{formatVND(product.price)}</span>
+              {product.originalPrice > product.price && (
+                <span className="mb-1 text-sm text-muted-foreground line-through">
+                  {formatVND(product.originalPrice)}
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Giá đã bao gồm VAT. Miễn phí vận chuyển cho đơn từ 299.000đ.
+            </p>
+          </div>
+
+          <div className="mt-5 rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
+            <p className="text-sm font-semibold">Mô tả ngắn</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{product.description}</p>
+          </div>
+
+          {product.variants.length > 0 && (
+            <div className="mt-5 rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
+              <p className="text-sm font-semibold">
+                Phân loại: <span className="font-normal text-muted-foreground">{product.variants[variantIndex].color}</span>
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {product.variants.map((variant, index) => (
+                  <button
+                    key={variant.color}
+                    onClick={() => setVariantIndex(index)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors",
+                      variantIndex === index
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-border hover:border-primary/40"
+                    )}
+                    aria-pressed={variantIndex === index}
+                  >
+                    <span
+                      className="size-4 rounded-full border border-black/10"
+                      style={{ backgroundColor: variant.colorHex }}
+                    />
+                    {variant.color}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-5 flex flex-wrap items-center gap-6">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setQuantity((value) => Math.max(1, value - 1))}
+                aria-label="Giảm số lượng"
+              >
+                <Minus />
+              </Button>
+              <span className="w-12 text-center text-sm font-semibold" aria-live="polite">
+                {quantity}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setQuantity((value) => Math.min(product.stock, value + 1))}
+                aria-label="Tăng số lượng"
+              >
+                <Plus />
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                {product.stock} sản phẩm có sẵn
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Button
+              size="lg"
+              className="flex-1 min-w-44"
+              onClick={handleAddToCart}
+            >
+              <ShoppingCart />
+              {added ? "Đã thêm vào giỏ" : "Thêm vào giỏ"}
+            </Button>
+            <Button size="lg" variant="outline" className="flex-1 min-w-36" asChild>
+              <Link to={`/gio-hang?buy=${product.id}`}>Mua ngay</Link>
+            </Button>
+            <Button size="icon" variant="outline" aria-label="Thêm vào yêu thích">
+              <Heart />
+            </Button>
+            <Button size="icon" variant="outline" aria-label="Chia sẻ sản phẩm">
+              <Share2 />
+            </Button>
+          </div>
+
+          <div className="mt-6 grid gap-3 rounded-2xl bg-card p-5 ring-1 ring-foreground/10 sm:grid-cols-3">
+            {[
+              { icon: Truck, title: "Giao nhanh 2h", desc: "Nội thành HCM & HN" },
+              { icon: ShieldCheck, title: "Chính hãng", desc: "Bảo hành 12 tháng" },
+              { icon: RotateCcw, title: "Đổi trả 30 ngày", desc: "Hoàn tiền dễ dàng" },
+            ].map((item) => (
+              <div key={item.title} className="flex items-center gap-2">
+                <item.icon className="size-5 shrink-0 text-primary" />
+                <div>
+                  <p className="text-xs font-semibold">{item.title}</p>
+                  <p className="text-[0.7rem] text-muted-foreground">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Details */}
+      <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_320px]">
+        <div className="rounded-3xl bg-card p-6 ring-1 ring-foreground/10">
+          <h2 className="text-lg font-bold">Chi tiết sản phẩm</h2>
+          <Separator className="my-4" />
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {product.details.map((detail) => (
+              <li key={detail} className="flex items-start gap-2 text-sm">
+                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
+                <span className="text-muted-foreground">{detail}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rounded-3xl bg-card p-6 ring-1 ring-foreground/10">
+          <h2 className="text-lg font-bold">Chính sách bán hàng</h2>
+          <Separator className="my-4" />
+          <ul className="grid gap-3 text-sm text-muted-foreground">
+            <li>• Miễn phí vận chuyển đơn từ 299.000đ</li>
+            <li>• Đổi trả miễn phí trong 30 ngày</li>
+            <li>• Bảo hành chính hãng toàn quốc</li>
+            <li>• Thanh toán khi nhận hàng (COD)</li>
+            <li>• Trả góp 0% qua thẻ tín dụng</li>
+          </ul>
+        </div>
+      </div>
+
+      {/* Related */}
+      {related.length > 0 && (
+        <section className="mt-12">
+          <h2 className="text-xl font-bold">Sản phẩm tương tự</h2>
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {related.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}
