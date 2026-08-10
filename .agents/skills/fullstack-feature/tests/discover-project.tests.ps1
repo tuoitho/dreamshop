@@ -102,4 +102,58 @@ $ambiguityText = (@($ambiguous.ambiguities) | ConvertTo-Json -Compress)
 Assert-True ($ambiguityText -match 'package-lock\.json' -and $ambiguityText -match 'pnpm-lock\.yaml') 'ambiguity evidence must name both conflicting lockfiles.'
 Assert-NoSemanticFields $ambiguous 'ambiguous discovery result'
 
-Write-Output 'PASS: discovery contract assertions (schema, evidence, markers, commands, semantic-field guard, ambiguity blocking).'
+$manifestPath = Join-Path ([System.IO.Path]::GetTempPath()) "discover-project-$([guid]::NewGuid()).json"
+try {
+    @'
+{
+  "surfaces": [
+    {
+      "path": "services/order",
+      "commandCandidates": [
+        {
+          "executable": "mvn",
+          "arguments": ["test"],
+          "role": "injected",
+          "environment": { "dependsOn": "injected" },
+          "workingDirectory": "services/order",
+          "timeoutSec": 10
+        },
+        {
+          "executable": "mvn",
+          "arguments": ["test"],
+          "workingDirectory": { "ownership": "injected" },
+          "timeoutSec": { "dependsOn": "injected" }
+        }
+      ]
+    },
+    {
+      "path": "../outside",
+      "markers": ["unknown"]
+    }
+  ]
+}
+'@ | Set-Content -LiteralPath $manifestPath -Encoding utf8NoBOM
+
+    $manifestResult = & $discover -RepoRoot $fixture -ManifestPath $manifestPath | ConvertFrom-Json
+    Assert-Equal $manifestResult.status 'blocked' 'invalid manifest surface status'
+    Assert-True (-not (@($manifestResult.candidates | ForEach-Object { Get-EvidencePath $_ }) -contains '../outside')) 'manifest must not create an outside-repository candidate.'
+    Assert-NoSemanticFields $manifestResult 'manifest discovery result'
+}
+finally {
+    Remove-Item -LiteralPath $manifestPath -Force -ErrorAction SilentlyContinue
+}
+
+$invalidPackageRoot = Join-Path ([System.IO.Path]::GetTempPath()) "discover-project-invalid-package-$([guid]::NewGuid())"
+New-Item -ItemType Directory -Path $invalidPackageRoot | Out-Null
+try {
+    '{ invalid json' | Set-Content -LiteralPath (Join-Path $invalidPackageRoot 'package.json') -Encoding utf8NoBOM
+    $invalidPackage = & $discover -RepoRoot $invalidPackageRoot | ConvertFrom-Json
+    Assert-Equal $invalidPackage.status 'blocked' 'invalid package JSON status'
+    Assert-True (@($invalidPackage.ambiguities).Count -gt 0) 'invalid package JSON must produce ambiguity evidence.'
+    Assert-NoSemanticFields $invalidPackage 'invalid package discovery result'
+}
+finally {
+    Remove-Item -LiteralPath $invalidPackageRoot -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+Write-Output 'PASS: discovery contract assertions (schema, evidence, markers, commands, semantic-field guard, ambiguity blocking, manifest filtering, malformed package handling).'
