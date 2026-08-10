@@ -5,6 +5,8 @@ import com.ecommerce.identity.auth.domain.AuthenticationUnavailableException;
 import com.ecommerce.identity.auth.domain.InvalidCredentialsException;
 import com.ecommerce.identity.auth.domain.InvalidRefreshTokenException;
 import com.ecommerce.identity.user.domain.UserNotFoundException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,8 +18,20 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class})
-    ResponseEntity<ApiError> handleInvalidRequest(Exception exception) {
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    ResponseEntity<ApiError> handleValidationFailure(MethodArgumentNotValidException exception) {
+        Map<String, String> errors = new LinkedHashMap<>();
+        exception.getBindingResult().getFieldErrors().forEach(error -> {
+            log.warn("validation_failed field={} message={}", error.getField(), error.getDefaultMessage());
+            errors.put(error.getField(), error.getDefaultMessage());
+        });
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiError(
+                "VALIDATION_FAILED", "Request validation failed", errors, TraceIdProvider.current()));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ResponseEntity<ApiError> handleInvalidRequest(HttpMessageNotReadableException exception) {
+        log.warn("Invalid request", exception);
         return error(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "Request validation failed");
     }
 
@@ -54,6 +68,6 @@ public class GlobalExceptionHandler {
     }
 
     private ResponseEntity<ApiError> error(HttpStatus status, String code, String message) {
-        return ResponseEntity.status(status).body(new ApiError(code, message, TraceIdProvider.current()));
+        return ResponseEntity.status(status).body(new ApiError(code, message, null, TraceIdProvider.current()));
     }
 }

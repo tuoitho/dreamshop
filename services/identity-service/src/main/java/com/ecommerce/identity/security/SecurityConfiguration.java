@@ -47,14 +47,14 @@ public class SecurityConfiguration {
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getOutputStream(),
-                new ApiError("UNAUTHORIZED", "Missing or invalid access token", TraceIdProvider.current()));
+                new ApiError("UNAUTHORIZED", "Missing or invalid access token", null, TraceIdProvider.current()));
     }
 
     private static void writeForbidden(ObjectMapper objectMapper, HttpServletResponse response) throws IOException {
         response.setStatus(HttpStatus.FORBIDDEN.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getOutputStream(),
-                new ApiError("FORBIDDEN", "Access is denied", TraceIdProvider.current()));
+                new ApiError("FORBIDDEN", "Access is denied", null, TraceIdProvider.current()));
     }
 
     private static void writeDenied(ObjectMapper objectMapper, HttpServletResponse response) throws IOException {

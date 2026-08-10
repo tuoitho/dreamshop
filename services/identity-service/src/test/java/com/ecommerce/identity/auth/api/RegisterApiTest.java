@@ -75,7 +75,20 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.message").value("Request validation failed"))
+                .andExpect(jsonPath("$.errors.email").value("must be a well-formed email address"))
+                .andExpect(jsonPath("$.errors.password").value("size must be between 12 and 128"))
+                .andExpect(jsonPath("$.errors.fullName").value("must not be blank"))
                 .andExpect(jsonPath("$.trace_id", matchesPattern("[0-9a-f]{32}")));
+    }
+
+    @Test
+    void rejectsMalformedBodyWithoutFieldErrors() throws Exception {
+        mockMvc.perform(post("/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.errors").doesNotExist());
     }
 
     @Test
