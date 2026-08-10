@@ -43,6 +43,7 @@ class LoginServiceTest extends PostgresIntegrationTestSupport {
 
     @BeforeEach
     void resetDatabase() {
+        jdbcTemplate.update("delete from refresh_token_sessions");
         jdbcTemplate.update("delete from user_roles");
         jdbcTemplate.update("delete from identity_profiles");
         jdbcTemplate.update("delete from identity_users");
@@ -57,9 +58,10 @@ class LoginServiceTest extends PostgresIntegrationTestSupport {
         when(jwtTokenService.issue(any(), any())).thenReturn(new AccessTokenResult("token", 900));
         clearInvocations(passwordEncoder, jwtTokenService);
 
-        AccessTokenResult result = service.login(new LoginCommand("USER@example.com", "correct password"));
+        AuthenticatedSession session = service.login(new LoginCommand("USER@example.com", "correct password"));
 
-        assertThat(result).isEqualTo(new AccessTokenResult("token", 900));
+        assertThat(session.accessToken()).isEqualTo(new AccessTokenResult("token", 900));
+        assertThat(session.rawRefreshToken()).isNotBlank();
         verify(passwordEncoder).matches("correct password", users.findWithRolesByNormalizedEmail("user@example.com")
                 .orElseThrow().passwordHash());
         verify(jwtTokenService).issue(any(), any());

@@ -3,6 +3,7 @@ package com.ecommerce.identity.common.error;
 import com.ecommerce.identity.auth.domain.EmailAlreadyRegisteredException;
 import com.ecommerce.identity.auth.domain.AuthenticationUnavailableException;
 import com.ecommerce.identity.auth.domain.InvalidCredentialsException;
+import com.ecommerce.identity.auth.domain.InvalidRefreshTokenException;
 import com.ecommerce.identity.user.domain.UserNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidCredentialsException.class)
     ResponseEntity<ApiError> handleInvalidCredentials(InvalidCredentialsException exception) {
         return error(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Email or password is invalid.");
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    ResponseEntity<ApiError> handleInvalidRefreshToken(InvalidRefreshTokenException exception) {
+        return error(HttpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN", "Refresh token is invalid or expired");
     }
 
     @ExceptionHandler(AuthenticationUnavailableException.class)
