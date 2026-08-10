@@ -31,7 +31,7 @@ $requestBody = @{ email = $email; password = $password; full_name = 'Edge Auth S
 $register = Invoke-WebRequest -Uri "$authBase/register" -Method Post -ContentType 'application/json' -Body $requestBody -SkipHttpErrorCheck
 Assert-StatusCode $register 201 'Registration'
 
-$login = Invoke-WebRequest -Uri "$authBase/login" -Method Post -ContentType 'application/json' -Body (@{ email = $email; password = $password } | ConvertTo-Json -Compress) -SkipHttpErrorCheck
+$login = Invoke-WebRequest -Uri "$authBase/login" -Method Post -ContentType 'application/json' -Body (@{ email = $email; password = $password } | ConvertTo-Json -Compress) -SessionVariable authSession -SkipHttpErrorCheck
 Assert-StatusCode $login 200 'Login'
 
 $accessToken = ($login.Content | ConvertFrom-Json).access_token
@@ -40,6 +40,20 @@ if ([string]::IsNullOrWhiteSpace($accessToken)) {
 }
 
 $claims = [Text.Encoding]::UTF8.GetString((ConvertFrom-Base64Url $accessToken.Split('.')[1])) | ConvertFrom-Json
+
+$refresh = Invoke-WebRequest -Uri "$authBase/refresh" -Method Post -WebSession $authSession -SkipHttpErrorCheck
+Assert-StatusCode $refresh 200 'Refresh'
+$accessToken = ($refresh.Content | ConvertFrom-Json).access_token
+if ([string]::IsNullOrWhiteSpace($accessToken)) {
+    throw 'Refresh response did not contain an access token.'
+}
+$latestCookie = $authSession.Cookies.GetCookies([Uri] $AuthBaseUrl) |
+    Where-Object { $_.Name -eq 'refresh_token' } |
+    Select-Object -First 1
+if ($null -eq $latestCookie -or [string]::IsNullOrWhiteSpace($latestCookie.Value)) {
+    throw 'Refresh did not rotate the refresh cookie.'
+}
+$latestCookieValue = $latestCookie.Value
 
 $me = Invoke-WebRequest -Uri "$usersBase/me" -Headers @{ Authorization = "Bearer $accessToken" } -SkipHttpErrorCheck
 Assert-StatusCode $me 200 'Authenticated /users/me'
@@ -52,6 +66,13 @@ if (@($meBody.roles) -notcontains 'CUSTOMER') {
 }
 if ($meBody.email -ne $email) {
     throw '/users/me did not return the registered email.'
+}
+
+$updateBody = @{ full_name = 'Updated Edge Auth Smoke Test' } | ConvertTo-Json -Compress
+$updated = Invoke-WebRequest -Uri "$usersBase/me" -Method Patch -Headers @{ Authorization = "Bearer $accessToken" } -ContentType 'application/json' -Body $updateBody -SkipHttpErrorCheck
+Assert-StatusCode $updated 200 'PATCH /users/me'
+if (($updated.Content | ConvertFrom-Json).full_name -ne 'Updated Edge Auth Smoke Test') {
+    throw 'PATCH /users/me did not return the updated full name.'
 }
 
 $anonymous = Invoke-WebRequest -Uri "$usersBase/me" -SkipHttpErrorCheck
@@ -79,4 +100,13 @@ if (($forged.Content | ConvertFrom-Json).user_id -ne $claims.sub) {
     throw 'Kong forwarded a client-supplied X-User-Id instead of the verified subject.'
 }
 
-Write-Host 'Kong edge auth /users/me smoke checks passed.'
+$logout = Invoke-WebRequest -Uri "$authBase/logout" -Method Post -WebSession $authSession -SkipHttpErrorCheck
+Assert-StatusCode $logout 204 'Logout'
+
+$afterLogout = Invoke-WebRequest -Uri "$authBase/refresh" -Method Post -Headers @{ Cookie = "refresh_token=$latestCookieValue" } -SkipHttpErrorCheck
+Assert-StatusCode $afterLogout 401 'Refresh after logout'
+if (($afterLogout.Content | ConvertFrom-Json).code -ne 'INVALID_REFRESH_TOKEN') {
+    throw 'Refresh after logout did not return INVALID_REFRESH_TOKEN.'
+}
+
+Write-Host 'Kong edge auth refresh/profile/logout smoke checks passed.'

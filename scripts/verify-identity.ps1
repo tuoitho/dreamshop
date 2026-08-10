@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string] $BaseUrl = 'http://localhost:8000/api/v1/auth',
-    [string] $ExpectedIssuer = 'http://identity-service:8080'
+    [string] $ExpectedIssuer = 'http://localhost:8080'
 )
 
 $ErrorActionPreference = 'Stop'
