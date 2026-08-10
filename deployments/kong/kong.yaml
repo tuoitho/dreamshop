@@ -2,7 +2,7 @@ _format_version: "3.0"
 # CORS plugin global cho phép frontend dev (localhost:5173) gọi API qua gateway.
 services:
   - name: identity-service
-    url: http://identity-service:8080
+    url: http://host.docker.internal:8080
     routes:
       - name: identity-auth-public
         paths: ["/api/v1/auth"]
@@ -13,11 +13,11 @@ services:
         plugins:
           - name: caller-context
             config:
-              jwks_uri: http://identity-service:8080/.well-known/jwks.json
-              issuer: http://identity-service:8080
+              jwks_uri: http://host.docker.internal:8080/.well-known/jwks.json
+              issuer: http://localhost:8080
               audience: ecommerce-api
   - name: bff-service
-    url: http://bff-service:8080
+    url: http://host.docker.internal:8081
     routes:
       - name: storefront-api
         paths: ["/api/v1/storefront"]

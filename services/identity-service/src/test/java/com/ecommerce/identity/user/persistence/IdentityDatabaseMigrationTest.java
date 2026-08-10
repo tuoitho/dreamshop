@@ -43,4 +43,15 @@ class IdentityDatabaseMigrationTest extends PostgresIntegrationTestSupport {
         assertThat(jdbc.sql("select code from roles").query(String.class).list())
                 .containsExactly("CUSTOMER");
     }
+
+    @Test
+    void createsRefreshSessionsWithUniqueTokenHash() {
+        assertThat(jdbc.sql("""
+                select table_name from information_schema.tables where table_schema = 'public'
+                """).query(String.class).list()).contains("refresh_token_sessions");
+        assertThat(jdbc.sql("""
+                select conname from pg_constraint
+                where conrelid = 'refresh_token_sessions'::regclass and contype = 'u'
+                """).query(String.class).list()).contains("uq_refresh_token_sessions_token_hash");
+    }
 }

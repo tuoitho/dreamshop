@@ -31,5 +31,9 @@ public abstract class PostgresIntegrationTestSupport {
         registry.add("identity.jwt.issuer", () -> "identity-test");
         registry.add("identity.jwt.audience", () -> "ecommerce-api");
         registry.add("identity.jwt.access-ttl", () -> "15m");
+        registry.add("identity.session.refresh-ttl", () -> "30d");
+        registry.add("identity.session.cookie-name", () -> "refresh_token");
+        registry.add("identity.session.cookie-path", () -> "/api/v1/auth");
+        registry.add("identity.session.cookie-secure", () -> "false");
     }
 }

@@ -11,6 +11,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class RegisterUserService {
     private static final String CUSTOMER_ROLE = "CUSTOMER";
     private static final String NORMALIZED_EMAIL_CONSTRAINT = "uq_identity_users_normalized_email";
@@ -26,14 +28,6 @@ public class RegisterUserService {
     private final RoleRepository roles;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
-
-    public RegisterUserService(IdentityUserRepository users, RoleRepository roles,
-            PasswordEncoder passwordEncoder, Clock clock) {
-        this.users = users;
-        this.roles = roles;
-        this.passwordEncoder = passwordEncoder;
-        this.clock = clock;
-    }
 
     @Transactional
     public RegisteredUser register(RegisterCommand command) {

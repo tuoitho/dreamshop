@@ -19,6 +19,11 @@ identity:
     public-key-path: ${IDENTITY_JWT_PUBLIC_KEY_PATH:deployments/secrets/identity/public.pem}
     key-id: ${IDENTITY_JWT_KEY_ID:identity-dev-2026-01}
     access-ttl: ${IDENTITY_JWT_ACCESS_TTL:15m}
+  session:
+    refresh-ttl: ${IDENTITY_SESSION_REFRESH_TTL:30d}
+    cookie-name: ${IDENTITY_SESSION_COOKIE_NAME:refresh_token}
+    cookie-path: ${IDENTITY_SESSION_COOKIE_PATH:/api/v1/auth}
+    cookie-secure: ${IDENTITY_SESSION_COOKIE_SECURE:false}
 management:
   endpoints:
     web:

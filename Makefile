@@ -1,29 +1,12 @@
-.PHONY: up down logs proto lint verify verify-identity verify-edge-auth identity-keys
+.PHONY: identity order help
 
-up: identity-keys
-	docker compose -f deployments/docker/compose.foundation.yml up -d --build
-	docker compose -f deployments/docker/compose.foundation.yml up -d --force-recreate --no-deps kong
+identity:
+	set "IDENTITY_JWT_PRIVATE_KEY_PATH=$(CURDIR)/deployments/secrets/identity/private.pem" && set "IDENTITY_JWT_PUBLIC_KEY_PATH=$(CURDIR)/deployments/secrets/identity/public.pem" && mvn -f services/identity-service/pom.xml spring-boot:run
 
-down:
-	docker compose -f deployments/docker/compose.foundation.yml down
+order:
+	mvn -f services/order-service/pom.xml spring-boot:run
 
-logs:
-	docker compose -f deployments/docker/compose.foundation.yml logs -f
-
-proto:
-	buf generate
-
-lint:
-	buf lint
-
-verify:
-	pwsh -File scripts/verify-foundation.ps1
-
-verify-identity:
-	pwsh -NoProfile -File scripts/verify-identity.ps1
-
-verify-edge-auth:
-	pwsh -NoProfile -File scripts/verify-edge-auth.ps1
-
-identity-keys:
-	pwsh -NoProfile -File scripts/generate-identity-dev-keys.ps1
+help:
+	@echo "Targets:"
+	@echo "  make identity   - Start identity-service"
+	@echo "  make order      - Start order-service"

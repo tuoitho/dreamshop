@@ -3,18 +3,16 @@ package com.ecommerce.identity.security;
 import com.nimbusds.jose.jwk.JWKSet;
 import java.time.Duration;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequiredArgsConstructor
 public class JwksController {
     private final SigningKeyMaterial keys;
-
-    public JwksController(SigningKeyMaterial keys) {
-        this.keys = keys;
-    }
 
     @GetMapping("/.well-known/jwks.json")
     ResponseEntity<Map<String, Object>> jwks() {

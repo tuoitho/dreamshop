@@ -21,9 +21,16 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
 @Entity
 @Table(name = "identity_users")
+@Getter
+@Accessors(fluent = true)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class IdentityUserEntity {
     @Id
     @Column(nullable = false, updatable = false)
@@ -56,9 +63,6 @@ public class IdentityUserEntity {
             inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<RoleEntity> roles = new LinkedHashSet<>();
 
-    protected IdentityUserEntity() {
-    }
-
     public static IdentityUserEntity create(UUID id, String email, String normalizedEmail,
             String passwordHash, AccountStatus status, Instant now, String fullName, Set<RoleEntity> roles) {
         IdentityUserEntity user = new IdentityUserEntity();
@@ -77,26 +81,6 @@ public class IdentityUserEntity {
             throw new NullPointerException("roles must not contain null");
         }
         return user;
-    }
-
-    public UUID id() {
-        return id;
-    }
-
-    public String email() {
-        return email;
-    }
-
-    public String normalizedEmail() {
-        return normalizedEmail;
-    }
-
-    public String passwordHash() {
-        return passwordHash;
-    }
-
-    public AccountStatus status() {
-        return status;
     }
 
     public String fullName() {
