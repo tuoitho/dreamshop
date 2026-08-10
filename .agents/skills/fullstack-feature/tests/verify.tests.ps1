@@ -57,7 +57,7 @@ function Invoke-Verifier {
         [int]$ExpectedExitCode = 0
     )
 
-    $output = @(& $verify @Arguments 2>&1)
+    $output = @(& pwsh -NoProfile -File $verify @Arguments 2>&1)
     Assert-Equal $LASTEXITCODE $ExpectedExitCode "verifier exit code ($($Arguments -join ' ')); output: $($output -join "`n")"
     return Read-LatestReport
 }
@@ -152,6 +152,18 @@ try {
     Assert-Equal $skipped.overall 'skipped' 'inapplicable stage overall status'
     Assert-True ((Get-Gates $skipped | Where-Object { $_.status -eq 'skipped' }).Count -gt 0) 'inapplicable stage must be reported as skipped.'
 
+    $dryRunMissing = Invoke-Verifier @('-Stage', 'surface', '-Surface', 'sample', '-RepoRoot', $fixture, '-ManifestPath', $manifestPath, '-DryRun') 2
+    Assert-Equal $dryRunMissing.overall 'blocked' 'dry-run missing-executable overall status'
+    Assert-Equal (Get-Gate $dryRunMissing 'surface:sample:missing').status 'blocked' 'dry-run missing executable status'
+    Assert-Equal (Get-Gate $dryRunMissing 'surface:sample:pass').status 'skipped' 'dry-run available executable status'
+
+    $collision = Invoke-Verifier @('-Stage', 'surface', '-Surface', 'collision', '-RepoRoot', $fixture, '-ManifestPath', $manifestPath, '-DryRun')
+    $collisionGates = @(Get-Gates $collision)
+    Assert-Equal $collisionGates.Count 2 'colliding explicit command/check count'
+    Assert-Equal @($collisionGates | Select-Object -ExpandProperty gateId -Unique).Count 2 'colliding explicit command/check unique gate count'
+    Assert-Equal (($collisionGates | ForEach-Object { $_.command.arguments[-1] } | Sort-Object) -join '|') ((@("Write-Output 'candidate command'", "Write-Output 'named check'") | Sort-Object) -join '|') 'colliding explicit command/check preservation'
+
+    Remove-Item -LiteralPath (Join-Path $fixture 'dry-run.marker') -Force -ErrorAction SilentlyContinue
     $dryRun = Invoke-Verifier @('-Stage', 'surface', '-Surface', 'dryrun', '-RepoRoot', $fixture, '-ManifestPath', $manifestPath, '-DryRun')
     Assert-Equal $dryRun.overall 'skipped' 'dry-run overall status'
     Assert-Equal (Get-Gate $dryRun 'surface:dryrun:execute').status 'skipped' 'dry-run gate status'

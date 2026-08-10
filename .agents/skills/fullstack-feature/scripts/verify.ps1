@@ -1,0 +1,761 @@
+#Requires -Version 7
+[CmdletBinding()]
+param(
+    [ValidateSet('discovery', 'contract', 'surface', 'integration', 'e2e', 'all')]
+    [string]$Stage = 'all',
+    [string[]]$Surface,
+    [string]$RepoRoot = (Get-Location).Path,
+    [string]$ManifestPath,
+    [switch]$DryRun
+)
+
+$ErrorActionPreference = 'Stop'
+$pathComparison = if ($IsWindows) {
+    [System.StringComparison]::OrdinalIgnoreCase
+}
+else {
+    [System.StringComparison]::Ordinal
+}
+
+function ConvertTo-NormalizedPath {
+    param([Parameter(Mandatory)][string]$Path)
+
+    return $Path.Replace('\', '/')
+}
+
+function Resolve-PhysicalPath {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [switch]$AllowMissing
+    )
+
+    $fullPath = [System.IO.Path]::GetFullPath($Path)
+    $pathRoot = [System.IO.Path]::GetPathRoot($fullPath)
+    $relativePath = $fullPath.Substring($pathRoot.Length)
+    $segments = $relativePath.Split(
+        [char[]]@([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar),
+        [System.StringSplitOptions]::RemoveEmptyEntries
+    )
+    $currentPath = $pathRoot
+
+    for ($index = 0; $index -lt $segments.Length; $index++) {
+        $candidatePath = Join-Path $currentPath $segments[$index]
+        if (-not (Test-Path -LiteralPath $candidatePath)) {
+            if (-not $AllowMissing) {
+                throw "Path does not exist: $Path"
+            }
+            for ($remaining = $index; $remaining -lt $segments.Length; $remaining++) {
+                $currentPath = Join-Path $currentPath $segments[$remaining]
+            }
+            break
+        }
+
+        $item = Get-Item -LiteralPath $candidatePath -Force
+        if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            $target = $item.ResolveLinkTarget($true)
+            if ($null -eq $target) {
+                throw "Could not resolve link: $($item.FullName)"
+            }
+            $currentPath = $target.FullName
+        }
+        else {
+            $currentPath = $item.FullName
+        }
+    }
+
+    return [System.IO.Path]::GetFullPath($currentPath)
+}
+
+function Test-ContainedPath {
+    param(
+        [Parameter(Mandatory)][string]$RootPath,
+        [Parameter(Mandatory)][string]$CandidatePath
+    )
+
+    $relativePath = [System.IO.Path]::GetRelativePath($RootPath, $CandidatePath)
+    return $relativePath -eq '.' -or (
+        -not [System.IO.Path]::IsPathRooted($relativePath) -and
+        $relativePath -ne '..' -and
+        -not $relativePath.StartsWith("..$([System.IO.Path]::DirectorySeparatorChar)", $pathComparison) -and
+        -not $relativePath.StartsWith("..$([System.IO.Path]::AltDirectorySeparatorChar)", $pathComparison)
+    )
+}
+
+function Resolve-ContainedPath {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$RootPath,
+        [switch]$AllowMissing,
+        [ValidateSet('Any', 'Container', 'Leaf')][string]$PathType = 'Any'
+    )
+
+    $resolvedPath = Resolve-PhysicalPath -Path $Path -AllowMissing:$AllowMissing
+    if (-not (Test-ContainedPath -RootPath $RootPath -CandidatePath $resolvedPath)) {
+        throw "Path must resolve within RepoRoot: $Path"
+    }
+    if (-not $AllowMissing) {
+        if ($PathType -eq 'Container' -and -not (Test-Path -LiteralPath $resolvedPath -PathType Container)) {
+            throw "Path must be a directory: $Path"
+        }
+        if ($PathType -eq 'Leaf' -and -not (Test-Path -LiteralPath $resolvedPath -PathType Leaf)) {
+            throw "Path must be a file: $Path"
+        }
+    }
+
+    return $resolvedPath
+}
+
+function Get-RelativeReportPath {
+    param(
+        [Parameter(Mandatory)][string]$RootPath,
+        [Parameter(Mandatory)][string]$Path
+    )
+
+    return ConvertTo-NormalizedPath ([System.IO.Path]::GetRelativePath($RootPath, $Path))
+}
+
+function Get-SafeFileName {
+    param([Parameter(Mandatory)][string]$Value)
+
+    $safeValue = $Value -replace '[^A-Za-z0-9._-]', '-'
+    $safeValue = $safeValue.Trim('-', '.')
+    if ([string]::IsNullOrWhiteSpace($safeValue)) {
+        return 'gate'
+    }
+    return $safeValue
+}
+
+function Test-SafeRelativePath {
+    param([Parameter(Mandatory)][string]$Path)
+
+    if ([System.IO.Path]::IsPathRooted($Path)) {
+        return $false
+    }
+    $segments = (ConvertTo-NormalizedPath $Path).Split('/', [System.StringSplitOptions]::RemoveEmptyEntries)
+    return $segments -notcontains '..'
+}
+
+function Resolve-SurfaceDirectory {
+    param(
+        [Parameter(Mandatory)][string]$SurfacePath,
+        [Parameter(Mandatory)][string]$RootPath
+    )
+
+    if (-not (Test-SafeRelativePath $SurfacePath)) {
+        throw 'surface path must be relative and must not traverse parent directories'
+    }
+    return Resolve-ContainedPath -Path (Join-Path $RootPath $SurfacePath) -RootPath $RootPath -PathType Container
+}
+
+function Resolve-WorkingDirectory {
+    param(
+        [string]$WorkingDirectory,
+        [Parameter(Mandatory)][string]$SurfaceDirectory,
+        [Parameter(Mandatory)][string]$RootPath
+    )
+
+    if ([string]::IsNullOrWhiteSpace($WorkingDirectory)) {
+        return $SurfaceDirectory
+    }
+    if (-not (Test-SafeRelativePath $WorkingDirectory)) {
+        throw 'workingDirectory must be relative and must not traverse parent directories'
+    }
+
+    $surfaceCandidate = Join-Path $SurfaceDirectory $WorkingDirectory
+    if (Test-Path -LiteralPath $surfaceCandidate -PathType Container) {
+        return Resolve-ContainedPath -Path $surfaceCandidate -RootPath $RootPath -PathType Container
+    }
+    return Resolve-ContainedPath -Path (Join-Path $RootPath $WorkingDirectory) -RootPath $RootPath -PathType Container
+}
+
+function Get-CheckStage {
+    param(
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][object]$Check
+    )
+
+    if ($null -ne $Check.PSObject.Properties['stage']) {
+        $declaredStage = [string]$Check.stage
+        if ($declaredStage -in @('contract', 'surface', 'integration', 'e2e')) {
+            return $declaredStage
+        }
+        throw "unsupported check stage: $declaredStage"
+    }
+    if ($Name -in @('contract', 'integration', 'e2e')) {
+        return $Name
+    }
+    return 'surface'
+}
+
+function Get-EnvironmentMap {
+    param([object]$Environment)
+
+    $environmentMap = [ordered]@{}
+    if ($null -eq $Environment) {
+        return $environmentMap
+    }
+    foreach ($property in @($Environment.PSObject.Properties)) {
+        if ([string]::IsNullOrWhiteSpace($property.Name) -or $property.Name.Contains('=') -or $property.Name.Contains([char]0) -or
+            $property.Value -isnot [string]) {
+            throw 'command environment must be a string-to-string map'
+        }
+        $environmentMap[$property.Name] = [string]$property.Value
+    }
+    return $environmentMap
+}
+
+function Resolve-Executable {
+    param(
+        [Parameter(Mandatory)][string]$Executable,
+        [Parameter(Mandatory)][string]$WorkingDirectory
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Executable)) {
+        return $null
+    }
+    if ([System.IO.Path]::IsPathRooted($Executable) -or $Executable.Contains([System.IO.Path]::DirectorySeparatorChar) -or
+        $Executable.Contains([System.IO.Path]::AltDirectorySeparatorChar)) {
+        $candidateExecutable = if ([System.IO.Path]::IsPathRooted($Executable)) {
+            $Executable
+        }
+        else {
+            Join-Path $WorkingDirectory $Executable
+        }
+        if (Test-Path -LiteralPath $candidateExecutable -PathType Leaf) {
+            return (Resolve-Path -LiteralPath $candidateExecutable).Path
+        }
+        return $null
+    }
+
+    $command = Get-Command -Name $Executable -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($null -eq $command) {
+        return $null
+    }
+    return $command.Source
+}
+
+function Write-GateLog {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [string]$StandardOutput,
+        [string]$StandardError
+    )
+
+    $logParts = @()
+    if (-not [string]::IsNullOrEmpty($StandardOutput)) {
+        $logParts += $StandardOutput.TrimEnd("`r", "`n")
+    }
+    if (-not [string]::IsNullOrEmpty($StandardError)) {
+        $logParts += $StandardError.TrimEnd("`r", "`n")
+    }
+    Set-Content -LiteralPath $Path -Value ($logParts -join [Environment]::NewLine) -Encoding utf8NoBOM
+}
+
+function Invoke-StructuredCommand {
+    param(
+        [Parameter(Mandatory)][object]$Command,
+        [Parameter(Mandatory)][string]$WorkingDirectory,
+        [Parameter(Mandatory)][string]$LogPath
+    )
+
+    $resolvedExecutable = Resolve-Executable -Executable ([string]$Command.executable) -WorkingDirectory $WorkingDirectory
+    if ($null -eq $resolvedExecutable) {
+        Write-GateLog -Path $LogPath -StandardError "Executable was not found: $($Command.executable)"
+        return [PSCustomObject]@{
+            status = 'blocked'
+            exitCode = $null
+            durationSec = 0
+            reason = "executable was not found: $($Command.executable)"
+            executed = $false
+        }
+    }
+
+    $timeoutSec = if ($null -eq $Command.PSObject.Properties['timeoutSec']) { 300.0 } else { [double]$Command.timeoutSec }
+    if ($timeoutSec -le 0 -or [double]::IsNaN($timeoutSec) -or [double]::IsInfinity($timeoutSec)) {
+        Write-GateLog -Path $LogPath -StandardError 'timeoutSec must be a positive number'
+        return [PSCustomObject]@{
+            status = 'blocked'
+            exitCode = $null
+            durationSec = 0
+            reason = 'timeoutSec must be a positive number'
+            executed = $false
+        }
+    }
+
+    $processStartInfo = [System.Diagnostics.ProcessStartInfo]::new()
+    $processStartInfo.FileName = $resolvedExecutable
+    $processStartInfo.WorkingDirectory = $WorkingDirectory
+    $processStartInfo.UseShellExecute = $false
+    $processStartInfo.RedirectStandardOutput = $true
+    $processStartInfo.RedirectStandardError = $true
+    $processStartInfo.CreateNoWindow = $true
+    foreach ($argument in @($Command.arguments)) {
+        [void]$processStartInfo.ArgumentList.Add([string]$argument)
+    }
+    foreach ($entry in (Get-EnvironmentMap -Environment $Command.environment).GetEnumerator()) {
+        $processStartInfo.Environment[$entry.Key] = $entry.Value
+    }
+
+    $process = [System.Diagnostics.Process]::new()
+    $process.StartInfo = $processStartInfo
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    try {
+        try {
+            [void]$process.Start()
+        }
+        catch {
+            $stopwatch.Stop()
+            Write-GateLog -Path $LogPath -StandardError $_.Exception.Message
+            return [PSCustomObject]@{
+                status = 'blocked'
+                exitCode = $null
+                durationSec = [math]::Round($stopwatch.Elapsed.TotalSeconds, 3)
+                reason = "process could not start: $($_.Exception.Message)"
+                executed = $false
+            }
+        }
+
+        $standardOutputTask = $process.StandardOutput.ReadToEndAsync()
+        $standardErrorTask = $process.StandardError.ReadToEndAsync()
+        $timeoutMilliseconds = [int][math]::Min([int]::MaxValue, [math]::Ceiling($timeoutSec * 1000))
+        $completed = $process.WaitForExit($timeoutMilliseconds)
+        $timedOut = -not $completed
+        if ($timedOut) {
+            try {
+                $process.Kill($true)
+            }
+            catch {
+                # A process may exit between the timeout and the termination request.
+            }
+        }
+        $process.WaitForExit()
+        $standardOutput = $standardOutputTask.GetAwaiter().GetResult()
+        $standardError = $standardErrorTask.GetAwaiter().GetResult()
+        $stopwatch.Stop()
+        Write-GateLog -Path $LogPath -StandardOutput $standardOutput -StandardError $standardError
+
+        if ($timedOut) {
+            return [PSCustomObject]@{
+                status = 'fail'
+                exitCode = $process.ExitCode
+                durationSec = [math]::Round($stopwatch.Elapsed.TotalSeconds, 3)
+                reason = "command timeout after $timeoutSec seconds"
+                executed = $true
+            }
+        }
+
+        return [PSCustomObject]@{
+            status = if ($process.ExitCode -eq 0) { 'pass' } else { 'fail' }
+            exitCode = $process.ExitCode
+            durationSec = [math]::Round($stopwatch.Elapsed.TotalSeconds, 3)
+            reason = if ($process.ExitCode -eq 0) { '' } else { "command exited with code $($process.ExitCode)" }
+            executed = $true
+        }
+    }
+    finally {
+        $process.Dispose()
+    }
+}
+
+function New-GateRecord {
+    param(
+        [Parameter(Mandatory)][string]$GateId,
+        [string]$SurfaceId,
+        [Parameter(Mandatory)][string]$Status,
+        [object]$ExitCode,
+        [double]$DurationSec = 0,
+        [Parameter(Mandatory)][string]$LogPath,
+        [object]$Command,
+        [string]$Reason = ''
+    )
+
+    return [PSCustomObject][ordered]@{
+        gateId = $GateId
+        surfaceId = $SurfaceId
+        status = $Status
+        exitCode = $ExitCode
+        durationSec = $DurationSec
+        logPath = $LogPath
+        command = $Command
+        reason = $Reason
+    }
+}
+
+function Add-NormalizedResults {
+    param(
+        [Parameter(Mandatory)][object]$Gate,
+        [object]$TestResults,
+        [Parameter(Mandatory)][string]$WorkingDirectory,
+        [Parameter(Mandatory)][string]$RootPath,
+        [Parameter(Mandatory)][AllowEmptyCollection()][System.Collections.ArrayList]$Results
+    )
+
+    if ($null -eq $TestResults) {
+        return
+    }
+    if ([string]$TestResults.format -ne 'harness-tests-v1') {
+        if ($Gate.status -ne 'fail') {
+            $Gate.status = 'blocked'
+        }
+        $Gate.reason = 'unsupported normalized test result format'
+        return
+    }
+
+    try {
+        if ([string]::IsNullOrWhiteSpace([string]$TestResults.path)) {
+            throw 'normalized test result path is required'
+        }
+        $candidatePath = if ([System.IO.Path]::IsPathRooted([string]$TestResults.path)) {
+            [string]$TestResults.path
+        }
+        else {
+            Join-Path $WorkingDirectory ([string]$TestResults.path)
+        }
+        $resultPath = Resolve-ContainedPath -Path $candidatePath -RootPath $RootPath -PathType Leaf
+        $document = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json -Depth 64
+        if ([int]$document.schemaVersion -ne 1 -or $document.tests -isnot [array]) {
+            throw 'normalized test result document must use schemaVersion 1 and contain a tests array'
+        }
+
+        $validatedTests = @()
+        foreach ($test in @($document.tests)) {
+            if ([string]$test.status -notin @('pass', 'fail', 'skip')) {
+                throw "unsupported machine test status: $($test.status)"
+            }
+            $validatedTests += $test
+        }
+        foreach ($test in $validatedTests) {
+            [void]$Results.Add($test)
+        }
+    }
+    catch {
+        if ($Gate.status -ne 'fail') {
+            $Gate.status = 'blocked'
+        }
+        $Gate.reason = "normalized test results unavailable: $($_.Exception.Message)"
+    }
+}
+
+$rootItem = Get-Item -LiteralPath $RepoRoot -Force -ErrorAction Stop
+if (-not $rootItem.PSIsContainer) {
+    throw "RepoRoot must be a directory: $RepoRoot"
+}
+$resolvedRoot = Resolve-PhysicalPath -Path $rootItem.FullName
+
+$reportsPath = Resolve-ContainedPath -Path (Join-Path $resolvedRoot 'harness/reports') -RootPath $resolvedRoot -AllowMissing
+New-Item -ItemType Directory -Path $reportsPath -Force | Out-Null
+$reportsPath = Resolve-ContainedPath -Path $reportsPath -RootPath $resolvedRoot -PathType Container
+
+$runId = Get-Date -Format 'yyyyMMdd-HHmmss'
+$startedAt = (Get-Date).ToString('o')
+$runPath = Resolve-ContainedPath -Path (Join-Path $reportsPath $runId) -RootPath $resolvedRoot -AllowMissing
+New-Item -ItemType Directory -Path $runPath -Force | Out-Null
+$runPath = Resolve-ContainedPath -Path $runPath -RootPath $resolvedRoot -PathType Container
+
+$effectiveManifestPath = $null
+$manifestError = $null
+if ([string]::IsNullOrWhiteSpace($ManifestPath)) {
+    $defaultManifestPath = Join-Path $resolvedRoot 'harness/project.json'
+    if (Test-Path -LiteralPath $defaultManifestPath -PathType Leaf) {
+        try {
+            $effectiveManifestPath = Resolve-ContainedPath -Path $defaultManifestPath -RootPath $resolvedRoot -PathType Leaf
+        }
+        catch {
+            $manifestError = $_.Exception.Message
+        }
+    }
+}
+else {
+    try {
+        $manifestCandidatePath = if ([System.IO.Path]::IsPathRooted($ManifestPath)) {
+            $ManifestPath
+        }
+        else {
+            Join-Path $resolvedRoot $ManifestPath
+        }
+        $effectiveManifestPath = Resolve-ContainedPath -Path $manifestCandidatePath -RootPath $resolvedRoot -PathType Leaf
+    }
+    catch {
+        $manifestError = $_.Exception.Message
+    }
+}
+
+$manifest = $null
+if ($null -ne $effectiveManifestPath) {
+    try {
+        $manifest = Get-Content -LiteralPath $effectiveManifestPath -Raw | ConvertFrom-Json -Depth 64
+        if ([int]$manifest.schemaVersion -ne 1 -or $manifest.surfaces -isnot [array]) {
+            throw 'manifest must use schemaVersion 1 and contain a surfaces array'
+        }
+    }
+    catch {
+        $manifestError = "manifest could not be parsed: $($_.Exception.Message)"
+    }
+}
+
+$discoverScript = Join-Path $PSScriptRoot 'discover-project.ps1'
+$discovery = $null
+$discoveryError = $manifestError
+if ($null -eq $discoveryError) {
+    try {
+        if ($null -ne $effectiveManifestPath) {
+            $discoveryOutput = @(& $discoverScript -RepoRoot $resolvedRoot -ManifestPath $effectiveManifestPath 2>&1)
+        }
+        else {
+            $discoveryOutput = @(& $discoverScript -RepoRoot $resolvedRoot 2>&1)
+        }
+        $discovery = ($discoveryOutput -join [Environment]::NewLine) | ConvertFrom-Json -Depth 64
+        if ([string]$discovery.status -eq 'blocked') {
+            $discoveryError = 'repository discovery reported unresolved ambiguity'
+        }
+    }
+    catch {
+        $discoveryError = $_.Exception.Message
+    }
+}
+
+$gates = [System.Collections.ArrayList]::new()
+$normalizedResults = [System.Collections.ArrayList]::new()
+
+if ($Stage -in @('discovery', 'all')) {
+    $discoveryLogPath = Join-Path $runPath 'discovery.log'
+    $discoveryLog = if ($null -ne $discovery) { $discovery | ConvertTo-Json -Depth 64 } else { $discoveryError }
+    Set-Content -LiteralPath $discoveryLogPath -Value $discoveryLog -Encoding utf8NoBOM
+    [void]$gates.Add((New-GateRecord -GateId 'discovery' -Status $(if ($null -eq $discoveryError) { 'pass' } else { 'blocked' }) `
+        -ExitCode $null -LogPath (Get-RelativeReportPath -RootPath $resolvedRoot -Path $discoveryLogPath) -Command $null -Reason $discoveryError))
+}
+
+$selectedSurfaces = @($Surface | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+$requestedExecutionStages = if ($Stage -eq 'all') { @('contract', 'surface', 'integration', 'e2e') } elseif ($Stage -eq 'discovery') { @() } else { @($Stage) }
+
+if ($requestedExecutionStages.Count -gt 0 -and $null -ne $discoveryError) {
+    $blockedLogPath = Join-Path $runPath 'verification-blocked.log'
+    Set-Content -LiteralPath $blockedLogPath -Value $discoveryError -Encoding utf8NoBOM
+    [void]$gates.Add((New-GateRecord -GateId "$Stage`:discovery" -Status 'blocked' -ExitCode $null `
+        -LogPath (Get-RelativeReportPath -RootPath $resolvedRoot -Path $blockedLogPath) -Command $null -Reason $discoveryError))
+}
+elseif ($requestedExecutionStages.Count -gt 0) {
+    $surfaceDefinitions = @()
+    if ($null -ne $manifest) {
+        foreach ($surfaceDefinition in @($manifest.surfaces)) {
+            $manifestChecks = [ordered]@{}
+            $candidateIndex = 0
+            if ($null -ne $surfaceDefinition.commandCandidates) {
+                foreach ($commandCandidate in @($surfaceDefinition.commandCandidates)) {
+                    $candidateIndex++
+                    $manifestChecks["candidate-$candidateIndex"] = $commandCandidate
+                }
+            }
+            foreach ($checkProperty in @($surfaceDefinition.checks.PSObject.Properties)) {
+                $checkName = $checkProperty.Name
+                if ($manifestChecks.Contains($checkName)) {
+                    $suffix = 1
+                    $checkName = "check-$($checkProperty.Name)"
+                    while ($manifestChecks.Contains($checkName)) {
+                        $suffix++
+                        $checkName = "check-$($checkProperty.Name)-$suffix"
+                    }
+                }
+                $manifestChecks[$checkName] = $checkProperty.Value
+            }
+            $surfaceDefinitions += [PSCustomObject]@{
+                id = [string]$surfaceDefinition.id
+                path = [string]$surfaceDefinition.path
+                checks = [PSCustomObject]$manifestChecks
+            }
+        }
+    }
+    else {
+        foreach ($candidate in @($discovery.candidates)) {
+            $checks = [ordered]@{}
+            $commandIndex = 0
+            foreach ($command in @($candidate.commandCandidates)) {
+                $commandIndex++
+                $checks["command-$commandIndex"] = $command
+            }
+            $surfaceDefinitions += [PSCustomObject]@{
+                id = [string]$candidate.path
+                path = [string]$candidate.path
+                checks = [PSCustomObject]$checks
+            }
+        }
+    }
+
+    $knownSurfaceIds = @($surfaceDefinitions | ForEach-Object { $_.id })
+    $unknownSurfaceIds = @($selectedSurfaces | Where-Object { $_ -notin $knownSurfaceIds })
+    foreach ($unknownSurfaceId in $unknownSurfaceIds) {
+        $logPath = Join-Path $runPath ("surface-{0}-blocked.log" -f (Get-SafeFileName $unknownSurfaceId))
+        $reason = "requested surface was not found: $unknownSurfaceId"
+        Set-Content -LiteralPath $logPath -Value $reason -Encoding utf8NoBOM
+        [void]$gates.Add((New-GateRecord -GateId "surface:$unknownSurfaceId`:selection" -SurfaceId $unknownSurfaceId -Status 'blocked' `
+            -ExitCode $null -LogPath (Get-RelativeReportPath -RootPath $resolvedRoot -Path $logPath) -Command $null -Reason $reason))
+    }
+
+    foreach ($surfaceDefinition in $surfaceDefinitions) {
+        $surfaceId = [string]$surfaceDefinition.id
+        if ([string]::IsNullOrWhiteSpace($surfaceId)) {
+            continue
+        }
+        if ($selectedSurfaces.Count -gt 0 -and $surfaceId -notin $selectedSurfaces) {
+            continue
+        }
+
+        try {
+            $surfaceDirectory = Resolve-SurfaceDirectory -SurfacePath $surfaceDefinition.path -RootPath $resolvedRoot
+        }
+        catch {
+            $logPath = Join-Path $runPath ("surface-{0}-blocked.log" -f (Get-SafeFileName $surfaceId))
+            Set-Content -LiteralPath $logPath -Value $_.Exception.Message -Encoding utf8NoBOM
+            [void]$gates.Add((New-GateRecord -GateId "surface:$surfaceId`:path" -SurfaceId $surfaceId -Status 'blocked' `
+                -ExitCode $null -LogPath (Get-RelativeReportPath -RootPath $resolvedRoot -Path $logPath) -Command $null -Reason $_.Exception.Message))
+            continue
+        }
+
+        $applicableChecks = @()
+        foreach ($checkProperty in @($surfaceDefinition.checks.PSObject.Properties)) {
+            try {
+                $checkStage = Get-CheckStage -Name $checkProperty.Name -Check $checkProperty.Value
+                if ($checkStage -in $requestedExecutionStages) {
+                    $applicableChecks += [PSCustomObject]@{
+                        name = $checkProperty.Name
+                        stage = $checkStage
+                        command = $checkProperty.Value
+                    }
+                }
+            }
+            catch {
+                $logPath = Join-Path $runPath ("surface-{0}-{1}-blocked.log" -f (Get-SafeFileName $surfaceId), (Get-SafeFileName $checkProperty.Name))
+                Set-Content -LiteralPath $logPath -Value $_.Exception.Message -Encoding utf8NoBOM
+                [void]$gates.Add((New-GateRecord -GateId "surface:$surfaceId`:$($checkProperty.Name)" -SurfaceId $surfaceId -Status 'blocked' `
+                    -ExitCode $null -LogPath (Get-RelativeReportPath -RootPath $resolvedRoot -Path $logPath) -Command $null -Reason $_.Exception.Message))
+            }
+        }
+
+        if ($applicableChecks.Count -eq 0 -and $Stage -ne 'all') {
+            $logPath = Join-Path $runPath ("{0}-{1}-skipped.log" -f (Get-SafeFileName $Stage), (Get-SafeFileName $surfaceId))
+            $reason = "no $Stage check is configured for surface '$surfaceId'"
+            Set-Content -LiteralPath $logPath -Value $reason -Encoding utf8NoBOM
+            [void]$gates.Add((New-GateRecord -GateId "$Stage`:$surfaceId`:none" -SurfaceId $surfaceId -Status 'skipped' -ExitCode $null `
+                -LogPath (Get-RelativeReportPath -RootPath $resolvedRoot -Path $logPath) -Command $null -Reason $reason))
+            continue
+        }
+
+        foreach ($check in $applicableChecks) {
+            $command = $check.command
+            $gateId = "$($check.stage):$surfaceId`:$($check.name)"
+            $logFileName = "{0}.log" -f (Get-SafeFileName $gateId)
+            $logPath = Join-Path $runPath $logFileName
+            $reportCommand = [PSCustomObject][ordered]@{
+                executable = [string]$command.executable
+                arguments = @([string[]]$command.arguments)
+            }
+
+            if ([string]::IsNullOrWhiteSpace([string]$command.executable) -or $command.arguments -isnot [array]) {
+                $reason = 'command must provide an executable and argument array'
+                Write-GateLog -Path $logPath -StandardError $reason
+                [void]$gates.Add((New-GateRecord -GateId $gateId -SurfaceId $surfaceId -Status 'blocked' -ExitCode $null `
+                    -LogPath (Get-RelativeReportPath -RootPath $resolvedRoot -Path $logPath) -Command $reportCommand -Reason $reason))
+                continue
+            }
+
+            try {
+                foreach ($argument in @($command.arguments)) {
+                    if ($argument -isnot [string]) {
+                        throw 'command arguments must contain only strings'
+                    }
+                }
+                if ($null -ne $command.PSObject.Properties['timeoutSec']) {
+                    if ($command.timeoutSec -isnot [int] -and $command.timeoutSec -isnot [long] -and
+                        $command.timeoutSec -isnot [double] -and $command.timeoutSec -isnot [decimal]) {
+                        throw 'timeoutSec must be numeric'
+                    }
+                    $validatedTimeout = [double]$command.timeoutSec
+                    if ($validatedTimeout -le 0 -or [double]::IsNaN($validatedTimeout) -or [double]::IsInfinity($validatedTimeout)) {
+                        throw 'timeoutSec must be a positive number'
+                    }
+                }
+                $workingDirectory = Resolve-WorkingDirectory -WorkingDirectory ([string]$command.workingDirectory) `
+                    -SurfaceDirectory $surfaceDirectory -RootPath $resolvedRoot
+                [void](Get-EnvironmentMap -Environment $command.environment)
+                if ($null -eq (Resolve-Executable -Executable ([string]$command.executable) -WorkingDirectory $workingDirectory)) {
+                    throw "executable was not found: $($command.executable)"
+                }
+            }
+            catch {
+                Write-GateLog -Path $logPath -StandardError $_.Exception.Message
+                [void]$gates.Add((New-GateRecord -GateId $gateId -SurfaceId $surfaceId -Status 'blocked' -ExitCode $null `
+                    -LogPath (Get-RelativeReportPath -RootPath $resolvedRoot -Path $logPath) -Command $reportCommand -Reason $_.Exception.Message))
+                continue
+            }
+
+            $reportCommand | Add-Member -NotePropertyName workingDirectory -NotePropertyValue (Get-RelativeReportPath -RootPath $resolvedRoot -Path $workingDirectory)
+            if ($DryRun) {
+                $reason = 'dry-run: command was not executed'
+                Write-GateLog -Path $logPath -StandardOutput $reason
+                [void]$gates.Add((New-GateRecord -GateId $gateId -SurfaceId $surfaceId -Status 'skipped' -ExitCode $null `
+                    -LogPath (Get-RelativeReportPath -RootPath $resolvedRoot -Path $logPath) -Command $reportCommand -Reason $reason))
+                continue
+            }
+
+            $execution = Invoke-StructuredCommand -Command $command -WorkingDirectory $workingDirectory -LogPath $logPath
+            $gate = New-GateRecord -GateId $gateId -SurfaceId $surfaceId -Status $execution.status -ExitCode $execution.exitCode `
+                -DurationSec $execution.durationSec -LogPath (Get-RelativeReportPath -RootPath $resolvedRoot -Path $logPath) `
+                -Command $reportCommand -Reason $execution.reason
+            if ($execution.executed) {
+                Add-NormalizedResults -Gate $gate -TestResults $command.testResults -WorkingDirectory $workingDirectory `
+                    -RootPath $resolvedRoot -Results $normalizedResults
+            }
+            [void]$gates.Add($gate)
+        }
+    }
+
+    if ($surfaceDefinitions.Count -eq 0 -and $gates.Count -eq 0) {
+        $logPath = Join-Path $runPath ("$Stage-skipped.log")
+        $reason = 'no verification surfaces were discovered'
+        Set-Content -LiteralPath $logPath -Value $reason -Encoding utf8NoBOM
+        [void]$gates.Add((New-GateRecord -GateId "$Stage`:none" -Status 'skipped' -ExitCode $null `
+            -LogPath (Get-RelativeReportPath -RootPath $resolvedRoot -Path $logPath) -Command $null -Reason $reason))
+    }
+}
+
+$gateArray = @($gates.ToArray())
+$testArray = @($normalizedResults.ToArray())
+$overall = 'skipped'
+foreach ($candidateStatus in @('fail', 'blocked', 'pass', 'skipped')) {
+    if (@($gateArray | Where-Object { $_.status -eq $candidateStatus }).Count -gt 0) {
+        $overall = $candidateStatus
+        break
+    }
+}
+
+$testsDocument = [PSCustomObject][ordered]@{
+    schemaVersion = 1
+    runId = $runId
+    startedAt = $startedAt
+    total = $testArray.Count
+    passed = @($testArray | Where-Object { $_.status -eq 'pass' }).Count
+    failed = @($testArray | Where-Object { $_.status -eq 'fail' }).Count
+    skipped = @($testArray | Where-Object { $_.status -eq 'skip' }).Count
+    tests = $testArray
+}
+
+$report = [PSCustomObject][ordered]@{
+    schemaVersion = 1
+    runId = $runId
+    stage = $Stage
+    startedAt = $startedAt
+    overall = $overall
+    gates = $gateArray
+    tests = $testArray
+    discovery = $discovery
+}
+
+$testsJson = $testsDocument | ConvertTo-Json -Depth 64
+$reportJson = $report | ConvertTo-Json -Depth 64
+Set-Content -LiteralPath (Join-Path $runPath 'tests.json') -Value $testsJson -Encoding utf8NoBOM
+Set-Content -LiteralPath (Join-Path $runPath 'report.json') -Value $reportJson -Encoding utf8NoBOM
+Set-Content -LiteralPath (Join-Path $reportsPath 'latest-tests.json') -Value $testsJson -Encoding utf8NoBOM
+Set-Content -LiteralPath (Join-Path $reportsPath 'latest.json') -Value $reportJson -Encoding utf8NoBOM
+
+Write-Output $reportJson
+exit $(if ($overall -eq 'fail') { 1 } elseif ($overall -eq 'blocked') { 2 } else { 0 })
