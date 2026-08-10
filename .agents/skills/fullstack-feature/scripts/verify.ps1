@@ -320,29 +320,101 @@ function Invoke-StructuredCommand {
         $timeoutMilliseconds = [int][math]::Min([int]::MaxValue, [math]::Ceiling($timeoutSec * 1000))
         $completed = $process.WaitForExit($timeoutMilliseconds)
         $timedOut = -not $completed
+        $terminationFailure = $null
         if ($timedOut) {
-            try {
-                $process.Kill($true)
+            if (-not $process.HasExited) {
+                try {
+                    $process.Kill($true)
+                }
+                catch [System.InvalidOperationException] {
+                    if (-not $process.HasExited) {
+                        $terminationFailure = $_.Exception.Message
+                    }
+                }
+                catch {
+                    $terminationFailure = $_.Exception.Message
+                }
             }
-            catch {
-                # A process may exit between the timeout and the termination request.
-            }
-        }
-        $process.WaitForExit()
-        $standardOutput = $standardOutputTask.GetAwaiter().GetResult()
-        $standardError = $standardErrorTask.GetAwaiter().GetResult()
-        $stopwatch.Stop()
-        Write-GateLog -Path $LogPath -StandardOutput $standardOutput -StandardError $standardError
 
-        if ($timedOut) {
+            $terminated = $process.HasExited -or $process.WaitForExit(5000)
+            if (-not $terminated) {
+                try {
+                    $process.Kill($true)
+                    $terminationFailure = $null
+                }
+                catch [System.InvalidOperationException] {
+                    if (-not $process.HasExited) {
+                        $terminationFailure = @($terminationFailure, "process-tree termination retry failed: $($_.Exception.Message)") `
+                            | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Join-String -Separator '; '
+                    }
+                }
+                catch {
+                    $terminationFailure = @($terminationFailure, "process-tree termination retry failed: $($_.Exception.Message)") `
+                        | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Join-String -Separator '; '
+                }
+                $terminated = $process.HasExited -or $process.WaitForExit(1000)
+            }
+            if (-not $terminated) {
+                if ([string]::IsNullOrWhiteSpace($terminationFailure)) {
+                    $terminationFailure = 'process tree did not terminate after two bounded termination attempts'
+                }
+                try {
+                    $process.Kill()
+                }
+                catch [System.InvalidOperationException] {
+                    if (-not $process.HasExited) {
+                        $terminationFailure = "$terminationFailure; fallback termination failed: $($_.Exception.Message)"
+                    }
+                }
+                catch {
+                    $terminationFailure = "$terminationFailure; fallback termination failed: $($_.Exception.Message)"
+                }
+                $terminated = $process.HasExited -or $process.WaitForExit(1000)
+            }
+
+            $streamsCompleted = [System.Threading.Tasks.Task]::WaitAll(
+                [System.Threading.Tasks.Task[]]@($standardOutputTask, $standardErrorTask),
+                1000
+            )
+            $standardOutput = if ($standardOutputTask.IsCompletedSuccessfully) { $standardOutputTask.Result } else { '' }
+            $standardError = if ($standardErrorTask.IsCompletedSuccessfully) { $standardErrorTask.Result } else { '' }
+            if (-not $terminated -or -not [string]::IsNullOrWhiteSpace($terminationFailure)) {
+                $terminationFailure = if ([string]::IsNullOrWhiteSpace($terminationFailure)) {
+                    'process tree termination failed within the bounded grace period'
+                }
+                else {
+                    $terminationFailure
+                }
+                $standardError = @($standardError, $terminationFailure) -join [Environment]::NewLine
+            }
+            elseif (-not $streamsCompleted) {
+                $standardError = @($standardError, 'process output did not close within the bounded capture grace period') -join [Environment]::NewLine
+            }
+            $stopwatch.Stop()
+            Write-GateLog -Path $LogPath -StandardOutput $standardOutput -StandardError $standardError
             return [PSCustomObject]@{
                 status = 'fail'
-                exitCode = $process.ExitCode
+                exitCode = if ($terminated) { $process.ExitCode } else { $null }
                 durationSec = [math]::Round($stopwatch.Elapsed.TotalSeconds, 3)
-                reason = "command timeout after $timeoutSec seconds"
+                reason = if ($terminated -and [string]::IsNullOrWhiteSpace($terminationFailure)) {
+                    "command timeout after $timeoutSec seconds"
+                }
+                else {
+                    "command timeout after $timeoutSec seconds; process-tree termination failed: $terminationFailure"
+                }
                 executed = $true
             }
         }
+
+        [void]$process.WaitForExit(1000)
+        [void][System.Threading.Tasks.Task]::WaitAll(
+            [System.Threading.Tasks.Task[]]@($standardOutputTask, $standardErrorTask),
+            1000
+        )
+        $standardOutput = if ($standardOutputTask.IsCompletedSuccessfully) { $standardOutputTask.Result } else { '' }
+        $standardError = if ($standardErrorTask.IsCompletedSuccessfully) { $standardErrorTask.Result } else { '' }
+        $stopwatch.Stop()
+        Write-GateLog -Path $LogPath -StandardOutput $standardOutput -StandardError $standardError
 
         return [PSCustomObject]@{
             status = if ($process.ExitCode -eq 0) { 'pass' } else { 'fail' }
@@ -381,37 +453,104 @@ function New-GateRecord {
     }
 }
 
+function Get-NormalizedResultContext {
+    param(
+        [Parameter(Mandatory)][object]$TestResults,
+        [Parameter(Mandatory)][string]$WorkingDirectory,
+        [Parameter(Mandatory)][string]$RootPath,
+        [Parameter(Mandatory)][string]$RunPath
+    )
+
+    if ([string]$TestResults.format -ne 'harness-tests-v1') {
+        throw 'unsupported normalized test result format'
+    }
+    if ([string]::IsNullOrWhiteSpace([string]$TestResults.path)) {
+        throw 'normalized test result path is required'
+    }
+    $candidatePath = if ([System.IO.Path]::IsPathRooted([string]$TestResults.path)) {
+        [string]$TestResults.path
+    }
+    else {
+        Join-Path $WorkingDirectory ([string]$TestResults.path)
+    }
+    $declaredPath = [System.IO.Path]::GetFullPath($candidatePath)
+    $resultPath = Resolve-ContainedPath -Path $declaredPath -RootPath $RootPath -AllowMissing
+    [void](Resolve-ContainedPath -Path (Split-Path $resultPath -Parent) -RootPath $RootPath -PathType Container)
+    if ((Test-Path -LiteralPath $declaredPath) -and -not (Test-Path -LiteralPath $declaredPath -PathType Leaf)) {
+        throw "normalized test result path must be a file: $($TestResults.path)"
+    }
+    if (Test-Path -LiteralPath $declaredPath -PathType Leaf) {
+        $item = Get-Item -LiteralPath $declaredPath -Force
+        if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw 'normalized test result file must not be a reparse point or symbolic link'
+        }
+    }
+
+    $quarantinePath = $null
+    if (Test-Path -LiteralPath $resultPath -PathType Leaf) {
+        $quarantinePath = Join-Path $RunPath ('.stale-result.{0}.tmp' -f [guid]::NewGuid().ToString('N'))
+        [System.IO.File]::Move($resultPath, $quarantinePath)
+    }
+    return [PSCustomObject]@{
+        declaredPath = $declaredPath
+        expectedPhysicalPath = $resultPath
+        quarantinePath = $quarantinePath
+        rootPath = $RootPath
+        produced = $false
+    }
+}
+
+function Set-NormalizedResultFailure {
+    param(
+        [Parameter(Mandatory)][object]$Gate,
+        [Parameter(Mandatory)][string]$Message
+    )
+
+    if ($Gate.status -ne 'fail') {
+        $Gate.status = 'blocked'
+    }
+    $prefix = if ([string]::IsNullOrWhiteSpace([string]$Gate.reason)) { '' } else { "$($Gate.reason); " }
+    $Gate.reason = "${prefix}normalized test results unavailable: $Message"
+}
+
+function Complete-NormalizedResultContext {
+    param([Parameter(Mandatory)][object]$ResultContext)
+
+    if ([string]::IsNullOrWhiteSpace([string]$ResultContext.quarantinePath) -or
+        -not (Test-Path -LiteralPath $ResultContext.quarantinePath -PathType Leaf)) {
+        return
+    }
+    if ($ResultContext.produced -or (Test-Path -LiteralPath $ResultContext.expectedPhysicalPath -PathType Leaf)) {
+        Remove-Item -LiteralPath $ResultContext.quarantinePath -Force
+        return
+    }
+
+    $expectedParent = Split-Path $ResultContext.expectedPhysicalPath -Parent
+    try {
+        $resolvedParent = Resolve-ContainedPath -Path $expectedParent -RootPath $ResultContext.rootPath -PathType Container
+        if (-not $resolvedParent.Equals($expectedParent, $pathComparison)) {
+            return
+        }
+        [System.IO.File]::Move($ResultContext.quarantinePath, $ResultContext.expectedPhysicalPath)
+    }
+    catch {
+        # The quarantined stale artifact remains in the contained run directory when its original parent is no longer safe.
+    }
+}
+
 function Add-NormalizedResults {
     param(
         [Parameter(Mandatory)][object]$Gate,
-        [object]$TestResults,
-        [Parameter(Mandatory)][string]$WorkingDirectory,
-        [Parameter(Mandatory)][string]$RootPath,
+        [Parameter(Mandatory)][object]$ResultContext,
         [Parameter(Mandatory)][AllowEmptyCollection()][System.Collections.ArrayList]$Results
     )
 
-    if ($null -eq $TestResults) {
-        return
-    }
-    if ([string]$TestResults.format -ne 'harness-tests-v1') {
-        if ($Gate.status -ne 'fail') {
-            $Gate.status = 'blocked'
-        }
-        $Gate.reason = 'unsupported normalized test result format'
-        return
-    }
-
     try {
-        if ([string]::IsNullOrWhiteSpace([string]$TestResults.path)) {
-            throw 'normalized test result path is required'
+        $resultPath = Resolve-ContainedPath -Path $ResultContext.declaredPath -RootPath $ResultContext.rootPath -PathType Leaf
+        if (-not $resultPath.Equals([string]$ResultContext.expectedPhysicalPath, $pathComparison)) {
+            throw 'normalized test result path changed physical identity during execution'
         }
-        $candidatePath = if ([System.IO.Path]::IsPathRooted([string]$TestResults.path)) {
-            [string]$TestResults.path
-        }
-        else {
-            Join-Path $WorkingDirectory ([string]$TestResults.path)
-        }
-        $resultPath = Resolve-ContainedPath -Path $candidatePath -RootPath $RootPath -PathType Leaf
+        $ResultContext.produced = $true
         $document = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json -Depth 64
         if ([int]$document.schemaVersion -ne 1 -or $document.tests -isnot [array]) {
             throw 'normalized test result document must use schemaVersion 1 and contain a tests array'
@@ -429,11 +568,166 @@ function Add-NormalizedResults {
         }
     }
     catch {
-        if ($Gate.status -ne 'fail') {
-            $Gate.status = 'blocked'
-        }
-        $Gate.reason = "normalized test results unavailable: $($_.Exception.Message)"
+        Set-NormalizedResultFailure -Gate $Gate -Message "result was not safely produced by this execution: $($_.Exception.Message)"
     }
+    finally {
+        Complete-NormalizedResultContext -ResultContext $ResultContext
+    }
+}
+
+function New-ExclusiveRunDirectory {
+    param(
+        [Parameter(Mandatory)][string]$ReportsPath,
+        [Parameter(Mandatory)][string]$RootPath
+    )
+
+    foreach ($attempt in 1..100) {
+        $runId = '{0}-{1}' -f (Get-Date -Format 'yyyyMMdd-HHmmss-fff'), ([guid]::NewGuid().ToString('N').Substring(0, 8))
+        $reservationPath = Join-Path $ReportsPath ".$runId.reserve"
+        $reservation = $null
+        try {
+            $reservation = [System.IO.File]::Open(
+                $reservationPath,
+                [System.IO.FileMode]::CreateNew,
+                [System.IO.FileAccess]::Write,
+                [System.IO.FileShare]::None
+            )
+        }
+        catch [System.IO.IOException] {
+            continue
+        }
+
+        try {
+            $runPath = Resolve-ContainedPath -Path (Join-Path $ReportsPath $runId) -RootPath $RootPath -AllowMissing
+            if (Test-Path -LiteralPath $runPath) {
+                continue
+            }
+            [void][System.IO.Directory]::CreateDirectory($runPath)
+            $runPath = Resolve-ContainedPath -Path $runPath -RootPath $RootPath -PathType Container
+            return [PSCustomObject]@{
+                runId = $runId
+                path = $runPath
+            }
+        }
+        finally {
+            $reservation.Dispose()
+            Remove-Item -LiteralPath $reservationPath -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    throw 'Could not allocate a unique verification run directory after 100 attempts.'
+}
+
+function New-StagedTextFile {
+    param(
+        [Parameter(Mandatory)][string]$DestinationPath,
+        [Parameter(Mandatory)][string]$Content
+    )
+
+    $directory = Split-Path $DestinationPath -Parent
+    $fileName = Split-Path $DestinationPath -Leaf
+    $temporaryPath = Join-Path $directory ('.{0}.{1}.{2}.tmp' -f $fileName, $PID, [guid]::NewGuid().ToString('N'))
+    [System.IO.File]::WriteAllText($temporaryPath, $Content, [System.Text.UTF8Encoding]::new($false))
+    return $temporaryPath
+}
+
+function Publish-LatestReportPair {
+    param(
+        [Parameter(Mandatory)][string]$ReportsPath,
+        [Parameter(Mandatory)][string]$TestsJson,
+        [Parameter(Mandatory)][string]$ReportJson
+    )
+
+    $latestTestsPath = Join-Path $ReportsPath 'latest-tests.json'
+    $latestReportPath = Join-Path $ReportsPath 'latest.json'
+    $temporaryTestsPath = $null
+    $temporaryReportPath = $null
+    $backupTestsPath = Join-Path $ReportsPath ('.latest-tests.json.{0}.backup' -f [guid]::NewGuid().ToString('N'))
+    $backupReportPath = Join-Path $ReportsPath ('.latest.json.{0}.backup' -f [guid]::NewGuid().ToString('N'))
+    $testsExisted = Test-Path -LiteralPath $latestTestsPath -PathType Leaf
+    $reportExisted = Test-Path -LiteralPath $latestReportPath -PathType Leaf
+    $testsPublished = $false
+    $reportPublished = $false
+    try {
+        $temporaryTestsPath = New-StagedTextFile -DestinationPath $latestTestsPath -Content $TestsJson
+        $temporaryReportPath = New-StagedTextFile -DestinationPath $latestReportPath -Content $ReportJson
+        if ($testsExisted) {
+            [System.IO.File]::Copy($latestTestsPath, $backupTestsPath)
+        }
+        if ($reportExisted) {
+            [System.IO.File]::Copy($latestReportPath, $backupReportPath)
+        }
+
+        [System.IO.File]::Move($temporaryTestsPath, $latestTestsPath, $true)
+        $temporaryTestsPath = $null
+        $testsPublished = $true
+        [System.IO.File]::Move($temporaryReportPath, $latestReportPath, $true)
+        $temporaryReportPath = $null
+        $reportPublished = $true
+    }
+    catch {
+        $publicationError = $_.Exception.Message
+        $rollbackErrors = @()
+        if ($reportPublished) {
+            try {
+                if ($reportExisted) {
+                    [System.IO.File]::Move($backupReportPath, $latestReportPath, $true)
+                }
+                elseif (Test-Path -LiteralPath $latestReportPath -PathType Leaf) {
+                    Remove-Item -LiteralPath $latestReportPath -Force
+                }
+            }
+            catch {
+                $rollbackErrors += "latest.json rollback failed: $($_.Exception.Message)"
+            }
+        }
+        if ($testsPublished) {
+            try {
+                if ($testsExisted) {
+                    [System.IO.File]::Move($backupTestsPath, $latestTestsPath, $true)
+                }
+                elseif (Test-Path -LiteralPath $latestTestsPath -PathType Leaf) {
+                    Remove-Item -LiteralPath $latestTestsPath -Force
+                }
+            }
+            catch {
+                $rollbackErrors += "latest-tests.json rollback failed: $($_.Exception.Message)"
+            }
+        }
+        $rollbackSuffix = if ($rollbackErrors.Count -eq 0) { '' } else { "; $($rollbackErrors -join '; ')" }
+        throw "Atomic latest report publication failed: $publicationError$rollbackSuffix"
+    }
+    finally {
+        foreach ($temporaryArtifact in @($temporaryTestsPath, $temporaryReportPath, $backupTestsPath, $backupReportPath)) {
+            if (-not [string]::IsNullOrWhiteSpace($temporaryArtifact)) {
+                Remove-Item -LiteralPath $temporaryArtifact -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+}
+
+function Enter-LatestPublishLock {
+    param(
+        [Parameter(Mandatory)][string]$ReportsPath,
+        [int]$TimeoutMilliseconds = 10000
+    )
+
+    $lockPath = Join-Path $ReportsPath '.latest.lock'
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    while ($stopwatch.ElapsedMilliseconds -lt $TimeoutMilliseconds) {
+        try {
+            return [System.IO.File]::Open(
+                $lockPath,
+                [System.IO.FileMode]::OpenOrCreate,
+                [System.IO.FileAccess]::ReadWrite,
+                [System.IO.FileShare]::None
+            )
+        }
+        catch [System.IO.IOException] {
+            Start-Sleep -Milliseconds 10
+        }
+    }
+    throw "Timed out waiting $TimeoutMilliseconds milliseconds to publish latest verification reports."
 }
 
 $rootItem = Get-Item -LiteralPath $RepoRoot -Force -ErrorAction Stop
@@ -446,11 +740,10 @@ $reportsPath = Resolve-ContainedPath -Path (Join-Path $resolvedRoot 'harness/rep
 New-Item -ItemType Directory -Path $reportsPath -Force | Out-Null
 $reportsPath = Resolve-ContainedPath -Path $reportsPath -RootPath $resolvedRoot -PathType Container
 
-$runId = Get-Date -Format 'yyyyMMdd-HHmmss'
+$run = New-ExclusiveRunDirectory -ReportsPath $reportsPath -RootPath $resolvedRoot
+$runId = $run.runId
 $startedAt = (Get-Date).ToString('o')
-$runPath = Resolve-ContainedPath -Path (Join-Path $reportsPath $runId) -RootPath $resolvedRoot -AllowMissing
-New-Item -ItemType Directory -Path $runPath -Force | Out-Null
-$runPath = Resolve-ContainedPath -Path $runPath -RootPath $resolvedRoot -PathType Container
+$runPath = $run.path
 
 $effectiveManifestPath = $null
 $manifestError = $null
@@ -697,13 +990,30 @@ elseif ($requestedExecutionStages.Count -gt 0) {
                 continue
             }
 
+            $normalizedResultContext = $null
+            $normalizedResultError = $null
+            if ($null -ne $command.testResults) {
+                try {
+                    $normalizedResultContext = Get-NormalizedResultContext -TestResults $command.testResults `
+                        -WorkingDirectory $workingDirectory -RootPath $resolvedRoot -RunPath $runPath
+                }
+                catch {
+                    $normalizedResultError = $_.Exception.Message
+                }
+            }
+
             $execution = Invoke-StructuredCommand -Command $command -WorkingDirectory $workingDirectory -LogPath $logPath
             $gate = New-GateRecord -GateId $gateId -SurfaceId $surfaceId -Status $execution.status -ExitCode $execution.exitCode `
                 -DurationSec $execution.durationSec -LogPath (Get-RelativeReportPath -RootPath $resolvedRoot -Path $logPath) `
                 -Command $reportCommand -Reason $execution.reason
-            if ($execution.executed) {
-                Add-NormalizedResults -Gate $gate -TestResults $command.testResults -WorkingDirectory $workingDirectory `
-                    -RootPath $resolvedRoot -Results $normalizedResults
+            if ($execution.executed -and $null -ne $normalizedResultContext) {
+                Add-NormalizedResults -Gate $gate -ResultContext $normalizedResultContext -Results $normalizedResults
+            }
+            elseif ($null -ne $normalizedResultContext) {
+                Complete-NormalizedResultContext -ResultContext $normalizedResultContext
+            }
+            if (-not [string]::IsNullOrWhiteSpace($normalizedResultError)) {
+                Set-NormalizedResultFailure -Gate $gate -Message $normalizedResultError
             }
             [void]$gates.Add($gate)
         }
@@ -754,8 +1064,13 @@ $testsJson = $testsDocument | ConvertTo-Json -Depth 64
 $reportJson = $report | ConvertTo-Json -Depth 64
 Set-Content -LiteralPath (Join-Path $runPath 'tests.json') -Value $testsJson -Encoding utf8NoBOM
 Set-Content -LiteralPath (Join-Path $runPath 'report.json') -Value $reportJson -Encoding utf8NoBOM
-Set-Content -LiteralPath (Join-Path $reportsPath 'latest-tests.json') -Value $testsJson -Encoding utf8NoBOM
-Set-Content -LiteralPath (Join-Path $reportsPath 'latest.json') -Value $reportJson -Encoding utf8NoBOM
+$publishLock = Enter-LatestPublishLock -ReportsPath $reportsPath
+try {
+    Publish-LatestReportPair -ReportsPath $reportsPath -TestsJson $testsJson -ReportJson $reportJson
+}
+finally {
+    $publishLock.Dispose()
+}
 
 Write-Output $reportJson
 exit $(if ($overall -eq 'fail') { 1 } elseif ($overall -eq 'blocked') { 2 } else { 0 })
