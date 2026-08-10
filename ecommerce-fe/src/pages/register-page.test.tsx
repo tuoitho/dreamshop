@@ -8,10 +8,13 @@ import RegisterPage from "./register-page"
 function renderRegister(registerMock = vi.fn().mockResolvedValue(undefined)) {
   const value = {
     token: null,
+    user: null,
+    ready: true,
     isAuthenticated: false,
     login: vi.fn(),
     register: registerMock,
-    logout: vi.fn(),
+    updateProfile: vi.fn(),
+    logout: vi.fn().mockResolvedValue(undefined),
   }
   return {
     registerMock,

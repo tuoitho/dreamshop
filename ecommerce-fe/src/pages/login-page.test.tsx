@@ -8,10 +8,13 @@ import LoginPage from "./login-page"
 function renderLogin(loginMock = vi.fn().mockResolvedValue(undefined)) {
   const value = {
     token: null,
+    user: null,
+    ready: true,
     isAuthenticated: false,
     login: loginMock,
     register: vi.fn(),
-    logout: vi.fn(),
+    updateProfile: vi.fn(),
+    logout: vi.fn().mockResolvedValue(undefined),
   }
   return {
     loginMock,

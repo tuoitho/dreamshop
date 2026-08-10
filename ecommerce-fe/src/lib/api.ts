@@ -16,6 +16,14 @@ const refreshHttp = axios.create({
   withCredentials: true,
 })
 
+export async function refreshAccessToken(): Promise<string> {
+  return runSingleFlightRefresh(async () => {
+    const { data } = await refreshHttp.post<LoginResponse>("/auth/refresh")
+    setAccessToken(data.access_token)
+    return data.access_token
+  })
+}
+
 http.interceptors.request.use((config) => {
   const token = getAccessToken()
   if (token) {
@@ -32,11 +40,7 @@ http.interceptors.response.use(undefined, async (error: AxiosError) => {
   }
   config._retried = true
   try {
-    const token = await runSingleFlightRefresh(async () => {
-      const { data } = await refreshHttp.post<LoginResponse>("/auth/refresh")
-      setAccessToken(data.access_token)
-      return data.access_token
-    })
+    const token = await refreshAccessToken()
     config.headers.Authorization = `Bearer ${token}`
     return http(config)
   } catch {

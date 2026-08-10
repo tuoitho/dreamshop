@@ -1,31 +1,60 @@
-import { useCallback, useMemo, useState, type ReactNode } from "react"
-import { login as loginRequest, register as registerRequest } from "@/lib/api"
-import { clearAccessToken, getAccessToken, setAccessToken } from "@/lib/token-storage"
-import type { LoginRequest, RegisterRequest } from "@/lib/types"
+import { useEffect, useRef, useState, type ReactNode } from "react"
+import { fetchCurrentUser, login as loginRequest, logoutRequest, refreshAccessToken, register as registerRequest, updateCurrentUser } from "@/lib/api"
+import { clearAccessToken, getAccessToken, setAccessToken } from "@/lib/auth-session"
+import type { CurrentUser, LoginRequest, RegisterRequest, UpdateProfileRequest } from "@/lib/types"
 import { AuthContext, type AuthContextValue } from "./auth-context"
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => getAccessToken())
+  const [user, setUser] = useState<CurrentUser | null>(null)
+  const [ready, setReady] = useState(false)
+  const bootstrapped = useRef(false)
 
-  const login = useCallback(async (payload: LoginRequest) => {
+  useEffect(() => {
+    if (bootstrapped.current) return
+    bootstrapped.current = true
+    void (async () => {
+      try {
+        const refreshedToken = await refreshAccessToken()
+        const currentUser = await fetchCurrentUser()
+        setAccessToken(refreshedToken)
+        setToken(refreshedToken)
+        setUser(currentUser)
+      } catch {
+        clearAccessToken()
+        setToken(null)
+        setUser(null)
+      } finally {
+        setReady(true)
+      }
+    })()
+  }, [])
+
+  async function login(payload: LoginRequest) {
     const response = await loginRequest(payload)
     setAccessToken(response.access_token)
     setToken(response.access_token)
-  }, [])
+    setUser(await fetchCurrentUser())
+  }
 
-  const register = useCallback(async (payload: RegisterRequest) => {
+  async function register(payload: RegisterRequest) {
     await registerRequest(payload)
-  }, [])
+  }
 
-  const logout = useCallback(() => {
-    clearAccessToken()
-    setToken(null)
-  }, [])
+  async function updateProfile(payload: UpdateProfileRequest) {
+    setUser(await updateCurrentUser(payload))
+  }
 
-  const value = useMemo<AuthContextValue>(
-    () => ({ token, isAuthenticated: token !== null, login, register, logout }),
-    [token, login, register, logout]
-  )
+  async function logout() {
+    try {
+      await logoutRequest()
+    } finally {
+      clearAccessToken()
+      setToken(null)
+      setUser(null)
+    }
+  }
 
+  const value: AuthContextValue = { token, user, ready, isAuthenticated: token !== null, login, register, updateProfile, logout }
   return <AuthContext value={value}>{children}</AuthContext>
 }

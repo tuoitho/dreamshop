@@ -3,7 +3,7 @@ import { RequireAuth } from "@/routes/require-auth"
 import { StoreLayout } from "@/components/layout/store-layout"
 import LoginPage from "@/pages/login-page"
 import RegisterPage from "@/pages/register-page"
-import DashboardPage from "@/pages/dashboard-page"
+import ProfilePage from "@/pages/profile-page"
 import HomePage from "@/pages/home-page"
 import SearchPage from "@/pages/search-page"
 import ProductDetailPage from "@/pages/product-detail-page"
@@ -22,13 +22,14 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route
-          path="/dashboard"
+          path="/profile"
           element={
             <RequireAuth>
-              <DashboardPage />
+              <ProfilePage />
             </RequireAuth>
           }
         />
+        <Route path="/dashboard" element={<Navigate to="/profile" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
