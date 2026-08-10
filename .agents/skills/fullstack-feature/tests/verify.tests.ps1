@@ -93,7 +93,7 @@ try {
     }
 
     Remove-Item -LiteralPath $reportsPath -Recurse -Force -ErrorAction SilentlyContinue
-    Remove-Item -LiteralPath (Join-Path $fixture 'timeout-completed.marker') -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath (Join-Path $fixture 'timeout-descendant.marker') -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath (Join-Path $fixture 'dry-run.marker') -Force -ErrorAction SilentlyContinue
 
     $all = Invoke-Verifier @('-Stage', 'surface', '-RepoRoot', $fixture, '-ManifestPath', $manifestPath) 1
@@ -120,8 +120,8 @@ try {
     $timeout = Get-Gate $all 'surface:sample:timeout'
     Assert-Equal $timeout.status 'fail' 'timed-out command status'
     Assert-True ($timeout.reason -match '(?i)tim(e)?out') 'timed-out command must record a timeout reason.'
-    Start-Sleep -Milliseconds 250
-    Assert-True (-not (Test-Path -LiteralPath (Join-Path $fixture 'timeout-completed.marker'))) 'timed-out process tree was not cleaned up.'
+    Start-Sleep -Seconds 4
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $fixture 'timeout-descendant.marker'))) 'timed-out process tree was not cleaned up.'
 
     Assert-Equal (Get-Gate $all 'surface:other:fail').exitCode 13 'unfiltered other-surface exit code'
 
@@ -136,7 +136,16 @@ try {
     Assert-Equal (ConvertTo-Json $latestTests.tests -Compress) (ConvertTo-Json $normalized.tests -Compress) 'latest-tests must copy normalized results exactly.'
 
     $filtered = Invoke-Verifier @('-Stage', 'surface', '-Surface', 'sample', '-RepoRoot', $fixture, '-ManifestPath', $manifestPath) 1
-    Assert-True ((Get-Gates $filtered | Where-Object { $_.surfaceId -eq 'other' }).Count -eq 0) 'Surface filtering must exclude non-selected surfaces.'
+    $filteredGates = @(Get-Gates $filtered)
+    $expectedFilteredGateIds = @(
+        'surface:sample:fail',
+        'surface:sample:missing',
+        'surface:sample:pass',
+        'surface:sample:timeout'
+    )
+    Assert-Equal $filteredGates.Count $expectedFilteredGateIds.Count 'filtered gate count'
+    Assert-Equal (($filteredGates | ForEach-Object { $_.gateId } | Sort-Object) -join '|') (($expectedFilteredGateIds | Sort-Object) -join '|') 'filtered gate set'
+    Assert-True (($filteredGates | Where-Object { $_.surfaceId -ne 'sample' }).Count -eq 0) 'every filtered gate must belong to the selected surface.'
     Assert-Equal (Get-Gate $filtered 'surface:sample:fail').exitCode 7 'filtered sample exit code'
 
     $skipped = Invoke-Verifier @('-Stage', 'e2e', '-Surface', 'sample', '-RepoRoot', $fixture, '-ManifestPath', $manifestPath)
@@ -152,6 +161,6 @@ try {
 }
 finally {
     Remove-Item -LiteralPath $reportsPath -Recurse -Force -ErrorAction SilentlyContinue
-    Remove-Item -LiteralPath (Join-Path $fixture 'timeout-completed.marker') -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath (Join-Path $fixture 'timeout-descendant.marker') -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath (Join-Path $fixture 'dry-run.marker') -Force -ErrorAction SilentlyContinue
 }

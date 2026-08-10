@@ -26,7 +26,7 @@
         },
         "timeout": {
           "executable": "pwsh",
-          "arguments": ["-NoProfile", "-Command", "Start-Sleep -Seconds 30; Set-Content -LiteralPath 'timeout-completed.marker' -Value 'late'"],
+          "arguments": ["-NoProfile", "-Command", "Start-Process -FilePath 'pwsh' -ArgumentList @('-NoProfile','-Command',\"Start-Sleep -Seconds 3; Set-Content -LiteralPath 'timeout-descendant.marker' -Value 'late'\"); Start-Sleep -Seconds 30"],
           "timeoutSec": 1
         }
       }
