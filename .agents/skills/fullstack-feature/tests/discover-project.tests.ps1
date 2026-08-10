@@ -47,6 +47,7 @@ function Assert-NoSemanticFields($Value, [string]$Context) {
 
 $fixture = Join-Path $PSScriptRoot 'fixtures/java-go-react-microservices'
 $result = & $discover -RepoRoot $fixture | ConvertFrom-Json
+Assert-NoSemanticFields $result 'discovery result'
 Assert-Equal $result.schemaVersion 1 'schema version'
 Assert-Equal $result.status 'pass' 'repository status'
 Assert-Equal @($result.candidates).Count 3 'candidate count'
