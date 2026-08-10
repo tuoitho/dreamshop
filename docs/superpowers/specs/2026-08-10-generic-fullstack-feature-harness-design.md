@@ -79,33 +79,34 @@ harness/
 `-- reports/
 ```
 
-`harness/project.json` is optional. The repository wrapper delegates to the reusable verification engine in the skill. A repository may omit the manifest when discovery is unambiguous.
+`harness/project.json` is optional. `harness/verify.ps1` is a thin repository entrypoint that delegates to the reusable verification engine in the skill and contains no verification logic. The skill engine is the single source of truth, preventing behavior drift between reusable logic and the repository wrapper. A repository may omit the manifest when discovery is unambiguous.
 
 ### Skill Orchestrator
 
 `SKILL.md` contains only the essential workflow and decision gates. Detailed discovery, execution, role, self-heal, and reporting guidance is loaded from references when its phase is reached.
 
-The orchestrator may execute inline or delegate roles. Multi-agent execution is permitted only when at least two implementation units can proceed independently after shared interfaces stabilize.
+The orchestrator may execute inline or delegate roles. Prefer delegation when at least two implementation units can proceed independently after shared interfaces stabilize. Prefer inline execution when work is tightly coupled or handoff cost outweighs isolation benefits. Follow an explicit user execution-mode preference unless it conflicts with safety or repository constraints.
 
 ### Repository Discovery
 
-`discover-project.ps1` detects candidate surfaces and emits a machine-readable discovery result. Detection includes:
+`discover-project.ps1` collects mechanical repository evidence and emits a machine-readable discovery result. Evidence includes:
 
 - Maven and Gradle projects;
 - Go modules;
 - Node package roots and package-manager lockfiles;
-- frontend and backend role hints from structure and scripts;
 - OpenAPI, protobuf, AsyncAPI, and other schema locations;
 - repository and service-local instruction files;
 - test, lint, build, integration, and end-to-end command candidates.
 
-Each surface record contains an identifier, path, role, stack markers, build system, resolved checks, contract relationships, dependency hints, instruction sources, and unresolved ambiguities.
+Each candidate record contains a path, discovered markers, build-system evidence, contract files found nearby, instruction sources, command candidates, and unresolved ambiguities. The script does not infer semantic roles, ownership, contract relationships, or service dependencies from weak filesystem proximity.
 
-Discovery precedence is:
+The orchestrator or architect combines this mechanical evidence with repository instructions, source code, configuration, and the feature requirement to classify surface roles and ownership. Explicit manifest values may supply machine topology facts such as dependencies and contract consumers or providers when the repository already defines them deterministically.
 
-1. Repository-local instructions.
-2. Explicit `harness/project.json` overrides.
-3. Safe build-marker and package-script detection.
+Resolution follows separate authority rules:
+
+- Repository-local instructions are authoritative for architecture, coding conventions, ownership, and project-specific behavior.
+- Explicit `harness/project.json` values override automatic discovery for machine-resolvable facts such as surface paths, commands, dependencies, contracts, and environment requirements.
+- Automatic detection is the fallback when no explicit configuration exists.
 
 When evidence is conflicting or incomplete, discovery returns `blocked` with candidates and reasons. It does not guess.
 
@@ -116,7 +117,7 @@ The manifest describes only values that need deterministic override. Commands us
 The manifest may define:
 
 - surface identifiers and paths;
-- role and dependency overrides;
+- dependency overrides;
 - contract locations and consumers/providers;
 - verification commands;
 - integration and end-to-end environment requirements;
@@ -134,6 +135,8 @@ The engine supports `discovery`, `contract`, `surface`, `integration`, `e2e`, an
 `skipped` and `blocked` never count as pass. The engine writes stable JSON reports under `harness/reports/`, including `latest.json` and per-test results when the underlying runner exposes them.
 
 ### Roles
+
+Roles define responsibilities and ownership, not mandatory agent boundaries. During inline execution, the primary agent performs required roles sequentially while preserving their ownership rules. During multi-agent execution, bounded roles may be delegated to specialized agents when delegation provides a clear benefit.
 
 - `feature-architect` owns the feature specification, acceptance criteria, affected-surface map, dependency graph, and changed interface contracts.
 - `feature-qa` owns acceptance, integration, and end-to-end tests plus the test plan. The chosen test framework follows repository-local test strategy and is independent of backend language.
@@ -225,24 +228,26 @@ The harness does not access shared or production databases or external systems w
 
 ## Execution Strategy
 
-Use inline execution when the feature affects one surface, implementation units share unstable decisions, or delegation overhead exceeds isolation benefits.
+Prefer inline execution when the feature affects one surface, implementation units share unstable decisions, or delegation overhead exceeds isolation benefits.
 
-Use multi-agent execution when at least two implementation units are independent, their shared interfaces are stable, ownership paths do not overlap, and verification can be scoped per unit. Multiple services of different stacks receive separate `surface-dev` assignments rather than one technology-specific backend assignment.
+Prefer multi-agent execution when at least two implementation units are independent, their shared interfaces are stable, ownership paths do not overlap, and verification can be scoped per unit. Multiple services of different stacks may receive separate `surface-dev` assignments rather than one technology-specific backend assignment.
+
+When the user explicitly requests inline or delegated execution, follow that preference unless safety, repository constraints, or unavailable delegation capabilities prevent it.
 
 ## Verification of the Harness
 
 ### Script Tests
 
-Use fixture repositories to cover Maven, Gradle, Go, npm, pnpm, mixed monorepos, OpenAPI, protobuf, and event schemas. Verify instruction and manifest precedence, ambiguity handling, structured command execution, surface filtering, timeout cleanup, dependency invalidation, exit-code propagation, and report schema.
+Use representative fixture repositories to cover Maven, Gradle, Go, npm, pnpm, mixed monorepos, OpenAPI, protobuf, and event schemas. A fixture such as `tests/fixtures/java-go-react-microservices/` may exercise several markers and interface types together without making that topology a runtime requirement. Verify instruction and manifest authority rules, ambiguity handling, structured command execution, surface filtering, timeout cleanup, dependency invalidation, exit-code propagation, and report schema.
 
-Run discovery against this repository and require detection of both Java and Go services, the Vite client, OpenAPI, and protobuf contracts. Resolve application commands in dry-run mode before executing safe scoped checks.
+Run discovery against representative mixed-stack fixtures containing multiple backend languages, frontend applications, and multiple interface types. For each real repository using the harness, verify that discovery matches its expected topology and local conventions. Resolve application commands in dry-run mode before executing safe scoped checks.
 
 ### Skill Evaluations
 
 Evaluate the workflow on at least these scenarios:
 
-1. A Java, Go, and React microservice feature crossing REST and gRPC boundaries.
-2. A Python and Next.js feature with an event contract.
+1. A mixed-stack microservice feature crossing REST and gRPC boundaries.
+2. A web application and worker feature crossing an event boundary.
 3. A backend-only feature that needs neither a frontend unit nor a new shared contract.
 
 Record baseline behavior without the skill, then repeat with the skill. The revised skill passes when agents identify the correct surfaces and contracts, avoid stack and layout assumptions, choose a valid execution strategy, preserve risk checkpoints, and produce executable verification plans.
