@@ -36,6 +36,7 @@ export interface UpdateProfileRequest {
 export interface ApiError {
   code: string
   message: string
+  errors?: Record<string, string>
   trace_id: string
 }
 
