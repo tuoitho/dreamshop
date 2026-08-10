@@ -84,7 +84,7 @@ An index supports lookup by `token_hash`, and indexes support revoking active se
 2. An active token is revoked with reason `ROTATED`; Identity creates a new active session with the same `family_id`, links it through `replaced_by_session_id`, sets a replacement cookie, and returns a new access JWT.
 3. A token already revoked with reason `ROTATED` is a reuse attempt. Identity revokes every still-active session in that family with reason `REUSE_DETECTED`, clears the cookie, and returns `401 INVALID_REFRESH_TOKEN`.
 
-The row lock and unique hash constraint ensure concurrent refresh requests cannot create multiple valid successors.
+The service uses a strict reuse policy: any concurrent or later use of a token that has already rotated is treated as reuse and revokes the token family. A row lock and unique hash constraint ensure concurrent refresh requests cannot create multiple valid successors; after the first request commits, a waiting request observes `ROTATED` and triggers family revocation. This intentionally favors containment of a potentially stolen token over preserving a concurrent browser session. The frontend's shared single-flight refresh operation prevents this race within one application instance, but separate tabs, reloads, retries, and duplicated network requests can still cause a logout. A grace window is deliberately out of scope because it weakens the security signal and requires additional request-binding semantics.
 
 ### Logout
 
