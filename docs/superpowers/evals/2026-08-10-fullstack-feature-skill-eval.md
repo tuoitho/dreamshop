@@ -139,7 +139,7 @@ go test ./services/bff-service/... ./services/catalog-service/... ./services/inv
 ```
 ````
 
-- Failure pattern: No frontend or public-interface work is forced; the response keeps scope backend-only. It still prescribes four distinct role assignments, rather than making those assignments conditional on the change's size.
+- Failure pattern: No baseline failure demonstrated. The response keeps scope backend-only and lists four role assignments, as requested, but does not demonstrate that delegation is mandatory.
 
 ## Forward Evaluation
 
