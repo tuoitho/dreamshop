@@ -16,6 +16,7 @@ $excludedDirectoryNames = @(
 $instructionFileNames = @('AGENTS.md', 'CLAUDE.md', 'GEMINI.md', 'copilot-instructions.md')
 $nodeLockFiles = @('package-lock.json', 'npm-shrinkwrap.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lockb')
 $knownMarkers = @('maven', 'gradle', 'go', 'node')
+$prohibitedSemanticKeys = @('role', 'ownership', 'dependsOn', 'provider', 'providers', 'consumer', 'consumers', 'dependency', 'dependencies')
 
 function ConvertTo-NormalizedPath {
     param([Parameter(Mandatory)][string]$Path)
@@ -64,13 +65,76 @@ function New-CommandCandidate {
     }
 }
 
+function Resolve-DirectoryThroughLinks {
+    param(
+        [Parameter(Mandatory)][string]$BasePath,
+        [Parameter(Mandatory)][string]$Path
+    )
+
+    $relativePath = [System.IO.Path]::GetRelativePath($BasePath, $Path)
+    $currentPath = (Resolve-Path -LiteralPath $BasePath -ErrorAction Stop).Path
+    foreach ($segment in $relativePath.Split([System.IO.Path]::DirectorySeparatorChar, [System.StringSplitOptions]::RemoveEmptyEntries)) {
+        $item = Get-Item -LiteralPath (Join-Path $currentPath $segment) -Force -ErrorAction Stop
+        if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            $linkTarget = $item.ResolveLinkTarget($true)
+            if ($null -eq $linkTarget) {
+                throw "Could not resolve link: $($item.FullName)"
+            }
+            $currentPath = $linkTarget.FullName
+        }
+        else {
+            $currentPath = $item.FullName
+        }
+    }
+
+    return $currentPath
+}
+
+function Get-ManifestWorkingDirectory {
+    param(
+        [Parameter(Mandatory)][string]$WorkingDirectory,
+        [Parameter(Mandatory)][string]$RepoRoot,
+        [Parameter(Mandatory)][string]$CandidateRoot
+    )
+
+    $segments = (ConvertTo-NormalizedPath $WorkingDirectory).Split('/', [System.StringSplitOptions]::RemoveEmptyEntries)
+    if ([System.IO.Path]::IsPathRooted($WorkingDirectory) -or $segments -contains '..') {
+        return [PSCustomObject]@{
+            path = $null
+            issue = 'manifest workingDirectory must not be absolute or traverse parent directories'
+        }
+    }
+
+    foreach ($basePath in @($CandidateRoot, $RepoRoot)) {
+        $candidatePath = [System.IO.Path]::GetFullPath((Join-Path $basePath $WorkingDirectory))
+        if (-not (Test-Path -LiteralPath $candidatePath -PathType Container)) {
+            continue
+        }
+
+        $resolvedCandidatePath = Resolve-DirectoryThroughLinks -BasePath $basePath -Path $candidatePath
+        $relativePath = [System.IO.Path]::GetRelativePath($RepoRoot, $resolvedCandidatePath)
+        if ($relativePath -ne '..' -and -not $relativePath.StartsWith("..$([System.IO.Path]::DirectorySeparatorChar)") -and
+            -not [System.IO.Path]::IsPathRooted($relativePath)) {
+            return [PSCustomObject]@{
+                path = Get-RelativePath $RepoRoot $resolvedCandidatePath
+                issue = $null
+            }
+        }
+    }
+
+    return [PSCustomObject]@{
+        path = $null
+        issue = 'manifest workingDirectory must resolve to an existing directory within RepoRoot'
+    }
+}
+
 function Get-ManifestEnvironment {
     param([object]$Environment)
 
     $normalizedEnvironment = [ordered]@{}
     $issues = @()
     foreach ($property in @($Environment.PSObject.Properties)) {
-        if ($property.Name -in @('role', 'ownership', 'dependsOn') -or $property.Value -isnot [string]) {
+        if ($property.Name -in $prohibitedSemanticKeys -or $property.Value -isnot [string]) {
             $issues += 'manifest environment must be a string-to-string map without semantic fields'
             continue
         }
@@ -84,7 +148,11 @@ function Get-ManifestEnvironment {
 }
 
 function Get-ManifestCommandCandidates {
-    param([object]$Surface)
+    param(
+        [object]$Surface,
+        [Parameter(Mandatory)][string]$RepoRoot,
+        [Parameter(Mandatory)][string]$CandidateRoot
+    )
 
     $sourceCommands = @()
     if ($null -ne $Surface.commandCandidates) {
@@ -117,10 +185,16 @@ function Get-ManifestCommandCandidates {
             executable = [string]$command.executable
             arguments = @([string[]]$command.arguments)
         }
-        foreach ($propertyName in @('workingDirectory', 'timeoutSec')) {
-            if ($null -ne $command.$propertyName) {
-                $resolvedCommand[$propertyName] = $command.$propertyName
+        if ($null -ne $command.workingDirectory) {
+            $workingDirectoryResult = Get-ManifestWorkingDirectory -WorkingDirectory $command.workingDirectory -RepoRoot $RepoRoot -CandidateRoot $CandidateRoot
+            if ($null -ne $workingDirectoryResult.issue) {
+                $issues += $workingDirectoryResult.issue
+                continue
             }
+            $resolvedCommand.workingDirectory = $workingDirectoryResult.path
+        }
+        if ($null -ne $command.timeoutSec) {
+            $resolvedCommand.timeoutSec = $command.timeoutSec
         }
         if ($null -ne $command.environment) {
             $environmentResult = Get-ManifestEnvironment $command.environment
@@ -144,9 +218,20 @@ if (-not (Test-Path -LiteralPath $resolvedRoot -PathType Container)) {
     throw "RepoRoot must be a directory: $RepoRoot"
 }
 
+$collectorFixtureRoot = [System.IO.Path]::GetFullPath((Join-Path (Split-Path $PSScriptRoot -Parent) 'tests/fixtures'))
+$fixtureRelativePath = [System.IO.Path]::GetRelativePath($resolvedRoot, $collectorFixtureRoot)
+$excludeCollectorFixtureTree = $fixtureRelativePath -ne '.' -and
+    $fixtureRelativePath -ne '..' -and
+    -not $fixtureRelativePath.StartsWith("..$([System.IO.Path]::DirectorySeparatorChar)") -and
+    -not [System.IO.Path]::IsPathRooted($fixtureRelativePath)
+$collectorFixturePrefix = $collectorFixtureRoot.TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
+
 $files = @(
     Get-ChildItem -LiteralPath $resolvedRoot -File -Recurse -Force |
-        Where-Object { -not (Test-ExcludedRelativePath (Get-RelativePath $resolvedRoot $_.FullName)) }
+        Where-Object {
+            -not (Test-ExcludedRelativePath (Get-RelativePath $resolvedRoot $_.FullName)) -and
+            -not ($excludeCollectorFixtureTree -and $_.FullName.StartsWith($collectorFixturePrefix, [System.StringComparison]::OrdinalIgnoreCase))
+        }
 )
 
 $instructionFiles = @(
@@ -273,7 +358,7 @@ $candidates = @(
         $candidateAmbiguities = @()
 
         if ($null -ne $candidate.manifestSurface) {
-            $manifestCommands = Get-ManifestCommandCandidates $candidate.manifestSurface
+            $manifestCommands = Get-ManifestCommandCandidates -Surface $candidate.manifestSurface -RepoRoot $resolvedRoot -CandidateRoot $candidate.fullPath
             $commandCandidates = @($manifestCommands.commands)
             if ($manifestCommands.issues.Count -gt 0) {
                 $candidateAmbiguities += [PSCustomObject]@{

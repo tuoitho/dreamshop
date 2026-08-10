@@ -30,7 +30,7 @@ function Assert-NoSemanticFields($Value, [string]$Context) {
 
     if ($Value -is [System.Management.Automation.PSCustomObject]) {
         foreach ($property in @($Value.PSObject.Properties)) {
-            if ($property.Name -in @('role', 'ownership', 'dependsOn')) {
+            if ($property.Name -in @('role', 'ownership', 'dependsOn', 'provider', 'providers', 'consumer', 'consumers', 'dependency', 'dependencies')) {
                 throw "Mechanical discovery must not infer '$($property.Name)' in $Context."
             }
             Assert-NoSemanticFields $property.Value "$Context.$($property.Name)"
@@ -90,7 +90,7 @@ Assert-True ($nodeCommands.Count -ge 3) 'Node package scripts must produce struc
 foreach ($command in $nodeCommands) {
     Assert-Equal $command.executable 'npm' 'Node command executable'
     Assert-True ($command.arguments -is [array]) 'Node command arguments must be an array.'
-    Assert-True (@($command.arguments).Count -ge 2 -and @($command.arguments)[0] -eq 'run') 'Node command arguments must identify the package script.'
+    Assert-True ($command.arguments.Count -ge 2 -and $command.arguments[0] -eq 'run') 'Node command arguments must identify the package script.'
 }
 
 $ambiguousFixture = Join-Path $PSScriptRoot 'fixtures/ambiguous-node'
@@ -123,6 +123,33 @@ try {
           "arguments": ["test"],
           "workingDirectory": { "ownership": "injected" },
           "timeoutSec": { "dependsOn": "injected" }
+        },
+        {
+          "executable": "mvn",
+          "arguments": ["test"],
+          "environment": {
+            "provider": "injected",
+            "providers": "injected",
+            "consumer": "injected",
+            "consumers": "injected",
+            "dependency": "injected",
+            "dependencies": "injected"
+          }
+        },
+        {
+          "executable": "mvn",
+          "arguments": ["test"],
+          "workingDirectory": "../../outside"
+        },
+        {
+          "executable": "mvn",
+          "arguments": ["test"],
+          "workingDirectory": "C:\\outside"
+        },
+        {
+          "executable": "mvn",
+          "arguments": ["test"],
+          "workingDirectory": "."
         }
       ]
     },
@@ -137,6 +164,11 @@ try {
     $manifestResult = & $discover -RepoRoot $fixture -ManifestPath $manifestPath | ConvertFrom-Json
     Assert-Equal $manifestResult.status 'blocked' 'invalid manifest surface status'
     Assert-True (-not (@($manifestResult.candidates | ForEach-Object { Get-EvidencePath $_ }) -contains '../outside')) 'manifest must not create an outside-repository candidate.'
+    $manifestOrder = @($manifestResult.candidates | Where-Object { (Get-EvidencePath $_) -eq 'services/order' })[0]
+    $manifestWorkingDirectories = @($manifestOrder.commandCandidates | ForEach-Object { $_.workingDirectory } | Where-Object { $null -ne $_ })
+    Assert-True (-not ($manifestWorkingDirectories -contains '../../outside')) 'manifest workingDirectory must reject traversal.'
+    Assert-True (-not ($manifestWorkingDirectories -contains 'C:/outside')) 'manifest workingDirectory must reject absolute paths.'
+    Assert-True ($manifestWorkingDirectories -contains 'services/order') 'manifest workingDirectory must be emitted as an in-repository normalized path.'
     Assert-NoSemanticFields $manifestResult 'manifest discovery result'
 }
 finally {
@@ -156,4 +188,40 @@ finally {
     Remove-Item -LiteralPath $invalidPackageRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-Write-Output 'PASS: discovery contract assertions (schema, evidence, markers, commands, semantic-field guard, ambiguity blocking, manifest filtering, malformed package handling).'
+$workingDirectoryRoot = Join-Path ([System.IO.Path]::GetTempPath()) "discover-project-working-directory-$([guid]::NewGuid())"
+$outsideDirectory = Join-Path ([System.IO.Path]::GetTempPath()) "discover-project-outside-$([guid]::NewGuid())"
+New-Item -ItemType Directory -Path (Join-Path $workingDirectoryRoot 'service') -Force | Out-Null
+New-Item -ItemType Directory -Path $outsideDirectory | Out-Null
+try {
+    '{}' | Set-Content -LiteralPath (Join-Path $workingDirectoryRoot 'service/package.json') -Encoding utf8NoBOM
+    New-Item -ItemType SymbolicLink -Path (Join-Path $workingDirectoryRoot 'service/outside-link') -Target $outsideDirectory | Out-Null
+    $workingDirectoryManifest = Join-Path $workingDirectoryRoot 'manifest.json'
+    @'
+{
+  "surfaces": [
+    {
+      "path": "service",
+      "commandCandidates": [
+        { "executable": "npm", "arguments": ["run", "test"], "workingDirectory": "outside-link" }
+      ]
+    }
+  ]
+}
+'@ | Set-Content -LiteralPath $workingDirectoryManifest -Encoding utf8NoBOM
+
+    $symlinkEscape = & $discover -RepoRoot $workingDirectoryRoot -ManifestPath $workingDirectoryManifest | ConvertFrom-Json
+    Assert-Equal $symlinkEscape.status 'blocked' 'symlink workingDirectory status'
+    Assert-True (@($symlinkEscape.ambiguities).Count -gt 0) 'symlink workingDirectory must produce ambiguity evidence.'
+}
+finally {
+    Remove-Item -LiteralPath $workingDirectoryRoot -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $outsideDirectory -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+$repositoryRoot = (Resolve-Path (Join-Path $skillRoot '..\..\..')).Path
+$realRepository = & $discover -RepoRoot $repositoryRoot | ConvertFrom-Json
+Assert-Equal $realRepository.status 'pass' 'real repository status'
+$realCandidatePaths = @($realRepository.candidates | ForEach-Object { Get-EvidencePath $_ })
+Assert-True (-not ($realCandidatePaths -contains '.agents/skills/fullstack-feature/tests/fixtures/ambiguous-node')) 'real repository discovery must exclude the collector fixture tree.'
+
+Write-Output 'PASS: discovery contract assertions (schema, evidence, markers, commands, semantic-field guard, ambiguity blocking, manifest filtering, malformed package handling, real-repository fixture exclusion).'
