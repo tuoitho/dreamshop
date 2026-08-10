@@ -5,6 +5,7 @@ import com.ecommerce.identity.auth.domain.AuthenticationUnavailableException;
 import com.ecommerce.identity.auth.domain.InvalidCredentialsException;
 import com.ecommerce.identity.auth.domain.InvalidRefreshTokenException;
 import com.ecommerce.identity.user.domain.UserNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class})
@@ -47,6 +49,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<ApiError> handleUnexpectedFailure(Exception exception) {
+        log.error("unexpected_request_failure", exception);
         return error(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "An unexpected error occurred");
     }
 
