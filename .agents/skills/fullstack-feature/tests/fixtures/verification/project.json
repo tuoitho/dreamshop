@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "surfaces": [
+    {
+      "id": "sample",
+      "path": ".",
+      "checks": {
+        "pass": {
+          "executable": "pwsh",
+          "arguments": ["-NoProfile", "-Command", "exit 0"],
+          "timeoutSec": 10,
+          "testResults": {
+            "path": "test-results.json",
+            "format": "harness-tests-v1"
+          }
+        },
+        "fail": {
+          "executable": "pwsh",
+          "arguments": ["-NoProfile", "-Command", "exit 7"],
+          "timeoutSec": 10
+        },
+        "missing": {
+          "executable": "harness-command-that-does-not-exist",
+          "arguments": [],
+          "timeoutSec": 10
+        },
+        "timeout": {
+          "executable": "pwsh",
+          "arguments": ["-NoProfile", "-Command", "Start-Sleep -Seconds 30; Set-Content -LiteralPath 'timeout-completed.marker' -Value 'late'"],
+          "timeoutSec": 1
+        }
+      }
+    },
+    {
+      "id": "other",
+      "path": ".",
+      "checks": {
+        "fail": {
+          "executable": "pwsh",
+          "arguments": ["-NoProfile", "-Command", "exit 13"],
+          "timeoutSec": 10
+        }
+      }
+    },
+    {
+      "id": "dryrun",
+      "path": ".",
+      "checks": {
+        "execute": {
+          "executable": "pwsh",
+          "arguments": ["-NoProfile", "-Command", "Set-Content -LiteralPath 'dry-run.marker' -Value 'executed'"],
+          "timeoutSec": 10
+        }
+      }
+    }
+  ]
+}

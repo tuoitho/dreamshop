@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "tests": [
+    {
+      "name": "fixture passes",
+      "kind": "unit",
+      "status": "pass",
+      "durationSec": 0.01
+    },
+    {
+      "name": "fixture is skipped",
+      "kind": "integration",
+      "status": "skip",
+      "durationSec": 0
+    },
+    {
+      "name": "fixture fails",
+      "kind": "e2e",
+      "status": "fail",
+      "durationSec": 0.02
+    }
+  ]
+}
