@@ -2,9 +2,12 @@ package com.ecommerce.identity.user.api;
 
 import com.ecommerce.identity.security.CallerContextPrincipal;
 import com.ecommerce.identity.user.application.MeService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -13,8 +16,13 @@ public class MeController {
     private final MeService meService;
 
     @GetMapping("/users/me")
-    MeResponse me(Authentication authentication) {
-        CallerContextPrincipal caller = (CallerContextPrincipal) authentication.getPrincipal();
+    MeResponse me(@AuthenticationPrincipal CallerContextPrincipal caller) {
         return MeResponse.from(meService.current(caller.userId()));
+    }
+
+    @PatchMapping("/users/me")
+    MeResponse update(@AuthenticationPrincipal CallerContextPrincipal caller,
+            @Valid @RequestBody UpdateMeRequest request) {
+        return MeResponse.from(meService.update(caller.userId(), request.fullName()));
     }
 }

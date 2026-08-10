@@ -37,4 +37,8 @@ public class IdentityProfileEntity {
         this.user = Objects.requireNonNull(user, "user");
         this.fullName = Objects.requireNonNull(fullName, "fullName");
     }
+
+    void rename(String fullName) {
+        this.fullName = Objects.requireNonNull(fullName, "fullName");
+    }
 }

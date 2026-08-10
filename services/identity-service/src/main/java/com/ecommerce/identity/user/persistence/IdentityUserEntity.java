@@ -99,4 +99,9 @@ public class IdentityUserEntity {
         status = AccountStatus.DISABLED;
         updatedAt = Objects.requireNonNull(now, "now");
     }
+
+    public void updateFullName(String fullName, Instant now) {
+        profile.rename(fullName);
+        updatedAt = Objects.requireNonNull(now, "now");
+    }
 }

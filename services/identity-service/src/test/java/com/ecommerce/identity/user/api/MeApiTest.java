@@ -2,6 +2,7 @@ package com.ecommerce.identity.user.api;
 
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -28,6 +29,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
 
     @BeforeEach
     void resetDatabase() {
+        jdbcTemplate.update("delete from refresh_token_sessions");
         jdbcTemplate.update("delete from user_roles");
         jdbcTemplate.update("delete from identity_profiles");
         jdbcTemplate.update("delete from identity_users");
@@ -89,6 +91,29 @@ class MeApiTest extends PostgresIntegrationTestSupport {
         mockMvc.perform(get("/users/me").header("X-User-Id", userId))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("USER_NOT_FOUND"));
+    }
+
+    @Test
+    void updatesCurrentUserFullName() throws Exception {
+        String userId = registerUser("update@example.com");
+
+        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"full_name\":\"Updated Name\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user_id").value(userId))
+                .andExpect(jsonPath("$.full_name").value("Updated Name"));
+    }
+
+    @Test
+    void rejectsBlankCurrentUserFullName() throws Exception {
+        String userId = registerUser("blank@example.com");
+
+        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"full_name\":\"   \"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
     }
 
     private String registerUser(String email) throws Exception {
