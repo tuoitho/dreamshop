@@ -1,20 +1,19 @@
 # ecommerce-fe
 
 Frontend SPA cho nền tảng e-commerce microservices. Kết nối fullstack với backend
-qua Kong API Gateway: đăng ký, đăng nhập, đăng xuất và gọi API protected bằng JWT.
+qua Kong API Gateway: đăng ký, đăng nhập, khôi phục session, cập nhật profile và logout.
 
 ## Tech stack
 
 - Vite + React 19 + TypeScript
 - Tailwind CSS v4 + shadcn/ui
 - React Router v7
-- Axios (interceptor tự gắn Bearer token)
+- Axios (Bearer access token chỉ lưu in-memory, refresh cookie HttpOnly)
 - Vitest + React Testing Library
 
 ## Chạy local
 
-Prerequisite: backend đang chạy với Kong trên cổng `8000` (xem README gốc của monorepo,
-`make up`).
+Prerequisite: chạy `make identity-keys`, `make infra-up`, và `make identity` từ root repository.
 
 ```bash
 cp .env.example .env   # nếu chưa có
@@ -36,7 +35,9 @@ Mở `http://localhost:5173`.
 |---|---|
 | Register | `POST /api/v1/auth/register` |
 | Login | `POST /api/v1/auth/login` |
-| Protected health | `GET /api/v1/auth/actuator/health` (Bearer) |
+| Refresh | `POST /api/v1/auth/refresh` |
+| Logout | `POST /api/v1/auth/logout` |
+| Profile | `GET/PATCH /api/v1/users/me` |
 
 ## Scripts
 
@@ -55,12 +56,15 @@ src/
 ├─ components/ui/   shadcn/ui components
 ├─ context/         AuthProvider + AuthContext
 ├─ hooks/           useAuth
-├─ lib/             axios client, token storage, types, error map
-├─ pages/           Login, Register, Dashboard
+├─ lib/             axios client, in-memory session, types, error map
+├─ pages/           Login, Register, Profile
 └─ routes/          RequireAuth guard
 ```
 
 ## Ghi chú bảo mật
+
+- Access token không được ghi vào `localStorage`; khi reload, provider gọi refresh endpoint bằng cookie `HttpOnly` để lấy access token mới.
+- Các protected request chỉ refresh/retry một lần; refresh concurrent dùng một shared promise.
 
 - `npm audit` báo GHSA-qwww-vcr4-c8h2 (react-router RSC mode CSRF) nhưng advisory
   chỉ ảnh hưởng khi dùng React Server Components API; dự án này là SPA thuần nên

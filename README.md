@@ -61,21 +61,26 @@ Các API công khai duy nhất được định tuyến qua Kong API Gateway (c�
   mvn test
   ```
 
-## Identity A: register, login and JWKS
+## Identity session and profile demo
 
-Khởi tạo RSA key pair local (không commit PEM), chạy Compose, rồi xác minh register/login/JWKS qua Kong:
+Chạy infrastructure trong Docker và Identity trực tiếp trên Windows. Kong gọi Identity qua `host.docker.internal:8080`:
 
 ```bash
 make identity-keys
-make up
+make infra-up
+make identity
 make verify-identity
+make verify-edge-auth
 ```
 
 Các public endpoint qua Kong là:
 
 - `POST http://localhost:8000/api/v1/auth/register`
 - `POST http://localhost:8000/api/v1/auth/login`
+- `POST http://localhost:8000/api/v1/auth/refresh`
+- `POST http://localhost:8000/api/v1/auth/logout`
 - `GET http://localhost:8000/api/v1/auth/.well-known/jwks.json`
+- `GET/PATCH http://localhost:8000/api/v1/users/me`
 
 Ví dụ body giả lập cho register:
 
@@ -89,9 +94,9 @@ Ví dụ body giả lập cho login:
 {"email":"customer@example.test","password":"local-only-example-password"}
 ```
 
-Identity dùng port `8090` khi chạy local trực tiếp; trong container service lắng nghe port `8080` và không public host port. Access token mặc định có TTL 15 phút. PEM được tạo chỉ dành cho local development, nằm ở `deployments/secrets/identity/`, và tuyệt đối không được commit hoặc tái sử dụng cho môi trường khác.
+Identity dùng port `8080` khi chạy local trực tiếp. Access token mặc định có TTL 15 phút; refresh token opaque sống 30 ngày, chỉ được gửi trong cookie `HttpOnly`, `SameSite=Lax`, path `/api/v1/auth`. Local development đặt `IDENTITY_SESSION_COOKIE_SECURE=false`; môi trường HTTPS phải bật cờ này. Refresh token được rotate tại mỗi lần refresh. Dùng lại token đã rotate sẽ revoke toàn bộ session family, kể cả concurrent refresh không có grace interval. PEM được tạo chỉ dành cho local development, nằm ở `deployments/secrets/identity/`, và tuyệt đối không được commit hoặc tái sử dụng cho môi trường khác.
 
-Slice này chưa có refresh token, logout, profile endpoint, hoặc Kong JWT enforcement.
+Frontend demo tại `http://localhost:5173/profile`: đăng ký, đăng nhập, reload để khôi phục session, cập nhật tên, rồi logout. Sau logout, reload `/profile` chuyển về login.
 
 ## Verification
 
