@@ -36,11 +36,17 @@ public class HttpRequestLoggingFilter extends OncePerRequestFilter {
         boolean failed = false;
         try {
             filterChain.doFilter(request, response);
-        } catch (IOException | ServletException | RuntimeException exception) {
+        } catch (Throwable exception) {
             failed = true;
             throw exception;
         } finally {
-            int status = failed ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR : response.getStatus();
+            int status;
+            if (failed && !response.isCommitted()
+                    && response.getStatus() == HttpServletResponse.SC_OK) {
+                status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+            } else {
+                status = response.getStatus();
+            }
             long durationMs = Math.max(0L,
                     TimeUnit.NANOSECONDS.toMillis(nanoTime.getAsLong() - startedAt));
             logCompleted(request.getMethod(), request.getRequestURI(), status, durationMs);

@@ -122,6 +122,23 @@ class HttpRequestLoggingFilterTest {
         assertThat(event.getThrowableProxy()).isNull();
     }
 
+    @Test
+    void summarizesEscapedErrorAs500AndRethrowsIt() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/users/me");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        StackOverflowError failure = new StackOverflowError("stack exhausted");
+
+        assertThatThrownBy(() -> filter(0L, 5_000_000L).doFilter(request, response,
+                (currentRequest, currentResponse) -> {
+                    throw failure;
+                })).isSameAs(failure);
+
+        ILoggingEvent event = singleEvent();
+        assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+        assertThat(event.getFormattedMessage()).contains("status=500", "duration_ms=5");
+        assertThat(event.getThrowableProxy()).isNull();
+    }
+
     private HttpRequestLoggingFilter filter(long... times) {
         AtomicInteger index = new AtomicInteger();
         LongSupplier nanoTime = () -> times[index.getAndIncrement()];
