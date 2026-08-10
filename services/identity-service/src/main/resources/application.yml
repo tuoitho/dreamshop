@@ -37,3 +37,6 @@ management:
       group:
         readiness:
           include: readinessState,db
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level trace_id=%X{trace_id:-none} [%thread] %logger{36} - %msg%n"
