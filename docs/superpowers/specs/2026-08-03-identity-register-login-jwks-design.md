@@ -310,6 +310,8 @@ Every error uses the accepted REST envelope:
 
 The global exception mapper handles both an application-level duplicate check and the database unique-constraint race as the same `409` result. Internal exception messages, SQL, hostnames and key paths never appear in client responses.
 
+The `VALIDATION_FAILED` response may additionally include an `errors` map whose keys are Java bean property names and whose values are the corresponding validation messages, e.g. `{"code":"VALIDATION_FAILED","message":"Request validation failed","errors":{"password":"size must be between 12 and 128"},"trace_id":"<trace identifier>"}`. Field names and validation messages are safe to expose; rejected values, SQL and internal exception text still never appear. Malformed request bodies return the envelope without the `errors` key.
+
 Logs are structured and may include `trace_id`, `user_id` after successful identification, outcome and stable error code. They must not include email, password, password hash, complete JWT, private key or request body. Until OpenTelemetry is installed, a request-scoped trace-id provider supplies the envelope/log identifier; it must be replaceable by the active span trace ID without changing the API.
 
 ## 12. Detailed flows
