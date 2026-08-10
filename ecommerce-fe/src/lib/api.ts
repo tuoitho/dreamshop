@@ -1,12 +1,19 @@
-import axios, { AxiosError } from "axios"
-import type { ApiError, LoginRequest, LoginResponse, RegisterRequest, RegisterResponse } from "./types"
-import { getAccessToken } from "./token-storage"
+import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios"
+import type { ApiError, CurrentUser, LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, UpdateProfileRequest } from "./types"
+import { clearAccessToken, getAccessToken, runSingleFlightRefresh, setAccessToken } from "./auth-session"
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1"
 
 export const http = axios.create({
   baseURL: BASE_URL,
   headers: { "Content-Type": "application/json" },
+  withCredentials: true,
+})
+
+const refreshHttp = axios.create({
+  baseURL: BASE_URL,
+  headers: { "Content-Type": "application/json" },
+  withCredentials: true,
 })
 
 http.interceptors.request.use((config) => {
@@ -15,6 +22,27 @@ http.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
+})
+
+http.interceptors.response.use(undefined, async (error: AxiosError) => {
+  const config = error.config as (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined
+  const url = config?.url ?? ""
+  if (error.response?.status !== 401 || url.startsWith("/auth/") || !config || config._retried) {
+    return Promise.reject(error)
+  }
+  config._retried = true
+  try {
+    const token = await runSingleFlightRefresh(async () => {
+      const { data } = await refreshHttp.post<LoginResponse>("/auth/refresh")
+      setAccessToken(data.access_token)
+      return data.access_token
+    })
+    config.headers.Authorization = `Bearer ${token}`
+    return http(config)
+  } catch {
+    clearAccessToken()
+    return Promise.reject(error)
+  }
 })
 
 export class ApiClientError extends Error {
@@ -64,6 +92,32 @@ export async function fetchHealth(): Promise<{ status: string }> {
   try {
     const { data } = await http.get<{ status: string }>("/auth/actuator/health")
     return data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function fetchCurrentUser(): Promise<CurrentUser> {
+  try {
+    const { data } = await http.get<CurrentUser>("/users/me")
+    return data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function updateCurrentUser(payload: UpdateProfileRequest): Promise<CurrentUser> {
+  try {
+    const { data } = await http.patch<CurrentUser>("/users/me", payload)
+    return data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function logoutRequest(): Promise<void> {
+  try {
+    await http.post("/auth/logout")
   } catch (error) {
     throw toClientError(error)
   }

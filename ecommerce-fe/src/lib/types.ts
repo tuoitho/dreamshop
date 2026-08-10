@@ -22,6 +22,17 @@ export interface RegisterResponse {
   roles: string[]
 }
 
+export interface CurrentUser {
+  user_id: string
+  email: string
+  full_name: string
+  roles: string[]
+}
+
+export interface UpdateProfileRequest {
+  full_name: string
+}
+
 export interface ApiError {
   code: string
   message: string

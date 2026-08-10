@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { AxiosError, AxiosHeaders } from "axios"
 import { ApiClientError, fetchHealth, http, login } from "./api"
-import { setAccessToken, clearAccessToken } from "./token-storage"
+import { setAccessToken, clearAccessToken } from "./auth-session"
 
 function axiosError(status: number, data: unknown): AxiosError {
   return new AxiosError(
@@ -34,6 +34,10 @@ describe("api client", () => {
     const config = adapter.mock.calls[0][0] as { headers?: { Authorization?: string } }
     expect(config.headers?.Authorization).toBe("Bearer jwt-xyz")
     delete http.defaults.adapter
+  })
+
+  it("uses credentials for cookie-backed refresh", () => {
+    expect(http.defaults.withCredentials).toBe(true)
   })
 
   it("translates an ApiError envelope into ApiClientError", async () => {
