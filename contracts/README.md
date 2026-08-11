@@ -2,7 +2,7 @@
 
 `openapi.yaml` là source of truth của API cho pipeline `fullstack-feature`. Chỉ architect agent được sửa.
 
-## Vai trò của file này (hướng C)
+## Vai trò của file này
 `openapi.yaml` là **tài liệu thuần**: KHÔNG sinh code. Không có `gen.go`, không có `schema.d.ts`.
 - Backend đọc contract → tự viết Gin handler + DTO struct khớp shape (theo `.docs/steering/api-conventions.md`).
 - Frontend đọc contract → tự viết type + gọi qua lớp services của repo (`services/*Api.ts`).

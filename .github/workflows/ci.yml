@@ -32,10 +32,17 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: bufbuild/buf-setup-action@v1
+      - name: Check protobuf formatting
+        run: buf format --diff --exit-code
       - name: Lint protobuf contracts
         run: buf lint
       - name: Generate contract modules
         run: buf generate
+      - name: Verify generated contract modules are synchronized
+        shell: bash
+        run: |
+          git diff --exit-code -- contracts/go contracts/java/src/main/generated
+          test -z "$(git ls-files --others --exclude-standard -- contracts/go contracts/java/src/main/generated)"
 
   java:
     name: Java
