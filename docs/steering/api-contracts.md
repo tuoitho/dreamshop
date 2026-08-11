@@ -11,12 +11,10 @@ designed explicitly.
 - `contracts/openapi.yaml` is the conventional shared HTTP contract location
   when its content represents the e-commerce API being changed.
 
-Do not edit generated contract code by hand. The current repository policy
-ignores protobuf-generated Java and Go outputs. Change the source definition,
-run `buf lint`, regenerate locally with `buf generate`, and use the generated
-outputs to compile/test affected producers and consumers. Do not force-add
-ignored generated files. Versioning generated outputs requires a deliberate
-repository-policy change, including the corresponding `.gitignore` update.
+Generated Java and Go contract source is tracked. Do not edit generated files by
+hand. Change the protobuf source definition, run `buf format --diff --exit-code`,
+`buf lint`, and `buf generate`, then commit the resulting generated output with
+the source-contract change.
 
 Before treating an OpenAPI document as authoritative, verify its title, servers,
 paths, schemas, and envelopes describe the current e-commerce surface. A scaffold
@@ -66,12 +64,14 @@ all services deploying simultaneously.
 Run:
 
 ```powershell
+buf format --diff --exit-code
 buf lint
 buf generate
+git diff --exit-code -- contracts/go contracts/java/src/main/generated
 ```
 
 After generation, compile and test every affected Java and Go producer/consumer.
-Generated outputs remain uncommitted under the current ignore policy. A
+Generated output must be committed and synchronized with its protobuf source. A
 successful generation command does not by itself prove behavioral compatibility.
 
 ## REST/JSON
@@ -174,7 +174,7 @@ Before merging a contract change, confirm:
 - The owning service and source definition are clear.
 - The change is additive or has an explicit versioned migration.
 - Local generation succeeds, and affected generated consumers compile/test
-  without force-adding ignored outputs.
+  with a clean generated-output diff.
 - All known consumers were inspected.
 - Error, idempotency, authorization, and routing semantics are defined.
 - Producer/consumer or black-box contract tests cover the changed boundary.

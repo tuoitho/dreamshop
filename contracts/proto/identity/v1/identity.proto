@@ -7,7 +7,7 @@ option java_multiple_files = true;
 option java_package = "com.ecommerce.contracts.identity.v1";
 
 service IdentityService {
-  rpc GetUser (GetUserRequest) returns (GetUserResponse);
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
 }
 
 message GetUserRequest {
