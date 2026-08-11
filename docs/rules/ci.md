@@ -6,7 +6,7 @@ checks are independent so branch protection can identify the failing surface.
 | Check | Responsibility |
 | --- | --- |
 | PR title | Validate the pull-request title with the repository PowerShell validator. |
-| Contracts | Check Buf formatting, linting, pull-request compatibility against the exact base commit, generation, and tracked generated-output synchronization. |
+| Contracts | Check Buf formatting, linting, generation, and tracked generated-output synchronization. |
 | Java | Generate contracts and run Maven `verify` for the reactor. |
 | Go | Generate contracts, test all three Go services, and build all three. |
 | Frontend | Install from the lockfile, test, lint, and build the React application. |

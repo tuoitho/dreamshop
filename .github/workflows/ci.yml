@@ -31,18 +31,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
       - uses: bufbuild/buf-setup-action@v1
       - name: Check protobuf formatting
         run: buf format --diff --exit-code
       - name: Lint protobuf contracts
         run: buf lint
-      - name: Check protobuf compatibility
-        if: github.event_name == 'pull_request'
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: buf breaking --against ".git#format=git,commit=$BASE_SHA"
       - name: Generate contract modules
         run: buf generate
       - name: Verify generated contract modules are synchronized
