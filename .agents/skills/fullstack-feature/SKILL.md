@@ -84,8 +84,8 @@ Chọn selective delegation khi có từ hai implementation unit độc lập, o
 Không delegate chỉ để mô phỏng một pipeline cố định. Không tạo agent theo technology
 nếu generic assignee có thể đọc local rules và làm đúng surface.
 
-Các agent chuyên biệt có thể dùng nếu hiện diện: `architect`, `backend-dev`,
-`frontend-dev`, `qa`, `vision-qa`.
+Các agent chuyên biệt có thể dùng nếu hiện diện: `architect`, `surface-dev`, `qa`,
+`vision-qa`.
 
 ### 4. Quyết định interface/contract
 
