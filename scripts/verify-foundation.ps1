@@ -45,7 +45,7 @@ if ($containers) {
 if (Test-Path 'README.md') {
     $readmeContent = Get-Content 'README.md' -Raw
     $requiredTerms = @(
-        'make up', 'make proto', 'make verify',
+        'make infra-up', 'make proto', 'make verify',
         'bff-service', 'catalog-service', 'inventory-service', 'identity-service', 'order-service',
         '/api/v1/auth', '/api/v1/users', '/api/v1/storefront'
     )
