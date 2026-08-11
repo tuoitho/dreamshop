@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pr-title:
+    name: PR title
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate pull-request title
+        shell: pwsh
+        run: ./scripts/validate-pr-title.ps1 -Title $env:PR_TITLE
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+
+  contracts:
+    name: Contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: bufbuild/buf-setup-action@v1
+      - name: Lint protobuf contracts
+        run: buf lint
+      - name: Generate contract modules
+        run: buf generate
+
+  java:
+    name: Java
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: bufbuild/buf-setup-action@v1
+      - name: Generate contract modules
+        run: buf generate
+      - name: Verify Java services
+        run: mvn --batch-mode --no-transfer-progress verify
+
+  go:
+    name: Go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.24.x'
+          cache: true
+          cache-dependency-path: |
+            go.work.sum
+            contracts/go/go.sum
+            services/bff-service/go.sum
+      - uses: bufbuild/buf-setup-action@v1
+      - name: Generate contract modules
+        run: buf generate
+      - name: Test Go services
+        run: go test ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/...
+      - name: Build Go services
+        run: go build ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/...
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22.12.0'
+          cache: npm
+          cache-dependency-path: ecommerce-fe/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: ecommerce-fe
+      - name: Test frontend
+        run: npm test
+        working-directory: ecommerce-fe
+      - name: Lint frontend
+        run: npm run lint
+        working-directory: ecommerce-fe
+      - name: Build frontend
+        run: npm run build
+        working-directory: ecommerce-fe
