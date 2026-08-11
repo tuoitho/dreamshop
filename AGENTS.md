@@ -86,6 +86,10 @@ addition to this file. Local instructions may specialize these rules but may not
 relax repository-wide boundaries, compatibility, security, or verification
 requirements.
 
+Developer setup, local runtime, build/test, and operations procedures are routed
+through [`docs/instructions/README.md`](docs/instructions/README.md).
+Contribution policy is routed through [`docs/rules/README.md`](docs/rules/README.md).
+
 ## Commands
 
 - `docker compose -f deployments/docker/compose.foundation.yml up -d` starts

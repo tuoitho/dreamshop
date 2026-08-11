@@ -21,18 +21,23 @@ Monorepo chứa các microservice cho hệ thống thương mại điện tử v
    ```bash
    make proto
    ```
-3. Khởi chạy toàn bộ hệ thống container local:
+3. Khởi chạy hạ tầng nền tảng local:
    ```bash
-   make up
+   make infra-up
    ```
-4. Chạy kiểm thử tự động toàn nền tảng:
+4. Chạy service cần phát triển theo hướng dẫn local:
    ```bash
-   make verify
+   make identity
    ```
-5. Dừng hệ thống container khi hoàn tất:
+5. Dừng hạ tầng khi hoàn tất:
    ```bash
-   make down
+   make infra-down
    ```
+
+Chi tiết onboarding, local development, build/test và operations nằm trong
+[`docs/instructions/README.md`](docs/instructions/README.md). Quy tắc kiến trúc
+canonical nằm trong [`docs/steering/README.md`](docs/steering/README.md), còn
+workflow PR nằm trong [`docs/rules/README.md`](docs/rules/README.md).
 
 ## Service map
 
@@ -100,7 +105,9 @@ Frontend demo tại `http://localhost:5173/profile`: đăng ký, đăng nhập, 
 
 ## Verification
 
-Tiện ích kiểm thử nền tảng kiểm tra tự động tất cả các tệp hợp đồng, cấu hình Docker Compose, linting Protobuf, tính sẵn sàng của hệ thống API qua Kong, và sự tồn tại của hướng dẫn vận hành trong README.md.
+Tiện ích foundation kiểm tra cấu hình hạ tầng và các điều kiện runtime cụ thể.
+Build/test toàn repository được chọn theo phạm vi trong hướng dẫn developer và
+được CI chạy bằng các lệnh native của từng stack.
 
 Chạy lệnh kiểm tra:
 ```bash
