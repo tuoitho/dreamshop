@@ -14,7 +14,8 @@ designed explicitly.
 Generated Java and Go contract source is tracked. Do not edit generated files by
 hand. Change the protobuf source definition, run `buf format --diff --exit-code`,
 `buf lint`, and `buf generate`, then commit the resulting generated output with
-the source-contract change.
+the source-contract change. Do not manually normalize generator-produced
+whitespace in generated Java source; generation synchronization is authoritative.
 
 Before treating an OpenAPI document as authoritative, verify its title, servers,
 paths, schemas, and envelopes describe the current e-commerce surface. A scaffold

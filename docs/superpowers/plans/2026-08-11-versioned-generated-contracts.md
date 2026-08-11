@@ -189,7 +189,7 @@ Replace the Contract checks block in `docs/instructions/build-and-test.md` with:
 ```powershell
 buf format --diff --exit-code
 buf lint
-buf breaking --against '.git#branch=main'
+buf breaking --against '.git#branch=origin/main'
 buf generate
 git diff --exit-code -- contracts/go contracts/java/src/main/generated
 ```
@@ -200,7 +200,7 @@ Add the untracked-output diagnostic command:
 git ls-files --others --exclude-standard -- contracts/go contracts/java/src/main/generated
 ```
 
-State that feature branches must fetch the current `main` baseline before the local breaking check.
+State that feature branches must fetch the current `origin/main` baseline before the local breaking check.
 
 - [ ] **Step 2: Update CI policy**
 
@@ -232,12 +232,12 @@ Expected: all commands pass. Run Maven verification only when Docker is availabl
 Run:
 
 ```powershell
-git diff --check
+git diff --check -- . ':(exclude)contracts/java/src/main/generated'
 git status --short
 git diff -- contracts/README.md contracts/openapi.yaml
 ```
 
-Expected: no whitespace errors; the unrelated README and OpenAPI changes remain uncommitted.
+Expected: no whitespace errors outside generator-owned Java output; the unrelated README and OpenAPI changes remain uncommitted.
 
 - [ ] **Step 5: Commit procedures**
 

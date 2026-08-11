@@ -34,14 +34,14 @@ $gitRoot = Split-Path (Split-Path (Get-Command git).Source -Parent) -Parent
 $env:PATH = "$gitRoot\usr\bin;$env:PATH"
 buf format --diff --exit-code
 buf lint
-buf breaking --against '.git#branch=main'
+buf breaking --against '.git#branch=origin/main'
 buf generate
 git diff --exit-code -- contracts/go contracts/java/src/main/generated
 git ls-files --others --exclude-standard -- contracts/go contracts/java/src/main/generated
 ```
 
-On a feature branch, fetch the current `main` baseline before the breaking
-check. The Git for Windows `usr\bin` path provides the `diff` executable used
+On a feature branch, fetch the current `origin/main` baseline before the
+breaking check. The Git for Windows `usr\bin` path provides the `diff` executable used
 by `buf format --diff`; it is unnecessary on Linux CI. Any output from the last
 command means a generated file has not been staged. Run the affected language
 build after changing generated contracts. Protobuf sources live under
@@ -55,7 +55,7 @@ The CI-equivalent direct sequence is:
 ```powershell
 buf format --diff --exit-code
 buf lint
-buf breaking --against '.git#branch=main'
+buf breaking --against '.git#branch=origin/main'
 buf generate
 git diff --exit-code -- contracts/go contracts/java/src/main/generated
 mvn --batch-mode --no-transfer-progress verify
