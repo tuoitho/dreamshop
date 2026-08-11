@@ -39,6 +39,7 @@
 - Create `docs/instructions/build-and-test.md`: direct verification commands by scope.
 - Create `docs/instructions/operations.md`: local diagnosis and safe shutdown runbook.
 - Modify `README.md`: replace stale universal-harness guidance with concise canonical links and supported quick start.
+- Modify `scripts/verify-foundation.ps1`: keep its README assertion aligned with the `make infra-up` quick-start command.
 - Create `docs/rules/README.md`: contribution-policy index.
 - Create `docs/rules/commit-convention.md`: squash-title syntax and examples.
 - Create `docs/rules/pull-requests.md`: branch, review, merge, and administrator settings.
@@ -222,6 +223,7 @@ git commit -m "docs: add operational service catalog"
 - Create: `docs/instructions/local-development.md`
 - Modify: `README.md`
 - Modify: `AGENTS.md`
+- Modify: `scripts/verify-foundation.ps1`
 
 **Interfaces:**
 - Consumes: `docs/steering/service-catalog.md`, existing Make targets, `.env.example`, service launchers, and npm scripts.
@@ -273,6 +275,10 @@ Update `README.md` so it:
 - [ ] **Step 5: Add the root instruction route**
 
 Add one concise paragraph to root `AGENTS.md` after Instruction Routing: developer setup, local runtime, build/test, and operations procedures live in `docs/instructions/README.md`; contribution policy lives in `docs/rules/README.md`. Do not copy procedure details into `AGENTS.md`.
+
+Update the existing README assertion in `scripts/verify-foundation.ps1` from
+`make up` to `make infra-up` so the focused foundation check matches the new
+canonical startup command.
 
 - [ ] **Step 6: Validate files, links, and required commands**
 
