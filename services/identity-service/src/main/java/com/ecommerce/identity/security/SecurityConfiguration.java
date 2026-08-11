@@ -39,6 +39,8 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/users/me").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/users/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/locations/provinces").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/locations/provinces/**").authenticated()
                         .anyRequest().denyAll())
                 .build();
     }

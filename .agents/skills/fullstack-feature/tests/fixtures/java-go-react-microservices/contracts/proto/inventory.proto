@@ -1,7 +1,0 @@
-syntax = "proto3";
-
-package fixture.inventory.v1;
-
-message InventoryItem {
-  string sku = 1;
-}

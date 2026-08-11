@@ -4,6 +4,8 @@ import com.ecommerce.identity.auth.domain.EmailAlreadyRegisteredException;
 import com.ecommerce.identity.auth.domain.AuthenticationUnavailableException;
 import com.ecommerce.identity.auth.domain.InvalidCredentialsException;
 import com.ecommerce.identity.auth.domain.InvalidRefreshTokenException;
+import com.ecommerce.identity.location.ProvinceNotFoundException;
+import com.ecommerce.identity.user.domain.InvalidProfileLocationException;
 import com.ecommerce.identity.user.domain.UserNotFoundException;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -59,6 +61,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UserNotFoundException.class)
     ResponseEntity<ApiError> handleUserNotFound(UserNotFoundException exception) {
         return error(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found");
+    }
+
+    @ExceptionHandler(ProvinceNotFoundException.class)
+    ResponseEntity<ApiError> handleProvinceNotFound(ProvinceNotFoundException exception) {
+        return error(HttpStatus.NOT_FOUND, "NOT_FOUND", "Province not found");
+    }
+
+    @ExceptionHandler(InvalidProfileLocationException.class)
+    ResponseEntity<ApiError> handleInvalidProfileLocation(InvalidProfileLocationException exception) {
+        log.warn("validation_failed location={}", exception.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiError(
+                "VALIDATION_FAILED", "Request validation failed", exception.errors(), TraceIdProvider.current()));
     }
 
     @ExceptionHandler(Exception.class)

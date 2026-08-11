@@ -69,8 +69,9 @@ class RefreshApiTest extends PostgresIntegrationTestSupport {
 
         mockMvc.perform(post("/refresh").cookie(new Cookie(COOKIE_NAME, cookieValue)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.access_token").value("new-jwt"))
-                .andExpect(jsonPath("$.token_type").value("Bearer"))
+                .andExpect(jsonPath("$.data.accessToken").value("new-jwt"))
+                .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.message").value("Token refreshed successfully"))
                 .andExpect(cookie().exists(COOKIE_NAME))
                 .andExpect(cookie().httpOnly(COOKIE_NAME, true))
                 .andExpect(cookie().path(COOKIE_NAME, "/api/v1/auth"));
@@ -113,16 +114,18 @@ class RefreshApiTest extends PostgresIntegrationTestSupport {
     }
 
     @Test
-    void logoutAlwaysReturns204AndClearsCookie() throws Exception {
+    void logoutReturnsSuccessMessageAndClearsCookie() throws Exception {
         String cookieValue = loginAndExtractCookie();
 
         mockMvc.perform(post("/logout").cookie(new Cookie(COOKIE_NAME, cookieValue)))
-                .andExpect(status().isNoContent())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Logout successful"))
                 .andExpect(cookie().maxAge(COOKIE_NAME, 0))
                 .andExpect(cookie().value(COOKIE_NAME, ""));
 
         mockMvc.perform(post("/logout"))
-                .andExpect(status().isNoContent())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Logout successful"))
                 .andExpect(cookie().maxAge(COOKIE_NAME, 0))
                 .andExpect(cookie().value(COOKIE_NAME, ""));
     }
@@ -130,7 +133,7 @@ class RefreshApiTest extends PostgresIntegrationTestSupport {
     private void register(String email) throws Exception {
         mockMvc.perform(post("/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"%s\",\"password\":\"correct horse battery staple\",\"full_name\":\"User\"}"
+                        .content("{\"email\":\"%s\",\"password\":\"correct horse battery staple\",\"fullName\":\"User\"}"
                                 .formatted(email)))
                 .andExpect(status().isCreated());
     }

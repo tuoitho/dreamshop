@@ -32,8 +32,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(payload: LoginRequest) {
     const response = await loginRequest(payload)
-    setAccessToken(response.access_token)
-    setToken(response.access_token)
+    setAccessToken(response.accessToken)
+    setToken(response.accessToken)
     setUser(await fetchCurrentUser())
   }
 

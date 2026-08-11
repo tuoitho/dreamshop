@@ -31,7 +31,7 @@ export default function RegisterPage() {
 
     setSubmitting(true)
     try {
-      await register({ email, password, full_name: fullName })
+      await register({ email, password, fullName })
       navigate("/login", { replace: true, state: { registered: true } })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Đăng ký thất bại")

@@ -41,7 +41,7 @@ export default function HomePage() {
         <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_20%_20%,white_1px,transparent_1px),radial-gradient(circle_at_80%_60%,white_1px,transparent_1px)] [background-size:48px_48px]" />
         <div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:py-16 lg:grid-cols-[1.1fr_1fr] lg:items-center">
           <div>
-            <Badge variant="accent" className="text-white">
+            <Badge variant="accent">
               <Sparkles className="size-3" /> Sự kiện mua sắm mùa hè
             </Badge>
             <h1 className="mt-4 max-w-xl text-3xl leading-tight font-extrabold sm:text-4xl lg:text-5xl">
@@ -68,7 +68,7 @@ export default function HomePage() {
               <Button
                 variant="outline"
                 size="lg"
-                className="border-white/40 text-white hover:bg-white/10"
+                className="border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"
                 asChild
               >
                 <Link to="/tim-kiem?giam-gia=1">

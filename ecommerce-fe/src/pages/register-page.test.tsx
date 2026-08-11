@@ -52,7 +52,7 @@ describe("RegisterPage", () => {
     expect(registerMock).toHaveBeenCalledWith({
       email: "customer@example.com",
       password: "SecurePassword123!",
-      full_name: "Nguyen Van A",
+      fullName: "Nguyen Van A",
     })
   })
 })

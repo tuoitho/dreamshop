@@ -1,6 +1,7 @@
 package com.ecommerce.identity.user.api;
 
 import com.ecommerce.identity.security.CallerContextPrincipal;
+import com.ecommerce.identity.common.api.ApiResponse;
 import com.ecommerce.identity.user.application.MeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,8 +22,10 @@ public class MeController {
     }
 
     @PatchMapping("/users/me")
-    MeResponse update(@AuthenticationPrincipal CallerContextPrincipal caller,
+    ApiResponse<MeUpdateResponse> update(@AuthenticationPrincipal CallerContextPrincipal caller,
             @Valid @RequestBody UpdateMeRequest request) {
-        return MeResponse.from(meService.update(caller.userId(), request.fullName()));
+        return new ApiResponse<>(MeUpdateResponse.from(meService.update(caller.userId(), request.fullName(), request.phone(),
+                request.dateOfBirth(), request.gender(), request.provinceCode(),
+                request.wardCode(), request.addressLine())), "Profile updated successfully");
     }
 }

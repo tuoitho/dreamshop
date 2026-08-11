@@ -39,14 +39,15 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
         mockMvc.perform(post("/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"User@Example.com","password":"correct horse battery staple","full_name":"Nguyen Van A"}
+                                {"email":"User@Example.com","password":"correct horse battery staple","fullName":"Nguyen Van A"}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("X-Trace-Id", matchesPattern("[0-9a-f]{32}")))
-                .andExpect(jsonPath("$.user_id").exists())
-                .andExpect(jsonPath("$.email").value("user@example.com"))
-                .andExpect(jsonPath("$.full_name").value("Nguyen Van A"))
-                .andExpect(jsonPath("$.roles[0]").value("CUSTOMER"))
+                .andExpect(jsonPath("$.data.userId").exists())
+                .andExpect(jsonPath("$.data.email").value("user@example.com"))
+                .andExpect(jsonPath("$.data.fullName").value("Nguyen Van A"))
+                .andExpect(jsonPath("$.data.roles[0]").value("CUSTOMER"))
+                .andExpect(jsonPath("$.message").value("Registration successful"))
                 .andExpect(jsonPath("$.password").doesNotExist());
     }
 
@@ -55,11 +56,11 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
         mockMvc.perform(post("/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"  User@Example.com  ","password":"correct horse battery staple","full_name":"  Nguyen Van A  "}
+                                {"email":"  User@Example.com  ","password":"correct horse battery staple","fullName":"  Nguyen Van A  "}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.email").value("user@example.com"))
-                .andExpect(jsonPath("$.full_name").value("Nguyen Van A"));
+                .andExpect(jsonPath("$.data.email").value("user@example.com"))
+                .andExpect(jsonPath("$.data.fullName").value("Nguyen Van A"));
 
         org.assertj.core.api.Assertions.assertThat(jdbcTemplate.queryForObject(
                 "select full_name from identity_profiles", String.class)).isEqualTo("Nguyen Van A");
@@ -70,7 +71,7 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
         mockMvc.perform(post("/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"not-an-email","password":"short","full_name":""}
+                                {"email":"not-an-email","password":"short","fullName":""}
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
@@ -78,7 +79,7 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(jsonPath("$.errors.email").value("must be a well-formed email address"))
                 .andExpect(jsonPath("$.errors.password").value("size must be between 12 and 128"))
                 .andExpect(jsonPath("$.errors.fullName").value("must not be blank"))
-                .andExpect(jsonPath("$.trace_id", matchesPattern("[0-9a-f]{32}")));
+                .andExpect(jsonPath("$.traceId", matchesPattern("[0-9a-f]{32}")));
     }
 
     @Test
@@ -94,7 +95,7 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
     @Test
     void rejectsDuplicateRegistrationWithoutLeakingPersistenceDetails() throws Exception {
         String request = """
-                {"email":"duplicate@example.com","password":"correct horse battery staple","full_name":"Nguyen Van A"}
+                {"email":"duplicate@example.com","password":"correct horse battery staple","fullName":"Nguyen Van A"}
                 """;
         mockMvc.perform(post("/register").contentType(MediaType.APPLICATION_JSON).content(request))
                 .andExpect(status().isCreated());
@@ -103,7 +104,7 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("EMAIL_ALREADY_REGISTERED"))
                 .andExpect(jsonPath("$.message").value("Email is already registered"))
-                .andExpect(jsonPath("$.trace_id", matchesPattern("[0-9a-f]{32}")))
+                .andExpect(jsonPath("$.traceId", matchesPattern("[0-9a-f]{32}")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("SQLException"))))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("EmailAlreadyRegisteredException"))));
     }
@@ -117,13 +118,13 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
                 .andExpect(jsonPath("$.message").value("Missing or invalid access token"))
-                .andExpect(jsonPath("$.trace_id", matchesPattern("[0-9a-f]{32}")));
+                .andExpect(jsonPath("$.traceId", matchesPattern("[0-9a-f]{32}")));
 
         mockMvc.perform(post("/private"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
                 .andExpect(jsonPath("$.message").value("Missing or invalid access token"))
-                .andExpect(jsonPath("$.trace_id", matchesPattern("[0-9a-f]{32}")));
+                .andExpect(jsonPath("$.traceId", matchesPattern("[0-9a-f]{32}")));
 
         mockMvc.perform(get("/.well-known/jwks.json"))
                 .andExpect(status().isOk());

@@ -1,6 +1,8 @@
 package com.ecommerce.identity.user.persistence;
 
 import com.ecommerce.identity.auth.domain.AccountStatus;
+import com.ecommerce.identity.user.domain.Gender;
+import com.ecommerce.identity.user.domain.ProfilePatch;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -14,6 +16,7 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -87,6 +90,30 @@ public class IdentityUserEntity {
         return profile.fullName();
     }
 
+    public String phone() {
+        return profile.phone();
+    }
+
+    public LocalDate dateOfBirth() {
+        return profile.dateOfBirth();
+    }
+
+    public Gender gender() {
+        return profile.gender();
+    }
+
+    public String provinceCode() {
+        return profile.provinceCode();
+    }
+
+    public String wardCode() {
+        return profile.wardCode();
+    }
+
+    public String addressLine() {
+        return profile.addressLine();
+    }
+
     public Set<String> roleCodes() {
         Set<String> codes = new TreeSet<>();
         for (RoleEntity role : roles) {
@@ -100,8 +127,10 @@ public class IdentityUserEntity {
         updatedAt = Objects.requireNonNull(now, "now");
     }
 
-    public void updateFullName(String fullName, Instant now) {
-        profile.rename(fullName);
+    public void updateProfile(ProfilePatch<String> fullName, ProfilePatch<String> phone, ProfilePatch<LocalDate> dateOfBirth,
+            ProfilePatch<Gender> gender, ProfilePatch<String> provinceCode, ProfilePatch<String> wardCode,
+            ProfilePatch<String> addressLine, Instant now) {
+        profile.applyUpdate(fullName, phone, dateOfBirth, gender, provinceCode, wardCode, addressLine);
         updatedAt = Objects.requireNonNull(now, "now");
     }
 }

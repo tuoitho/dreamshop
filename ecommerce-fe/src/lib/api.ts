@@ -1,5 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios"
-import type { ApiError, CurrentUser, LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, UpdateProfileRequest } from "./types"
+import { toast } from "sonner"
+import type { ApiError, ApiResponse, CurrentUser, LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, UpdateProfileRequest } from "./types"
 import { clearAccessToken, getAccessToken, runSingleFlightRefresh, setAccessToken } from "./auth-session"
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1"
@@ -10,6 +11,16 @@ export const http = axios.create({
   withCredentials: true,
 })
 
+function isMutation(config: { method?: string } | undefined): boolean {
+  return Boolean(config?.method && config.method.toLowerCase() !== "get")
+}
+
+function responseMessage(data: unknown): string | undefined {
+  return data && typeof data === "object" && "message" in data && typeof data.message === "string"
+    ? data.message
+    : undefined
+}
+
 const refreshHttp = axios.create({
   baseURL: BASE_URL,
   headers: { "Content-Type": "application/json" },
@@ -18,9 +29,9 @@ const refreshHttp = axios.create({
 
 export async function refreshAccessToken(): Promise<string> {
   return runSingleFlightRefresh(async () => {
-    const { data } = await refreshHttp.post<LoginResponse>("/auth/refresh")
-    setAccessToken(data.access_token)
-    return data.access_token
+    const { data } = await refreshHttp.post<ApiResponse<LoginResponse>>("/auth/refresh")
+    setAccessToken(data.data.accessToken)
+    return data.data.accessToken
   })
 }
 
@@ -32,10 +43,19 @@ http.interceptors.request.use((config) => {
   return config
 })
 
-http.interceptors.response.use(undefined, async (error: AxiosError) => {
+http.interceptors.response.use((response) => {
+  if (isMutation(response.config)) {
+    const message = responseMessage(response.data)
+    if (message) toast.success(message)
+  }
+  return response
+}, async (error: AxiosError) => {
   const config = error.config as (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined
   const url = config?.url ?? ""
   if (error.response?.status !== 401 || url.startsWith("/auth/") || !config || config._retried) {
+    if (isMutation(config)) {
+      toast.error(responseMessage(error.response?.data) ?? error.message)
+    }
     return Promise.reject(error)
   }
   config._retried = true
@@ -45,6 +65,9 @@ http.interceptors.response.use(undefined, async (error: AxiosError) => {
     return http(config)
   } catch {
     clearAccessToken()
+    if (isMutation(config)) {
+      toast.error(responseMessage(error.response?.data) ?? error.message)
+    }
     return Promise.reject(error)
   }
 })
@@ -53,21 +76,23 @@ export class ApiClientError extends Error {
   readonly status: number | null
   readonly code?: string
   readonly traceId?: string
+  readonly errors?: Record<string, string>
 
-  constructor(status: number | null, message: string, code?: string, traceId?: string) {
+  constructor(status: number | null, message: string, code?: string, traceId?: string, errors?: Record<string, string>) {
     super(message)
     this.name = "ApiClientError"
     this.status = status
     this.code = code
     this.traceId = traceId
+    this.errors = errors
   }
 }
 
-function toClientError(error: unknown): ApiClientError {
+export function toClientError(error: unknown): ApiClientError {
   if (error instanceof AxiosError) {
     const body = error.response?.data as Partial<ApiError> | undefined
     if (body && typeof body.message === "string") {
-      return new ApiClientError(error.response?.status ?? null, body.message, body.code, body.trace_id)
+      return new ApiClientError(error.response?.status ?? null, body.message, body.code, body.traceId, body.errors)
     }
     return new ApiClientError(error.response?.status ?? null, error.message)
   }
@@ -76,8 +101,8 @@ function toClientError(error: unknown): ApiClientError {
 
 export async function login(payload: LoginRequest): Promise<LoginResponse> {
   try {
-    const { data } = await http.post<LoginResponse>("/auth/login", payload)
-    return data
+    const { data } = await http.post<ApiResponse<LoginResponse>>("/auth/login", payload)
+    return data.data
   } catch (error) {
     throw toClientError(error)
   }
@@ -85,8 +110,8 @@ export async function login(payload: LoginRequest): Promise<LoginResponse> {
 
 export async function register(payload: RegisterRequest): Promise<RegisterResponse> {
   try {
-    const { data } = await http.post<RegisterResponse>("/auth/register", payload)
-    return data
+    const { data } = await http.post<ApiResponse<RegisterResponse>>("/auth/register", payload)
+    return data.data
   } catch (error) {
     throw toClientError(error)
   }
@@ -112,8 +137,8 @@ export async function fetchCurrentUser(): Promise<CurrentUser> {
 
 export async function updateCurrentUser(payload: UpdateProfileRequest): Promise<CurrentUser> {
   try {
-    const { data } = await http.patch<CurrentUser>("/users/me", payload)
-    return data
+    const { data } = await http.patch<ApiResponse<CurrentUser>>("/users/me", payload)
+    return data.data
   } catch (error) {
     throw toClientError(error)
   }

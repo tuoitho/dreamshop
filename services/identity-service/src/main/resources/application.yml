@@ -5,15 +5,15 @@ spring:
     url: ${IDENTITY_DB_URL:jdbc:postgresql://localhost:5432/identity_db}
     username: ${IDENTITY_DB_USERNAME:ecommerce}
     password: ${IDENTITY_DB_PASSWORD:change-me-local-only}
-  jpa:
-    open-in-view: false
+    jpa:
+      open-in-view: false
     hibernate:
       ddl-auto: validate
   flyway:
     enabled: true
 identity:
   jwt:
-    issuer: ${IDENTITY_JWT_ISSUER:http://localhost:8090}
+    issuer: ${IDENTITY_JWT_ISSUER:http://localhost:8080}
     audience: ${IDENTITY_JWT_AUDIENCE:ecommerce-api}
     private-key-path: ${IDENTITY_JWT_PRIVATE_KEY_PATH:deployments/secrets/identity/private.pem}
     public-key-path: ${IDENTITY_JWT_PUBLIC_KEY_PATH:deployments/secrets/identity/public.pem}

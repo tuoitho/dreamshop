@@ -1,5 +1,10 @@
 ### Identity Service REST API Client
-@baseUrl = http://localhost:8090
+@baseUrl = http://localhost:8080
+@kongUrl = http://localhost:8000
+@email = identity-demo@example.test
+@password = SecurePassword123!
+# Paste the access_token from the Login response.
+@accessToken = eyJraWQiOiJpZGVudGl0eS1kZXYtMjAyNi0wMSIsInR5cCI6IkpXVCIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIzMWZiYTMxMC1jNGRhLTQ1ODctYTA0Mi0yMDk2NDQ0NTY2ZDYiLCJhdWQiOiJlY29tbWVyY2UtYXBpIiwicm9sZXMiOlsiQ1VTVE9NRVIiXSwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDkwIiwiZXhwIjoxNzg2MzQ0ODMwLCJpYXQiOjE3ODYzNDM5MzAsImp0aSI6IjE3ZmIyYjk1LWFmMGMtNGYyYy04NTZiLTJkMzg0OTdjZjc5NyJ9.ip2qtCVGAaKQtdMEmepExisblGuCSvgZsXoqKONCVl3iTaDjvYIDlCg2USNn-N8S_ByRsvCWxWqhKhxB33ZrVVxcwyVHswvKXNwwXZ5IpvemVYKhqmbpvznYKnPKocfg70Yu728lrwVAe19uhRscEJWSXxdgrmsLYa4upsTR1DanRBmRHo4T7mkzAp5bbmoxO4lj92YOktbxg8Ss-OH_NHn99tYIVu5we7EYj8c4egM4c0u6J6bq6SijQZhRoWA0Ron4RAoOu1SQELg62-O2-YlryrbUP9us8QiCZz72FaAwJknwf5M0pFZRiQqjavLMv6SmfSUsdgeLOas1UxqQEg
 
 ### Health Check
 GET {{baseUrl}}/actuator/health
@@ -14,16 +19,51 @@ POST {{baseUrl}}/register
 Content-Type: application/json
 
 {
-  "email": "user@example.com",
+  "email": "ssdsds@gmail.com",
   "password": "SecurePassword123!",
   "full_name": "Nguyen Van A"
 }
+
+
 
 ### Login
 POST {{baseUrl}}/login
 Content-Type: application/json
 
 {
-  "email": "user@example.com",
+  "email": "ssdsds@gmail.com",
   "password": "SecurePassword123!"
 }
+
+
+### Refresh Access Token
+# The HTTP client retains the HttpOnly refresh_token cookie from login.
+POST {{baseUrl}}/refresh
+
+
+### Get Current User Directly
+# Kong normally derives this header from the Bearer JWT. Use it only for direct Identity calls.
+GET {{baseUrl}}/users/me
+X-User-Id: 31e39007-855f-4ef0-9998-b5df96d52aba
+Accept: application/json
+
+### Get Current User Through Kong
+# Kong verifies the Bearer JWT via caller-context and injects x-user-id/x-user-roles.
+GET {{kongUrl}}/api/v1/users/me
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Update Current User Directly
+PATCH {{baseUrl}}/users/me
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "full_name": "Updated Nguyen Van A"
+}
+
+### Logout
+POST {{baseUrl}}/logout
+
+### Refresh After Logout (expected 401 INVALID_REFRESH_TOKEN)
+POST {{baseUrl}}/refresh

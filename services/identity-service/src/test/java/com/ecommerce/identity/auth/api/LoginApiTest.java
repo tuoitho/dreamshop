@@ -54,9 +54,10 @@ class LoginApiTest extends PostgresIntegrationTestSupport {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"user@example.com\",\"password\":\"correct horse battery staple\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.access_token").isNotEmpty())
-                .andExpect(jsonPath("$.token_type").value("Bearer"))
-                .andExpect(jsonPath("$.expires_in").value(900));
+                .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.data.expiresIn").value(900))
+                .andExpect(jsonPath("$.message").value("Login successful"));
     }
 
     @Test
@@ -66,7 +67,7 @@ class LoginApiTest extends PostgresIntegrationTestSupport {
 
         login("  user@example.com  ", "correct horse battery staple")
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.access_token").value("access-token"));
+                .andExpect(jsonPath("$.data.accessToken").value("access-token"));
     }
 
     @Test
@@ -75,7 +76,7 @@ class LoginApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"))
                 .andExpect(jsonPath("$.message").value("Email or password is invalid."))
-                .andExpect(jsonPath("$.trace_id", matchesPattern("[0-9a-f]{32}")));
+                .andExpect(jsonPath("$.traceId", matchesPattern("[0-9a-f]{32}")));
     }
 
     @Test
@@ -86,7 +87,7 @@ class LoginApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"))
                 .andExpect(jsonPath("$.message").value("Email or password is invalid."))
-                .andExpect(jsonPath("$.trace_id", matchesPattern("[0-9a-f]{32}")));
+                .andExpect(jsonPath("$.traceId", matchesPattern("[0-9a-f]{32}")));
     }
 
     @Test
@@ -98,7 +99,7 @@ class LoginApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"))
                 .andExpect(jsonPath("$.message").value("Email or password is invalid."))
-                .andExpect(jsonPath("$.trace_id", matchesPattern("[0-9a-f]{32}")));
+                .andExpect(jsonPath("$.traceId", matchesPattern("[0-9a-f]{32}")));
     }
 
     @Test
@@ -109,7 +110,7 @@ class LoginApiTest extends PostgresIntegrationTestSupport {
         login("user@example.com", "correct horse battery staple")
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.code").value("AUTHENTICATION_UNAVAILABLE"))
-                .andExpect(jsonPath("$.trace_id", matchesPattern("[0-9a-f]{32}")))
+                .andExpect(jsonPath("$.traceId", matchesPattern("[0-9a-f]{32}")))
                 .andExpect(content().string(not(containsString("private-key"))))
                 .andExpect(content().string(not(containsString("PasswordEncoder"))));
     }
@@ -117,7 +118,7 @@ class LoginApiTest extends PostgresIntegrationTestSupport {
     private void register(String email, String password) throws Exception {
         mockMvc.perform(post("/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"%s\",\"password\":\"%s\",\"full_name\":\"User\"}".formatted(email, password)))
+                        .content("{\"email\":\"%s\",\"password\":\"%s\",\"fullName\":\"User\"}".formatted(email, password)))
                 .andExpect(status().isCreated());
     }
 

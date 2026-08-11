@@ -1,3 +1,8 @@
+export interface ApiResponse<T> {
+  data: T
+  message: string
+}
+
 export interface LoginRequest {
   email: string
   password: string
@@ -6,38 +11,57 @@ export interface LoginRequest {
 export interface RegisterRequest {
   email: string
   password: string
-  full_name: string
+  fullName: string
 }
 
 export interface LoginResponse {
-  access_token: string
-  token_type: string
-  expires_in: number
+  accessToken: string
+  tokenType: string
+  expiresIn: number
 }
 
 export interface RegisterResponse {
-  user_id: string
+  userId: string
   email: string
-  full_name: string
+  fullName: string
   roles: string[]
+}
+
+export type Gender = "MALE" | "FEMALE" | "OTHER"
+
+export interface LocationOption {
+  code: string
+  name: string
 }
 
 export interface CurrentUser {
-  user_id: string
+  userId: string
   email: string
-  full_name: string
+  fullName: string
   roles: string[]
+  phone: string | null
+  dateOfBirth: string | null
+  gender: Gender | null
+  provinceCode: string | null
+  wardCode: string | null
+  addressLine: string | null
 }
 
 export interface UpdateProfileRequest {
-  full_name: string
+  fullName?: string
+  phone?: string
+  dateOfBirth?: string
+  gender?: Gender | ""
+  provinceCode?: string
+  wardCode?: string
+  addressLine?: string
 }
 
 export interface ApiError {
   code: string
   message: string
   errors?: Record<string, string>
-  trace_id: string
+  traceId: string
 }
 
 export interface HealthResponse {

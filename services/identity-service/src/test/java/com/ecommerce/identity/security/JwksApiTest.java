@@ -97,14 +97,14 @@ class JwksApiTest extends PostgresIntegrationTestSupport {
         String password = "correct horse battery staple";
         mockMvc.perform(post("/register")
                         .contentType("application/json")
-                        .content("{\"email\":\"%s\",\"password\":\"%s\",\"full_name\":\"JWKS User\"}".formatted(email, password)))
+                        .content("{\"email\":\"%s\",\"password\":\"%s\",\"fullName\":\"JWKS User\"}".formatted(email, password)))
                 .andExpect(status().isCreated());
         MvcResult login = mockMvc.perform(post("/login")
                         .contentType("application/json")
                         .content("{\"email\":\"%s\",\"password\":\"%s\"}".formatted(email, password)))
                 .andExpect(status().isOk())
                 .andReturn();
-        return JsonPath.read(login.getResponse().getContentAsString(), "$.access_token");
+        return JsonPath.read(login.getResponse().getContentAsString(), "$.data.accessToken");
     }
 
     private NimbusJwtDecoder decoder(RSAKey jwk) throws Exception {

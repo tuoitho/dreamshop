@@ -1,0 +1,63 @@
+openapi: 3.1.0
+info:
+  title: FICO API
+  version: 0.1.0
+  description: >-
+    Contract source-of-truth cho pipeline fullstack-feature. Chỉ architect agent được sửa file này.
+    file này là TÀI LIỆU thuần — không sinh code; conformance do integration test kiểm chứng.
+servers:
+  - url: http://localhost:8080/api/v1
+tags:
+  - name: system
+    description: System endpoints
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Health check
+      tags: [system]
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+              examples:
+                ok:
+                  value:
+                    status: okness2
+components:
+  schemas:
+    ResponseEnvelope:
+      type: object
+      description: >-
+        Envelope chuẩn của backend (pkg/response.ResponseData). Mọi response nghiệp vụ 2xx bọc data
+        trong envelope này; contract của từng endpoint mô tả shape của `data`.
+      required: [code, message]
+      properties:
+        code:
+          type: integer
+          description: Business code (ErrCodeSuccess khi thành công)
+        message:
+          type: string
+        data:
+          description: Payload thật của endpoint — schema khai riêng ở từng operation
+    Error:
+      type: object
+      description: >-
+        Envelope lỗi chuẩn (response.ErrorResponse / ErrorResponseWithDetail). Mọi response 4xx/5xx
+        dùng schema này; `error` chứa chi tiết validation khi 400 ErrParamInvalid.
+      required: [code, message]
+      properties:
+        code:
+          type: integer
+          description: Business error code (xem pkg/response — vd ErrParamInvalid)
+        message:
+          type: string
+        error:
+          description: Chi tiết lỗi validation (nếu có)

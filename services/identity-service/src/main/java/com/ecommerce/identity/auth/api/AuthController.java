@@ -7,6 +7,7 @@ import com.ecommerce.identity.auth.application.LoginCommand;
 import com.ecommerce.identity.auth.application.LoginService;
 import com.ecommerce.identity.auth.application.RefreshTokenService;
 import com.ecommerce.identity.auth.domain.InvalidRefreshTokenException;
+import com.ecommerce.identity.common.api.ApiResponse;
 import com.ecommerce.identity.common.config.IdentitySessionProperties;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,6 +15,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RestController
 @RequestMapping
 @RequiredArgsConstructor
@@ -34,25 +37,26 @@ public class AuthController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    RegisterResponse register(@Valid @RequestBody RegisterRequest request) {
-        return RegisterResponse.from(registerUserService.register(
-                new RegisterCommand(request.email(), request.password(), request.fullName())));
+    ApiResponse<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
+        return new ApiResponse<>(RegisterResponse.from(registerUserService.register(
+                new RegisterCommand(request.email(), request.password(), request.fullName()))), "Registration successful");
     }
 
     @PostMapping("/login")
-    LoginResponse login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
+    ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
+        log.info("login_attempt {}", request);
         AuthenticatedSession session = loginService.login(new LoginCommand(request.email(), request.password()));
         response.addHeader(HttpHeaders.SET_COOKIE, cookie(session.rawRefreshToken(), properties.refreshTtl()).toString());
-        return LoginResponse.from(session.accessToken());
+        return new ApiResponse<>(LoginResponse.from(session.accessToken()), "Login successful");
     }
 
     @PostMapping("/refresh")
-    LoginResponse refresh(HttpServletRequest request, HttpServletResponse response) {
+    ApiResponse<LoginResponse> refresh(HttpServletRequest request, HttpServletResponse response) {
         try {
             AuthenticatedSession session = refreshTokenService.rotate(refreshToken(request));
             response.addHeader(HttpHeaders.SET_COOKIE,
                     cookie(session.rawRefreshToken(), properties.refreshTtl()).toString());
-            return LoginResponse.from(session.accessToken());
+            return new ApiResponse<>(LoginResponse.from(session.accessToken()), "Token refreshed successfully");
         } catch (InvalidRefreshTokenException exception) {
             response.addHeader(HttpHeaders.SET_COOKIE, cookie("", Duration.ZERO).toString());
             throw exception;
@@ -60,13 +64,13 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    void logout(HttpServletRequest request, HttpServletResponse response) {
+    ApiResponse<LogoutResponse> logout(HttpServletRequest request, HttpServletResponse response) {
         String rawToken = findRefreshToken(request);
         if (rawToken != null && !rawToken.isBlank()) {
             refreshTokenService.logout(rawToken);
         }
         response.addHeader(HttpHeaders.SET_COOKIE, cookie("", Duration.ZERO).toString());
+        return new ApiResponse<>(new LogoutResponse(), "Logout successful");
     }
 
     private String refreshToken(HttpServletRequest request) {
