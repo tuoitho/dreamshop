@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-Application services live in `services/`: Identity and Order use Java/Spring Boot, while BFF, Catalog, and Inventory use Go. The React/Vite client is in `ecommerce-fe/`. Protobuf definitions and generated modules are in `contracts/`. Infrastructure configuration is under `deployments/`, operational checks are in `scripts/`.
+Application services live in `services/`: Identity and Order use Java/Spring Boot, while BFF, Catalog, and Inventory use Go. The React/Vite client is in `ecommerce-fe/`. Protobuf definitions and generated modules are in `contracts/`. Infrastructure configuration is under `deployments/`.
 
 Keep production code beside its service. Java tests belong in `src/test/java`; Go tests use `_test.go` files next to their packages; frontend tests use `*.test.ts` or `*.test.tsx` under `ecommerce-fe/src`.
 
