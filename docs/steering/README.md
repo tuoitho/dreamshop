@@ -25,6 +25,7 @@ documents define how changes must comply with them.
 | Work spanning multiple services, frontend/backend, contracts, or infrastructure | [`change-impact.md`](change-impact.md), plus the topic documents for every affected category |
 | Tests, regression fixes, contract checks, or end-to-end verification | [`testing.md`](testing.md) and, when external resources are involved, [`delivery.md`](delivery.md) |
 | Database migration, environment variable, secret, Kong route, manifest, deployment, or rollout | [`delivery.md`](delivery.md), [`change-impact.md`](change-impact.md), and any applicable contract/boundary document |
+| Service topology, ports, health checks, exposure, datastores, or dependencies | [`service-catalog.md`](service-catalog.md) |
 
 ## Minimal Reading Examples
 

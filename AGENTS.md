@@ -78,6 +78,8 @@ relevant to the change:
   verification.
 - [`delivery.md`](docs/steering/delivery.md): migrations, configuration,
   deployments, rollout, and observability.
+- [`service-catalog.md`](docs/steering/service-catalog.md): current service
+  topology, ports, health checks, exposure, datastores, and dependencies.
 
 When a nearer `AGENTS.md` exists inside a service or the frontend, apply it in
 addition to this file. Local instructions may specialize these rules but may not
