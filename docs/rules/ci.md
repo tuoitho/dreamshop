@@ -18,4 +18,3 @@ or deploy.
 
 A failed or unavailable required check blocks merge. CI does not turn blocked,
 skipped, or infrastructure-failed verification into a passing result.
-

@@ -24,4 +24,3 @@ GitHub remotely. Configure the `main` branch to:
 - require the branch to be up to date if the repository team adopts that setting consistently;
 - block force pushes and branch deletion;
 - enable squash merge and disable merge commits and rebase merges.
-

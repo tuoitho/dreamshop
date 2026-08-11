@@ -31,4 +31,3 @@ Invalid examples:
 - `feat(order_api): add checkout validation` (underscore in scope)
 - `feat(order) add checkout validation` (missing colon-space)
 - `feat(order):` (empty description)
-

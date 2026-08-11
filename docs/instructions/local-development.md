@@ -47,4 +47,3 @@ Container BFF remains on `8080`.
 The browser uses Kong for public API calls. Internal service calls do not route
 through Kong or the BFF. Kong routes to a host-run service through
 `host.docker.internal`.
-

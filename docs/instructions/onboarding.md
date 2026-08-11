@@ -55,4 +55,3 @@ Read the [service catalog](../steering/service-catalog.md) before starting a
 service, and continue with the [local-development guide](local-development.md)
 when a runtime dependency is required. Do not start every application for a
 domain-only change.
-

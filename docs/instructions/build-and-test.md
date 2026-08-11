@@ -58,4 +58,3 @@ The existing `make verify`, `make verify-identity`, and
 `make verify-edge-auth` scripts are focused foundation/runtime checks. They may
 require local infrastructure and running applications; they are not a
 replacement for the direct build and test commands above.
-

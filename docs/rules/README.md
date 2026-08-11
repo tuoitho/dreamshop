@@ -10,4 +10,3 @@ Use the policy page that matches the contribution question.
 
 Engineering constraints remain in [`docs/steering/README.md`](../steering/README.md).
 Developer procedures remain in [`docs/instructions/README.md`](../instructions/README.md).
-

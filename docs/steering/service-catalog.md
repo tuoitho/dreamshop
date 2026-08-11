@@ -42,4 +42,3 @@ is not wired in the current skeletons.
   default is `8081` so it matches Kong without conflicting with Identity.
 - A service owning a database or integration in the accepted architecture does
   not imply that the current skeleton has wired that resource.
-

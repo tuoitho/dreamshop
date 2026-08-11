@@ -50,4 +50,3 @@ container cannot resolve the host gateway.
 
 Use `make infra-down` for routine shutdown. Do not use volume deletion during
 normal development; removing volumes destroys local database state.
-

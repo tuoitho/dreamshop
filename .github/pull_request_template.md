@@ -28,4 +28,3 @@
 - [ ] Secrets and generated artifacts are handled according to repository rules.
 - [ ] Verification evidence covers the affected behavior.
 - [ ] Unrelated refactors and files are excluded.
-

@@ -13,4 +13,3 @@ contribution policy is in [`docs/rules/README.md`](../rules/README.md).
 
 For ports, ownership, exposure, and current wiring status, use the
 [service catalog](../steering/service-catalog.md).
-
