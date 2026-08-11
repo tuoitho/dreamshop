@@ -109,4 +109,3 @@ Run the narrowest relevant checks first, then expand according to impact:
 Capture exact evidence. If Docker, Testcontainers, a broker, or another external
 dependency is unavailable, report the precise blocker and every narrower check
 that passed. Do not represent partial verification as a full rollout check.
-

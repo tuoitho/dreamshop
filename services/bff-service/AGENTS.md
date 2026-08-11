@@ -88,4 +88,3 @@ required.
 - [Change impact](../../docs/steering/change-impact.md)
 - [Testing](../../docs/steering/testing.md)
 - [Delivery](../../docs/steering/delivery.md)
-

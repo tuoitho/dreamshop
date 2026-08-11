@@ -35,4 +35,3 @@ documents define how changes must comply with them.
   [`change-impact.md`](change-impact.md), and [`testing.md`](testing.md).
 - A Flyway migration inside Identity: root instructions, Identity's local
   instructions, [`delivery.md`](delivery.md), and [`testing.md`](testing.md).
-

@@ -95,4 +95,3 @@ Before approving a cross-service change, confirm:
 - Contract compatibility and consumer impact are analyzed.
 - Retry, idempotency, timeout, and compensation behavior are explicit.
 - Logs and traces carry correlation identifiers across the workflow.
-

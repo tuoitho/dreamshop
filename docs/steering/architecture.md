@@ -86,4 +86,3 @@ Do not add a service solely to demonstrate a technology or because a package has
 grown. A new boundary requires clear ownership of data, invariants, APIs/events,
 failure handling, deployment, and observability. Record a material change to the
 accepted service map in an ADR before implementation.
-

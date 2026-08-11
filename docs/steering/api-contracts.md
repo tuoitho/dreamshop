@@ -11,9 +11,12 @@ designed explicitly.
 - `contracts/openapi.yaml` is the conventional shared HTTP contract location
   when its content represents the e-commerce API being changed.
 
-Do not edit generated contract code by hand. Change the source definition, run
-`buf lint`, regenerate with `buf generate`, and include every required generated
-module update in the same change.
+Do not edit generated contract code by hand. The current repository policy
+ignores protobuf-generated Java and Go outputs. Change the source definition,
+run `buf lint`, regenerate locally with `buf generate`, and use the generated
+outputs to compile/test affected producers and consumers. Do not force-add
+ignored generated files. Versioning generated outputs requires a deliberate
+repository-policy change, including the corresponding `.gitignore` update.
 
 Before treating an OpenAPI document as authoritative, verify its title, servers,
 paths, schemas, and envelopes describe the current e-commerce surface. A scaffold
@@ -67,9 +70,9 @@ buf lint
 buf generate
 ```
 
-After generation, inspect Java and Go diffs and test every affected producer and
-consumer. A successful generation command does not by itself prove behavioral
-compatibility.
+After generation, compile and test every affected Java and Go producer/consumer.
+Generated outputs remain uncommitted under the current ignore policy. A
+successful generation command does not by itself prove behavioral compatibility.
 
 ## REST/JSON
 
@@ -126,13 +129,19 @@ with [ADR-008](../adr/008-hybrid-rest-bff-grpc-transcoding.md).
 
 ## Events
 
+Transactional event publication, retry, and consumer deduplication follow
+[ADR-002](../adr/002-transactional-outbox.md).
+
 Every event contract defines at least:
 
 - `event_id`: globally unique delivery identity.
 - `event_type`: stable semantic name.
 - `event_version`: payload/schema version.
 - `occurred_at`: producer event time in an unambiguous format.
+- `aggregate_id`: stable identity of the domain aggregate/entity that produced
+  the fact.
 - `correlation_id`: workflow/trace correlation.
+- `trace_context`: distributed trace propagation metadata.
 - `payload`: versioned domain facts.
 
 Define the producer, consumers, routing, ordering scope, retry/dead-letter policy,
@@ -164,8 +173,8 @@ Before merging a contract change, confirm:
 
 - The owning service and source definition are clear.
 - The change is additive or has an explicit versioned migration.
-- Generated modules are current and unedited by hand.
+- Local generation succeeds, and affected generated consumers compile/test
+  without force-adding ignored outputs.
 - All known consumers were inspected.
 - Error, idempotency, authorization, and routing semantics are defined.
 - Producer/consumer or black-box contract tests cover the changed boundary.
-
