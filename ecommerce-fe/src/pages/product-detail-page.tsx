@@ -24,8 +24,15 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useCart } from "@/hooks/use-cart"
 import { useAuth } from "@/hooks/use-auth"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 
 const MAX_QUANTITY = 10
+
+interface BuyNowRequest {
+  productId: string
+  variantLabel: string
+  quantity: number
+}
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -43,7 +50,11 @@ export default function ProductDetailPage() {
   const [added, setAdded] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const [galleryError, setGalleryError] = useState(false)
-  const [pendingBuyNow, setPendingBuyNow] = useState(false)
+  const [buyNowRequest, setBuyNowRequest] = useState<BuyNowRequest | null>(null)
+  const [buyNowResponseReady, setBuyNowResponseReady] = useState(false)
+  const [addPending, setAddPending] = useState(false)
+  const [buyNowPending, setBuyNowPending] = useState(false)
+  const [softDeletePending, setSoftDeletePending] = useState(false)
 
   const [related, setRelated] = useState<ProductSummary[] | null>(null)
 
@@ -55,7 +66,11 @@ export default function ProductDetailPage() {
     setAdded(false)
     setActiveIndex(0)
     setGalleryError(false)
-    setPendingBuyNow(false)
+    setBuyNowRequest(null)
+    setBuyNowResponseReady(false)
+    setAddPending(false)
+    setBuyNowPending(false)
+    setSoftDeletePending(false)
     setProduct(null)
     setError(null)
     setLoading(true)
@@ -89,13 +104,22 @@ export default function ProductDetailPage() {
   }, [id, reloadKey])
 
   useEffect(() => {
-    if (!pendingBuyNow || !product) return
-    const item = items.find((entry) => entry.productId === product.id && entry.variantLabel === variantLabel)
-    if (!item) return
+    if (!buyNowRequest || !buyNowResponseReady) return
+    const item = items.find((entry) =>
+      entry.productId === buyNowRequest.productId &&
+      entry.variantLabel === buyNowRequest.variantLabel &&
+      (entry.status === "AVAILABLE" || entry.status === "LIMITED")
+    )
+    setBuyNowRequest(null)
+    setBuyNowResponseReady(false)
+    setBuyNowPending(false)
+    if (!item) {
+      toast.error("Không tìm thấy phân loại có thể mua trong giỏ hàng")
+      return
+    }
     selectOnly(item.itemId)
-    setPendingBuyNow(false)
     navigate("/gio-hang/dat-hang")
-  }, [items, navigate, pendingBuyNow, product, selectOnly, variantLabel])
+  }, [buyNowRequest, buyNowResponseReady, items, navigate, selectOnly])
 
   const productCategoryId = product?.categoryId
   const productId = product?.id
@@ -185,20 +209,48 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = async () => {
     if (!requireAuthentication()) return
-    await addItem(product.id, variantLabel, quantity)
-    setAdded(true)
-    window.setTimeout(() => setAdded(false), 1600)
+    if (addPending || buyNowPending || softDeletePending) return
+    setAddPending(true)
+    try {
+      await addItem(product.id, variantLabel, quantity)
+      setAdded(true)
+      window.setTimeout(() => setAdded(false), 1600)
+    } catch (err) {
+      toast.error(toErrorInfo(err).message)
+    } finally {
+      setAddPending(false)
+    }
   }
 
   const handleBuyNow = async () => {
     if (!requireAuthentication()) return
-    await addItem(product.id, variantLabel, quantity)
-    setPendingBuyNow(true)
+    if (addPending || buyNowPending || softDeletePending) return
+    const request = { productId: product.id, variantLabel, quantity }
+    setBuyNowRequest(request)
+    setBuyNowResponseReady(false)
+    setBuyNowPending(true)
+    try {
+      await addItem(request.productId, request.variantLabel, request.quantity)
+      setBuyNowResponseReady(true)
+    } catch (err) {
+      setBuyNowRequest(null)
+      setBuyNowResponseReady(false)
+      setBuyNowPending(false)
+      toast.error(toErrorInfo(err).message)
+    }
   }
 
   const handleSoftDelete = async () => {
-    await softDeleteProduct(product.id, !product.deleted)
-    setReloadKey((key) => key + 1)
+    if (addPending || buyNowPending || softDeletePending) return
+    setSoftDeletePending(true)
+    try {
+      await softDeleteProduct(product.id, !product.deleted)
+      setReloadKey((key) => key + 1)
+    } catch (err) {
+      toast.error(toErrorInfo(err).message)
+    } finally {
+      setSoftDeletePending(false)
+    }
   }
 
   return (
@@ -383,18 +435,20 @@ export default function ProductDetailPage() {
             <Button
               size="lg"
               className="flex-1 min-w-44"
-              onClick={handleAddToCart}
+              disabled={addPending || buyNowPending || softDeletePending}
+              onClick={() => void handleAddToCart()}
             >
               <ShoppingCart />
-              {added ? "Đã thêm vào giỏ" : "Thêm vào giỏ"}
+              {addPending ? "Đang thêm..." : added ? "Đã thêm vào giỏ" : "Thêm vào giỏ"}
             </Button>
             <Button
               size="lg"
               variant="outline"
               className="flex-1 min-w-36"
-              onClick={handleBuyNow}
+              disabled={addPending || buyNowPending || softDeletePending}
+              onClick={() => void handleBuyNow()}
             >
-              Mua ngay
+              {buyNowPending ? "Đang xử lý..." : "Mua ngay"}
             </Button>
             <Button size="icon" variant="outline" aria-label="Thêm vào yêu thích">
               <Heart />
@@ -407,8 +461,13 @@ export default function ProductDetailPage() {
           {import.meta.env.DEV && (
             <div className="mt-4 flex items-center gap-2">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">DEV</span>
-              <Button variant="outline" size="sm" onClick={() => void handleSoftDelete()}>
-                {product.deleted ? "Khôi phục sản phẩm" : "Xóa mềm sản phẩm"}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={addPending || buyNowPending || softDeletePending}
+                onClick={() => void handleSoftDelete()}
+              >
+                {softDeletePending ? "Đang cập nhật..." : product.deleted ? "Khôi phục sản phẩm" : "Xóa mềm sản phẩm"}
               </Button>
             </div>
           )}

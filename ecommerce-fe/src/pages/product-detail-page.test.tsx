@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom"
@@ -7,7 +7,10 @@ import { AuthContext, type AuthContextValue } from "@/context/auth-context"
 import type { CartItem, ProductDetail, ProductSummary } from "@/lib/types"
 import { CartProvider } from "@/context/cart-provider"
 import { useCart } from "@/hooks/use-cart"
+import { toast } from "sonner"
 import ProductDetailPage from "./product-detail-page"
+
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>()
@@ -71,6 +74,18 @@ const CART_ITEM: CartItem = {
   imageUrl: DETAIL.images![0],
   status: "AVAILABLE",
   availableQuantity: 10,
+}
+
+const OTHER_CART_ITEM: CartItem = {
+  ...CART_ITEM,
+  itemId: "cart-item-other",
+  productId: "other-product",
+  variantLabel: "Other",
+  name: "Other product",
+}
+
+function cartItem(overrides: Partial<CartItem> = {}): CartItem {
+  return { ...CART_ITEM, ...overrides }
 }
 
 const RELATED: ProductSummary[] = [
@@ -143,6 +158,7 @@ function renderDetail(id = "dt-1", auth: Partial<AuthContextValue> = {}, destina
 
 describe("ProductDetailPage", () => {
   beforeEach(() => {
+    vi.clearAllMocks()
     vi.mocked(getProduct).mockReset()
     vi.mocked(searchProducts).mockReset()
     vi.mocked(searchProducts).mockResolvedValue({
@@ -155,6 +171,10 @@ describe("ProductDetailPage", () => {
     vi.mocked(getCart).mockResolvedValue({ items: [], degraded: false })
     vi.mocked(addCartItem).mockResolvedValue({ items: [CART_ITEM], degraded: false })
     vi.mocked(softDeleteProduct).mockResolvedValue({ id: DETAIL.id, deleted: true })
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
   })
 
   it("shows a loading skeleton then the product content", async () => {
@@ -310,11 +330,33 @@ describe("ProductDetailPage", () => {
     expect(await screen.findByRole("button", { name: "Đã thêm vào giỏ" })).toBeInTheDocument()
   })
 
-  it("buys now by selecting the added cart item and opening checkout", async () => {
+  it("buys now by selecting only the requested purchasable cart item", async () => {
     vi.mocked(getProduct).mockResolvedValue(DETAIL)
+    vi.mocked(getCart).mockResolvedValue({ items: [OTHER_CART_ITEM], degraded: false })
+    vi.mocked(addCartItem).mockResolvedValue({ items: [OTHER_CART_ITEM, CART_ITEM], degraded: false })
     renderDetail("dt-1", {}, "checkout")
 
     await userEvent.click(await screen.findByRole("button", { name: "Mua ngay" }))
+
+    expect(await screen.findByTestId("checkout-items")).toHaveTextContent("cart-item-1")
+    expect(screen.getByTestId("checkout-items")).not.toHaveTextContent("cart-item-other")
+    expect(addCartItem).toHaveBeenCalledWith({
+      productId: "dt-1",
+      variantLabel: "16GB/512GB",
+      quantity: 1,
+    })
+  })
+
+  it("uses the captured variant after the user changes selection while Buy Now waits", async () => {
+    let resolveAdd!: (value: { items: CartItem[]; degraded: boolean }) => void
+    vi.mocked(getProduct).mockResolvedValue(DETAIL)
+    vi.mocked(addCartItem).mockReturnValueOnce(new Promise((resolve) => { resolveAdd = resolve }))
+    renderDetail("dt-1", {}, "checkout")
+
+    const buyNow = await screen.findByRole("button", { name: "Mua ngay" })
+    await userEvent.click(buyNow)
+    await userEvent.click(screen.getByRole("button", { name: "32GB/1TB" }))
+    resolveAdd({ items: [CART_ITEM], degraded: false })
 
     expect(await screen.findByTestId("checkout-items")).toHaveTextContent("cart-item-1")
     expect(addCartItem).toHaveBeenCalledWith({
@@ -324,24 +366,84 @@ describe("ProductDetailPage", () => {
     })
   })
 
-  it("shows the development soft-delete control and reloads after deleting", async () => {
-    vi.stubEnv("DEV", true)
+  it.each([
+    { label: "an unavailable matching row", item: cartItem({ status: "UNAVAILABLE", availableQuantity: 0 }) },
+    { label: "no matching row", item: OTHER_CART_ITEM },
+  ])("does not navigate for Buy Now when there is $label", async ({ item }) => {
     vi.mocked(getProduct).mockResolvedValue(DETAIL)
+    vi.mocked(addCartItem).mockResolvedValue({ items: [item], degraded: false })
+    renderDetail("dt-1", {}, "checkout")
+
+    await userEvent.click(await screen.findByRole("button", { name: "Mua ngay" }))
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Không tìm thấy phân loại có thể mua trong giỏ hàng"))
+    expect(screen.queryByTestId("checkout-items")).not.toBeInTheDocument()
+  })
+
+  it("keeps Add to Cart pending, prevents duplicates, and reports rejection locally", async () => {
+    let rejectAdd!: (error: Error) => void
+    vi.mocked(getProduct).mockResolvedValue(DETAIL)
+    vi.mocked(addCartItem).mockReturnValueOnce(new Promise((_, reject) => { rejectAdd = reject }))
+    renderDetail()
+
+    const addButton = await screen.findByRole("button", { name: "Thêm vào giỏ" })
+    await userEvent.click(addButton)
+    await userEvent.click(addButton)
+    expect(addCartItem).toHaveBeenCalledTimes(1)
+    expect(addButton).toBeDisabled()
+
+    rejectAdd(new Error("Cart unavailable"))
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Cart unavailable"))
+    expect(screen.getByRole("button", { name: "Thêm vào giỏ" })).not.toBeDisabled()
+  })
+
+  it("reports Buy Now rejection locally and leaves checkout unopened", async () => {
+    vi.mocked(getProduct).mockResolvedValue(DETAIL)
+    vi.mocked(addCartItem).mockRejectedValueOnce(new Error("Buy unavailable"))
+    renderDetail("dt-1", {}, "checkout")
+
+    const buyButton = await screen.findByRole("button", { name: "Mua ngay" })
+    await userEvent.click(buyButton)
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Buy unavailable"))
+    expect(screen.queryByTestId("checkout-items")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Mua ngay" })).not.toBeDisabled()
+  })
+
+  it("omits the development soft-delete control in production", async () => {
+    vi.stubEnv("DEV", false)
+    vi.mocked(getProduct).mockResolvedValue(DETAIL)
+    renderDetail()
+
+    expect(await screen.findByRole("heading", { level: 1, name: DETAIL.name })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Xóa mềm sản phẩm" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Khôi phục sản phẩm" })).not.toBeInTheDocument()
+  })
+
+  it("reloads the changed product and switches the development control to restore", async () => {
+    vi.stubEnv("DEV", true)
+    vi.mocked(getProduct).mockResolvedValueOnce(DETAIL).mockResolvedValueOnce({ ...DETAIL, deleted: true })
     renderDetail()
 
     await userEvent.click(await screen.findByRole("button", { name: "Xóa mềm sản phẩm" }))
 
     expect(softDeleteProduct).toHaveBeenCalledWith("dt-1", true)
-    await waitFor(() => expect(getProduct).toHaveBeenCalledTimes(2))
-    vi.unstubAllEnvs()
+    expect(await screen.findByRole("button", { name: "Khôi phục sản phẩm" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Xóa mềm sản phẩm" })).not.toBeInTheDocument()
+    expect(getProduct).toHaveBeenCalledTimes(2)
   })
 
-  it("labels the development control as restore for a deleted product", async () => {
+  it("keeps the development control stable and reports a soft-delete failure", async () => {
     vi.stubEnv("DEV", true)
-    vi.mocked(getProduct).mockResolvedValue({ ...DETAIL, deleted: true })
+    vi.mocked(getProduct).mockResolvedValue(DETAIL)
+    vi.mocked(softDeleteProduct).mockRejectedValueOnce(new Error("Delete unavailable"))
     renderDetail()
 
-    expect(await screen.findByRole("button", { name: "Khôi phục sản phẩm" })).toBeInTheDocument()
-    vi.unstubAllEnvs()
+    const deleteButton = await screen.findByRole("button", { name: "Xóa mềm sản phẩm" })
+    await userEvent.click(deleteButton)
+
+    expect(await screen.findByRole("button", { name: "Xóa mềm sản phẩm" })).toBeInTheDocument()
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Delete unavailable"))
+    expect(getProduct).toHaveBeenCalledTimes(1)
   })
 })
