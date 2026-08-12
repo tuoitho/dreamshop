@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync"
 
 	"ecommerce.local/cart-service/internal/domain"
 	"ecommerce.local/cart-service/internal/store"
@@ -166,16 +167,98 @@ func (s *Server) getCart(ctx context.Context, cartID string) (*cartv1.Cart, erro
 	if err != nil {
 		return nil, internalError("list cart items", err)
 	}
+	enrichments := s.enrichProducts(ctx, lines)
 	cart := &cartv1.Cart{Items: make([]*cartv1.CartItem, 0, len(lines))}
 	for _, line := range lines {
-		item, degraded := s.enrichLine(ctx, line)
+		item, degraded := enrichLine(line, enrichments[line.ProductID])
 		cart.Items = append(cart.Items, item)
 		cart.Degraded = cart.Degraded || degraded
 	}
 	return cart, nil
 }
 
-func (s *Server) enrichLine(ctx context.Context, line domain.Line) (*cartv1.CartItem, bool) {
+const enrichmentConcurrency = 8
+
+type productEnrichment struct {
+	product      *catalogv1.GetProductResponse
+	availability *inventoryv1.GetAvailabilityResponse
+	catalogErr   error
+	inventoryErr error
+}
+
+func (s *Server) enrichProducts(ctx context.Context, lines []domain.Line) map[string]productEnrichment {
+	productIDs := make([]string, 0, len(lines))
+	seen := make(map[string]struct{}, len(lines))
+	variantLabels := make(map[string][]string, len(lines))
+	for _, line := range lines {
+		variantLabels[line.ProductID] = append(variantLabels[line.ProductID], line.VariantLabel)
+		if _, ok := seen[line.ProductID]; ok {
+			continue
+		}
+		seen[line.ProductID] = struct{}{}
+		productIDs = append(productIDs, line.ProductID)
+	}
+	if len(productIDs) == 0 {
+		return map[string]productEnrichment{}
+	}
+
+	results := make([]productEnrichment, len(productIDs))
+	jobs := make(chan int)
+	workers := enrichmentConcurrency
+	if len(productIDs) < workers {
+		workers = len(productIDs)
+	}
+	var waitGroup sync.WaitGroup
+	waitGroup.Add(workers)
+	for i := 0; i < workers; i++ {
+		go func() {
+			defer waitGroup.Done()
+			for index := range jobs {
+				productID := productIDs[index]
+				results[index] = s.enrichProduct(ctx, productID, variantLabels[productID])
+			}
+		}()
+	}
+	for index := range productIDs {
+		jobs <- index
+	}
+	close(jobs)
+	waitGroup.Wait()
+
+	enrichments := make(map[string]productEnrichment, len(productIDs))
+	for index, productID := range productIDs {
+		enrichments[productID] = results[index]
+	}
+	return enrichments
+}
+
+func (s *Server) enrichProduct(ctx context.Context, productID string, requestedLabels []string) productEnrichment {
+	product, err := s.catalog.GetProduct(ctx, productID)
+	if err != nil {
+		return productEnrichment{catalogErr: err}
+	}
+	if product == nil || product.GetDeleted() {
+		return productEnrichment{product: product}
+	}
+	if !hasRequestedVariant(product, requestedLabels) {
+		return productEnrichment{product: product}
+	}
+	availability, err := s.inventory.GetAvailability(ctx, productID)
+	return productEnrichment{product: product, availability: availability, inventoryErr: err}
+}
+
+func hasRequestedVariant(product *catalogv1.GetProductResponse, requestedLabels []string) bool {
+	for _, variant := range product.GetVariants() {
+		for _, requestedLabel := range requestedLabels {
+			if variant.GetLabel() == requestedLabel {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func enrichLine(line domain.Line, enrichment productEnrichment) (*cartv1.CartItem, bool) {
 	item := &cartv1.CartItem{
 		ItemId:       line.ID,
 		ProductId:    line.ProductID,
@@ -183,13 +266,13 @@ func (s *Server) enrichLine(ctx context.Context, line domain.Line) (*cartv1.Cart
 		Quantity:     line.Quantity,
 		Status:       cartv1.CartItemStatus_CART_ITEM_STATUS_UNAVAILABLE,
 	}
-	product, err := s.catalog.GetProduct(ctx, line.ProductID)
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
+	if enrichment.catalogErr != nil {
+		if status.Code(enrichment.catalogErr) == codes.NotFound {
 			return item, false
 		}
 		return item, true
 	}
+	product := enrichment.product
 	if product == nil || product.GetDeleted() {
 		return item, false
 	}
@@ -211,11 +294,10 @@ func (s *Server) enrichLine(ctx context.Context, line domain.Line) (*cartv1.Cart
 	item.ImageHue = product.GetImageHue()
 	item.ImageUrl = firstString(product.GetImages())
 	item.VariantColorHex = matchedVariant.GetColorHex()
-	availability, err := s.inventory.GetAvailability(ctx, line.ProductID)
-	if err != nil || availability == nil {
+	if enrichment.inventoryErr != nil || enrichment.availability == nil {
 		return item, true
 	}
-	available := availability.GetAvailableQuantity()
+	available := enrichment.availability.GetAvailableQuantity()
 	resolved := domain.ResolveStatus(true, false, true, available, line.Quantity)
 	item.Status = statusToProto(resolved)
 	item.AvailableQuantity = available

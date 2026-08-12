@@ -15,6 +15,8 @@ WORKDIR /app
 COPY --from=builder /bff-server /app/bff-server
 
 ENV HTTP_ADDR=":8080"
+ENV BFF_CART_GRPC_ADDR="cart-service:50053"
+ENV BFF_CART_GRPC_TIMEOUT="3s"
 EXPOSE 8080
 
 CMD ["/app/bff-server"]

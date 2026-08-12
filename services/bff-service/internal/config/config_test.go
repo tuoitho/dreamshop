@@ -3,9 +3,33 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
+
+type kongProductionConfig struct {
+	Services []struct {
+		Name   string `yaml:"name"`
+		URL    string `yaml:"url"`
+		Routes []struct {
+			Name      string   `yaml:"name"`
+			Paths     []string `yaml:"paths"`
+			StripPath bool     `yaml:"strip_path"`
+			Plugins   []struct {
+				Name   string `yaml:"name"`
+				Config struct {
+					JWKSURI string `yaml:"jwks_uri"`
+					Issuer  string `yaml:"issuer"`
+					Audience string `yaml:"audience"`
+				} `yaml:"config"`
+			} `yaml:"plugins"`
+		} `yaml:"routes"`
+	} `yaml:"services"`
+}
 
 func TestLoadUsesDefaults(t *testing.T) {
 	t.Setenv("BFF_HTTP_ADDR", "")
@@ -159,5 +183,70 @@ func TestLoadReadsDotenvFile(t *testing.T) {
 	}
 	if cfg.CartGRPCTimeout != 4*time.Second {
 		t.Fatalf("expected dotenv Cart gRPC timeout 4s, got %s", cfg.CartGRPCTimeout)
+	}
+}
+
+func TestProductionKongProtectsCartWithProductionCallerContext(t *testing.T) {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller() failed")
+	}
+	root := filepath.Clean(filepath.Join(filepath.Dir(filename), "../../../.."))
+	configPath := filepath.Join(root, "deployments", "kong", "kong-production.yaml")
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("read production Kong config: %v", err)
+	}
+	var config kongProductionConfig
+	if err := yaml.Unmarshal(content, &config); err != nil {
+		t.Fatalf("parse production Kong config: %v", err)
+	}
+
+	var cartRouteFound bool
+	for _, service := range config.Services {
+		if service.Name != "bff-service" || service.URL != "http://bff-service:8080" {
+			continue
+		}
+		for _, route := range service.Routes {
+			if route.Name != "cart-api" {
+				continue
+			}
+			cartRouteFound = true
+			if len(route.Paths) != 1 || route.Paths[0] != "/api/v1/cart" || !route.StripPath {
+				t.Fatalf("production cart route path/strip_path = %#v/%t", route.Paths, route.StripPath)
+			}
+			if len(route.Plugins) != 1 || route.Plugins[0].Name != "caller-context" {
+				t.Fatalf("production cart route plugins = %#v, want caller-context only", route.Plugins)
+			}
+			callerContext := route.Plugins[0].Config
+			if callerContext.JWKSURI != "http://identity-service:8080/.well-known/jwks.json" || callerContext.Issuer != "http://identity-service:8080" || callerContext.Audience != "ecommerce-api" {
+				t.Fatalf("production cart caller-context config = %#v", callerContext)
+			}
+		}
+	}
+	if !cartRouteFound {
+		t.Fatal("production Kong config is missing the protected cart-api route on bff-service")
+	}
+	if strings.Contains(string(content), "name: admin-products-api") {
+		t.Fatal("unauthenticated development admin route must not be present in production")
+	}
+}
+
+func TestBFFContainerDeclaresProductionCartGRPCTarget(t *testing.T) {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller() failed")
+	}
+	root := filepath.Clean(filepath.Join(filepath.Dir(filename), "../../../.."))
+	dockerfile, err := os.ReadFile(filepath.Join(root, "services", "bff-service", "Dockerfile"))
+	if err != nil {
+		t.Fatalf("read BFF Dockerfile: %v", err)
+	}
+	content := string(dockerfile)
+	if !strings.Contains(content, `ENV BFF_CART_GRPC_ADDR="cart-service:50053"`) {
+		t.Fatal("BFF production image does not declare the Cart gRPC service DNS target")
+	}
+	if !strings.Contains(content, `ENV BFF_CART_GRPC_TIMEOUT="3s"`) {
+		t.Fatal("BFF production image does not declare the Cart gRPC timeout")
 	}
 }
