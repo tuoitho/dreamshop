@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	cartclient "ecommerce.local/bff-service/internal/cart"
@@ -36,13 +37,35 @@ type cartItem struct {
 }
 
 type cartMutationRequest struct {
-	ProductID    string `json:"productId"`
-	VariantLabel string `json:"variantLabel"`
-	Quantity     int32  `json:"quantity"`
+	ProductID    string          `json:"productId"`
+	VariantLabel string          `json:"variantLabel"`
+	Quantity     requestQuantity `json:"quantity"`
 }
 
 type cartQuantityRequest struct {
-	Quantity int32 `json:"quantity"`
+	Quantity requestQuantity `json:"quantity"`
+}
+
+type requestQuantity int32
+
+func (q *requestQuantity) UnmarshalJSON(data []byte) error {
+	if len(data) > 0 && data[0] == '"' {
+		var value string
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		if strings.TrimSpace(value) == "" {
+			*q = 0
+			return nil
+		}
+		return strconv.ErrSyntax
+	}
+	var value int32
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*q = requestQuantity(value)
+	return nil
 }
 
 type CartHandler struct {
@@ -86,7 +109,7 @@ func (h *CartHandler) add(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusBadRequest, "INVALID_PARAMETER", "Product and variant are required.", nil)
 		return
 	}
-	resp, err := h.cart.AddItem(r.Context(), callerID(r), input.ProductID, input.VariantLabel, input.Quantity)
+	resp, err := h.cart.AddItem(r.Context(), callerID(r), input.ProductID, input.VariantLabel, int32(input.Quantity))
 	if err != nil {
 		h.writeCartError(w, r, err)
 		return
@@ -104,7 +127,7 @@ func (h *CartHandler) updateQuantity(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusBadRequest, "INVALID_QUANTITY", "Quantity must be positive.", nil)
 		return
 	}
-	resp, err := h.cart.UpdateItemQuantity(r.Context(), callerID(r), r.PathValue("itemId"), input.Quantity)
+	resp, err := h.cart.UpdateItemQuantity(r.Context(), callerID(r), r.PathValue("itemId"), int32(input.Quantity))
 	if err != nil {
 		h.writeCartError(w, r, err)
 		return

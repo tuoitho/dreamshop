@@ -85,6 +85,35 @@ func TestGetCartMapsItemToExactCamelCaseEnvelope(t *testing.T) {
 	}
 }
 
+func TestGetCartMapsUnknownStatusesToUnavailable(t *testing.T) {
+	for _, statusValue := range []cartv1.CartItemStatus{
+		cartv1.CartItemStatus_CART_ITEM_STATUS_UNSPECIFIED,
+		cartv1.CartItemStatus(99),
+	} {
+		t.Run(statusValue.String(), func(t *testing.T) {
+			item := cartItemFixture()
+			item.Status = statusValue
+			client := &fakeCartClient{getFn: func(context.Context, string) (*cartv1.GetCartResponse, error) {
+				return cartResponse(item), nil
+			}}
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req.Header.Set("X-User-Id", "user-1")
+			rec := httptest.NewRecorder()
+			newCartTestMux(t, client).ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+			}
+			body := decodeBody(t, rec)
+			data := body["data"].(map[string]any)
+			items := data["items"].([]any)
+			if got := items[0].(map[string]any)["status"]; got != "UNAVAILABLE" {
+				t.Fatalf("expected public status UNAVAILABLE, got %v", got)
+			}
+		})
+	}
+}
+
 func TestAddCartItemAcceptsPayloadAndForwardsCallerIdentity(t *testing.T) {
 	called := false
 	client := &fakeCartClient{addFn: func(ctx context.Context, userID, productID, variantLabel string, quantity int32) (*cartv1.AddItemResponse, error) {
@@ -123,6 +152,112 @@ func TestAddCartItemRejectsNonPositiveQuantity(t *testing.T) {
 	}
 	if body := decodeBody(t, rec); body["code"] != "INVALID_QUANTITY" {
 		t.Fatalf("expected code INVALID_QUANTITY, got %v", body["code"])
+	}
+}
+
+func TestCartMutationRejectsInvalidJSONBodies(t *testing.T) {
+	cases := []struct {
+		name   string
+		method string
+		target string
+		body   string
+		code   string
+	}{
+		{name: "unknown field", method: http.MethodPost, target: "/items", body: `{"productId":"dt-1","variantLabel":"red","quantity":2,"userId":"forged"}`, code: "INVALID_PARAMETER"},
+		{name: "trailing json", method: http.MethodPost, target: "/items", body: `{"productId":"dt-1","variantLabel":"red","quantity":2}{}`, code: "INVALID_PARAMETER"},
+		{name: "blank quantity", method: http.MethodPost, target: "/items", body: `{"productId":"dt-1","variantLabel":"red","quantity":""}`, code: "INVALID_QUANTITY"},
+		{name: "omitted quantity", method: http.MethodPatch, target: "/items/item-1", body: `{}`, code: "INVALID_QUANTITY"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			client := &fakeCartClient{
+				addFn: func(context.Context, string, string, string, int32) (*cartv1.AddItemResponse, error) {
+					t.Fatal("AddItem must not be called")
+					return nil, nil
+				},
+				updateFn: func(context.Context, string, string, int32) (*cartv1.UpdateItemQuantityResponse, error) {
+					t.Fatal("UpdateItemQuantity must not be called")
+					return nil, nil
+				},
+			}
+			req := httptest.NewRequest(tc.method, tc.target, strings.NewReader(tc.body))
+			req.Header.Set("X-User-Id", "user-1")
+			rec := httptest.NewRecorder()
+			newCartTestMux(t, client).ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusBadRequest {
+				t.Fatalf("expected status 400, got %d: %s", rec.Code, rec.Body.String())
+			}
+			if body := decodeBody(t, rec); body["code"] != tc.code {
+				t.Fatalf("expected code %s, got %v", tc.code, body["code"])
+			}
+		})
+	}
+}
+
+func TestUpdateCartItemQuantitySuccess(t *testing.T) {
+	called := false
+	client := &fakeCartClient{updateFn: func(ctx context.Context, userID, itemID string, quantity int32) (*cartv1.UpdateItemQuantityResponse, error) {
+		called = true
+		if userID != "user-1" || itemID != "item-1" || quantity != 4 {
+			t.Fatalf("unexpected update arguments: %q %q %d", userID, itemID, quantity)
+		}
+		return &cartv1.UpdateItemQuantityResponse{Cart: &cartv1.Cart{}}, nil
+	}}
+	req := httptest.NewRequest(http.MethodPatch, "/items/item-1", strings.NewReader(`{"quantity":4}`))
+	req.Header.Set("X-User-Id", "user-1")
+	rec := httptest.NewRecorder()
+	newCartTestMux(t, client).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK || !called {
+		t.Fatalf("expected successful update, got status %d body %s", rec.Code, rec.Body.String())
+	}
+	if body := decodeBody(t, rec); body["message"] != "Cart quantity updated." {
+		t.Fatalf("expected update message, got %v", body["message"])
+	}
+}
+
+func TestRemoveCartItemSuccess(t *testing.T) {
+	called := false
+	client := &fakeCartClient{removeFn: func(ctx context.Context, userID, itemID string) (*cartv1.RemoveItemResponse, error) {
+		called = true
+		if userID != "user-1" || itemID != "item-1" {
+			t.Fatalf("unexpected remove arguments: %q %q", userID, itemID)
+		}
+		return &cartv1.RemoveItemResponse{Cart: &cartv1.Cart{}}, nil
+	}}
+	req := httptest.NewRequest(http.MethodDelete, "/items/item-1", nil)
+	req.Header.Set("X-User-Id", "user-1")
+	rec := httptest.NewRecorder()
+	newCartTestMux(t, client).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK || !called {
+		t.Fatalf("expected successful remove, got status %d body %s", rec.Code, rec.Body.String())
+	}
+	if body := decodeBody(t, rec); body["message"] != "Product removed from cart." {
+		t.Fatalf("expected remove message, got %v", body["message"])
+	}
+}
+
+func TestClearCartSuccess(t *testing.T) {
+	called := false
+	client := &fakeCartClient{clearFn: func(ctx context.Context, userID string) (*cartv1.ClearCartResponse, error) {
+		called = true
+		if userID != "user-1" {
+			t.Fatalf("unexpected clear user id: %q", userID)
+		}
+		return &cartv1.ClearCartResponse{Cart: &cartv1.Cart{}}, nil
+	}}
+	req := httptest.NewRequest(http.MethodDelete, "/", nil)
+	req.Header.Set("X-User-Id", "user-1")
+	rec := httptest.NewRecorder()
+	newCartTestMux(t, client).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK || !called {
+		t.Fatalf("expected successful clear, got status %d body %s", rec.Code, rec.Body.String())
+	}
+	if body := decodeBody(t, rec); body["message"] != "Cart cleared." {
+		t.Fatalf("expected clear message, got %v", body["message"])
 	}
 }
 
