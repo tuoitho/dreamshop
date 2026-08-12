@@ -34,6 +34,16 @@ func (m *memoryRepo) Search(_ context.Context, filter domain.SearchFilter) (*dom
 	return domain.SearchProducts(m.products, filter), nil
 }
 
+func (m *memoryRepo) SoftDelete(_ context.Context, id string, deleted bool) error {
+	for _, p := range m.products {
+		if p.ID == id {
+			p.Deleted = deleted
+			return nil
+		}
+	}
+	return domain.ErrProductNotFound
+}
+
 func demoProducts() []*domain.Product {
 	return []*domain.Product{
 		{

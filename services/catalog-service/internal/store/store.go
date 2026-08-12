@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -25,19 +26,21 @@ func New(pool *pgxpool.Pool) *Store {
 const productColumns = `
 	id, name, short_description, description, brand, category_id, category_name,
 	price_amount_minor, original_price_amount_minor, rating, review_count,
-	sold_count, is_new, badge, featured, emoji, image_hue`
+	sold_count, is_new, badge, featured, emoji, image_hue, deleted_at`
 
 // GetByID loads a full product including images, variants, and details.
+// Soft-deleted products are returned with Deleted set.
 func (s *Store) GetByID(ctx context.Context, id string) (*domain.Product, error) {
 	row := s.pool.QueryRow(ctx, "SELECT "+productColumns+" FROM products WHERE id = $1", id)
 
 	var p domain.Product
 	var imageHue []int16
+	var deletedAt *time.Time
 	err := row.Scan(
 		&p.ID, &p.Name, &p.ShortDescription, &p.Description, &p.Brand,
 		&p.CategoryID, &p.CategoryName, &p.PriceMinor, &p.OriginalPriceMinor,
 		&p.Rating, &p.ReviewCount, &p.SoldCount, &p.IsNew, &p.Badge,
-		&p.Featured, &p.Emoji, &imageHue,
+		&p.Featured, &p.Emoji, &imageHue, &deletedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, domain.ErrProductNotFound
@@ -46,6 +49,7 @@ func (s *Store) GetByID(ctx context.Context, id string) (*domain.Product, error)
 		return nil, fmt.Errorf("get product %q: %w", id, err)
 	}
 	p.ImageHue = toUint32Hue(imageHue)
+	p.Deleted = deletedAt != nil
 
 	images, err := s.loadChildStrings(ctx,
 		"SELECT url FROM product_images WHERE product_id = $1 ORDER BY position", id)
@@ -90,7 +94,7 @@ func (s *Store) loadChildStrings(ctx context.Context, query, id string) ([]strin
 
 func (s *Store) loadVariants(ctx context.Context, id string) ([]domain.ProductVariant, error) {
 	rows, err := s.pool.Query(ctx,
-		"SELECT color, color_hex FROM product_variants WHERE product_id = $1 ORDER BY position", id)
+		"SELECT label, color_hex FROM product_variants WHERE product_id = $1 ORDER BY position", id)
 	if err != nil {
 		return nil, err
 	}
@@ -99,12 +103,31 @@ func (s *Store) loadVariants(ctx context.Context, id string) ([]domain.ProductVa
 	var out []domain.ProductVariant
 	for rows.Next() {
 		var v domain.ProductVariant
-		if err := rows.Scan(&v.Color, &v.ColorHex); err != nil {
+		var colorHex *string
+		if err := rows.Scan(&v.Label, &colorHex); err != nil {
 			return nil, err
+		}
+		if colorHex != nil {
+			v.ColorHex = *colorHex
 		}
 		out = append(out, v)
 	}
 	return out, rows.Err()
+}
+
+// SoftDelete marks a product soft-deleted (deleted_at now()) or restores it
+// (deleted_at NULL). GetByID still sees the product with Deleted set; Search
+// excludes it via buildWhere.
+func (s *Store) SoftDelete(ctx context.Context, id string, deleted bool) error {
+	query := "UPDATE products SET deleted_at = CASE WHEN $2 THEN now() ELSE NULL END WHERE id = $1"
+	commandTag, err := s.pool.Exec(ctx, query, id, deleted)
+	if err != nil {
+		return fmt.Errorf("set product deleted %q: %w", id, err)
+	}
+	if commandTag.RowsAffected() == 0 {
+		return domain.ErrProductNotFound
+	}
+	return nil
 }
 
 // Search applies filters, sort, and pagination and returns product summaries.
@@ -207,9 +230,9 @@ func (s *Store) loadImagesFor(ctx context.Context, ids []string) (map[string][]s
 }
 
 // buildWhere produces the parameterized WHERE clause and argument slice for a
-// normalized filter.
+// normalized filter. Soft-deleted products are always excluded.
 func buildWhere(filter domain.SearchFilter) (string, []any) {
-	clauses := []string{}
+	clauses := []string{"deleted_at IS NULL"}
 	args := []any{}
 	next := func(a any) string {
 		args = append(args, a)
@@ -238,9 +261,6 @@ func buildWhere(filter domain.SearchFilter) (string, []any) {
 		clauses = append(clauses, "rating >= "+next(filter.RatingMin))
 	}
 
-	if len(clauses) == 0 {
-		return "TRUE", args
-	}
 	return strings.Join(clauses, " AND "), args
 }
 

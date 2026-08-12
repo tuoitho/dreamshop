@@ -58,12 +58,17 @@ func TestSeedProductsSummaryProjection(t *testing.T) {
 	}
 }
 
-// TestSeedVariantsAreDomainValues ensures variant color data round-trips.
+// TestSeedVariantsAreDomainValues ensures variant labels round-trip. ColorHex
+// is optional: capacity/configuration variants carry an empty hex while
+// color/edition variants keep a concrete value.
 func TestSeedVariantsAreDomainValues(t *testing.T) {
 	for _, p := range seedProducts() {
 		for _, v := range p.Variants {
-			if strings.TrimSpace(v.Color) == "" || strings.TrimSpace(v.ColorHex) == "" {
-				t.Errorf("%s: variant with empty color", p.ID)
+			if strings.TrimSpace(v.Label) == "" {
+				t.Errorf("%s: variant with empty label", p.ID)
+			}
+			if v.ColorHex != "" && strings.TrimSpace(v.ColorHex) == "" {
+				t.Errorf("%s: variant with blank color hex", p.ID)
 			}
 			var _ domain.ProductVariant = v
 		}

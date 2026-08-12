@@ -66,8 +66,8 @@ func insertProduct(ctx context.Context, tx pgx.Tx, p *domain.Product) error {
 
 	for i, v := range p.Variants {
 		if _, err := tx.Exec(ctx,
-			"INSERT INTO product_variants (product_id, color, color_hex, position) VALUES ($1, $2, $3, $4)",
-			p.ID, v.Color, v.ColorHex, i,
+			"INSERT INTO product_variants (product_id, label, color_hex, position) VALUES ($1, $2, $3, $4)",
+			p.ID, v.Label, v.ColorHex, i,
 		); err != nil {
 			return fmt.Errorf("insert variant %d: %w", i, err)
 		}

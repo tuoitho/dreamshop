@@ -76,7 +76,7 @@ func TestStoreIntegration(t *testing.T) {
 		if len(p.Images) != 4 || p.Images[0] != "https://picsum.photos/seed/dt-1-1/800/800" {
 			t.Fatalf("unexpected images: %v", p.Images)
 		}
-		if len(p.Variants) != 3 || p.Variants[0].Color != "Đen" || p.Variants[0].ColorHex != "#1f2937" {
+		if len(p.Variants) != 3 || p.Variants[0].Label != "12GB/256GB" {
 			t.Fatalf("unexpected variants: %v", p.Variants)
 		}
 		if len(p.Details) != 5 || p.Details[0] != "Màn hình: 6.8\" AMOLED 144Hz, 3200x1440" {
@@ -117,6 +117,37 @@ func TestStoreIntegration(t *testing.T) {
 		// dh-2 has originalPrice == price and is the only non-discounted seed.
 		if onSale.TotalItems != 15 {
 			t.Fatalf("expected 15 on-sale products, got %d", onSale.TotalItems)
+		}
+	})
+
+	t.Run("SoftDelete hides product from search until restored", func(t *testing.T) {
+		if err := repo.SoftDelete(ctx, "dt-1", true); err != nil {
+			t.Fatalf("SoftDelete(dt-1, true): %v", err)
+		}
+		// Restore before the test ends so the shared catalog keeps dt-1 active
+		// for any later runs against the same database.
+		t.Cleanup(func() {
+			if err := repo.SoftDelete(ctx, "dt-1", false); err != nil {
+				t.Errorf("restore SoftDelete(dt-1, false): %v", err)
+			}
+		})
+
+		p, err := repo.GetByID(ctx, "dt-1")
+		if err != nil {
+			t.Fatalf("GetByID after soft delete: %v", err)
+		}
+		if !p.Deleted {
+			t.Fatalf("expected Deleted=true for soft-deleted product")
+		}
+
+		result, err := repo.Search(ctx, domain.SearchFilter{CategoryID: "dien-thoai", Page: 1, PageSize: 10})
+		if err != nil {
+			t.Fatalf("Search after soft delete: %v", err)
+		}
+		for _, item := range result.Items {
+			if item.ID == "dt-1" {
+				t.Fatalf("Search still returned soft-deleted product dt-1")
+			}
 		}
 	})
 }
