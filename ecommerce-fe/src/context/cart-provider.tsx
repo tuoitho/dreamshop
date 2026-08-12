@@ -179,6 +179,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setSelection((current) => ({ ...current, [itemId]: !current[itemId] }))
   }, [items])
 
+  const selectOnly = useCallback((itemId: string) => {
+    const item = items.find((entry) => entry.itemId === itemId)
+    if (!item || !isSelectable(item)) return
+    setSelection(Object.fromEntries(items.map((entry) => [entry.itemId, entry.itemId === itemId])))
+  }, [items])
+
   const toggleAllSelected = useCallback(() => {
     setSelection((current) => {
       const selectableItems = items.filter(isSelectable)
@@ -200,6 +206,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       removeSelected,
       clearCart,
       toggleSelected,
+      selectOnly,
       toggleAllSelected,
       selectedItems,
       selectedCount: selectedItems.reduce((sum, item) => sum + item.quantity, 0),
@@ -211,7 +218,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       loadError,
       retryLoad,
     }
-  }, [addItem, clearCart, degraded, items, loadError, loading, removeItem, removeSelected, retryLoad, selection, toggleAllSelected, toggleSelected, updateQuantity])
+  }, [addItem, clearCart, degraded, items, loadError, loading, removeItem, removeSelected, retryLoad, selectOnly, selection, toggleAllSelected, toggleSelected, updateQuantity])
 
   return <CartContext value={value}>{children}</CartContext>
 }

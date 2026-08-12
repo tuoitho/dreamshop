@@ -21,7 +21,8 @@ export default function LoginPage() {
     setSubmitting(true)
     try {
       await login({ email, password })
-      const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? "/profile"
+      const fromState = (location.state as { from?: string | { pathname: string } } | null)?.from
+      const from = typeof fromState === "string" ? fromState : fromState?.pathname ?? "/profile"
       navigate(from, { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed")

@@ -83,6 +83,7 @@ function Consumer() {
     addItem,
     updateQuantity,
     toggleSelected,
+    selectOnly,
     removeSelected,
     clearCart,
     loadError,
@@ -96,6 +97,7 @@ function Consumer() {
       <output data-testid="selected-count">{selectedCount}</output>
       <button onClick={() => void addItem("product-1", "Red", 2)}>Add</button>
       <button onClick={() => toggleSelected("item-1")}>Toggle first</button>
+      <button onClick={() => selectOnly("item-1")}>Select only first</button>
       <button onClick={() => void removeSelected()}>Remove selected</button>
       <button onClick={() => void clearCart()}>Clear</button>
       <button onClick={() => void updateQuantity("item-1", 3)}>Update to 3</button>
@@ -146,6 +148,32 @@ describe("CartProvider", () => {
 
     expect(screen.getByTestId("selected-total")).toHaveTextContent("0")
     expect(screen.getByTestId("selected-count")).toHaveTextContent("0")
+  })
+
+  it("selects only a purchasable item through selectOnly", async () => {
+    const second = item({ itemId: "item-2", productId: "product-2" })
+    vi.mocked(getCart).mockResolvedValue(cart([item(), second]))
+    renderCart()
+
+    await waitFor(() => expect(screen.getByTestId("selected-count")).toHaveTextContent("4"))
+    await userEvent.click(screen.getByRole("button", { name: "Select only first" }))
+
+    expect(screen.getByTestId("selected-count")).toHaveTextContent("2")
+    expect(screen.getByTestId("selected-total")).toHaveTextContent("200000")
+  })
+
+  it("does not select an unavailable item through selectOnly", async () => {
+    vi.mocked(getCart).mockResolvedValue(cart([
+      item(),
+      item({ itemId: "item-2", status: "UNAVAILABLE", availableQuantity: 0 }),
+    ]))
+    renderCart()
+
+    await waitFor(() => expect(screen.getByTestId("selected-count")).toHaveTextContent("2"))
+    await userEvent.click(screen.getByRole("button", { name: "Select only first" }))
+
+    expect(screen.getByTestId("selected-count")).toHaveTextContent("2")
+    expect(screen.getByTestId("selected-total")).toHaveTextContent("200000")
   })
 
   it("forwards variantLabel to addItem and displays the API response", async () => {

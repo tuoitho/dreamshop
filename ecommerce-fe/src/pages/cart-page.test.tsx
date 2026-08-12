@@ -113,6 +113,7 @@ function cartContextValue(items: CartItem[], selectedItems: CartItem[] = items.f
     removeSelected: vi.fn(),
     clearCart: vi.fn(),
     toggleSelected: vi.fn(),
+    selectOnly: vi.fn(),
     toggleAllSelected: vi.fn(),
     selectedItems,
     selectedCount: selectedItems.reduce((total, item) => total + item.quantity, 0),

@@ -122,6 +122,7 @@ export interface ProductDetail extends ProductSummary {
   description: string
   details: string[]
   variants: ProductVariant[]
+  deleted?: boolean
 }
 
 export type ProductSort = "pho-bien" | "gia-thap" | "gia-cao" | "moi-nhat" | "danh-gia"

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link, useParams } from "react-router-dom"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import {
   ChevronRight,
   Heart,
@@ -12,7 +12,7 @@ import {
   Star,
   Truck,
 } from "lucide-react"
-import { getProduct, searchProducts, toErrorInfo } from "@/lib/api"
+import { getProduct, searchProducts, softDeleteProduct, toErrorInfo } from "@/lib/api"
 import type { ProductDetail, ProductSummary } from "@/lib/types"
 import { formatVND } from "@/lib/utils"
 import { ProductCard } from "@/components/product-card"
@@ -22,13 +22,16 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCart } from "@/hooks/use-cart"
+import { useAuth } from "@/hooks/use-auth"
 import { cn } from "@/lib/utils"
 
 const MAX_QUANTITY = 10
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const { addItem } = useCart()
+  const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
+  const { addItem, items, selectOnly } = useCart()
 
   const [product, setProduct] = useState<ProductDetail | null>(null)
   const [error, setError] = useState<{ message: string; code?: string } | null>(null)
@@ -40,8 +43,11 @@ export default function ProductDetailPage() {
   const [added, setAdded] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const [galleryError, setGalleryError] = useState(false)
+  const [pendingBuyNow, setPendingBuyNow] = useState(false)
 
   const [related, setRelated] = useState<ProductSummary[] | null>(null)
+
+  const variantLabel = product?.variants[variantIndex]?.label ?? ""
 
   useEffect(() => {
     setVariantIndex(0)
@@ -49,6 +55,7 @@ export default function ProductDetailPage() {
     setAdded(false)
     setActiveIndex(0)
     setGalleryError(false)
+    setPendingBuyNow(false)
     setProduct(null)
     setError(null)
     setLoading(true)
@@ -80,6 +87,15 @@ export default function ProductDetailPage() {
       controller.abort()
     }
   }, [id, reloadKey])
+
+  useEffect(() => {
+    if (!pendingBuyNow || !product) return
+    const item = items.find((entry) => entry.productId === product.id && entry.variantLabel === variantLabel)
+    if (!item) return
+    selectOnly(item.itemId)
+    setPendingBuyNow(false)
+    navigate("/gio-hang/dat-hang")
+  }, [items, navigate, pendingBuyNow, product, selectOnly, variantLabel])
 
   const productCategoryId = product?.categoryId
   const productId = product?.id
@@ -161,10 +177,28 @@ export default function ProductDetailPage() {
     ? images[Math.min(activeIndex, images.length - 1)]
     : undefined
 
+  const requireAuthentication = () => {
+    if (isAuthenticated) return true
+    navigate("/login", { state: { from: `/san-pham/${product.id}` } })
+    return false
+  }
+
   const handleAddToCart = async () => {
-    await addItem(product.id, product.variants[variantIndex]?.label ?? "", quantity)
+    if (!requireAuthentication()) return
+    await addItem(product.id, variantLabel, quantity)
     setAdded(true)
     window.setTimeout(() => setAdded(false), 1600)
+  }
+
+  const handleBuyNow = async () => {
+    if (!requireAuthentication()) return
+    await addItem(product.id, variantLabel, quantity)
+    setPendingBuyNow(true)
+  }
+
+  const handleSoftDelete = async () => {
+    await softDeleteProduct(product.id, !product.deleted)
+    setReloadKey((key) => key + 1)
   }
 
   return (
@@ -290,7 +324,7 @@ export default function ProductDetailPage() {
           {product.variants.length > 0 && (
             <div className="mt-5 rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
               <p className="text-sm font-semibold">
-                Phân loại: <span className="font-normal text-muted-foreground">{product.variants[variantIndex].label}</span>
+                <span>Phân loại</span>: <span className="font-normal text-muted-foreground">{variantLabel}</span>
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {product.variants.map((variant, index) => (
@@ -354,8 +388,13 @@ export default function ProductDetailPage() {
               <ShoppingCart />
               {added ? "Đã thêm vào giỏ" : "Thêm vào giỏ"}
             </Button>
-            <Button size="lg" variant="outline" className="flex-1 min-w-36" asChild>
-              <Link to={`/gio-hang?buy=${product.id}`}>Mua ngay</Link>
+            <Button
+              size="lg"
+              variant="outline"
+              className="flex-1 min-w-36"
+              onClick={handleBuyNow}
+            >
+              Mua ngay
             </Button>
             <Button size="icon" variant="outline" aria-label="Thêm vào yêu thích">
               <Heart />
@@ -364,6 +403,15 @@ export default function ProductDetailPage() {
               <Share2 />
             </Button>
           </div>
+
+          {import.meta.env.DEV && (
+            <div className="mt-4 flex items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">DEV</span>
+              <Button variant="outline" size="sm" onClick={() => void handleSoftDelete()}>
+                {product.deleted ? "Khôi phục sản phẩm" : "Xóa mềm sản phẩm"}
+              </Button>
+            </div>
+          )}
 
           <div className="mt-6 grid gap-3 rounded-2xl bg-card p-5 ring-1 ring-foreground/10 sm:grid-cols-3">
             {[

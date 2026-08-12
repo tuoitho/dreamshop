@@ -14,6 +14,7 @@ export interface CartContextValue {
   removeSelected: () => Promise<void>
   clearCart: () => Promise<void>
   toggleSelected: (itemId: string) => void
+  selectOnly: (itemId: string) => void
   toggleAllSelected: () => void
   selectedItems: CartItem[]
   selectedCount: number

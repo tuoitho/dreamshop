@@ -1,10 +1,12 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { MemoryRouter, Route, Routes } from "react-router-dom"
-import { ApiClientError, getProduct, searchProducts } from "@/lib/api"
-import type { ProductDetail, ProductSummary } from "@/lib/types"
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom"
+import { ApiClientError, addCartItem, getCart, getProduct, searchProducts, softDeleteProduct } from "@/lib/api"
+import { AuthContext, type AuthContextValue } from "@/context/auth-context"
+import type { CartItem, ProductDetail, ProductSummary } from "@/lib/types"
 import { CartProvider } from "@/context/cart-provider"
+import { useCart } from "@/hooks/use-cart"
 import ProductDetailPage from "./product-detail-page"
 
 vi.mock("@/lib/api", async (importOriginal) => {
@@ -13,6 +15,9 @@ vi.mock("@/lib/api", async (importOriginal) => {
     ...actual,
     getProduct: vi.fn(),
     searchProducts: vi.fn(),
+    addCartItem: vi.fn(),
+    getCart: vi.fn(),
+    softDeleteProduct: vi.fn(),
   }
 })
 
@@ -47,9 +52,25 @@ const DETAIL: ProductDetail = {
   description: "Mô tả chi tiết sản phẩm Nova X15 Pro.",
   details: ['Màn hình: 6.8" AMOLED 144Hz', "Pin: 5500mAh, sạc nhanh 120W"],
   variants: [
-    { label: "Đen", colorHex: "#1f2937" },
-    { label: "Xanh", colorHex: "#1e40af" },
+    { label: "16GB/512GB" },
+    { label: "32GB/1TB" },
   ],
+}
+
+const CART_ITEM: CartItem = {
+  itemId: "cart-item-1",
+  productId: DETAIL.id,
+  variantLabel: "16GB/512GB",
+  quantity: 1,
+  name: DETAIL.name,
+  brand: DETAIL.brand,
+  categoryName: DETAIL.categoryName,
+  unitPrice: DETAIL.price,
+  imageEmoji: DETAIL.emoji!,
+  imageHue: DETAIL.imageHue!,
+  imageUrl: DETAIL.images![0],
+  status: "AVAILABLE",
+  availableQuantity: 10,
 }
 
 const RELATED: ProductSummary[] = [
@@ -68,14 +89,54 @@ const RELATED: ProductSummary[] = [
   },
 ]
 
-function renderDetail(id = "dt-1") {
+function authValue(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
+  return {
+    token: "token",
+    user: {
+      userId: "user-1",
+      email: "user@example.com",
+      fullName: "Test User",
+      roles: ["USER"],
+      phone: null,
+      dateOfBirth: null,
+      gender: null,
+      provinceCode: null,
+      wardCode: null,
+      addressLine: null,
+    },
+    ready: true,
+    isAuthenticated: true,
+    login: vi.fn(),
+    register: vi.fn(),
+    updateProfile: vi.fn(),
+    logout: vi.fn(),
+    ...overrides,
+  }
+}
+
+function CheckoutProbe() {
+  const { selectedItems } = useCart()
+  return <output data-testid="checkout-items">{selectedItems.map((item) => item.itemId).join(",")}</output>
+}
+
+function LoginProbe() {
+  const location = useLocation()
+  const from = (location.state as { from?: string } | null)?.from
+  return <output data-testid="login-from">{from}</output>
+}
+
+function renderDetail(id = "dt-1", auth: Partial<AuthContextValue> = {}, destination = "product") {
   return render(
     <MemoryRouter initialEntries={[`/san-pham/${id}`]}>
-      <CartProvider>
-        <Routes>
-          <Route path="/san-pham/:id" element={<ProductDetailPage />} />
-        </Routes>
-      </CartProvider>
+      <AuthContext value={authValue(auth)}>
+        <CartProvider>
+          <Routes>
+            <Route path="/san-pham/:id" element={<ProductDetailPage />} />
+            {destination === "checkout" && <Route path="/gio-hang/dat-hang" element={<CheckoutProbe />} />}
+            {destination === "login" && <Route path="/login" element={<LoginProbe />} />}
+          </Routes>
+        </CartProvider>
+      </AuthContext>
     </MemoryRouter>
   )
 }
@@ -91,6 +152,9 @@ describe("ProductDetailPage", () => {
       totalItems: 0,
       totalPages: 0,
     })
+    vi.mocked(getCart).mockResolvedValue({ items: [], degraded: false })
+    vi.mocked(addCartItem).mockResolvedValue({ items: [CART_ITEM], degraded: false })
+    vi.mocked(softDeleteProduct).mockResolvedValue({ id: DETAIL.id, deleted: true })
   })
 
   it("shows a loading skeleton then the product content", async () => {
@@ -199,5 +263,85 @@ describe("ProductDetailPage", () => {
 
     expect(screen.getByText("10")).toBeInTheDocument()
     expect(screen.getByText("Mua tối đa 10 sản phẩm mỗi lần")).toBeInTheDocument()
+  })
+
+  it("shows a color swatch when a variant provides colorHex", async () => {
+    vi.mocked(getProduct).mockResolvedValue({
+      ...DETAIL,
+      variants: [{ label: "Đen", colorHex: "#1f2937" }],
+    })
+    renderDetail()
+
+    const variantButton = await screen.findByRole("button", { name: "Đen" })
+    expect(variantButton.querySelector("span")).toHaveStyle({ backgroundColor: "#1f2937" })
+  })
+
+  it("keeps a capacity variant usable without a color swatch", async () => {
+    vi.mocked(getProduct).mockResolvedValue(DETAIL)
+    renderDetail()
+
+    expect(await screen.findByText("Phân loại")).toBeInTheDocument()
+    const variantButton = screen.getByRole("button", { name: "16GB/512GB" })
+    expect(variantButton).toHaveTextContent("16GB/512GB")
+    expect(variantButton.querySelector("span")).not.toBeInTheDocument()
+  })
+
+  it("redirects unauthenticated add-to-cart attempts to login with the product origin", async () => {
+    vi.mocked(getProduct).mockResolvedValue(DETAIL)
+    renderDetail("dt-1", { token: null, user: null, isAuthenticated: false }, "login")
+
+    await userEvent.click(await screen.findByRole("button", { name: "Thêm vào giỏ" }))
+
+    expect(await screen.findByTestId("login-from")).toHaveTextContent("/san-pham/dt-1")
+    expect(addCartItem).not.toHaveBeenCalled()
+  })
+
+  it("adds the selected classification to the cart for authenticated users", async () => {
+    vi.mocked(getProduct).mockResolvedValue(DETAIL)
+    renderDetail()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Thêm vào giỏ" }))
+
+    await waitFor(() => expect(addCartItem).toHaveBeenCalledWith({
+      productId: "dt-1",
+      variantLabel: "16GB/512GB",
+      quantity: 1,
+    }))
+    expect(await screen.findByRole("button", { name: "Đã thêm vào giỏ" })).toBeInTheDocument()
+  })
+
+  it("buys now by selecting the added cart item and opening checkout", async () => {
+    vi.mocked(getProduct).mockResolvedValue(DETAIL)
+    renderDetail("dt-1", {}, "checkout")
+
+    await userEvent.click(await screen.findByRole("button", { name: "Mua ngay" }))
+
+    expect(await screen.findByTestId("checkout-items")).toHaveTextContent("cart-item-1")
+    expect(addCartItem).toHaveBeenCalledWith({
+      productId: "dt-1",
+      variantLabel: "16GB/512GB",
+      quantity: 1,
+    })
+  })
+
+  it("shows the development soft-delete control and reloads after deleting", async () => {
+    vi.stubEnv("DEV", true)
+    vi.mocked(getProduct).mockResolvedValue(DETAIL)
+    renderDetail()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Xóa mềm sản phẩm" }))
+
+    expect(softDeleteProduct).toHaveBeenCalledWith("dt-1", true)
+    await waitFor(() => expect(getProduct).toHaveBeenCalledTimes(2))
+    vi.unstubAllEnvs()
+  })
+
+  it("labels the development control as restore for a deleted product", async () => {
+    vi.stubEnv("DEV", true)
+    vi.mocked(getProduct).mockResolvedValue({ ...DETAIL, deleted: true })
+    renderDetail()
+
+    expect(await screen.findByRole("button", { name: "Khôi phục sản phẩm" })).toBeInTheDocument()
+    vi.unstubAllEnvs()
   })
 })
