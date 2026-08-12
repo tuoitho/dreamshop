@@ -27,55 +27,83 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
+	if err := runWithSignal(cfg, buildProductionService, func(grpcAddress, httpAddress string) {
+		log.Printf("cart-service gRPC listening on %s", grpcAddress)
+		log.Printf("cart-service HTTP listening on %s", httpAddress)
+	}); err != nil {
+		if !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("server failed: %v", err)
+		}
+	}
+}
+
+type serviceBuilder func(context.Context, *config.Config) (cartv1.CartServiceServer, func(), error)
+
+func runWithSignal(cfg *config.Config, build serviceBuilder, onReady func(string, string)) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	return run(ctx, cfg, build, onReady)
+}
 
+func buildProductionService(ctx context.Context, cfg *config.Config) (cartv1.CartServiceServer, func(), error) {
 	pool, err := openPool(ctx, cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("failed to parse database configuration")
+		return nil, nil, errors.New("failed to parse database configuration")
 	}
-	defer pool.Close()
+	cleanupPool := func() { pool.Close() }
 	if err := pool.Ping(ctx); err != nil {
-		log.Fatalf("failed to connect to cart database")
+		cleanupPool()
+		return nil, nil, errors.New("failed to connect to cart database")
 	}
 	if err := store.Migrate(ctx, pool); err != nil {
-		log.Fatalf("failed to run cart migrations: %v", err)
+		cleanupPool()
+		return nil, nil, errors.New("failed to run cart migrations")
 	}
 
 	catalogClient, err := catalog.NewClient(cfg.CatalogGRPCAddr, cfg.CatalogGRPCTimeout)
 	if err != nil {
-		log.Fatalf("failed to create catalog client: %v", err)
+		cleanupPool()
+		return nil, nil, errors.New("failed to create catalog client")
 	}
-	defer catalogClient.Close()
 	inventoryClient, err := inventory.NewClient(cfg.InventoryGRPCAddr, cfg.InventoryGRPCTimeout)
 	if err != nil {
-		log.Fatalf("failed to create inventory client: %v", err)
+		_ = catalogClient.Close()
+		cleanupPool()
+		return nil, nil, errors.New("failed to create inventory client")
 	}
-	defer inventoryClient.Close()
+	return cartgrpc.NewServer(store.New(pool), catalogClient, inventoryClient), func() {
+		_ = catalogClient.Close()
+		_ = inventoryClient.Close()
+		cleanupPool()
+	}, nil
+}
+
+func run(ctx context.Context, cfg *config.Config, build serviceBuilder, onReady func(string, string)) error {
+	service, cleanup, err := build(ctx, cfg)
+	if err != nil {
+		return err
+	}
+	defer cleanup()
 
 	grpcServer := grpc.NewServer()
-	cartv1.RegisterCartServiceServer(grpcServer, cartgrpc.NewServer(store.New(pool), catalogClient, inventoryClient))
+	cartv1.RegisterCartServiceServer(grpcServer, service)
 	healthMux := http.NewServeMux()
 	healthMux.Handle("/healthz", internalhttp.NewHealthHandler("cart-service"))
 	httpServer := &http.Server{Addr: cfg.HTTPAddr, Handler: healthMux}
 
 	grpcListener, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {
-		log.Fatalf("failed to listen for gRPC on %s", cfg.GRPCAddr)
+		return errors.New("failed to listen for gRPC")
 	}
 	httpListener, err := net.Listen("tcp", cfg.HTTPAddr)
 	if err != nil {
 		_ = grpcListener.Close()
-		log.Fatalf("failed to listen for HTTP on %s", cfg.HTTPAddr)
+		return errors.New("failed to listen for HTTP")
 	}
-
-	log.Printf("cart-service gRPC listening on %s", cfg.GRPCAddr)
-	log.Printf("cart-service HTTP listening on %s", cfg.HTTPAddr)
-	if err := serveWithListeners(ctx, grpcServer, httpServer, grpcListener, httpListener, nil); err != nil {
-		if !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("server failed: %v", err)
-		}
+	if onReady != nil {
+		onReady(grpcListener.Addr().String(), httpListener.Addr().String())
 	}
+	return serveWithListeners(ctx, grpcServer, httpServer, grpcListener, httpListener, nil)
 }
 
 func openPool(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
