@@ -20,6 +20,7 @@ is not wired in the current skeletons.
 | catalog-service | Product and catalog data | Go 1.24 | HTTP `8081` | `/healthz` | Private/local; no Kong route | `catalog_db`, Redis/cache, and internal gRPC ownership | BFF/internal callers when implemented | PostgreSQL, Redis, internal gRPC contract | accepted but not wired |
 | inventory-service | Stock, reservations, and inventory event consumption | Go 1.24 | HTTP `8082` | `/healthz` | Private/local; no Kong route | `inventory_db`, RabbitMQ/event ownership | Order/internal callers when implemented | PostgreSQL and RabbitMQ | accepted but not wired |
 | order-service | Order lifecycle, idempotency, and transactional outbox ownership | Java 21 / Spring Boot | Local and container `8083` | `/actuator/health` | Private/local; no Kong route | `order_db`, idempotency, transactional outbox | Internal callers when implemented | Inventory, payment/event dependencies are accepted but not wired | accepted but not wired |
+| cart-service | Authenticated user cart lines; cart persistence only | Go 1.24 | HTTP `8084`; gRPC `50053` | `/healthz` | Private/local; no Kong route | `cart_db`, cart persistence ownership | BFF gRPC when implemented | Catalog and Inventory gRPC when implemented | accepted but not wired |
 | ecommerce-fe | Browser commerce experience | React 19 / Vite 8 / TypeScript | Vite `5173` | Vite dev server | Local developer UI | None currently | Browser users | Kong proxy `http://localhost:8000` | implemented |
 
 ## Platform Infrastructure
