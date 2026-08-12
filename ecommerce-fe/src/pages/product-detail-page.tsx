@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import {
   ChevronRight,
@@ -32,6 +32,7 @@ interface BuyNowRequest {
   productId: string
   variantLabel: string
   quantity: number
+  generation: number
 }
 
 export default function ProductDetailPage() {
@@ -57,10 +58,26 @@ export default function ProductDetailPage() {
   const [softDeletePending, setSoftDeletePending] = useState(false)
 
   const [related, setRelated] = useState<ProductSummary[] | null>(null)
+  const mountedRef = useRef(false)
+  const productGenerationRef = useRef(0)
+  const addedTimerRef = useRef<number | null>(null)
 
   const variantLabel = product?.variants[variantIndex]?.label ?? ""
 
   useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      productGenerationRef.current += 1
+      if (addedTimerRef.current !== null) {
+        window.clearTimeout(addedTimerRef.current)
+        addedTimerRef.current = null
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    setVariantIndex(0)
     setVariantIndex(0)
     setQuantity(1)
     setAdded(false)
@@ -76,6 +93,12 @@ export default function ProductDetailPage() {
     setLoading(true)
     setRelated(null)
 
+    const generation = ++productGenerationRef.current
+    if (addedTimerRef.current !== null) {
+      window.clearTimeout(addedTimerRef.current)
+      addedTimerRef.current = null
+    }
+
     if (!id) {
       setError({ message: "Không tìm thấy sản phẩm", code: "PRODUCT_NOT_FOUND" })
       setLoading(false)
@@ -86,25 +109,35 @@ export default function ProductDetailPage() {
     let active = true
     getProduct(id, controller.signal)
       .then((data) => {
-        if (active) {
+        if (active && mountedRef.current && productGenerationRef.current === generation) {
           setProduct(data)
           setLoading(false)
         }
       })
       .catch((err) => {
-        if (active) {
+        if (active && mountedRef.current && productGenerationRef.current === generation) {
           setError(toErrorInfo(err))
           setLoading(false)
         }
       })
     return () => {
       active = false
+      if (productGenerationRef.current === generation) {
+        productGenerationRef.current += 1
+      }
       controller.abort()
     }
   }, [id, reloadKey])
 
   useEffect(() => {
     if (!buyNowRequest || !buyNowResponseReady) return
+    if (
+      !mountedRef.current ||
+      productGenerationRef.current !== buyNowRequest.generation ||
+      id !== buyNowRequest.productId
+    ) {
+      return
+    }
     const item = items.find((entry) =>
       entry.productId === buyNowRequest.productId &&
       entry.variantLabel === buyNowRequest.variantLabel &&
@@ -119,7 +152,7 @@ export default function ProductDetailPage() {
     }
     selectOnly(item.itemId)
     navigate("/gio-hang/dat-hang")
-  }, [buyNowRequest, buyNowResponseReady, items, navigate, selectOnly])
+  }, [buyNowRequest, buyNowResponseReady, id, items, navigate, selectOnly])
 
   const productCategoryId = product?.categoryId
   const productId = product?.id
@@ -210,22 +243,35 @@ export default function ProductDetailPage() {
   const handleAddToCart = async () => {
     if (!requireAuthentication()) return
     if (addPending || buyNowPending || softDeletePending) return
+    const generation = productGenerationRef.current
+    const productId = product.id
     setAddPending(true)
     try {
-      await addItem(product.id, variantLabel, quantity)
+      await addItem(productId, variantLabel, quantity)
+      if (!mountedRef.current || productGenerationRef.current !== generation || id !== productId) return
       setAdded(true)
-      window.setTimeout(() => setAdded(false), 1600)
+      if (addedTimerRef.current !== null) window.clearTimeout(addedTimerRef.current)
+      addedTimerRef.current = window.setTimeout(() => {
+        if (mountedRef.current && productGenerationRef.current === generation && id === productId) {
+          setAdded(false)
+        }
+        addedTimerRef.current = null
+      }, 1600)
     } catch (err) {
-      toast.error(toErrorInfo(err).message)
+      if (mountedRef.current && productGenerationRef.current === generation && id === productId) {
+        toast.error(toErrorInfo(err).message)
+      }
     } finally {
-      setAddPending(false)
+      if (mountedRef.current && productGenerationRef.current === generation && id === productId) {
+        setAddPending(false)
+      }
     }
   }
 
   const handleBuyNow = async () => {
     if (!requireAuthentication()) return
     if (addPending || buyNowPending || softDeletePending) return
-    const request = { productId: product.id, variantLabel, quantity }
+    const request = { productId: product.id, variantLabel, quantity, generation: productGenerationRef.current }
     setBuyNowRequest(request)
     setBuyNowResponseReady(false)
     setBuyNowPending(true)
@@ -233,6 +279,7 @@ export default function ProductDetailPage() {
       await addItem(request.productId, request.variantLabel, request.quantity)
       setBuyNowResponseReady(true)
     } catch (err) {
+      if (!mountedRef.current || productGenerationRef.current !== request.generation || id !== request.productId) return
       setBuyNowRequest(null)
       setBuyNowResponseReady(false)
       setBuyNowPending(false)
@@ -242,14 +289,21 @@ export default function ProductDetailPage() {
 
   const handleSoftDelete = async () => {
     if (addPending || buyNowPending || softDeletePending) return
+    const generation = productGenerationRef.current
+    const productId = product.id
     setSoftDeletePending(true)
     try {
-      await softDeleteProduct(product.id, !product.deleted)
+      await softDeleteProduct(productId, !product.deleted)
+      if (!mountedRef.current || productGenerationRef.current !== generation || id !== productId) return
       setReloadKey((key) => key + 1)
     } catch (err) {
-      toast.error(toErrorInfo(err).message)
+      if (mountedRef.current && productGenerationRef.current === generation && id === productId) {
+        toast.error(toErrorInfo(err).message)
+      }
     } finally {
-      setSoftDeletePending(false)
+      if (mountedRef.current && productGenerationRef.current === generation && id === productId) {
+        setSoftDeletePending(false)
+      }
     }
   }
 
