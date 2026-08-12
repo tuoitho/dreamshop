@@ -1,0 +1,322 @@
+package grpc
+
+import (
+	"context"
+	"errors"
+	"net"
+	"testing"
+
+	"ecommerce.local/cart-service/internal/domain"
+	cartv1 "ecommerce.local/contracts/go/cart/v1"
+	catalogv1 "ecommerce.local/contracts/go/catalog/v1"
+	commonv1 "ecommerce.local/contracts/go/common/v1"
+	inventoryv1 "ecommerce.local/contracts/go/inventory/v1"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/test/bufconn"
+)
+
+const testBufSize = 1024 * 1024
+
+type fakeStore struct {
+	cartID       string
+	found        bool
+	lines        []domain.Line
+	ensureUserID string
+	findUserID   string
+	addArgs      []any
+	updateArgs   []any
+	removeArgs   []any
+	clearCartID  string
+}
+
+func (f *fakeStore) EnsureCart(_ context.Context, userID string) (string, error) {
+	f.ensureUserID = userID
+	return f.cartID, nil
+}
+
+func (f *fakeStore) FindCart(_ context.Context, userID string) (string, bool, error) {
+	f.findUserID = userID
+	return f.cartID, f.found, nil
+}
+
+func (f *fakeStore) ListItems(_ context.Context, cartID string) ([]domain.Line, error) {
+	if cartID != f.cartID {
+		return nil, errors.New("unexpected cart id")
+	}
+	return f.lines, nil
+}
+
+func (f *fakeStore) AddItem(_ context.Context, cartID, productID, variantLabel string, quantity int32) error {
+	f.addArgs = []any{cartID, productID, variantLabel, quantity}
+	return nil
+}
+
+func (f *fakeStore) UpdateQuantity(_ context.Context, cartID, itemID string, quantity int32) error {
+	f.updateArgs = []any{cartID, itemID, quantity}
+	return nil
+}
+
+func (f *fakeStore) RemoveItem(_ context.Context, cartID, itemID string) error {
+	f.removeArgs = []any{cartID, itemID}
+	return nil
+}
+
+func (f *fakeStore) Clear(_ context.Context, cartID string) error {
+	f.clearCartID = cartID
+	return nil
+}
+
+type fakeCatalog struct {
+	products map[string]*catalogv1.GetProductResponse
+	errors   map[string]error
+	called   []string
+}
+
+func (f *fakeCatalog) GetProduct(_ context.Context, productID string) (*catalogv1.GetProductResponse, error) {
+	f.called = append(f.called, productID)
+	if err := f.errors[productID]; err != nil {
+		return nil, err
+	}
+	product, ok := f.products[productID]
+	if !ok {
+		return nil, status.Error(codes.NotFound, "product not found")
+	}
+	return product, nil
+}
+
+type fakeInventory struct {
+	availability map[string]*inventoryv1.GetAvailabilityResponse
+	errors       map[string]error
+	called       []string
+}
+
+func (f *fakeInventory) GetAvailability(_ context.Context, productID string) (*inventoryv1.GetAvailabilityResponse, error) {
+	f.called = append(f.called, productID)
+	if err := f.errors[productID]; err != nil {
+		return nil, err
+	}
+	return f.availability[productID], nil
+}
+
+func newBufconnClient(t *testing.T, server *Server) cartv1.CartServiceClient {
+	t.Helper()
+	listener := bufconn.Listen(testBufSize)
+	grpcServer := grpc.NewServer()
+	cartv1.RegisterCartServiceServer(grpcServer, server)
+	go func() {
+		if err := grpcServer.Serve(listener); err != nil {
+			_ = err
+		}
+	}()
+	t.Cleanup(func() {
+		grpcServer.Stop()
+		_ = listener.Close()
+	})
+
+	conn, err := grpc.NewClient("passthrough:///bufconn", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+		return listener.Dial()
+	}), grpc.WithInsecure())
+	if err != nil {
+		t.Fatalf("create bufconn client: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.Close() })
+	return cartv1.NewCartServiceClient(conn)
+}
+
+func validProduct(id string) *catalogv1.GetProductResponse {
+	return &catalogv1.GetProductResponse{
+		Id:           id,
+		Name:         "Phone",
+		Brand:        "Brand",
+		CategoryName: "Phones",
+		Price:        &commonv1.Money{Currency: "VND", AmountMinor: 12345},
+		Emoji:        "📱",
+		ImageHue:     []uint32{10, 20},
+		Images:       []string{"https://example.test/phone.png"},
+		Variants:     []*catalogv1.ProductVariant{{Label: "red", ColorHex: "#ff0000"}},
+	}
+}
+
+func TestGetCartEnrichesLinesAndMapsAllStatuses(t *testing.T) {
+	store := &fakeStore{
+		cartID: "cart-1",
+		found:  true,
+		lines: []domain.Line{
+			{ID: "item-available", ProductID: "p-available", VariantLabel: "red", Quantity: 2},
+			{ID: "item-limited", ProductID: "p-limited", VariantLabel: "red", Quantity: 3},
+			{ID: "item-empty", ProductID: "p-empty", VariantLabel: "red", Quantity: 1},
+			{ID: "item-variant", ProductID: "p-variant", VariantLabel: "blue", Quantity: 4},
+		},
+	}
+	catalog := &fakeCatalog{products: map[string]*catalogv1.GetProductResponse{
+		"p-available": validProduct("p-available"),
+		"p-limited":   validProduct("p-limited"),
+		"p-empty":     validProduct("p-empty"),
+		"p-variant":   validProduct("p-variant"),
+	}, errors: map[string]error{}}
+	inventory := &fakeInventory{
+		availability: map[string]*inventoryv1.GetAvailabilityResponse{
+			"p-available": {ProductId: "p-available", AvailableQuantity: 5},
+			"p-limited":   {ProductId: "p-limited", AvailableQuantity: 1},
+			"p-empty":     {ProductId: "p-empty", AvailableQuantity: 0},
+		},
+		errors: map[string]error{},
+	}
+
+	client := newBufconnClient(t, NewServer(store, catalog, inventory))
+	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: "user-1"})
+	if err != nil {
+		t.Fatalf("GetCart() error = %v", err)
+	}
+	if response.GetCart().GetDegraded() {
+		t.Fatal("GetCart() unexpectedly degraded")
+	}
+	items := response.GetCart().GetItems()
+	if len(items) != 4 {
+		t.Fatalf("got %d items, want 4", len(items))
+	}
+	wantStatuses := []cartv1.CartItemStatus{
+		cartv1.CartItemStatus_CART_ITEM_STATUS_AVAILABLE,
+		cartv1.CartItemStatus_CART_ITEM_STATUS_LIMITED,
+		cartv1.CartItemStatus_CART_ITEM_STATUS_OUT_OF_STOCK,
+		cartv1.CartItemStatus_CART_ITEM_STATUS_UNAVAILABLE,
+	}
+	for i, item := range items {
+		if item.GetStatus() != wantStatuses[i] {
+			t.Errorf("item %d status = %v, want %v", i, item.GetStatus(), wantStatuses[i])
+		}
+	}
+	limited := items[1]
+	if limited.GetQuantity() != 3 || limited.GetAvailableQuantity() != 1 {
+		t.Fatalf("limited item quantity/availability = %d/%d, want 3/1", limited.GetQuantity(), limited.GetAvailableQuantity())
+	}
+	if limited.GetName() != "Phone" || limited.GetBrand() != "Brand" || limited.GetCategoryName() != "Phones" || limited.GetUnitPrice().GetAmountMinor() != 12345 {
+		t.Fatalf("valid product enrichment missing: %+v", limited)
+	}
+	if limited.GetImageUrl() != "https://example.test/phone.png" || limited.GetVariantColorHex() != "#ff0000" {
+		t.Fatalf("image/variant enrichment missing: %+v", limited)
+	}
+	if len(inventory.called) != 3 {
+		t.Fatalf("inventory called for %d products, want 3", len(inventory.called))
+	}
+}
+
+func TestGetCartCatalogOutageDegradesOnlyAffectedLine(t *testing.T) {
+	store := &fakeStore{cartID: "cart-1", found: true, lines: []domain.Line{
+		{ID: "item-ok", ProductID: "p-ok", VariantLabel: "red", Quantity: 1},
+		{ID: "item-down", ProductID: "p-down", VariantLabel: "red", Quantity: 2},
+	}}
+	catalog := &fakeCatalog{
+		products: map[string]*catalogv1.GetProductResponse{"p-ok": validProduct("p-ok")},
+		errors:   map[string]error{"p-down": status.Error(codes.Unavailable, "catalog unavailable")},
+	}
+	inventory := &fakeInventory{availability: map[string]*inventoryv1.GetAvailabilityResponse{
+		"p-ok": {ProductId: "p-ok", AvailableQuantity: 1},
+	}, errors: map[string]error{}}
+
+	client := newBufconnClient(t, NewServer(store, catalog, inventory))
+	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: "user-1"})
+	if err != nil {
+		t.Fatalf("GetCart() error = %v", err)
+	}
+	items := response.GetCart().GetItems()
+	if !response.GetCart().GetDegraded() {
+		t.Fatal("GetCart() degraded = false, want true")
+	}
+	if items[1].GetStatus() != cartv1.CartItemStatus_CART_ITEM_STATUS_UNAVAILABLE || items[1].GetProductId() != "p-down" || items[1].GetQuantity() != 2 {
+		t.Fatalf("outage line was not preserved as unavailable: %+v", items[1])
+	}
+	if items[0].GetStatus() != cartv1.CartItemStatus_CART_ITEM_STATUS_AVAILABLE {
+		t.Fatalf("healthy line status = %v, want available", items[0].GetStatus())
+	}
+}
+
+func TestGetCartCatalogNotFoundIsUnavailableWithoutDegraded(t *testing.T) {
+	store := &fakeStore{cartID: "cart-1", found: true, lines: []domain.Line{{ID: "item-1", ProductID: "missing", VariantLabel: "red", Quantity: 2}}}
+	catalog := &fakeCatalog{products: map[string]*catalogv1.GetProductResponse{}, errors: map[string]error{}}
+	inventory := &fakeInventory{availability: map[string]*inventoryv1.GetAvailabilityResponse{}, errors: map[string]error{}}
+
+	client := newBufconnClient(t, NewServer(store, catalog, inventory))
+	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: "user-1"})
+	if err != nil {
+		t.Fatalf("GetCart() error = %v", err)
+	}
+	item := response.GetCart().GetItems()[0]
+	if response.GetCart().GetDegraded() || item.GetStatus() != cartv1.CartItemStatus_CART_ITEM_STATUS_UNAVAILABLE {
+		t.Fatalf("not-found mapping degraded/status = %t/%v, want false/unavailable", response.GetCart().GetDegraded(), item.GetStatus())
+	}
+	if len(inventory.called) != 0 {
+		t.Fatal("inventory called for missing catalog product")
+	}
+}
+
+func TestGetCartInventoryOutagePreservesCatalogEnrichment(t *testing.T) {
+	store := &fakeStore{cartID: "cart-1", found: true, lines: []domain.Line{{ID: "item-1", ProductID: "p-1", VariantLabel: "red", Quantity: 2}}}
+	catalog := &fakeCatalog{products: map[string]*catalogv1.GetProductResponse{"p-1": validProduct("p-1")}, errors: map[string]error{}}
+	inventory := &fakeInventory{
+		availability: map[string]*inventoryv1.GetAvailabilityResponse{},
+		errors:       map[string]error{"p-1": status.Error(codes.Unavailable, "inventory unavailable")},
+	}
+
+	client := newBufconnClient(t, NewServer(store, catalog, inventory))
+	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: "user-1"})
+	if err != nil {
+		t.Fatalf("GetCart() error = %v", err)
+	}
+	item := response.GetCart().GetItems()[0]
+	if !response.GetCart().GetDegraded() || item.GetStatus() != cartv1.CartItemStatus_CART_ITEM_STATUS_UNAVAILABLE {
+		t.Fatalf("inventory outage degraded/status = %t/%v, want true/unavailable", response.GetCart().GetDegraded(), item.GetStatus())
+	}
+	if item.GetName() != "Phone" || item.GetUnitPrice().GetAmountMinor() != 12345 || item.GetVariantColorHex() != "#ff0000" {
+		t.Fatalf("catalog enrichment lost during inventory outage: %+v", item)
+	}
+}
+
+func TestGetCartWithoutExistingCartReturnsEmptyCart(t *testing.T) {
+	store := &fakeStore{found: false, lines: nil}
+	client := newBufconnClient(t, NewServer(store, &fakeCatalog{}, &fakeInventory{}))
+	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: "user-1"})
+	if err != nil {
+		t.Fatalf("GetCart() error = %v", err)
+	}
+	if response.GetCart() == nil || len(response.GetCart().GetItems()) != 0 || response.GetCart().GetDegraded() {
+		t.Fatalf("empty cart response = %+v", response.GetCart())
+	}
+	if store.findUserID != "user-1" {
+		t.Fatalf("FindCart user id = %q, want user-1", store.findUserID)
+	}
+}
+
+func TestMutationsValidateInputForwardUserAndReturnMethodResponse(t *testing.T) {
+	store := &fakeStore{cartID: "cart-1", found: true, lines: nil}
+	client := newBufconnClient(t, NewServer(store, &fakeCatalog{products: map[string]*catalogv1.GetProductResponse{}, errors: map[string]error{}}, &fakeInventory{availability: map[string]*inventoryv1.GetAvailabilityResponse{}, errors: map[string]error{}}))
+
+	if _, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: " ", ProductId: "p-1", VariantLabel: "red", Quantity: 1}); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("blank user AddItem code = %v, want InvalidArgument", status.Code(err))
+	}
+	if _, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: "user-1", ProductId: "p-1", VariantLabel: "red", Quantity: 0}); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("zero quantity AddItem code = %v, want InvalidArgument", status.Code(err))
+	}
+	response, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: "user-1", ProductId: "p-1", VariantLabel: "red", Quantity: 2})
+	if err != nil {
+		t.Fatalf("AddItem() error = %v", err)
+	}
+	if store.ensureUserID != "user-1" || len(store.addArgs) != 4 || response.GetCart() == nil {
+		t.Fatalf("AddItem forwarding/response invalid: user=%q args=%v response=%+v", store.ensureUserID, store.addArgs, response.GetCart())
+	}
+
+	if _, err := client.UpdateItemQuantity(context.Background(), &cartv1.UpdateItemQuantityRequest{UserId: "user-1", ItemId: "item-1", Quantity: 0}); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("zero quantity UpdateItemQuantity code = %v, want InvalidArgument", status.Code(err))
+	}
+	if _, err := client.RemoveItem(context.Background(), &cartv1.RemoveItemRequest{UserId: " ", ItemId: "item-1"}); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("blank user RemoveItem code = %v, want InvalidArgument", status.Code(err))
+	}
+	if _, err := client.ClearCart(context.Background(), &cartv1.ClearCartRequest{UserId: "user-1"}); err != nil {
+		t.Fatalf("ClearCart() error = %v", err)
+	}
+	if store.clearCartID != "cart-1" {
+		t.Fatalf("ClearCart cart id = %q, want cart-1", store.clearCartID)
+	}
+}
