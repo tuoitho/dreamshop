@@ -81,8 +81,12 @@ function Consumer() {
     selectedTotal,
     selectedCount,
     addItem,
+    updateQuantity,
     toggleSelected,
     removeSelected,
+    clearCart,
+    loadError,
+    retryLoad,
   } = useCart()
 
   return (
@@ -93,6 +97,11 @@ function Consumer() {
       <button onClick={() => void addItem("product-1", "Red", 2)}>Add</button>
       <button onClick={() => toggleSelected("item-1")}>Toggle first</button>
       <button onClick={() => void removeSelected()}>Remove selected</button>
+      <button onClick={() => void clearCart()}>Clear</button>
+      <button onClick={() => void updateQuantity("item-1", 3)}>Update to 3</button>
+      <button onClick={() => void updateQuantity("item-1", 4)}>Update to 4</button>
+      {loadError && <output role="alert">{loadError.message}</output>}
+      <button onClick={() => void retryLoad()}>Retry load</button>
     </div>
   )
 }
@@ -169,5 +178,108 @@ describe("CartProvider", () => {
 
     await waitFor(() => expect(screen.getByTestId("items")).toHaveTextContent(""))
     expect(getCart).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    { label: "not ready", ready: false, isAuthenticated: false, user: null },
+    { label: "not authenticated", ready: true, isAuthenticated: false, user: null },
+    { label: "missing user", ready: true, isAuthenticated: true, user: null },
+  ])("does not invoke mutation APIs when auth state is $label", async (auth) => {
+    renderCart(auth)
+
+    await userEvent.click(screen.getByRole("button", { name: "Add" }))
+    await userEvent.click(screen.getByRole("button", { name: "Update to 3" }))
+    await userEvent.click(screen.getByRole("button", { name: "Remove selected" }))
+    await userEvent.click(screen.getByRole("button", { name: "Clear" }))
+
+    expect(addCartItem).not.toHaveBeenCalled()
+    expect(updateCartItemQuantity).not.toHaveBeenCalled()
+    expect(removeCartItem).not.toHaveBeenCalled()
+    expect(clearCart).not.toHaveBeenCalled()
+    expect(screen.getByTestId("items")).toHaveTextContent("")
+  })
+
+  it("serializes rapid mutations so the next request waits for the previous response", async () => {
+    vi.mocked(getCart).mockResolvedValue(cart([item({ quantity: 2 })]))
+    let resolveFirst!: (value: CartData) => void
+    vi.mocked(updateCartItemQuantity)
+      .mockReturnValueOnce(new Promise((resolve) => { resolveFirst = resolve }))
+      .mockResolvedValueOnce(cart([item({ quantity: 4 })]))
+    renderCart()
+
+    await waitFor(() => expect(screen.getByTestId("items")).toHaveTextContent("item-1:2"))
+    await userEvent.click(screen.getByRole("button", { name: "Update to 3" }))
+    await userEvent.click(screen.getByRole("button", { name: "Update to 4" }))
+
+    expect(updateCartItemQuantity).toHaveBeenCalledTimes(1)
+    resolveFirst(cart([item({ quantity: 3 })]))
+    await waitFor(() => expect(updateCartItemQuantity).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.getByTestId("items")).toHaveTextContent("item-1:4"))
+  })
+
+  it("ignores an in-flight mutation response after logout", async () => {
+    vi.mocked(getCart).mockResolvedValue(cart([item()]))
+    let resolveMutation!: (value: CartData) => void
+    vi.mocked(addCartItem).mockReturnValueOnce(new Promise((resolve) => { resolveMutation = resolve }))
+    const view = renderCart()
+
+    await waitFor(() => expect(screen.getByTestId("items")).toHaveTextContent("item-1:2"))
+    await userEvent.click(screen.getByRole("button", { name: "Add" }))
+    view.rerender(
+      <AuthContext value={authValue({ user: null, isAuthenticated: false })}>
+        <CartProvider>
+          <Consumer />
+        </CartProvider>
+      </AuthContext>
+    )
+    resolveMutation(cart([item({ itemId: "old-account-item" })]))
+
+    await waitFor(() => expect(screen.getByTestId("items")).toHaveTextContent(""))
+    expect(screen.getByTestId("items")).not.toHaveTextContent("old-account-item")
+  })
+
+  it("ignores an in-flight load response after switching accounts", async () => {
+    let resolveFirstLoad!: (value: CartData) => void
+    vi.mocked(getCart)
+      .mockReturnValueOnce(new Promise((resolve) => { resolveFirstLoad = resolve }))
+      .mockResolvedValueOnce(cart([item({ itemId: "new-account-item" })]))
+    const view = renderCart()
+
+    view.rerender(
+      <AuthContext value={authValue({ user: { ...USER, userId: "user-2" } })}>
+        <CartProvider>
+          <Consumer />
+        </CartProvider>
+      </AuthContext>
+    )
+    resolveFirstLoad(cart([item({ itemId: "old-account-item" })]))
+
+    await waitFor(() => expect(screen.getByTestId("items")).toHaveTextContent("new-account-item:2"))
+    expect(screen.getByTestId("items")).not.toHaveTextContent("old-account-item")
+  })
+
+  it("retains the current cart when a mutation fails", async () => {
+    vi.mocked(getCart).mockResolvedValue(cart([item()]))
+    vi.mocked(updateCartItemQuantity).mockRejectedValueOnce(new Error("Update failed"))
+    renderCart()
+
+    await waitFor(() => expect(screen.getByTestId("items")).toHaveTextContent("item-1:2"))
+    await userEvent.click(screen.getByRole("button", { name: "Update to 3" }))
+
+    await waitFor(() => expect(updateCartItemQuantity).toHaveBeenCalledWith("item-1", 3))
+    expect(screen.getByTestId("items")).toHaveTextContent("item-1:2")
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+  })
+
+  it("exposes the initial load error and retries without treating it as an empty cart", async () => {
+    vi.mocked(getCart)
+      .mockRejectedValueOnce(new Error("Cart unavailable"))
+      .mockResolvedValueOnce(cart([item()]))
+    renderCart()
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Cart unavailable")
+    await userEvent.click(screen.getByRole("button", { name: "Retry load" }))
+    await waitFor(() => expect(screen.getByTestId("items")).toHaveTextContent("item-1:2"))
+    expect(getCart).toHaveBeenCalledTimes(2)
   })
 })

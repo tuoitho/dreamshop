@@ -21,6 +21,8 @@ export default function CartPage() {
     selectedCount,
     selectedTotal,
     clearCart,
+    loadError,
+    retryLoad,
   } = useCart()
 
   const [searchParams, setSearchParams] = useSearchParams()
@@ -36,6 +38,17 @@ export default function CartPage() {
       return () => window.clearTimeout(timer)
     }
   }, [buyId, setSearchParams])
+
+  if (loadError && items.length === 0) {
+    return (
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-center px-4 py-24 text-center">
+        <span className="text-5xl">⚠️</span>
+        <h1 className="mt-4 text-xl font-bold">Không tải được giỏ hàng</h1>
+        <p role="alert" className="mt-1 max-w-sm text-sm text-muted-foreground">{loadError.message}</p>
+        <Button className="mt-6" onClick={() => void retryLoad()}>Thử lại</Button>
+      </div>
+    )
+  }
 
   if (items.length === 0) {
     return (

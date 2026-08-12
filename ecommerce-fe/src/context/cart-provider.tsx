@@ -1,8 +1,8 @@
-import { useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
-import { addCartItem, clearCart as clearCartRequest, getCart, removeCartItem, updateCartItemQuantity } from "@/lib/api"
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { addCartItem, clearCart as clearCartRequest, getCart, removeCartItem, toErrorInfo, updateCartItemQuantity } from "@/lib/api"
 import type { CartData, CartItem } from "@/lib/types"
 import { AuthContext } from "@/context/auth-context"
-import { CartContext, type CartContextValue } from "./cart-context"
+import { CartContext, type CartContextValue, type CartLoadError } from "./cart-context"
 
 function selectionKey(userId: string): string {
   return `ecommerce-fe.cart-selection.${userId}`
@@ -33,16 +33,34 @@ function isSelectable(item: CartItem): boolean {
   return item.status === "AVAILABLE" || item.status === "LIMITED"
 }
 
+function authIdentity(ready: boolean, isAuthenticated: boolean, userId: string | undefined): string | null {
+  return ready && isAuthenticated && userId ? userId : null
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const auth = useContext(AuthContext)
   const ready = auth?.ready ?? true
   const isAuthenticated = auth?.isAuthenticated ?? false
   const user = auth?.user ?? null
+  const identity = authIdentity(ready, isAuthenticated, user?.userId)
+  const sessionRef = useRef({ identity, version: 0 })
+  if (sessionRef.current.identity !== identity) {
+    sessionRef.current = { identity, version: sessionRef.current.version + 1 }
+  }
+
   const [items, setItems] = useState<CartItem[]>([])
   const [selection, setSelection] = useState<Record<string, boolean>>({})
   const [selectionOwner, setSelectionOwner] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [degraded, setDegraded] = useState(false)
+  const [loadError, setLoadError] = useState<CartLoadError | null>(null)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  const operationGeneration = useRef(0)
+  const mutationQueue = useRef(Promise.resolve())
+
+  const currentSession = useCallback((version: number, expectedIdentity: string): boolean =>
+    sessionRef.current.version === version && sessionRef.current.identity === expectedIdentity,
+  [])
 
   const applyCart = useCallback((data: CartData) => {
     setItems(data.items)
@@ -51,52 +69,86 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    if (!ready || !isAuthenticated || !user) {
+    if (!identity) {
       setItems([])
       setSelection({})
       setSelectionOwner(null)
       setDegraded(false)
+      setLoadError(null)
       setLoading(false)
       return
     }
 
-    const key = selectionKey(user.userId)
+    const sessionVersion = sessionRef.current.version
+    const operation = ++operationGeneration.current
+    const key = selectionKey(identity)
     setItems([])
     setDegraded(false)
+    setLoadError(null)
     setSelection(readSelection(key))
-    setSelectionOwner(user.userId)
+    setSelectionOwner(identity)
     setLoading(true)
     let active = true
     void getCart()
       .then((data) => {
-        if (active) applyCart(data)
+        if (active && currentSession(sessionVersion, identity) && operationGeneration.current === operation) {
+          applyCart(data)
+          setLoadError(null)
+        }
       })
-      .catch(() => {
-        if (active) setItems([])
+      .catch((error: unknown) => {
+        if (active && currentSession(sessionVersion, identity) && operationGeneration.current === operation) {
+          setLoadError(toErrorInfo(error))
+        }
       })
       .finally(() => {
-        if (active) setLoading(false)
+        if (active && currentSession(sessionVersion, identity) && operationGeneration.current === operation) {
+          setLoading(false)
+        }
       })
 
     return () => {
       active = false
     }
-  }, [applyCart, isAuthenticated, ready, user])
+  }, [applyCart, currentSession, identity, loadAttempt])
 
   useEffect(() => {
-    if (ready && isAuthenticated && user && selectionOwner === user.userId) {
-      localStorage.setItem(selectionKey(user.userId), JSON.stringify(selection))
+    if (identity && selectionOwner === identity) {
+      localStorage.setItem(selectionKey(identity), JSON.stringify(selection))
     }
-  }, [isAuthenticated, ready, selection, selectionOwner, user])
+  }, [identity, selection, selectionOwner])
 
-  const runMutation = useCallback(async (request: () => Promise<CartData>) => {
-    setLoading(true)
-    try {
-      applyCart(await request())
-    } finally {
-      setLoading(false)
+  const retryLoad = useCallback(async () => {
+    if (!identity) return
+    setLoadAttempt((attempt) => attempt + 1)
+  }, [identity])
+
+  const runMutation = useCallback((request: () => Promise<CartData>): Promise<void> => {
+    const expectedIdentity = identity
+    const sessionVersion = sessionRef.current.version
+    if (!expectedIdentity || !ready || !isAuthenticated || !user) return Promise.resolve()
+
+    const execute = async () => {
+      if (!currentSession(sessionVersion, expectedIdentity)) return
+      const operation = ++operationGeneration.current
+      setLoading(true)
+      try {
+        const data = await request()
+        if (currentSession(sessionVersion, expectedIdentity) && operationGeneration.current === operation) {
+          applyCart(data)
+          setLoadError(null)
+        }
+      } finally {
+        if (currentSession(sessionVersion, expectedIdentity) && operationGeneration.current === operation) {
+          setLoading(false)
+        }
+      }
     }
-  }, [applyCart])
+
+    const queued = mutationQueue.current.then(execute, execute)
+    mutationQueue.current = queued.catch(() => undefined)
+    return queued
+  }, [applyCart, currentSession, identity, isAuthenticated, ready, user])
 
   const addItem = useCallback((productId: string, variantLabel: string, quantity: number) =>
     runMutation(() => addCartItem({ productId, variantLabel, quantity })), [runMutation])
@@ -107,17 +159,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const removeItem = useCallback((itemId: string) =>
     runMutation(() => removeCartItem(itemId)), [runMutation])
 
-  const removeSelected = useCallback(async () => {
+  const removeSelected = useCallback(() => {
     const selected = items.filter((item) => selection[item.itemId] && isSelectable(item))
-    setLoading(true)
-    try {
-      for (const item of selected) {
-        applyCart(await removeCartItem(item.itemId))
-      }
-    } finally {
-      setLoading(false)
-    }
-  }, [applyCart, items, selection])
+    return selected.reduce(
+      (promise, item) => promise.then(() => runMutation(() => removeCartItem(item.itemId))),
+      Promise.resolve()
+    )
+  }, [items, runMutation, selection])
 
   const clearCart = useCallback(() => runMutation(clearCartRequest), [runMutation])
 
@@ -156,8 +204,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       allSelected: selectedItems.length > 0 && selectedItems.length === items.filter(isSelectable).length,
       loading,
       degraded,
+      loadError,
+      retryLoad,
     }
-  }, [addItem, clearCart, degraded, items, loading, removeItem, removeSelected, selection, toggleAllSelected, toggleSelected, updateQuantity])
+  }, [addItem, clearCart, degraded, items, loadError, loading, removeItem, removeSelected, retryLoad, selection, toggleAllSelected, toggleSelected, updateQuantity])
 
   return <CartContext value={value}>{children}</CartContext>
 }

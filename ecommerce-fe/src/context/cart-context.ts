@@ -1,6 +1,11 @@
 import { createContext } from "react"
 import type { CartItem } from "@/lib/types"
 
+export interface CartLoadError {
+  message: string
+  code?: string
+}
+
 export interface CartContextValue {
   items: CartItem[]
   addItem: (productId: string, variantLabel: string, quantity: number) => Promise<void>
@@ -17,6 +22,8 @@ export interface CartContextValue {
   allSelected: boolean
   loading: boolean
   degraded: boolean
+  loadError: CartLoadError | null
+  retryLoad: () => Promise<void>
 }
 
 export const CartContext = createContext<CartContextValue | null>(null)
