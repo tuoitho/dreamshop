@@ -58,6 +58,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const operationGeneration = useRef(0)
   const mutationQueue = useRef(Promise.resolve())
 
+  useEffect(() => {
+    mutationQueue.current = Promise.resolve()
+  }, [identity])
+
   const currentSession = useCallback((version: number, expectedIdentity: string): boolean =>
     sessionRef.current.version === version && sessionRef.current.identity === expectedIdentity,
   [])

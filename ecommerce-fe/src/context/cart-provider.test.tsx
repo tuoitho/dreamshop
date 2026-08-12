@@ -271,6 +271,32 @@ describe("CartProvider", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument()
   })
 
+  it("does not let a hung old-session mutation block a new-session mutation", async () => {
+    vi.mocked(getCart).mockResolvedValue(cart([item({ itemId: "old-item" })]))
+    vi.mocked(addCartItem)
+      .mockReturnValueOnce(new Promise(() => undefined))
+      .mockResolvedValueOnce(cart([item({ itemId: "new-item", quantity: 7 })]))
+    const view = renderCart()
+
+    await waitFor(() => expect(screen.getByTestId("items")).toHaveTextContent("old-item:2"))
+    await userEvent.click(screen.getByRole("button", { name: "Add" }))
+
+    view.rerender(
+      <AuthContext value={authValue({ user: { ...USER, userId: "user-2" } })}>
+        <CartProvider>
+          <Consumer />
+        </CartProvider>
+      </AuthContext>
+    )
+    await waitFor(() => expect(screen.getByTestId("items")).toHaveTextContent(""))
+
+    await userEvent.click(screen.getByRole("button", { name: "Add" }))
+    await waitFor(() => expect(addCartItem).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.getByTestId("items")).toHaveTextContent("new-item:7"))
+
+    expect(screen.getByTestId("items")).not.toHaveTextContent("old-item")
+  })
+
   it("exposes the initial load error and retries without treating it as an empty cart", async () => {
     vi.mocked(getCart)
       .mockRejectedValueOnce(new Error("Cart unavailable"))
