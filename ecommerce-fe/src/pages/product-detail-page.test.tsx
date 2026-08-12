@@ -1,9 +1,10 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
-import { render, screen, waitFor, within } from "@testing-library/react"
+import { act, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom"
 import { ApiClientError, addCartItem, getCart, getProduct, searchProducts, softDeleteProduct } from "@/lib/api"
 import { AuthContext, type AuthContextValue } from "@/context/auth-context"
+import { CartContext, type CartContextValue } from "@/context/cart-context"
 import type { CartItem, ProductDetail, ProductSummary } from "@/lib/types"
 import { CartProvider } from "@/context/cart-provider"
 import { useCart } from "@/hooks/use-cart"
@@ -145,30 +146,56 @@ function RouteSwitchProbe({ target }: { target: string }) {
   return <button onClick={() => navigate(target)}>Chuyển trang</button>
 }
 
+function cartValue(items: CartItem[], addItem: CartContextValue["addItem"]): CartContextValue {
+  const selectedItems = items.filter((item) => item.status === "AVAILABLE" || item.status === "LIMITED")
+  return {
+    items,
+    addItem,
+    updateQuantity: vi.fn(),
+    removeItem: vi.fn(),
+    removeSelected: vi.fn(),
+    clearCart: vi.fn(),
+    toggleSelected: vi.fn(),
+    selectOnly: vi.fn(),
+    toggleAllSelected: vi.fn(),
+    selectedItems,
+    selectedCount: selectedItems.reduce((total, item) => total + item.quantity, 0),
+    totalQuantity: items.reduce((total, item) => total + item.quantity, 0),
+    selectedTotal: selectedItems.reduce((total, item) => total + item.unitPrice * item.quantity, 0),
+    allSelected: selectedItems.length > 0,
+    loading: false,
+    degraded: false,
+    loadError: null,
+    retryLoad: vi.fn(),
+  }
+}
+
 function renderDetail(
   id = "dt-1",
   auth: Partial<AuthContextValue> = {},
   destination = "product",
-  switchTarget = "/san-pham/dt-2"
+  switchTarget = "/san-pham/dt-2",
+  controlledCart?: CartContextValue
 ) {
+  const routes = (
+    <Routes>
+      <Route
+        path="/san-pham/:id"
+        element={
+          <>
+            <RouteSwitchProbe target={switchTarget} />
+            <ProductDetailPage />
+          </>
+        }
+      />
+      {destination === "checkout" && <Route path="/gio-hang/dat-hang" element={<CheckoutProbe />} />}
+      {destination === "login" && <Route path="/login" element={<LoginProbe />} />}
+    </Routes>
+  )
   return render(
     <MemoryRouter initialEntries={[`/san-pham/${id}`]}>
       <AuthContext value={authValue(auth)}>
-        <CartProvider>
-          <Routes>
-            <Route
-              path="/san-pham/:id"
-              element={
-                <>
-                  <RouteSwitchProbe target={switchTarget} />
-                  <ProductDetailPage />
-                </>
-              }
-            />
-            {destination === "checkout" && <Route path="/gio-hang/dat-hang" element={<CheckoutProbe />} />}
-            {destination === "login" && <Route path="/login" element={<LoginProbe />} />}
-          </Routes>
-        </CartProvider>
+        {controlledCart ? <CartContext value={controlledCart}>{routes}</CartContext> : <CartProvider>{routes}</CartProvider>}
       </AuthContext>
     </MemoryRouter>
   )
@@ -466,6 +493,34 @@ describe("ProductDetailPage", () => {
     await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: detail2.name })).toBeInTheDocument())
     expect(screen.queryByTestId("checkout-items")).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Mua ngay" })).not.toBeDisabled()
+  })
+
+  it("does not let stale Buy Now response state interrupt a new product request", async () => {
+    let resolveA!: () => void
+    let resolveB!: () => void
+    const detail2 = { ...DETAIL, id: "dt-2", name: "Lotus 12A" }
+    vi.mocked(getProduct).mockResolvedValueOnce(DETAIL).mockResolvedValueOnce(detail2)
+    const addItem = vi.fn()
+      .mockReturnValueOnce(new Promise<void>((resolve) => { resolveA = resolve }))
+      .mockReturnValueOnce(new Promise<void>((resolve) => { resolveB = resolve }))
+    const detail2Item = cartItem({ productId: detail2.id, name: detail2.name })
+    renderDetail("dt-1", {}, "checkout", "/san-pham/dt-2", cartValue([detail2Item], addItem))
+
+    await userEvent.click(await screen.findByRole("button", { name: "Mua ngay" }))
+    await userEvent.click(screen.getByRole("button", { name: "Chuyển trang" }))
+    expect(await screen.findByRole("heading", { level: 1, name: detail2.name })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Mua ngay" }))
+    expect(addItem).toHaveBeenCalledTimes(2)
+
+    await act(async () => {
+      resolveA()
+      await Promise.resolve()
+    })
+
+    expect(screen.getByRole("button", { name: "Đang xử lý..." })).toBeInTheDocument()
+    expect(toast.error).not.toHaveBeenCalled()
+    expect(screen.queryByTestId("checkout-items")).not.toBeInTheDocument()
+    resolveB()
   })
 
   it("omits the development soft-delete control in production", async () => {

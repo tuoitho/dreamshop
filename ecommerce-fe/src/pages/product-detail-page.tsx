@@ -277,6 +277,7 @@ export default function ProductDetailPage() {
     setBuyNowPending(true)
     try {
       await addItem(request.productId, request.variantLabel, request.quantity)
+      if (!mountedRef.current || productGenerationRef.current !== request.generation || id !== request.productId) return
       setBuyNowResponseReady(true)
     } catch (err) {
       if (!mountedRef.current || productGenerationRef.current !== request.generation || id !== request.productId) return
