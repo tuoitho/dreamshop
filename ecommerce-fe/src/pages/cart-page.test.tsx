@@ -179,14 +179,24 @@ describe("CartPage availability and selection", () => {
     expect(value.updateQuantity).toHaveBeenCalledWith(LIMITED_ITEM.itemId, 1)
   })
 
-  it("disables out-of-stock selection and groups unavailable items with a remove action", () => {
+  it("disables out-of-stock selection and removes unavailable items from the grouped section", async () => {
+    const user = userEvent.setup()
     const { value } = renderWithCart([OUT_OF_STOCK_ITEM, UNAVAILABLE_ITEM], [])
 
     expect(screen.getByText("Hết hàng")).toBeInTheDocument()
     expect(screen.getByRole("checkbox", { name: `Chọn ${OUT_OF_STOCK_ITEM.name}` })).toBeDisabled()
     expect(screen.getByRole("heading", { name: "Sản phẩm không khả dụng" })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: `Xóa ${UNAVAILABLE_ITEM.name}` })).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: `Xóa ${UNAVAILABLE_ITEM.name}` }))
+
+    expect(value.removeItem).toHaveBeenCalledWith(UNAVAILABLE_ITEM.itemId)
     expect(value.selectedCount).toBe(0)
+  })
+
+  it("gives quantity controls names that identify their product", () => {
+    renderWithCart([ITEM])
+
+    expect(screen.getByRole("button", { name: `Giảm số lượng ${ITEM.name}` })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: `Tăng số lượng ${ITEM.name}` })).toBeInTheDocument()
   })
 
   it("disables checkout when no valid item is selected", () => {
@@ -219,5 +229,23 @@ describe("CartPage availability and selection", () => {
       "Một số thông tin giỏ hàng chưa được cập nhật. Vui lòng thử lại trước khi đặt hàng."
     )
     expect(screen.getByRole("heading", { name: "Giỏ hàng" })).toBeInTheDocument()
+  })
+
+  it("shows the degraded warning above the empty-cart direction", () => {
+    const value = cartContextValue([])
+    value.degraded = true
+    render(
+      <MemoryRouter>
+        <CartContext value={value}>
+          <CartPage />
+        </CartContext>
+      </MemoryRouter>
+    )
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Một số thông tin giỏ hàng chưa được cập nhật. Vui lòng thử lại trước khi đặt hàng."
+    )
+    expect(screen.getByRole("heading", { name: "Giỏ hàng đang trống" })).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Tiếp tục mua sắm" })).toHaveAttribute("href", "/")
   })
 })

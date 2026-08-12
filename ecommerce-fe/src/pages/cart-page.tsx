@@ -118,7 +118,7 @@ function CartItemRow({
             <Button
               variant="outline"
               size="icon-sm"
-              aria-label="Giảm số lượng"
+              aria-label={`Giảm số lượng ${item.name}`}
               disabled={unavailable || item.quantity <= 1}
               onClick={() => onUpdateQuantity(item.itemId, item.quantity - 1)}
             >
@@ -128,7 +128,7 @@ function CartItemRow({
             <Button
               variant="outline"
               size="icon-sm"
-              aria-label="Tăng số lượng"
+              aria-label={`Tăng số lượng ${item.name}`}
               disabled={unavailable || (limited && item.quantity >= item.availableQuantity)}
               onClick={() => onUpdateQuantity(item.itemId, item.quantity + 1)}
             >
@@ -192,6 +192,11 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-center px-4 py-24 text-center">
+        {degraded && (
+          <div role="alert" className="mb-6 rounded-xl border border-amber-300/70 bg-amber-50 p-4 text-left text-sm text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/30 dark:text-amber-100">
+            Một số thông tin giỏ hàng chưa được cập nhật. Vui lòng thử lại trước khi đặt hàng.
+          </div>
+        )}
         <span className="grid size-20 place-items-center rounded-full bg-muted">
           <ShoppingCart className="size-9 text-muted-foreground" />
         </span>
