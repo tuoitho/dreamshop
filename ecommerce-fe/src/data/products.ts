@@ -504,10 +504,4 @@ export function getRelatedProducts(product: Product, limit = 4): Product[] {
   return products.filter((p) => p.id !== product.id && p.categoryId === product.categoryId).slice(0, limit)
 }
 
-export function formatVND(value: number): string {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(value)
-}
+export { formatVND } from "@/lib/utils"

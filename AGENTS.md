@@ -133,3 +133,5 @@ service, use `host.docker.internal:<port>` as its upstream.
 - Business errors use the same error envelope and an appropriate non-2xx status.
 - Mutation endpoints provide a meaningful success `message` suitable for client
   notifications.
+
+Ngoài ra có thể dùng psql để execute db nếu cần.

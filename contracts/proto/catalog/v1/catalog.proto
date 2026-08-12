@@ -10,15 +10,82 @@ option java_package = "com.ecommerce.contracts.catalog.v1";
 
 service CatalogService {
   rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+  rpc SearchProducts(SearchProductsRequest) returns (SearchProductsResponse);
 }
 
 message GetProductRequest {
   string id = 1;
 }
 
+// Full product detail. Fields 1-4 are the original contract; new fields are
+// additive and consumers must tolerate their absence.
 message GetProductResponse {
   string id = 1;
   string name = 2;
   string description = 3;
   ecommerce.common.v1.Money price = 4;
+  string short_description = 5;
+  string brand = 6;
+  string category_id = 7;
+  string category_name = 8;
+  ecommerce.common.v1.Money original_price = 9;
+  repeated string images = 10;
+  double rating = 11;
+  int64 review_count = 12;
+  int64 sold_count = 13;
+  bool is_new = 14;
+  string badge = 15;
+  bool featured = 16;
+  string emoji = 17;
+  repeated uint32 image_hue = 18;
+  repeated ProductVariant variants = 19;
+  repeated string details = 20;
+}
+
+message ProductVariant {
+  string color = 1;
+  string color_hex = 2;
+}
+
+// Search result summary shown in product lists and cards.
+message ProductSummary {
+  string id = 1;
+  string name = 2;
+  string brand = 3;
+  string category_id = 4;
+  string category_name = 5;
+  ecommerce.common.v1.Money price = 6;
+  ecommerce.common.v1.Money original_price = 7;
+  repeated string images = 8;
+  double rating = 9;
+  int64 review_count = 10;
+  int64 sold_count = 11;
+  bool is_new = 12;
+  string badge = 13;
+  bool featured = 14;
+  string emoji = 15;
+  repeated uint32 image_hue = 16;
+}
+
+message SearchProductsRequest {
+  string query = 1;
+  string category_id = 2;
+  // One of: pho-bien, gia-thap, gia-cao, moi-nhat, danh-gia. Empty means
+  // default popularity ordering.
+  string sort = 3;
+  // Price bounds in the smallest currency unit (VND). Zero means unset.
+  int64 price_min = 4;
+  int64 price_max = 5;
+  bool on_sale = 6;
+  int32 rating_min = 7;
+  int32 page = 8;
+  int32 page_size = 9;
+}
+
+message SearchProductsResponse {
+  repeated ProductSummary items = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  int64 total_items = 4;
+  int32 total_pages = 5;
 }

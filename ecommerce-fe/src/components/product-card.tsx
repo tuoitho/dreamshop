@@ -1,7 +1,8 @@
+import { useState } from "react"
 import { Link } from "react-router-dom"
 import { ShoppingCart, Star } from "lucide-react"
-import type { Product } from "@/data/products"
-import { formatVND } from "@/data/products"
+import type { ProductSummary } from "@/lib/types"
+import { formatVND } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ProductImage } from "@/components/product-image"
@@ -9,12 +10,16 @@ import { useCart } from "@/hooks/use-cart"
 import { cn } from "@/lib/utils"
 
 interface ProductCardProps {
-  product: Product
+  product: ProductSummary
   className?: string
 }
 
 export function ProductCard({ product, className }: ProductCardProps) {
   const { addItem } = useCart()
+  const [imageError, setImageError] = useState(false)
+
+  const image = product.images?.[0]
+  const hasImage = Boolean(image) && !imageError
 
   const discount = product.originalPrice > product.price
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
@@ -32,13 +37,23 @@ export function ProductCard({ product, className }: ProductCardProps) {
         className="relative block aspect-square overflow-hidden"
         aria-label={product.name}
       >
-        <ProductImage
-          emoji={product.emoji}
-          hue={product.imageHue}
-          seed={product.id}
-          label={product.name}
-          className="transition-transform duration-300 group-hover:scale-105"
-        />
+        {hasImage && image ? (
+          <img
+            src={image}
+            alt={product.name}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <ProductImage
+            emoji={product.emoji ?? "🛍️"}
+            hue={product.imageHue ?? [200, 240]}
+            seed={product.id}
+            label={product.name}
+            className="transition-transform duration-300 group-hover:scale-105"
+          />
+        )}
         {discount > 0 && (
           <span className="absolute top-2 left-2 rounded-md bg-red-600 px-1.5 py-0.5 text-[0.65rem] font-bold text-white">
             -{discount}%

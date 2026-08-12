@@ -6,15 +6,30 @@ import (
 )
 
 type Config struct {
-	HTTPAddr string
+	HTTPAddr    string
+	GRPCAddr    string
+	DatabaseURL string
 }
 
 func Load() (*Config, error) {
-	addr := os.Getenv("HTTP_ADDR")
-	if addr == "" {
-		return nil, errors.New("HTTP_ADDR environment variable is required")
+	httpAddr := os.Getenv("HTTP_ADDR")
+	if httpAddr == "" {
+		httpAddr = ":8081"
 	}
+
+	grpcAddr := os.Getenv("GRPC_ADDR")
+	if grpcAddr == "" {
+		grpcAddr = "127.0.0.1:50051"
+	}
+
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		return nil, errors.New("DATABASE_URL environment variable is required")
+	}
+
 	return &Config{
-		HTTPAddr: addr,
+		HTTPAddr:    httpAddr,
+		GRPCAddr:    grpcAddr,
+		DatabaseURL: databaseURL,
 	}, nil
 }

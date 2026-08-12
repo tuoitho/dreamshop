@@ -58,4 +58,212 @@ public interface GetProductResponseOrBuilder extends
    * <code>.ecommerce.common.v1.Money price = 4 [json_name = "price"];</code>
    */
   com.ecommerce.contracts.common.v1.MoneyOrBuilder getPriceOrBuilder();
+
+  /**
+   * <code>string short_description = 5 [json_name = "shortDescription"];</code>
+   * @return The shortDescription.
+   */
+  java.lang.String getShortDescription();
+  /**
+   * <code>string short_description = 5 [json_name = "shortDescription"];</code>
+   * @return The bytes for shortDescription.
+   */
+  com.google.protobuf.ByteString
+      getShortDescriptionBytes();
+
+  /**
+   * <code>string brand = 6 [json_name = "brand"];</code>
+   * @return The brand.
+   */
+  java.lang.String getBrand();
+  /**
+   * <code>string brand = 6 [json_name = "brand"];</code>
+   * @return The bytes for brand.
+   */
+  com.google.protobuf.ByteString
+      getBrandBytes();
+
+  /**
+   * <code>string category_id = 7 [json_name = "categoryId"];</code>
+   * @return The categoryId.
+   */
+  java.lang.String getCategoryId();
+  /**
+   * <code>string category_id = 7 [json_name = "categoryId"];</code>
+   * @return The bytes for categoryId.
+   */
+  com.google.protobuf.ByteString
+      getCategoryIdBytes();
+
+  /**
+   * <code>string category_name = 8 [json_name = "categoryName"];</code>
+   * @return The categoryName.
+   */
+  java.lang.String getCategoryName();
+  /**
+   * <code>string category_name = 8 [json_name = "categoryName"];</code>
+   * @return The bytes for categoryName.
+   */
+  com.google.protobuf.ByteString
+      getCategoryNameBytes();
+
+  /**
+   * <code>.ecommerce.common.v1.Money original_price = 9 [json_name = "originalPrice"];</code>
+   * @return Whether the originalPrice field is set.
+   */
+  boolean hasOriginalPrice();
+  /**
+   * <code>.ecommerce.common.v1.Money original_price = 9 [json_name = "originalPrice"];</code>
+   * @return The originalPrice.
+   */
+  com.ecommerce.contracts.common.v1.Money getOriginalPrice();
+  /**
+   * <code>.ecommerce.common.v1.Money original_price = 9 [json_name = "originalPrice"];</code>
+   */
+  com.ecommerce.contracts.common.v1.MoneyOrBuilder getOriginalPriceOrBuilder();
+
+  /**
+   * <code>repeated string images = 10 [json_name = "images"];</code>
+   * @return A list containing the images.
+   */
+  java.util.List<java.lang.String>
+      getImagesList();
+  /**
+   * <code>repeated string images = 10 [json_name = "images"];</code>
+   * @return The count of images.
+   */
+  int getImagesCount();
+  /**
+   * <code>repeated string images = 10 [json_name = "images"];</code>
+   * @param index The index of the element to return.
+   * @return The images at the given index.
+   */
+  java.lang.String getImages(int index);
+  /**
+   * <code>repeated string images = 10 [json_name = "images"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the images at the given index.
+   */
+  com.google.protobuf.ByteString
+      getImagesBytes(int index);
+
+  /**
+   * <code>double rating = 11 [json_name = "rating"];</code>
+   * @return The rating.
+   */
+  double getRating();
+
+  /**
+   * <code>int64 review_count = 12 [json_name = "reviewCount"];</code>
+   * @return The reviewCount.
+   */
+  long getReviewCount();
+
+  /**
+   * <code>int64 sold_count = 13 [json_name = "soldCount"];</code>
+   * @return The soldCount.
+   */
+  long getSoldCount();
+
+  /**
+   * <code>bool is_new = 14 [json_name = "isNew"];</code>
+   * @return The isNew.
+   */
+  boolean getIsNew();
+
+  /**
+   * <code>string badge = 15 [json_name = "badge"];</code>
+   * @return The badge.
+   */
+  java.lang.String getBadge();
+  /**
+   * <code>string badge = 15 [json_name = "badge"];</code>
+   * @return The bytes for badge.
+   */
+  com.google.protobuf.ByteString
+      getBadgeBytes();
+
+  /**
+   * <code>bool featured = 16 [json_name = "featured"];</code>
+   * @return The featured.
+   */
+  boolean getFeatured();
+
+  /**
+   * <code>string emoji = 17 [json_name = "emoji"];</code>
+   * @return The emoji.
+   */
+  java.lang.String getEmoji();
+  /**
+   * <code>string emoji = 17 [json_name = "emoji"];</code>
+   * @return The bytes for emoji.
+   */
+  com.google.protobuf.ByteString
+      getEmojiBytes();
+
+  /**
+   * <code>repeated uint32 image_hue = 18 [json_name = "imageHue"];</code>
+   * @return A list containing the imageHue.
+   */
+  java.util.List<java.lang.Integer> getImageHueList();
+  /**
+   * <code>repeated uint32 image_hue = 18 [json_name = "imageHue"];</code>
+   * @return The count of imageHue.
+   */
+  int getImageHueCount();
+  /**
+   * <code>repeated uint32 image_hue = 18 [json_name = "imageHue"];</code>
+   * @param index The index of the element to return.
+   * @return The imageHue at the given index.
+   */
+  int getImageHue(int index);
+
+  /**
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 19 [json_name = "variants"];</code>
+   */
+  java.util.List<com.ecommerce.contracts.catalog.v1.ProductVariant> 
+      getVariantsList();
+  /**
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 19 [json_name = "variants"];</code>
+   */
+  com.ecommerce.contracts.catalog.v1.ProductVariant getVariants(int index);
+  /**
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 19 [json_name = "variants"];</code>
+   */
+  int getVariantsCount();
+  /**
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 19 [json_name = "variants"];</code>
+   */
+  java.util.List<? extends com.ecommerce.contracts.catalog.v1.ProductVariantOrBuilder> 
+      getVariantsOrBuilderList();
+  /**
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 19 [json_name = "variants"];</code>
+   */
+  com.ecommerce.contracts.catalog.v1.ProductVariantOrBuilder getVariantsOrBuilder(
+      int index);
+
+  /**
+   * <code>repeated string details = 20 [json_name = "details"];</code>
+   * @return A list containing the details.
+   */
+  java.util.List<java.lang.String>
+      getDetailsList();
+  /**
+   * <code>repeated string details = 20 [json_name = "details"];</code>
+   * @return The count of details.
+   */
+  int getDetailsCount();
+  /**
+   * <code>repeated string details = 20 [json_name = "details"];</code>
+   * @param index The index of the element to return.
+   * @return The details at the given index.
+   */
+  java.lang.String getDetails(int index);
+  /**
+   * <code>repeated string details = 20 [json_name = "details"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the details at the given index.
+   */
+  com.google.protobuf.ByteString
+      getDetailsBytes(int index);
 }

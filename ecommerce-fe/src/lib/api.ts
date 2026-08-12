@@ -1,6 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios"
 import { toast } from "sonner"
-import type { ApiError, ApiResponse, CurrentUser, LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, UpdateProfileRequest } from "./types"
+import type { ApiError, ApiResponse, CurrentUser, LoginRequest, LoginResponse, ProductDetail, RegisterRequest, RegisterResponse, SearchProductsParams, SearchProductsResult, UpdateProfileRequest } from "./types"
 import { clearAccessToken, getAccessToken, runSingleFlightRefresh, setAccessToken } from "./auth-session"
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1"
@@ -89,6 +89,7 @@ export class ApiClientError extends Error {
 }
 
 export function toClientError(error: unknown): ApiClientError {
+  if (error instanceof ApiClientError) return error
   if (error instanceof AxiosError) {
     const body = error.response?.data as Partial<ApiError> | undefined
     if (body && typeof body.message === "string") {
@@ -97,6 +98,50 @@ export function toClientError(error: unknown): ApiClientError {
     return new ApiClientError(error.response?.status ?? null, error.message)
   }
   return new ApiClientError(null, error instanceof Error ? error.message : "Unexpected error")
+}
+
+export function toErrorInfo(error: unknown): { message: string; code?: string } {
+  const clientError = toClientError(error)
+  return { message: clientError.message, code: clientError.code }
+}
+
+function toStorefrontQuery(params: SearchProductsParams): Record<string, string | number> {
+  const query: Record<string, string | number> = {}
+  if (params.q) query.q = params.q
+  if (params.categoryId) query["danh-muc"] = params.categoryId
+  if (params.priceMin !== undefined || params.priceMax !== undefined) {
+    query.gia = `${params.priceMin ?? 0}-${params.priceMax ?? 0}`
+  }
+  if (params.onSale) query["giam-gia"] = 1
+  if (params.ratingMin) query["danh-gia"] = params.ratingMin
+  if (params.sort) query["sap-xep"] = params.sort
+  if (params.page !== undefined) query.page = params.page
+  if (params.pageSize !== undefined) query.pageSize = params.pageSize
+  return query
+}
+
+export async function searchProducts(
+  params: SearchProductsParams,
+  signal?: AbortSignal
+): Promise<SearchProductsResult> {
+  try {
+    const { data } = await http.get<ApiResponse<SearchProductsResult>>("/storefront/products", {
+      params: toStorefrontQuery(params),
+      signal,
+    })
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function getProduct(id: string, signal?: AbortSignal): Promise<ProductDetail> {
+  try {
+    const { data } = await http.get<ApiResponse<ProductDetail>>(`/storefront/products/${id}`, { signal })
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
 }
 
 export async function login(payload: LoginRequest): Promise<LoginResponse> {

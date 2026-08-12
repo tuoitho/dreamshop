@@ -68,3 +68,56 @@ export interface HealthResponse {
   status: string
   components?: Record<string, unknown>
 }
+
+export interface ProductVariant {
+  color: string
+  colorHex: string
+}
+
+export interface ProductSummary {
+  id: string
+  name: string
+  brand: string
+  categoryId: string
+  categoryName: string
+  price: number
+  originalPrice: number
+  rating: number
+  reviewCount: number
+  soldCount: number
+  images?: string[]
+  emoji?: string
+  imageHue?: [number, number]
+  isNew?: boolean
+  badge?: "sale" | "hot" | "new"
+  featured?: boolean
+}
+
+export interface ProductDetail extends ProductSummary {
+  shortDescription?: string
+  description: string
+  details: string[]
+  variants: ProductVariant[]
+}
+
+export type ProductSort = "pho-bien" | "gia-thap" | "gia-cao" | "moi-nhat" | "danh-gia"
+
+export interface SearchProductsParams {
+  q?: string
+  categoryId?: string
+  priceMin?: number
+  priceMax?: number
+  onSale?: boolean
+  ratingMin?: number
+  sort?: ProductSort
+  page?: number
+  pageSize?: number
+}
+
+export interface SearchProductsResult {
+  items: ProductSummary[]
+  page: number
+  pageSize: number
+  totalItems: number
+  totalPages: number
+}

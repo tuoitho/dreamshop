@@ -1,11 +1,14 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { SlidersHorizontal, X } from "lucide-react"
-import { categories, products } from "@/data/products"
+import { categories } from "@/data/products"
+import { searchProducts, toErrorInfo } from "@/lib/api"
+import type { ProductSort, SearchProductsParams, SearchProductsResult } from "@/lib/types"
 import { ProductCard } from "@/components/product-card"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Slider } from "@/components/ui/slider"
 import {
   Select,
@@ -16,6 +19,8 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
+const PAGE_SIZE = 20
+
 const PRICE_RANGES = [
   { id: "0-500000", label: "Dưới 500.000đ" },
   { id: "500000-2000000", label: "500.000đ - 2 triệu" },
@@ -23,9 +28,7 @@ const PRICE_RANGES = [
   { id: "10000000-0", label: "Trên 10 triệu" },
 ]
 
-type SortKey = "pho-bien" | "gia-thap" | "gia-cao" | "moi-nhat" | "danh-gia"
-
-const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+const SORT_OPTIONS: { value: ProductSort; label: string }[] = [
   { value: "pho-bien", label: "Phổ biến nhất" },
   { value: "gia-thap", label: "Giá thấp đến cao" },
   { value: "gia-cao", label: "Giá cao đến thấp" },
@@ -49,68 +52,66 @@ export default function SearchPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [sliderValue, setSliderValue] = useState<number[]>([0, 10000000])
 
+  const [result, setResult] = useState<SearchProductsResult | null>(null)
+  const [error, setError] = useState<{ message: string; code?: string } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [reloadKey, setReloadKey] = useState(0)
+
   const q = searchParams.get("q")?.toLowerCase() ?? ""
   const selectedCategory = searchParams.get("danh-muc") ?? "all"
   const giamGia = searchParams.get("giam-gia") === "1"
   const priceRangeParam = searchParams.get("gia")
   const ratingParam = Number(searchParams.get("danh-gia")) || 0
-  const sort = (searchParams.get("sap-xep") ?? "pho-bien") as SortKey
+  const sort = (searchParams.get("sap-xep") ?? "pho-bien") as ProductSort
+  const page = Math.max(1, Number(searchParams.get("page")) || 1)
 
   const priceRange = priceRangeParam ? parsePriceRange(priceRangeParam) : null
+  const priceMin = priceRange?.min
+  const priceMax = priceRange && priceRange.max > 0 ? priceRange.max : undefined
 
-  const filteredProducts = useMemo(() => {
-    let result = [...products]
+  const apiParams = useMemo<SearchProductsParams>(() => {
+    const params: SearchProductsParams = {}
+    if (q) params.q = q
+    if (selectedCategory !== "all") params.categoryId = selectedCategory
+    if (priceMin !== undefined) params.priceMin = priceMin
+    if (priceMax !== undefined) params.priceMax = priceMax
+    if (giamGia) params.onSale = true
+    if (ratingParam > 0) params.ratingMin = ratingParam
+    params.sort = sort
+    params.page = page
+    params.pageSize = PAGE_SIZE
+    return params
+  }, [q, selectedCategory, giamGia, priceMin, priceMax, ratingParam, sort, page])
 
-    if (q) {
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.brand.toLowerCase().includes(q) ||
-          p.categoryName.toLowerCase().includes(q)
-      )
-    }
-
-    if (selectedCategory !== "all") {
-      result = result.filter((p) => p.categoryId === selectedCategory)
-    }
-
-    if (giamGia) {
-      result = result.filter((p) => p.originalPrice > p.price)
-    }
-
-    if (priceRange) {
-      result = result.filter((p) => {
-        if (priceRange.max === 0) return p.price >= priceRange.min
-        return p.price >= priceRange.min && p.price <= priceRange.max
+  useEffect(() => {
+    const controller = new AbortController()
+    let active = true
+    setLoading(true)
+    setError(null)
+    searchProducts(apiParams, controller.signal)
+      .then((data) => {
+        if (active) {
+          setResult(data)
+          setLoading(false)
+        }
       })
+      .catch((err) => {
+        if (active) {
+          setResult(null)
+          setError(toErrorInfo(err))
+          setLoading(false)
+        }
+      })
+    return () => {
+      active = false
+      controller.abort()
     }
-
-    if (ratingParam > 0) {
-      result = result.filter((p) => p.rating >= ratingParam)
-    }
-
-    switch (sort) {
-      case "gia-thap":
-        result.sort((a, b) => a.price - b.price)
-        break
-      case "gia-cao":
-        result.sort((a, b) => b.price - a.price)
-        break
-      case "moi-nhat":
-        result.sort((a, b) => Number(b.isNew ?? false) - Number(a.isNew ?? false))
-        break
-      case "danh-gia":
-        result.sort((a, b) => b.rating - a.rating)
-        break
-      default:
-        result.sort((a, b) => b.soldCount - a.soldCount)
-    }
-
-    return result
-  }, [q, selectedCategory, giamGia, priceRange, ratingParam, sort])
+  }, [apiParams, reloadKey])
 
   function updateParams(updates: Record<string, string | null>) {
     const next = new URLSearchParams(searchParams)
+    const onlyPaging = Object.keys(updates).every((key) => key === "page")
+    if (!onlyPaging) next.delete("page")
     for (const [key, value] of Object.entries(updates)) {
       if (value === null || value === "" || value === "all" || value === "0") {
         next.delete(key)
@@ -135,7 +136,7 @@ export default function SearchPage() {
             {q ? `Kết quả cho "${q}"` : categoryName ? categoryName : "Tất cả sản phẩm"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {filteredProducts.length} sản phẩm
+            {result ? `${result.totalItems} sản phẩm` : "\u00A0"}
             {q && (
               <button
                 onClick={() => updateParams({ q: null })}
@@ -158,7 +159,7 @@ export default function SearchPage() {
           </Button>
           <Select
             value={sort}
-            onValueChange={(value) => updateParams({ "sap-xep": value as SortKey })}
+            onValueChange={(value) => updateParams({ "sap-xep": value as ProductSort })}
           >
             <SelectTrigger className="w-44">
               <SelectValue placeholder="Sắp xếp" />
@@ -282,12 +283,66 @@ export default function SearchPage() {
 
         {/* Results */}
         <div>
-          {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-              {filteredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
+          {loading ? (
+            <div
+              role="status"
+              aria-label="Đang tải sản phẩm"
+              className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4"
+            >
+              {Array.from({ length: 8 }).map((_, index) => (
+                <div key={index} className="overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
+                  <Skeleton className="aspect-square rounded-none" />
+                  <div className="space-y-2 p-3">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-4 w-1/3" />
+                  </div>
+                </div>
               ))}
             </div>
+          ) : error ? (
+            <div
+              role="alert"
+              className="flex flex-col items-center justify-center rounded-2xl border bg-card py-20 text-center"
+            >
+              <span className="text-5xl">⚠️</span>
+              <h3 className="mt-4 text-lg font-bold">Không tải được danh sách sản phẩm</h3>
+              <p className="mt-1 max-w-sm text-sm text-muted-foreground">{error.message}</p>
+              <Button className="mt-5" onClick={() => setReloadKey((key) => key + 1)}>
+                Thử lại
+              </Button>
+            </div>
+          ) : result && result.items.length > 0 ? (
+            <>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                {result.items.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+              {result.totalPages > 1 && (
+                <nav className="mt-8 flex items-center justify-center gap-2" aria-label="Phân trang">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1}
+                    onClick={() => updateParams({ page: String(page - 1) })}
+                  >
+                    Trang trước
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Trang {page} / {result.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= result.totalPages}
+                    onClick={() => updateParams({ page: String(page + 1) })}
+                  >
+                    Trang sau
+                  </Button>
+                </nav>
+              )}
+            </>
           ) : (
             <div className="flex flex-col items-center justify-center rounded-2xl border bg-card py-20 text-center">
               <span className="text-5xl">🔍</span>
