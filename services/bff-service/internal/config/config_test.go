@@ -12,6 +12,8 @@ func TestLoadUsesDefaults(t *testing.T) {
 	t.Setenv("HTTP_ADDR", "")
 	t.Setenv("BFF_CATALOG_GRPC_ADDR", "")
 	t.Setenv("BFF_CATALOG_GRPC_TIMEOUT", "")
+	t.Setenv("BFF_CART_GRPC_ADDR", "")
+	t.Setenv("BFF_CART_GRPC_TIMEOUT", "")
 
 	cfg, err := Load()
 	if err != nil {
@@ -26,6 +28,12 @@ func TestLoadUsesDefaults(t *testing.T) {
 	if cfg.CatalogGRPCTimeout != 3*time.Second {
 		t.Fatalf("expected default CatalogGRPCTimeout 3s, got %s", cfg.CatalogGRPCTimeout)
 	}
+	if cfg.CartGRPCAddr != "127.0.0.1:50053" {
+		t.Fatalf("expected default CartGRPCAddr 127.0.0.1:50053, got %s", cfg.CartGRPCAddr)
+	}
+	if cfg.CartGRPCTimeout != 3*time.Second {
+		t.Fatalf("expected default CartGRPCTimeout 3s, got %s", cfg.CartGRPCTimeout)
+	}
 }
 
 func TestLoadUsesPrefixedEnvironment(t *testing.T) {
@@ -33,6 +41,8 @@ func TestLoadUsesPrefixedEnvironment(t *testing.T) {
 	t.Setenv("HTTP_ADDR", ":8080")
 	t.Setenv("BFF_CATALOG_GRPC_ADDR", "catalog.local:50051")
 	t.Setenv("BFF_CATALOG_GRPC_TIMEOUT", "5s")
+	t.Setenv("BFF_CART_GRPC_ADDR", "cart.local:50053")
+	t.Setenv("BFF_CART_GRPC_TIMEOUT", "7s")
 
 	cfg, err := Load()
 	if err != nil {
@@ -47,6 +57,12 @@ func TestLoadUsesPrefixedEnvironment(t *testing.T) {
 	if cfg.CatalogGRPCTimeout != 5*time.Second {
 		t.Fatalf("expected BFF_CATALOG_GRPC_TIMEOUT 5s, got %s", cfg.CatalogGRPCTimeout)
 	}
+	if cfg.CartGRPCAddr != "cart.local:50053" {
+		t.Fatalf("expected BFF_CART_GRPC_ADDR cart.local:50053, got %s", cfg.CartGRPCAddr)
+	}
+	if cfg.CartGRPCTimeout != 7*time.Second {
+		t.Fatalf("expected BFF_CART_GRPC_TIMEOUT 7s, got %s", cfg.CartGRPCTimeout)
+	}
 }
 
 func TestLoadKeepsLegacyHTTPAddrFallback(t *testing.T) {
@@ -54,6 +70,8 @@ func TestLoadKeepsLegacyHTTPAddrFallback(t *testing.T) {
 	t.Setenv("HTTP_ADDR", ":9090")
 	t.Setenv("BFF_CATALOG_GRPC_ADDR", "")
 	t.Setenv("BFF_CATALOG_GRPC_TIMEOUT", "")
+	t.Setenv("BFF_CART_GRPC_ADDR", "")
+	t.Setenv("BFF_CART_GRPC_TIMEOUT", "")
 
 	cfg, err := Load()
 	if err != nil {
@@ -69,20 +87,48 @@ func TestLoadRejectsNonPositiveCatalogTimeout(t *testing.T) {
 	t.Setenv("HTTP_ADDR", "")
 	t.Setenv("BFF_CATALOG_GRPC_ADDR", "")
 	t.Setenv("BFF_CATALOG_GRPC_TIMEOUT", "0s")
+	t.Setenv("BFF_CART_GRPC_ADDR", "")
+	t.Setenv("BFF_CART_GRPC_TIMEOUT", "")
 
 	if _, err := Load(); err == nil {
 		t.Fatal("expected error for non-positive Catalog gRPC timeout, got nil")
 	}
 }
 
+func TestLoadRejectsBlankCartAddress(t *testing.T) {
+	t.Setenv("BFF_HTTP_ADDR", "")
+	t.Setenv("HTTP_ADDR", "")
+	t.Setenv("BFF_CATALOG_GRPC_ADDR", "")
+	t.Setenv("BFF_CATALOG_GRPC_TIMEOUT", "")
+	t.Setenv("BFF_CART_GRPC_ADDR", "   ")
+	t.Setenv("BFF_CART_GRPC_TIMEOUT", "")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("expected error for blank Cart gRPC address, got nil")
+	}
+}
+
+func TestLoadRejectsNonPositiveCartTimeout(t *testing.T) {
+	t.Setenv("BFF_HTTP_ADDR", "")
+	t.Setenv("HTTP_ADDR", "")
+	t.Setenv("BFF_CATALOG_GRPC_ADDR", "")
+	t.Setenv("BFF_CATALOG_GRPC_TIMEOUT", "")
+	t.Setenv("BFF_CART_GRPC_ADDR", "")
+	t.Setenv("BFF_CART_GRPC_TIMEOUT", "0s")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("expected error for non-positive Cart gRPC timeout, got nil")
+	}
+}
+
 func TestLoadReadsDotenvFile(t *testing.T) {
 	dir := t.TempDir()
 	envFile := filepath.Join(dir, ".env")
-	if err := os.WriteFile(envFile, []byte("BFF_HTTP_ADDR=:9180\nBFF_CATALOG_GRPC_ADDR=localhost:50051\nBFF_CATALOG_GRPC_TIMEOUT=2s\n"), 0o600); err != nil {
+	if err := os.WriteFile(envFile, []byte("BFF_HTTP_ADDR=:9180\nBFF_CATALOG_GRPC_ADDR=localhost:50051\nBFF_CATALOG_GRPC_TIMEOUT=2s\nBFF_CART_GRPC_ADDR=localhost:50053\nBFF_CART_GRPC_TIMEOUT=4s\n"), 0o600); err != nil {
 		t.Fatalf("write dotenv file: %v", err)
 	}
 
-	for _, key := range []string{"BFF_HTTP_ADDR", "HTTP_ADDR", "BFF_CATALOG_GRPC_ADDR", "BFF_CATALOG_GRPC_TIMEOUT"} {
+	for _, key := range []string{"BFF_HTTP_ADDR", "HTTP_ADDR", "BFF_CATALOG_GRPC_ADDR", "BFF_CATALOG_GRPC_TIMEOUT", "BFF_CART_GRPC_ADDR", "BFF_CART_GRPC_TIMEOUT"} {
 		value, exists := os.LookupEnv(key)
 		_ = os.Unsetenv(key)
 		t.Cleanup(func() {
@@ -107,5 +153,11 @@ func TestLoadReadsDotenvFile(t *testing.T) {
 	}
 	if cfg.CatalogGRPCTimeout != 2*time.Second {
 		t.Fatalf("expected dotenv Catalog gRPC timeout 2s, got %s", cfg.CatalogGRPCTimeout)
+	}
+	if cfg.CartGRPCAddr != "localhost:50053" {
+		t.Fatalf("expected dotenv Cart gRPC address localhost:50053, got %s", cfg.CartGRPCAddr)
+	}
+	if cfg.CartGRPCTimeout != 4*time.Second {
+		t.Fatalf("expected dotenv Cart gRPC timeout 4s, got %s", cfg.CartGRPCTimeout)
 	}
 }
