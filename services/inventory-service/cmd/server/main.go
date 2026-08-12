@@ -36,7 +36,7 @@ func main() {
 	defer pool.Close()
 
 	if err := pool.Ping(ctx); err != nil {
-		log.Fatalf("failed to connect to PostgreSQL at %s: %v", cfg.DatabaseURL, err)
+		log.Fatalf("failed to connect to inventory database: %v", err)
 	}
 
 	if err := store.Migrate(ctx, pool); err != nil {

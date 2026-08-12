@@ -24,7 +24,7 @@ make identity
 make order
 pwsh -NoProfile -File scripts/start-bff-local.ps1
 $env:HTTP_ADDR=':8081'; go run ./services/catalog-service/cmd/server
-$env:HTTP_ADDR=':8082'; go run ./services/inventory-service/cmd/server
+$env:HTTP_ADDR=':8082'; $env:DATABASE_URL='postgres://ecommerce:change-me-local-only@127.0.0.1:5432/inventory_db?sslmode=disable'; go run ./services/inventory-service/cmd/server
 npm --prefix ecommerce-fe run dev
 ```
 
