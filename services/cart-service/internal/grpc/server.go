@@ -273,17 +273,7 @@ func enrichLine(line domain.Line, enrichment productEnrichment) (*cartv1.CartIte
 		return item, true
 	}
 	product := enrichment.product
-	if product == nil || product.GetDeleted() {
-		return item, false
-	}
-	var matchedVariant *catalogv1.ProductVariant
-	for _, variant := range product.GetVariants() {
-		if variant.GetLabel() == line.VariantLabel {
-			matchedVariant = variant
-			break
-		}
-	}
-	if matchedVariant == nil {
+	if product == nil {
 		return item, false
 	}
 	item.Name = product.GetName()
@@ -293,7 +283,22 @@ func enrichLine(line domain.Line, enrichment productEnrichment) (*cartv1.CartIte
 	item.ImageEmoji = product.GetEmoji()
 	item.ImageHue = product.GetImageHue()
 	item.ImageUrl = firstString(product.GetImages())
-	item.VariantColorHex = matchedVariant.GetColorHex()
+	var matchedVariant *catalogv1.ProductVariant
+	for _, variant := range product.GetVariants() {
+		if variant.GetLabel() == line.VariantLabel {
+			matchedVariant = variant
+			break
+		}
+	}
+	if matchedVariant != nil {
+		item.VariantColorHex = matchedVariant.GetColorHex()
+	}
+	if product.GetDeleted() {
+		return item, false
+	}
+	if matchedVariant == nil {
+		return item, false
+	}
 	if enrichment.inventoryErr != nil || enrichment.availability == nil {
 		return item, true
 	}
