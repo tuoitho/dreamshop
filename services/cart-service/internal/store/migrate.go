@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"sort"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -13,11 +14,32 @@ import (
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
+const migrationLockKey int64 = 724918263
+
 // Migrate applies embedded SQL migrations in lexicographic version order. Each
 // migration runs inside its own transaction and its version is recorded in
 // schema_migrations so already-applied versions are skipped on later starts.
+// The session advisory lock serializes this process across service instances.
 func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
-	if _, err := pool.Exec(ctx, `
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("acquire migration connection: %w", err)
+	}
+	locked := false
+	defer func() {
+		if locked {
+			releaseMigrationLock(conn)
+			return
+		}
+		conn.Release()
+	}()
+
+	if _, err := conn.Exec(ctx, "SELECT pg_advisory_lock($1)", migrationLockKey); err != nil {
+		return fmt.Errorf("acquire migration lock: %w", err)
+	}
+	locked = true
+
+	if _, err := conn.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS schema_migrations (
 			version text primary key,
 			applied_at timestamptz not null default now()
@@ -33,7 +55,7 @@ func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
 
 	for _, name := range names {
 		version := name[len("migrations/") : len(name)-len(".up.sql")]
-		applied, err := isApplied(ctx, pool, version)
+		applied, err := isApplied(ctx, conn, version)
 		if err != nil {
 			return err
 		}
@@ -45,16 +67,30 @@ func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
 		if err != nil {
 			return fmt.Errorf("read migration %s: %w", name, err)
 		}
-		if err := applyMigration(ctx, pool, version, string(body)); err != nil {
+		if err := applyMigration(ctx, conn, version, string(body)); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func isApplied(ctx context.Context, pool *pgxpool.Pool, version string) (bool, error) {
+func releaseMigrationLock(conn *pgxpool.Conn) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var unlocked bool
+	err := conn.QueryRow(ctx,
+		"SELECT pg_advisory_unlock($1)", migrationLockKey,
+	).Scan(&unlocked)
+	if err != nil || !unlocked {
+		_ = conn.Conn().Close(ctx)
+	}
+	conn.Release()
+}
+
+func isApplied(ctx context.Context, conn *pgxpool.Conn, version string) (bool, error) {
 	var exists bool
-	err := pool.QueryRow(ctx,
+	err := conn.QueryRow(ctx,
 		"SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = $1)",
 		version,
 	).Scan(&exists)
@@ -64,8 +100,8 @@ func isApplied(ctx context.Context, pool *pgxpool.Pool, version string) (bool, e
 	return exists, nil
 }
 
-func applyMigration(ctx context.Context, pool *pgxpool.Pool, version, body string) error {
-	tx, err := pool.Begin(ctx)
+func applyMigration(ctx context.Context, conn *pgxpool.Conn, version, body string) error {
+	tx, err := conn.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin migration %s: %w", version, err)
 	}

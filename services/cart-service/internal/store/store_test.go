@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -106,6 +107,13 @@ func TestStoreIntegration(t *testing.T) {
 	if len(items) != 0 {
 		t.Fatalf("expected clear to remove all items, got %+v", items)
 	}
+	otherItems, err := store.ListItems(ctx, otherCartID)
+	if err != nil {
+		t.Fatalf("list separate cart after clear: %v", err)
+	}
+	if len(otherItems) != 1 || otherItems[0].Quantity != 7 {
+		t.Fatalf("expected clear to preserve separate cart line, got %+v", otherItems)
+	}
 
 	missingID, found, err := store.FindCart(ctx, "00000000-0000-0000-0000-000000000099")
 	if err != nil {
@@ -113,6 +121,54 @@ func TestStoreIntegration(t *testing.T) {
 	}
 	if found || missingID != "" {
 		t.Fatalf("expected absent cart, got id=%q found=%t", missingID, found)
+	}
+}
+
+func TestMigrateSerializesConcurrentStartup(t *testing.T) {
+	pool := testPool(t)
+	ctx := context.Background()
+	blocker, err := pool.Acquire(ctx)
+	if err != nil {
+		t.Fatalf("acquire migration blocker: %v", err)
+	}
+
+	const testMigrationLockKey int64 = 724918263
+	defer func() {
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_, _ = blocker.Exec(cleanupCtx, "SELECT pg_advisory_unlock($1)", testMigrationLockKey)
+		blocker.Release()
+	}()
+	if _, err := blocker.Exec(ctx, "SELECT pg_advisory_lock($1)", testMigrationLockKey); err != nil {
+		t.Fatalf("lock migration advisory key: %v", err)
+	}
+
+	done := make(chan error, 1)
+	go func() { done <- Migrate(ctx, pool) }()
+
+	select {
+	case err := <-done:
+		t.Fatalf("Migrate returned while another startup held the lock: %v", err)
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	var unlocked bool
+	if err := blocker.QueryRow(ctx,
+		"SELECT pg_advisory_unlock($1)", testMigrationLockKey,
+	).Scan(&unlocked); err != nil {
+		t.Fatalf("unlock migration advisory key: %v", err)
+	}
+	if !unlocked {
+		t.Fatal("migration advisory key was not held by blocker")
+	}
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("Migrate() = %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Migrate did not finish after migration lock was released")
 	}
 }
 

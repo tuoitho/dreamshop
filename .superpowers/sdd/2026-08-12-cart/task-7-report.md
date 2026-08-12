@@ -106,3 +106,61 @@ therefore retained rather than accepting a premature dependency-shape change.
 
 Only Task 7-owned repository files, the service-private sqlc inputs/generated
 output, and this report are intended for the Task 7 commit.
+
+## Round 1 review fixes
+
+- Updated `internal/store/migrate.go` to acquire a dedicated pool session and
+  hold PostgreSQL session advisory lock `724918263` across schema-migrations
+  table creation, migration discovery, applied-version checks, and all existing
+  per-migration transactions. Deferred cleanup unlocks with a bounded timeout
+  before returning the session; if unlock fails, the underlying connection is
+  closed before release so a possibly-held session lock cannot leak back into
+  the pool. Existing migration ordering and transaction semantics are
+  preserved.
+- Added an integration assertion to `TestStoreIntegration` proving clearing the
+  primary cart leaves the separate cart's line and quantity intact.
+- Added `TestMigrateSerializesConcurrentStartup`, which holds the same advisory
+  key on one session, starts `Migrate` concurrently, verifies it remains
+  blocked, releases the key, and verifies migration completes.
+
+## Round 1 verification evidence
+
+TDD red result before the migration fix:
+
+```text
+docker run --rm --network host \
+  -e DATABASE_URL='postgres://ecommerce:change-me-local-only@127.0.0.1:5432/cart_db?sslmode=disable' \
+  -v /home/tt/dreamshop/.worktrees/cart-feature:/src -w /src \
+  --entrypoint /usr/local/go/bin/go golang:1.24 \
+  test ./services/cart-service/internal/store \
+  -run TestMigrateSerializesConcurrentStartup -count=1
+```
+
+Result before the fix: failed because `Migrate returned while another startup
+held the lock`.
+
+Focused green result after the fix:
+
+```text
+docker run --rm --network host \
+  -e DATABASE_URL='postgres://ecommerce:change-me-local-only@127.0.0.1:5432/cart_db?sslmode=disable' \
+  -v /home/tt/dreamshop/.worktrees/cart-feature:/src -w /src \
+  --entrypoint /usr/local/go/bin/go golang:1.24 \
+  test ./services/cart-service/internal/store \
+  -run 'TestMigrateSerializesConcurrentStartup|TestStoreIntegration' -count=1
+```
+
+Result: PASS.
+
+Full Cart verification after the fix:
+
+```text
+docker run --rm --network host \
+  -e DATABASE_URL='postgres://ecommerce:change-me-local-only@127.0.0.1:5432/cart_db?sslmode=disable' \
+  -v /home/tt/dreamshop/.worktrees/cart-feature:/src -w /src \
+  --entrypoint /usr/local/go/bin/go golang:1.24 \
+  test ./services/cart-service/... -count=1
+```
+
+Result: config, domain, store (including both review regressions), and
+generated private store package passed. `git diff --check` also passed.
