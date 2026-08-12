@@ -7,6 +7,142 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { useCart } from "@/hooks/use-cart"
+import type { CartItem } from "@/lib/types"
+
+export const FREE_SHIPPING_THRESHOLD = 299000
+export const STANDARD_SHIPPING_FEE = 25000
+
+function isPurchasable(item: CartItem): boolean {
+  return item.status === "AVAILABLE" || item.status === "LIMITED"
+}
+
+function CartItemRow({
+  item,
+  selected,
+  onToggle,
+  onUpdateQuantity,
+  onRemove,
+}: {
+  item: CartItem
+  selected: boolean
+  onToggle: (itemId: string) => void
+  onUpdateQuantity: (itemId: string, quantity: number) => void
+  onRemove: (itemId: string) => void
+}) {
+  const unavailable = !isPurchasable(item)
+  const limited = item.status === "LIMITED"
+  const overAvailableQuantity = limited && item.quantity > item.availableQuantity
+
+  return (
+    <div
+      className={cn(
+        "flex gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-opacity",
+        (!selected || unavailable) && "opacity-70"
+      )}
+    >
+      <label className="flex cursor-pointer items-start pt-1">
+        <Checkbox
+          checked={selected}
+          onCheckedChange={() => onToggle(item.itemId)}
+          aria-label={`Chọn ${item.name}`}
+          disabled={unavailable}
+        />
+      </label>
+
+      <Link
+        to={`/san-pham/${item.productId}`}
+        className="block size-24 shrink-0 overflow-hidden rounded-lg ring-1 ring-foreground/10"
+      >
+        <ProductImage
+          emoji={item.imageEmoji}
+          hue={[item.imageHue[0] ?? 200, item.imageHue[1] ?? 240]}
+          seed={item.productId}
+          label={item.name}
+        />
+      </Link>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex items-start justify-between gap-2">
+          <Link
+            to={`/san-pham/${item.productId}`}
+            className="line-clamp-2 text-sm font-medium hover:text-primary"
+          >
+            {item.name}
+          </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 shrink-0"
+            aria-label={`Xóa ${item.name}`}
+            onClick={() => onRemove(item.itemId)}
+          >
+            <Trash2 />
+          </Button>
+        </div>
+
+        {item.variantLabel && (
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+            {item.variantColorHex && (
+              <span
+                className="inline-block size-3 rounded-full border border-black/10"
+                style={{ backgroundColor: item.variantColorHex }}
+              />
+            )}
+            {item.variantLabel}
+          </p>
+        )}
+
+        {item.status === "OUT_OF_STOCK" && (
+          <p className="mt-2 text-xs font-semibold text-destructive">Hết hàng</p>
+        )}
+        {item.status === "UNAVAILABLE" && (
+          <p className="mt-2 text-xs font-semibold text-muted-foreground">Không còn kinh doanh</p>
+        )}
+        {limited && (
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-amber-700 dark:text-amber-300">
+            <span>Chỉ còn {item.availableQuantity} sản phẩm</span>
+            {overAvailableQuantity && (
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={() => onUpdateQuantity(item.itemId, item.availableQuantity)}
+              >
+                Đặt về {item.availableQuantity}
+              </Button>
+            )}
+          </div>
+        )}
+
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2">
+          <div className="flex items-center">
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label="Giảm số lượng"
+              disabled={unavailable || item.quantity <= 1}
+              onClick={() => onUpdateQuantity(item.itemId, item.quantity - 1)}
+            >
+              <Minus />
+            </Button>
+            <span className="w-12 text-center text-sm font-semibold">{item.quantity}</span>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label="Tăng số lượng"
+              disabled={unavailable || (limited && item.quantity >= item.availableQuantity)}
+              onClick={() => onUpdateQuantity(item.itemId, item.quantity + 1)}
+            >
+              <Plus />
+            </Button>
+          </div>
+          <span className="text-sm font-bold text-red-600">
+            {formatVND(item.unitPrice * item.quantity)}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function CartPage() {
   const {
@@ -20,23 +156,18 @@ export default function CartPage() {
     selectedItems,
     selectedCount,
     selectedTotal,
-    clearCart,
+    degraded,
+    loading,
     loadError,
     retryLoad,
   } = useCart()
-
   const [searchParams, setSearchParams] = useSearchParams()
-
-  // "Mua ngay" từ trang sản phẩm: chuyển hướng kèm ?buy=<id> — chúng ta hiển thị thông báo
   const buyId = searchParams.get("buy")
 
   useEffect(() => {
-    if (buyId) {
-      const timer = window.setTimeout(() => {
-        setSearchParams({}, { replace: true })
-      }, 4000)
-      return () => window.clearTimeout(timer)
-    }
+    if (!buyId) return
+    const timer = window.setTimeout(() => setSearchParams({}, { replace: true }), 4000)
+    return () => window.clearTimeout(timer)
   }, [buyId, setSearchParams])
 
   if (loadError && items.length === 0) {
@@ -46,6 +177,14 @@ export default function CartPage() {
         <h1 className="mt-4 text-xl font-bold">Không tải được giỏ hàng</h1>
         <p role="alert" className="mt-1 max-w-sm text-sm text-muted-foreground">{loadError.message}</p>
         <Button className="mt-6" onClick={() => void retryLoad()}>Thử lại</Button>
+      </div>
+    )
+  }
+
+  if (loading && items.length === 0) {
+    return (
+      <div className="mx-auto flex max-w-7xl items-center justify-center px-4 py-24">
+        <p className="text-sm text-muted-foreground" role="status">Đang tải giỏ hàng...</p>
       </div>
     )
   }
@@ -68,7 +207,11 @@ export default function CartPage() {
     )
   }
 
-  const shippingFee = selectedTotal > 0 ? (selectedTotal >= 299000 ? 0 : 25000) : 0
+  const purchasableItems = items.filter(isPurchasable)
+  const unavailableItems = items.filter((item) => !isPurchasable(item))
+  const shippingFee = selectedTotal > 0
+    ? selectedTotal >= FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING_FEE
+    : 0
   const grandTotal = selectedTotal + shippingFee
 
   return (
@@ -84,122 +227,66 @@ export default function CartPage() {
           dưới nhé!
         </div>
       )}
+      {degraded && (
+        <div role="alert" className="mt-4 rounded-xl border border-amber-300/70 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/30 dark:text-amber-100">
+          Một số thông tin giỏ hàng chưa được cập nhật. Vui lòng thử lại trước khi đặt hàng.
+        </div>
+      )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
         <div>
-          {/* Select all bar */}
           <div className="flex items-center justify-between rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10">
             <label className="flex cursor-pointer items-center gap-2.5 text-sm font-medium">
               <Checkbox checked={allSelected} onCheckedChange={toggleAllSelected} />
-              Chọn tất cả ({items.length})
+              Chọn tất cả ({purchasableItems.length})
             </label>
-            <Button variant="ghost" size="sm" onClick={removeSelected}>
+            <Button variant="ghost" size="sm" onClick={() => void removeSelected()}>
               <Trash2 />
               Xóa đã chọn
             </Button>
           </div>
 
-          {/* Items */}
-          <div className="mt-4 grid gap-3">
-            {items.map((item) => {
-              return (
-                <div
-                  key={item.itemId}
-                  className={cn(
-                    "flex gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-opacity",
-                    !selectedItems.some((selected) => selected.itemId === item.itemId) && "opacity-70"
-                  )}
-                >
-                  <label className="flex cursor-pointer items-start pt-1">
-                    <Checkbox
-                      checked={selectedItems.some((selected) => selected.itemId === item.itemId)}
-                      onCheckedChange={() => toggleSelected(item.itemId)}
-                      aria-label={`Chọn ${item.name}`}
-                      disabled={item.status === "OUT_OF_STOCK" || item.status === "UNAVAILABLE"}
+          {purchasableItems.length > 0 && (
+            <section className="mt-4" aria-labelledby="purchasable-heading">
+              <h2 id="purchasable-heading" className="mb-3 text-sm font-semibold text-muted-foreground">
+                Sản phẩm có thể đặt
+              </h2>
+              <div className="grid gap-3">
+                {purchasableItems.map((item) => (
+                  <CartItemRow
+                    key={item.itemId}
+                    item={item}
+                    selected={selectedItems.some((selected) => selected.itemId === item.itemId)}
+                    onToggle={toggleSelected}
+                    onUpdateQuantity={(itemId, quantity) => void updateQuantity(itemId, quantity)}
+                    onRemove={(itemId) => void removeItem(itemId)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {unavailableItems.length > 0 && (
+            <section className={cn(purchasableItems.length > 0 && "mt-6")} aria-labelledby="unavailable-heading">
+              <div className="rounded-2xl border border-dashed border-foreground/15 bg-muted/30 p-4">
+                <h2 id="unavailable-heading" className="text-sm font-semibold">Sản phẩm không khả dụng</h2>
+                <div className="mt-3 grid gap-3">
+                  {unavailableItems.map((item) => (
+                    <CartItemRow
+                      key={item.itemId}
+                      item={item}
+                      selected={false}
+                      onToggle={toggleSelected}
+                      onUpdateQuantity={(itemId, quantity) => void updateQuantity(itemId, quantity)}
+                      onRemove={(itemId) => void removeItem(itemId)}
                     />
-                  </label>
-
-                  <Link
-                    to={`/san-pham/${item.productId}`}
-                    className="block size-24 shrink-0 overflow-hidden rounded-lg ring-1 ring-foreground/10"
-                  >
-                    <ProductImage
-                      emoji={item.imageEmoji}
-                      hue={[item.imageHue[0] ?? 200, item.imageHue[1] ?? 240]}
-                      seed={item.productId}
-                      label={item.name}
-                    />
-                  </Link>
-
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <div className="flex items-start justify-between gap-2">
-                      <Link
-                         to={`/san-pham/${item.productId}`}
-                        className="line-clamp-2 text-sm font-medium hover:text-primary"
-                      >
-                         {item.name}
-                      </Link>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7 shrink-0"
-                         aria-label={`Xóa ${item.name}`}
-                         onClick={() => void removeItem(item.itemId)}
-                      >
-                        <Trash2 />
-                      </Button>
-                    </div>
-
-                    {item.variantLabel && (
-                      <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                        {item.variantColorHex && (
-                          <span
-                            className="inline-block size-3 rounded-full border border-black/10"
-                            style={{ backgroundColor: item.variantColorHex }}
-                          />
-                        )}
-                        {item.variantLabel}
-                      </p>
-                    )}
-
-                    <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2">
-                      <div className="flex items-center">
-                        <Button
-                          variant="outline"
-                          size="icon-sm"
-                          aria-label="Giảm số lượng"
-                          onClick={() =>
-                            void updateQuantity(item.itemId, item.quantity - 1)
-                          }
-                        >
-                          <Minus />
-                        </Button>
-                        <span className="w-12 text-center text-sm font-semibold">
-                          {item.quantity}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="icon-sm"
-                          aria-label="Tăng số lượng"
-                          onClick={() =>
-                            void updateQuantity(item.itemId, item.quantity + 1)
-                          }
-                        >
-                          <Plus />
-                        </Button>
-                      </div>
-                      <span className="text-sm font-bold text-red-600">
-                         {formatVND(item.unitPrice * item.quantity)}
-                      </span>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              )
-            })}
-          </div>
+              </div>
+            </section>
+          )}
         </div>
 
-        {/* Summary */}
         <div className="h-fit rounded-2xl bg-card p-5 ring-1 ring-foreground/10 lg:sticky lg:top-24">
           <h2 className="text-base font-bold">Tóm tắt đơn hàng</h2>
           <Separator className="my-4" />
@@ -225,23 +312,21 @@ export default function CartPage() {
             <span className="text-xl font-extrabold text-red-600">{formatVND(grandTotal)}</span>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            {selectedTotal > 0 && selectedTotal < 299000
-              ? `Mua thêm ${formatVND(299000 - selectedTotal)} để được miễn phí vận chuyển`
+            {selectedTotal > 0 && selectedTotal < FREE_SHIPPING_THRESHOLD
+              ? `Mua thêm ${formatVND(FREE_SHIPPING_THRESHOLD - selectedTotal)} để được miễn phí vận chuyển`
               : selectedTotal > 0
                 ? "Đơn hàng của bạn được miễn phí vận chuyển 🎉"
-                : "Chọn ít nhất một sản phẩm để thanh toán"}
+                : "Chọn ít nhất một sản phẩm để đặt hàng"}
           </p>
-          <Button
-            size="lg"
-            className="mt-4 w-full"
-            disabled={selectedCount === 0}
-            onClick={async () => {
-              await clearCart()
-              window.alert("Đặt hàng thành công! Cảm ơn bạn đã mua sắm tại S-Shop 🎉")
-            }}
-          >
-            Thanh toán ({formatVND(grandTotal)})
-          </Button>
+          {selectedCount > 0 ? (
+            <Button size="lg" className="mt-4 w-full" asChild>
+              <Link to="/gio-hang/dat-hang">Tiếp tục đặt hàng ({formatVND(grandTotal)})</Link>
+            </Button>
+          ) : (
+            <Button size="lg" className="mt-4 w-full" disabled>
+              Tiếp tục đặt hàng
+            </Button>
+          )}
           <Button variant="ghost" size="sm" className="mt-2 w-full" asChild>
             <Link to="/tim-kiem">Tiếp tục mua sắm</Link>
           </Button>

@@ -8,6 +8,7 @@ import HomePage from "@/pages/home-page"
 import SearchPage from "@/pages/search-page"
 import ProductDetailPage from "@/pages/product-detail-page"
 import CartPage from "@/pages/cart-page"
+import OrderPreviewPage from "@/pages/order-preview-page"
 
 function App() {
   return (
@@ -17,7 +18,8 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/tim-kiem" element={<SearchPage />} />
           <Route path="/san-pham/:id" element={<ProductDetailPage />} />
-          <Route path="/gio-hang" element={<CartPage />} />
+          <Route path="/gio-hang" element={<RequireAuth><CartPage /></RequireAuth>} />
+          <Route path="/gio-hang/dat-hang" element={<RequireAuth><OrderPreviewPage /></RequireAuth>} />
         </Route>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
