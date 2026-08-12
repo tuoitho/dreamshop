@@ -77,6 +77,37 @@ public final class CatalogServiceGrpc {
     return getSearchProductsMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.SoftDeleteProductRequest,
+      com.ecommerce.contracts.catalog.v1.SoftDeleteProductResponse> getSoftDeleteProductMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "SoftDeleteProduct",
+      requestType = com.ecommerce.contracts.catalog.v1.SoftDeleteProductRequest.class,
+      responseType = com.ecommerce.contracts.catalog.v1.SoftDeleteProductResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.SoftDeleteProductRequest,
+      com.ecommerce.contracts.catalog.v1.SoftDeleteProductResponse> getSoftDeleteProductMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.SoftDeleteProductRequest, com.ecommerce.contracts.catalog.v1.SoftDeleteProductResponse> getSoftDeleteProductMethod;
+    if ((getSoftDeleteProductMethod = CatalogServiceGrpc.getSoftDeleteProductMethod) == null) {
+      synchronized (CatalogServiceGrpc.class) {
+        if ((getSoftDeleteProductMethod = CatalogServiceGrpc.getSoftDeleteProductMethod) == null) {
+          CatalogServiceGrpc.getSoftDeleteProductMethod = getSoftDeleteProductMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.catalog.v1.SoftDeleteProductRequest, com.ecommerce.contracts.catalog.v1.SoftDeleteProductResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "SoftDeleteProduct"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.SoftDeleteProductRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.SoftDeleteProductResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new CatalogServiceMethodDescriptorSupplier("SoftDeleteProduct"))
+              .build();
+        }
+      }
+    }
+    return getSoftDeleteProductMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -138,6 +169,13 @@ public final class CatalogServiceGrpc {
         io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.SearchProductsResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSearchProductsMethod(), responseObserver);
     }
+
+    /**
+     */
+    default void softDeleteProduct(com.ecommerce.contracts.catalog.v1.SoftDeleteProductRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.SoftDeleteProductResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSoftDeleteProductMethod(), responseObserver);
+    }
   }
 
   /**
@@ -182,6 +220,14 @@ public final class CatalogServiceGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getSearchProductsMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     */
+    public void softDeleteProduct(com.ecommerce.contracts.catalog.v1.SoftDeleteProductRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.SoftDeleteProductResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getSoftDeleteProductMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -212,6 +258,13 @@ public final class CatalogServiceGrpc {
     public com.ecommerce.contracts.catalog.v1.SearchProductsResponse searchProducts(com.ecommerce.contracts.catalog.v1.SearchProductsRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getSearchProductsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.catalog.v1.SoftDeleteProductResponse softDeleteProduct(com.ecommerce.contracts.catalog.v1.SoftDeleteProductRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getSoftDeleteProductMethod(), getCallOptions(), request);
     }
   }
 
@@ -246,10 +299,19 @@ public final class CatalogServiceGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getSearchProductsMethod(), getCallOptions()), request);
     }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.catalog.v1.SoftDeleteProductResponse> softDeleteProduct(
+        com.ecommerce.contracts.catalog.v1.SoftDeleteProductRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getSoftDeleteProductMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET_PRODUCT = 0;
   private static final int METHODID_SEARCH_PRODUCTS = 1;
+  private static final int METHODID_SOFT_DELETE_PRODUCT = 2;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -275,6 +337,10 @@ public final class CatalogServiceGrpc {
         case METHODID_SEARCH_PRODUCTS:
           serviceImpl.searchProducts((com.ecommerce.contracts.catalog.v1.SearchProductsRequest) request,
               (io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.SearchProductsResponse>) responseObserver);
+          break;
+        case METHODID_SOFT_DELETE_PRODUCT:
+          serviceImpl.softDeleteProduct((com.ecommerce.contracts.catalog.v1.SoftDeleteProductRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.SoftDeleteProductResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -308,6 +374,13 @@ public final class CatalogServiceGrpc {
               com.ecommerce.contracts.catalog.v1.SearchProductsRequest,
               com.ecommerce.contracts.catalog.v1.SearchProductsResponse>(
                 service, METHODID_SEARCH_PRODUCTS)))
+        .addMethod(
+          getSoftDeleteProductMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.catalog.v1.SoftDeleteProductRequest,
+              com.ecommerce.contracts.catalog.v1.SoftDeleteProductResponse>(
+                service, METHODID_SOFT_DELETE_PRODUCT)))
         .build();
   }
 
@@ -358,6 +431,7 @@ public final class CatalogServiceGrpc {
               .setSchemaDescriptor(new CatalogServiceFileDescriptorSupplier())
               .addMethod(getGetProductMethod())
               .addMethod(getSearchProductsMethod())
+              .addMethod(getSoftDeleteProductMethod())
               .build();
         }
       }

@@ -26,6 +26,7 @@ var ErrProductNotFound = errors.New("catalog: product not found")
 type Client interface {
 	GetProduct(ctx context.Context, id string) (*catalogv1.GetProductResponse, error)
 	SearchProducts(ctx context.Context, req *catalogv1.SearchProductsRequest) (*catalogv1.SearchProductsResponse, error)
+	SoftDeleteProduct(ctx context.Context, id string, deleted bool) error
 }
 
 type client struct {
@@ -73,6 +74,20 @@ func (c *client) SearchProducts(ctx context.Context, req *catalogv1.SearchProduc
 	defer cancel()
 
 	return c.svc.SearchProducts(ctx, req)
+}
+
+func (c *client) SoftDeleteProduct(ctx context.Context, id string, deleted bool) error {
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+
+	_, err := c.svc.SoftDeleteProduct(ctx, &catalogv1.SoftDeleteProductRequest{Id: id, Deleted: deleted})
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return fmt.Errorf("%w: %s", ErrProductNotFound, id)
+		}
+		return err
+	}
+	return nil
 }
 
 func (c *client) withTimeout(ctx context.Context) (context.Context, context.CancelFunc) {

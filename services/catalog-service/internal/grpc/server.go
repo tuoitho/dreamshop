@@ -78,6 +78,21 @@ func (s *Server) SearchProducts(ctx context.Context, req *catalogv1.SearchProduc
 	return searchResultToProto(result), nil
 }
 
+// SoftDeleteProduct marks a product as deleted or restores it.
+func (s *Server) SoftDeleteProduct(ctx context.Context, req *catalogv1.SoftDeleteProductRequest) (*catalogv1.SoftDeleteProductResponse, error) {
+	id := strings.TrimSpace(req.GetId())
+	if id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+	if err := s.repo.SoftDelete(ctx, id, req.GetDeleted()); err != nil {
+		if errors.Is(err, domain.ErrProductNotFound) {
+			return nil, notFoundError(id)
+		}
+		return nil, status.Errorf(codes.Internal, "set product deleted %q: %v", id, err)
+	}
+	return &catalogv1.SoftDeleteProductResponse{Id: id, Deleted: req.GetDeleted()}, nil
+}
+
 func productToProto(p *domain.Product) *catalogv1.GetProductResponse {
 	resp := &catalogv1.GetProductResponse{
 		Id:               p.ID,
@@ -99,14 +114,16 @@ func productToProto(p *domain.Product) *catalogv1.GetProductResponse {
 		Emoji:            p.Emoji,
 		ImageHue:         p.ImageHue,
 		Details:          p.Details,
+		Deleted:          p.Deleted,
 	}
 	for _, v := range p.Variants {
-		resp.Variants = append(resp.Variants, &catalogv1.ProductVariant{
-			Color:    v.Label,
-			ColorHex: v.ColorHex,
-		})
+		resp.Variants = append(resp.Variants, productVariantToProto(v))
 	}
 	return resp
+}
+
+func productVariantToProto(v domain.ProductVariant) *catalogv1.ProductVariant {
+	return &catalogv1.ProductVariant{Label: v.Label, ColorHex: v.ColorHex}
 }
 
 func searchResultToProto(r *domain.SearchResult) *catalogv1.SearchProductsResponse {

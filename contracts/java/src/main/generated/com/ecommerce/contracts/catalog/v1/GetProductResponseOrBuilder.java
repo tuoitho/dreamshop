@@ -266,4 +266,10 @@ public interface GetProductResponseOrBuilder extends
    */
   com.google.protobuf.ByteString
       getDetailsBytes(int index);
+
+  /**
+   * <code>bool deleted = 21 [json_name = "deleted"];</code>
+   * @return The deleted.
+   */
+  boolean getDeleted();
 }

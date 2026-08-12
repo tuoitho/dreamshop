@@ -23,6 +23,7 @@ import (
 type fakeCatalogClient struct {
 	searchFn     func(ctx context.Context, req *catalogv1.SearchProductsRequest) (*catalogv1.SearchProductsResponse, error)
 	getProductFn func(ctx context.Context, id string) (*catalogv1.GetProductResponse, error)
+	softDeleteFn func(ctx context.Context, id string, deleted bool) error
 	searchCalls  int
 	lastSearch   *catalogv1.SearchProductsRequest
 }
@@ -41,6 +42,13 @@ func (f *fakeCatalogClient) GetProduct(ctx context.Context, id string) (*catalog
 		return f.getProductFn(ctx, id)
 	}
 	return nil, errors.New("unexpected GetProduct call")
+}
+
+func (f *fakeCatalogClient) SoftDeleteProduct(ctx context.Context, id string, deleted bool) error {
+	if f.softDeleteFn != nil {
+		return f.softDeleteFn(ctx, id, deleted)
+	}
+	return errors.New("unexpected SoftDeleteProduct call")
 }
 
 func money(amount int64) *commonv1.Money {
@@ -352,7 +360,8 @@ func TestGetProductHappyPathEnvelope(t *testing.T) {
 		Featured:         true,
 		Emoji:            "📱",
 		ImageHue:         []uint32{220, 260},
-		Variants:         []*catalogv1.ProductVariant{{Color: "Đen", ColorHex: "#1f2937"}},
+		Variants:         []*catalogv1.ProductVariant{{Label: "Đen", ColorHex: "#1f2937"}},
+		Deleted:          true,
 		Details:          []string{"Hỗ trợ 5G", "Pin 5000 mAh"},
 	}
 	client := &fakeCatalogClient{
@@ -371,7 +380,7 @@ func TestGetProductHappyPathEnvelope(t *testing.T) {
 		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	want := `{"data":{"id":"dt-1","name":"Điện thoại Nova X","brand":"Nova","categoryId":"dien-thoai","categoryName":"Điện thoại","price":18990000,"originalPrice":21990000,"rating":4.9,"reviewCount":1284,"soldCount":2310,"images":["https://picsum.photos/seed/dt-1-1/800/800"],"emoji":"📱","imageHue":[220,260],"isNew":false,"badge":"hot","featured":true,"shortDescription":"Mô tả ngắn gọn.","description":"Mô tả chi tiết sản phẩm.","details":["Hỗ trợ 5G","Pin 5000 mAh"],"variants":[{"color":"Đen","colorHex":"#1f2937"}]},"message":"Product retrieved."}` + "\n"
+	want := `{"data":{"id":"dt-1","name":"Điện thoại Nova X","brand":"Nova","categoryId":"dien-thoai","categoryName":"Điện thoại","price":18990000,"originalPrice":21990000,"rating":4.9,"reviewCount":1284,"soldCount":2310,"images":["https://picsum.photos/seed/dt-1-1/800/800"],"emoji":"📱","imageHue":[220,260],"isNew":false,"badge":"hot","featured":true,"shortDescription":"Mô tả ngắn gọn.","description":"Mô tả chi tiết sản phẩm.","details":["Hỗ trợ 5G","Pin 5000 mAh"],"variants":[{"label":"Đen","colorHex":"#1f2937"}],"deleted":true},"message":"Product retrieved."}` + "\n"
 	if got := rec.Body.String(); got != want {
 		t.Fatalf("unexpected body\n got: %s\nwant: %s", got, want)
 	}

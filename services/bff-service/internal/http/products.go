@@ -45,11 +45,12 @@ type productDetail struct {
 	Description      string           `json:"description"`
 	Details          []string         `json:"details"`
 	Variants         []productVariant `json:"variants"`
+	Deleted          bool             `json:"deleted"`
 }
 
 type productVariant struct {
-	Color    string `json:"color"`
-	ColorHex string `json:"colorHex"`
+	Label    string `json:"label"`
+	ColorHex string `json:"colorHex,omitempty"`
 }
 
 // paginatedData is the REST pagination envelope.
@@ -284,7 +285,7 @@ func newProductDetail(p *catalogv1.GetProductResponse) productDetail {
 	variants := make([]productVariant, 0, len(p.GetVariants()))
 	for _, v := range p.GetVariants() {
 		variants = append(variants, productVariant{
-			Color:    v.GetColor(),
+			Label:    v.GetLabel(),
 			ColorHex: v.GetColorHex(),
 		})
 	}
@@ -311,6 +312,7 @@ func newProductDetail(p *catalogv1.GetProductResponse) productDetail {
 		Description:      p.GetDescription(),
 		Details:          stringsOrEmpty(p.GetDetails()),
 		Variants:         variants,
+		Deleted:          p.GetDeleted(),
 	}
 }
 

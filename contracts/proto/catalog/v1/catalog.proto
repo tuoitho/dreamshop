@@ -11,6 +11,7 @@ option java_package = "com.ecommerce.contracts.catalog.v1";
 service CatalogService {
   rpc GetProduct(GetProductRequest) returns (GetProductResponse);
   rpc SearchProducts(SearchProductsRequest) returns (SearchProductsResponse);
+  rpc SoftDeleteProduct(SoftDeleteProductRequest) returns (SoftDeleteProductResponse);
 }
 
 message GetProductRequest {
@@ -40,11 +41,22 @@ message GetProductResponse {
   repeated uint32 image_hue = 18;
   repeated ProductVariant variants = 19;
   repeated string details = 20;
+  bool deleted = 21;
 }
 
 message ProductVariant {
-  string color = 1;
+  string label = 1;
   string color_hex = 2;
+}
+
+message SoftDeleteProductRequest {
+  string id = 1;
+  bool deleted = 2;
+}
+
+message SoftDeleteProductResponse {
+  string id = 1;
+  bool deleted = 2;
 }
 
 // Search result summary shown in product lists and cards.

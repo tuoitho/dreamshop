@@ -17,7 +17,7 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private ProductVariant() {
-    color_ = "";
+    label_ = "";
     colorHex_ = "";
   }
 
@@ -41,39 +41,39 @@ private static final long serialVersionUID = 0L;
             com.ecommerce.contracts.catalog.v1.ProductVariant.class, com.ecommerce.contracts.catalog.v1.ProductVariant.Builder.class);
   }
 
-  public static final int COLOR_FIELD_NUMBER = 1;
+  public static final int LABEL_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object color_ = "";
+  private volatile java.lang.Object label_ = "";
   /**
-   * <code>string color = 1 [json_name = "color"];</code>
-   * @return The color.
+   * <code>string label = 1 [json_name = "label"];</code>
+   * @return The label.
    */
   @java.lang.Override
-  public java.lang.String getColor() {
-    java.lang.Object ref = color_;
+  public java.lang.String getLabel() {
+    java.lang.Object ref = label_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      color_ = s;
+      label_ = s;
       return s;
     }
   }
   /**
-   * <code>string color = 1 [json_name = "color"];</code>
-   * @return The bytes for color.
+   * <code>string label = 1 [json_name = "label"];</code>
+   * @return The bytes for label.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getColorBytes() {
-    java.lang.Object ref = color_;
+      getLabelBytes() {
+    java.lang.Object ref = label_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      color_ = b;
+      label_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -133,8 +133,8 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(color_)) {
-      com.google.protobuf.GeneratedMessageV3.writeString(output, 1, color_);
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(label_)) {
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 1, label_);
     }
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(colorHex_)) {
       com.google.protobuf.GeneratedMessageV3.writeString(output, 2, colorHex_);
@@ -148,8 +148,8 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(color_)) {
-      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, color_);
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(label_)) {
+      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, label_);
     }
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(colorHex_)) {
       size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, colorHex_);
@@ -169,8 +169,8 @@ private static final long serialVersionUID = 0L;
     }
     com.ecommerce.contracts.catalog.v1.ProductVariant other = (com.ecommerce.contracts.catalog.v1.ProductVariant) obj;
 
-    if (!getColor()
-        .equals(other.getColor())) return false;
+    if (!getLabel()
+        .equals(other.getLabel())) return false;
     if (!getColorHex()
         .equals(other.getColorHex())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -184,8 +184,8 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + COLOR_FIELD_NUMBER;
-    hash = (53 * hash) + getColor().hashCode();
+    hash = (37 * hash) + LABEL_FIELD_NUMBER;
+    hash = (53 * hash) + getLabel().hashCode();
     hash = (37 * hash) + COLOR_HEX_FIELD_NUMBER;
     hash = (53 * hash) + getColorHex().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
@@ -319,7 +319,7 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      color_ = "";
+      label_ = "";
       colorHex_ = "";
       return this;
     }
@@ -355,7 +355,7 @@ private static final long serialVersionUID = 0L;
     private void buildPartial0(com.ecommerce.contracts.catalog.v1.ProductVariant result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.color_ = color_;
+        result.label_ = label_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.colorHex_ = colorHex_;
@@ -406,8 +406,8 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(com.ecommerce.contracts.catalog.v1.ProductVariant other) {
       if (other == com.ecommerce.contracts.catalog.v1.ProductVariant.getDefaultInstance()) return this;
-      if (!other.getColor().isEmpty()) {
-        color_ = other.color_;
+      if (!other.getLabel().isEmpty()) {
+        label_ = other.label_;
         bitField0_ |= 0x00000001;
         onChanged();
       }
@@ -443,7 +443,7 @@ private static final long serialVersionUID = 0L;
               done = true;
               break;
             case 10: {
-              color_ = input.readStringRequireUtf8();
+              label_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000001;
               break;
             } // case 10
@@ -469,73 +469,73 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private java.lang.Object color_ = "";
+    private java.lang.Object label_ = "";
     /**
-     * <code>string color = 1 [json_name = "color"];</code>
-     * @return The color.
+     * <code>string label = 1 [json_name = "label"];</code>
+     * @return The label.
      */
-    public java.lang.String getColor() {
-      java.lang.Object ref = color_;
+    public java.lang.String getLabel() {
+      java.lang.Object ref = label_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        color_ = s;
+        label_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
       }
     }
     /**
-     * <code>string color = 1 [json_name = "color"];</code>
-     * @return The bytes for color.
+     * <code>string label = 1 [json_name = "label"];</code>
+     * @return The bytes for label.
      */
     public com.google.protobuf.ByteString
-        getColorBytes() {
-      java.lang.Object ref = color_;
+        getLabelBytes() {
+      java.lang.Object ref = label_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        color_ = b;
+        label_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
       }
     }
     /**
-     * <code>string color = 1 [json_name = "color"];</code>
-     * @param value The color to set.
+     * <code>string label = 1 [json_name = "label"];</code>
+     * @param value The label to set.
      * @return This builder for chaining.
      */
-    public Builder setColor(
+    public Builder setLabel(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      color_ = value;
+      label_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
     /**
-     * <code>string color = 1 [json_name = "color"];</code>
+     * <code>string label = 1 [json_name = "label"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearColor() {
-      color_ = getDefaultInstance().getColor();
+    public Builder clearLabel() {
+      label_ = getDefaultInstance().getLabel();
       bitField0_ = (bitField0_ & ~0x00000001);
       onChanged();
       return this;
     }
     /**
-     * <code>string color = 1 [json_name = "color"];</code>
-     * @param value The bytes for color to set.
+     * <code>string label = 1 [json_name = "label"];</code>
+     * @param value The bytes for label to set.
      * @return This builder for chaining.
      */
-    public Builder setColorBytes(
+    public Builder setLabelBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      color_ = value;
+      label_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;

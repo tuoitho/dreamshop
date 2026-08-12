@@ -9,16 +9,16 @@ public interface ProductVariantOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
-   * <code>string color = 1 [json_name = "color"];</code>
-   * @return The color.
+   * <code>string label = 1 [json_name = "label"];</code>
+   * @return The label.
    */
-  java.lang.String getColor();
+  java.lang.String getLabel();
   /**
-   * <code>string color = 1 [json_name = "color"];</code>
-   * @return The bytes for color.
+   * <code>string label = 1 [json_name = "label"];</code>
+   * @return The bytes for label.
    */
   com.google.protobuf.ByteString
-      getColorBytes();
+      getLabelBytes();
 
   /**
    * <code>string color_hex = 2 [json_name = "colorHex"];</code>
