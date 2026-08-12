@@ -1,4 +1,4 @@
-.PHONY: infra-up infra-down infra-logs identity order identity-keys identity-keys-linux proto lint verify verify-identity verify-edge-auth up down help identity-linux order-linux
+.PHONY: infra-up infra-down infra-logs identity order cart identity-keys identity-keys-linux proto lint verify verify-identity verify-edge-auth up down help identity-linux order-linux cart-linux
 
 infra-up:
 	docker compose -f deployments/docker/compose.foundation.yml up -d --build
@@ -21,6 +21,12 @@ order:
 
 order-linux:
 	bash services/order-service/start-local.sh
+
+cart:
+	pwsh -NoProfile -File services/cart-service/start-local.ps1
+
+cart-linux:
+	bash services/cart-service/start-local.sh
 
 identity-keys:
 	pwsh -NoProfile -File scripts/generate-identity-dev-keys.ps1
@@ -56,6 +62,8 @@ help:
 	@echo "  make identity-linux    - Start identity-service on Linux/WSL"
 	@echo "  make order             - Start order-service on Windows"
 	@echo "  make order-linux       - Start order-service on Linux/WSL"
+	@echo "  make cart              - Start cart-service on Windows"
+	@echo "  make cart-linux        - Start cart-service on Linux/WSL"
 	@echo "  make identity-keys     - Generate local Identity RSA keys on Windows"
 	@echo "  make identity-keys-linux - Generate local Identity RSA keys on Linux/WSL"
 	@echo "  make verify-identity   - Verify register, login, and JWKS"
