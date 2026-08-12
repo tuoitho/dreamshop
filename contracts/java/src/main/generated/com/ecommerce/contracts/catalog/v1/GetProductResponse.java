@@ -663,6 +663,17 @@ private static final long serialVersionUID = 0L;
     return details_.getByteString(index);
   }
 
+  public static final int DELETED_FIELD_NUMBER = 21;
+  private boolean deleted_ = false;
+  /**
+   * <code>bool deleted = 21 [json_name = "deleted"];</code>
+   * @return The deleted.
+   */
+  @java.lang.Override
+  public boolean getDeleted() {
+    return deleted_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -741,6 +752,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < details_.size(); i++) {
       com.google.protobuf.GeneratedMessageV3.writeString(output, 20, details_.getRaw(i));
+    }
+    if (deleted_ != false) {
+      output.writeBool(21, deleted_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -840,6 +854,10 @@ private static final long serialVersionUID = 0L;
       size += dataSize;
       size += 2 * getDetailsList().size();
     }
+    if (deleted_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(21, deleted_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -902,6 +920,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getVariantsList())) return false;
     if (!getDetailsList()
         .equals(other.getDetailsList())) return false;
+    if (getDeleted()
+        != other.getDeleted()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -970,6 +990,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + DETAILS_FIELD_NUMBER;
       hash = (53 * hash) + getDetailsList().hashCode();
     }
+    hash = (37 * hash) + DELETED_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getDeleted());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1150,6 +1173,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = (bitField0_ & ~0x00040000);
       details_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
+      deleted_ = false;
       return this;
     }
 
@@ -1262,6 +1286,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00080000) != 0)) {
         details_.makeImmutable();
         result.details_ = details_;
+      }
+      if (((from_bitField0_ & 0x00100000) != 0)) {
+        result.deleted_ = deleted_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1433,6 +1460,9 @@ private static final long serialVersionUID = 0L;
         }
         onChanged();
       }
+      if (other.getDeleted() != false) {
+        setDeleted(other.getDeleted());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1584,6 +1614,11 @@ private static final long serialVersionUID = 0L;
               details_.add(s);
               break;
             } // case 162
+            case 168: {
+              deleted_ = input.readBool();
+              bitField0_ |= 0x00100000;
+              break;
+            } // case 168
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3193,6 +3228,38 @@ private static final long serialVersionUID = 0L;
       ensureDetailsIsMutable();
       details_.add(value);
       bitField0_ |= 0x00080000;
+      onChanged();
+      return this;
+    }
+
+    private boolean deleted_ ;
+    /**
+     * <code>bool deleted = 21 [json_name = "deleted"];</code>
+     * @return The deleted.
+     */
+    @java.lang.Override
+    public boolean getDeleted() {
+      return deleted_;
+    }
+    /**
+     * <code>bool deleted = 21 [json_name = "deleted"];</code>
+     * @param value The deleted to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDeleted(boolean value) {
+
+      deleted_ = value;
+      bitField0_ |= 0x00100000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>bool deleted = 21 [json_name = "deleted"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearDeleted() {
+      bitField0_ = (bitField0_ & ~0x00100000);
+      deleted_ = false;
       onChanged();
       return this;
     }

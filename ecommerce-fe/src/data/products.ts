@@ -1,6 +1,6 @@
 export interface ProductVariant {
-  color: string
-  colorHex: string
+  label: string
+  colorHex?: string
 }
 
 export interface Product {
@@ -67,9 +67,9 @@ export const products: Product[] = [
       "RAM 16GB + ROM 512GB",
     ],
     variants: [
-      { color: "Đen", colorHex: "#1f2937" },
-      { color: "Xanh", colorHex: "#1e40af" },
-      { color: "Bạc", colorHex: "#9ca3af" },
+      { label: "12GB/256GB" },
+      { label: "16GB/512GB" },
+      { label: "16GB/1TB" },
     ],
     featured: true,
     badge: "hot",
@@ -98,8 +98,8 @@ export const products: Product[] = [
       "RAM 6GB + ROM 128GB",
     ],
     variants: [
-      { color: "Đen", colorHex: "#111827" },
-      { color: "Xanh lá", colorHex: "#166534" },
+      { label: "6GB/128GB" },
+      { label: "8GB/256GB" },
     ],
     badge: "sale",
     imageHue: [150, 190],
@@ -127,8 +127,8 @@ export const products: Product[] = [
       "Pin: 70Wh, sạc nhanh 65W",
     ],
     variants: [
-      { color: "Bạc", colorHex: "#cbd5e1" },
-      { color: "Xám", colorHex: "#374151" },
+      { label: "16GB/1TB" },
+      { label: "32GB/2TB" },
     ],
     featured: true,
     imageHue: [0, 30],
@@ -156,7 +156,8 @@ export const products: Product[] = [
       "SSD: 1TB NVMe Gen4",
     ],
     variants: [
-      { color: "Đen", colorHex: "#0f172a" },
+      { label: "32GB/1TB" },
+      { label: "64GB/2TB" },
     ],
     badge: "hot",
     imageHue: [330, 360],
@@ -184,9 +185,9 @@ export const products: Product[] = [
       "Sạc nhanh: 10 phút = 3 giờ nghe",
     ],
     variants: [
-      { color: "Trắng", colorHex: "#f1f5f9" },
-      { color: "Đen", colorHex: "#0f172a" },
-      { color: "Xanh mint", colorHex: "#0d9488" },
+      { label: "Trắng", colorHex: "#f1f5f9" },
+      { label: "Đen", colorHex: "#0f172a" },
+      { label: "Xanh mint", colorHex: "#0d9488" },
     ],
     featured: true,
     badge: "sale",
@@ -215,8 +216,8 @@ export const products: Product[] = [
       "Micro 4 con khử tiếng ồn",
     ],
     variants: [
-      { color: "Đen", colorHex: "#111827" },
-      { color: "Be", colorHex: "#d6c7b5" },
+      { label: "Đen", colorHex: "#111827" },
+      { label: "Be", colorHex: "#d6c7b5" },
     ],
     imageHue: [25, 55],
   },
@@ -243,8 +244,8 @@ export const products: Product[] = [
       "100+ chế độ thể thao",
     ],
     variants: [
-      { color: "Đen", colorHex: "#111827" },
-      { color: "Xám", colorHex: "#6b7280" },
+      { label: "Đen", colorHex: "#111827" },
+      { label: "Xám", colorHex: "#6b7280" },
     ],
     imageHue: [210, 250],
   },
@@ -271,8 +272,8 @@ export const products: Product[] = [
       "Dây da thật, khóa gập",
     ],
     variants: [
-      { color: "Đen", colorHex: "#1f2937" },
-      { color: "Nâu", colorHex: "#7c4a21" },
+      { label: "Đen", colorHex: "#1f2937" },
+      { label: "Nâu", colorHex: "#7c4a21" },
     ],
     badge: "new",
     imageHue: [30, 60],
@@ -299,9 +300,9 @@ export const products: Product[] = [
       "Màu không phai sau giặt",
     ],
     variants: [
-      { color: "Trắng", colorHex: "#f8fafc" },
-      { color: "Xanh dương", colorHex: "#1d4ed8" },
-      { color: "Hồng", colorHex: "#db2777" },
+      { label: "Trắng", colorHex: "#f8fafc" },
+      { label: "Xanh dương", colorHex: "#1d4ed8" },
+      { label: "Hồng", colorHex: "#db2777" },
     ],
     badge: "sale",
     imageHue: [200, 230],
@@ -328,8 +329,8 @@ export const products: Product[] = [
       "Size: 36-45",
     ],
     variants: [
-      { color: "Đen", colorHex: "#111827" },
-      { color: "Trắng", colorHex: "#f8fafc" },
+      { label: "Đen", colorHex: "#111827" },
+      { label: "Trắng", colorHex: "#f8fafc" },
     ],
     imageHue: [260, 290],
   },
@@ -355,8 +356,8 @@ export const products: Product[] = [
       "Chức năng tự làm sạch",
     ],
     variants: [
-      { color: "Trắng", colorHex: "#f1f5f9" },
-      { color: "Xanh dương", colorHex: "#2563eb" },
+      { label: "Trắng", colorHex: "#f1f5f9" },
+      { label: "Xanh dương", colorHex: "#2563eb" },
     ],
     badge: "sale",
     imageHue: [140, 175],
@@ -383,7 +384,7 @@ export const products: Product[] = [
       "Nắp kính chịu nhiệt",
     ],
     variants: [
-      { color: "Bạc", colorHex: "#cbd5e1" },
+      { label: "Bạc", colorHex: "#cbd5e1" },
     ],
     imageHue: [0, 20],
   },
@@ -409,7 +410,7 @@ export const products: Product[] = [
       "Phù hợp mọi loại da",
     ],
     variants: [
-      { color: "Cam", colorHex: "#ea580c" },
+      { label: "Cam", colorHex: "#ea580c" },
     ],
     badge: "hot",
     imageHue: [20, 50],
@@ -436,7 +437,7 @@ export const products: Product[] = [
       "Thích hợp da nhạy cảm",
     ],
     variants: [
-      { color: "Trắng", colorHex: "#f8fafc" },
+      { label: "Trắng", colorHex: "#f8fafc" },
     ],
     imageHue: [45, 75],
   },
@@ -462,8 +463,8 @@ export const products: Product[] = [
       "Bìa cứng, chữ rõ ràng",
     ],
     variants: [
-      { color: "Bìa cứng", colorHex: "#b45309" },
-      { color: "Bìa mềm", colorHex: "#92400e" },
+      { label: "Bìa cứng", colorHex: "#b45309" },
+      { label: "Bìa mềm", colorHex: "#92400e" },
     ],
     badge: "hot",
     imageHue: [30, 50],
@@ -490,7 +491,7 @@ export const products: Product[] = [
       "Dịch thuật chính xác, dễ đọc",
     ],
     variants: [
-      { color: "Bìa mềm", colorHex: "#1e3a8a" },
+      { label: "Bìa mềm", colorHex: "#1e3a8a" },
     ],
     imageHue: [220, 250],
   },

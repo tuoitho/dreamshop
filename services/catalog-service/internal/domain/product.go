@@ -1,8 +1,9 @@
 package domain
 
-// ProductVariant is a color variant of a product. Pure domain value.
+// ProductVariant is a variant of a product (for example a color or an option
+// group label). Pure domain value.
 type ProductVariant struct {
-	Color    string
+	Label    string
 	ColorHex string
 }
 
@@ -30,6 +31,7 @@ type Product struct {
 	ImageHue           []uint32
 	Variants           []ProductVariant
 	Details            []string
+	Deleted            bool
 }
 
 // Summary is the search-result projection of a Product. It carries the same

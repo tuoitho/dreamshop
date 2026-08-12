@@ -18,5 +18,11 @@ type Repository interface {
 	GetByID(ctx context.Context, id string) (*Product, error)
 
 	// Search applies the filter, sort, and pagination and returns summaries.
+	// Soft-deleted products are excluded.
 	Search(ctx context.Context, filter SearchFilter) (*SearchResult, error)
+
+	// SoftDelete marks a product as deleted or restores it. Deleted products
+	// are still returned by GetByID with Deleted set, but are excluded from
+	// Search. It returns ErrProductNotFound when the id does not exist.
+	SoftDelete(ctx context.Context, id string, deleted bool) error
 }

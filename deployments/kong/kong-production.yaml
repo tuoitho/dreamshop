@@ -21,6 +21,16 @@ services:
   - name: bff-service
     url: http://bff-service:8080
     routes:
+      - name: cart-api
+        paths: ["/api/v1/cart"]
+        strip_path: true
+        plugins:
+          - name: caller-context
+            config:
+              jwks_uri: http://identity-service:8080/.well-known/jwks.json
+              issuer: http://identity-service:8080
+              audience: ecommerce-api
+
       - name: storefront-api
         paths: ["/api/v1/storefront"]
         strip_path: true

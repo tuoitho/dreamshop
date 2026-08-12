@@ -81,10 +81,10 @@ option java_package = "com.ecommerce.contracts.cart.v1";
 
 service CartService {
   rpc GetCart(GetCartRequest) returns (GetCartResponse);
-  rpc AddItem(AddItemRequest) returns (GetCartResponse);
-  rpc UpdateItemQuantity(UpdateItemQuantityRequest) returns (GetCartResponse);
-  rpc RemoveItem(RemoveItemRequest) returns (GetCartResponse);
-  rpc ClearCart(ClearCartRequest) returns (GetCartResponse);
+  rpc AddItem(AddItemRequest) returns (AddItemResponse);
+  rpc UpdateItemQuantity(UpdateItemQuantityRequest) returns (UpdateItemQuantityResponse);
+  rpc RemoveItem(RemoveItemRequest) returns (RemoveItemResponse);
+  rpc ClearCart(ClearCartRequest) returns (ClearCartResponse);
 }
 
 message GetCartRequest { string user_id = 1; }
@@ -106,10 +106,16 @@ message RemoveItemRequest { string user_id = 1; string item_id = 2; }
 
 message ClearCartRequest { string user_id = 1; }
 
-message GetCartResponse {
+message Cart {
   repeated CartItem items = 1;
   bool degraded = 2; // enrichment không đầy đủ (dependency down)
 }
+
+message GetCartResponse { Cart cart = 1; }
+message AddItemResponse { Cart cart = 1; }
+message UpdateItemQuantityResponse { Cart cart = 1; }
+message RemoveItemResponse { Cart cart = 1; }
+message ClearCartResponse { Cart cart = 1; }
 
 message CartItem {
   string item_id = 1;
@@ -131,15 +137,19 @@ message CartItem {
 
 enum CartItemStatus {
   CART_ITEM_STATUS_UNSPECIFIED = 0;
-  AVAILABLE = 1;
-  LIMITED = 2;       // 0 < available < quantity
-  OUT_OF_STOCK = 3;  // available == 0
-  UNAVAILABLE = 4;   // deleted / not found / variant removed / service degraded
+  CART_ITEM_STATUS_AVAILABLE = 1;
+  CART_ITEM_STATUS_LIMITED = 2;        // 0 < available < quantity
+  CART_ITEM_STATUS_OUT_OF_STOCK = 3;   // available == 0
+  CART_ITEM_STATUS_UNAVAILABLE = 4;    // deleted / not found / variant removed / service degraded
 }
 ```
 
-Các RPC mutation trả về `GetCartResponse` (cart đã validate) để client luôn có
-trạng thái mới nhất trong một round trip.
+Mỗi RPC trả về response đặt tên theo RPC đó (`GetCartResponse`,
+`AddItemResponse`, `UpdateItemQuantityResponse`, `RemoveItemResponse`,
+`ClearCartResponse`) và bọc `Cart` đã validate, để client luôn có trạng thái mới
+nhất trong một round trip. Tên enum trên gRPC dùng prefix `CART_ITEM_STATUS_`
+theo Buf STANDARD; BFF map sang chuỗi public REST không prefix: `AVAILABLE`,
+`LIMITED`, `OUT_OF_STOCK`, `UNAVAILABLE`.
 
 ### `contracts/proto/catalog/v1/catalog.proto` (breaking, pre-production)
 
@@ -166,6 +176,8 @@ Không đổi. Implement server `GetAvailability` + bảng stock + seed.
 - `DELETE /api/v1/cart/items/{itemId}`.
 - `DELETE /api/v1/cart`.
 - Envelope chuẩn; `data` = `{ items: [...] }` (+ `degraded`).
+- `status` trong mỗi item là chuỗi public REST không prefix: `AVAILABLE`,
+  `LIMITED`, `OUT_OF_STOCK`, `UNAVAILABLE` (BFF map từ `CART_ITEM_STATUS_*`).
 - Error codes ổn định: `CART_ITEM_NOT_FOUND`, `INVALID_QUANTITY`,
   `INVALID_PRODUCT`, `CART_UNAVAILABLE`, `UNAUTHORIZED`.
 
@@ -231,13 +243,17 @@ số sản phẩm hết hàng (`quantity = 0`) để demo trạng thái OUT_OF_S
 3. Với product tìm thấy: đối chiếu `variant_label` trong `ProductVariant[]`; lấy
    `unit_price`/name/brand/category/image từ Catalog.
 4. Gọi Inventory `GetAvailability` cho từng product.
-5. Resolve status:
-   - product `deleted` / không tồn tại / `variant_label` không còn → `UNAVAILABLE`
-   - `available == 0` → `OUT_OF_STOCK`
-   - `0 < available < quantity` → `LIMITED` (+ `available_quantity`)
-   - còn lại → `AVAILABLE`
+5. Resolve status (proto `CartItemStatus`, prefix `CART_ITEM_STATUS_`; BFF map
+   sang chuỗi REST không prefix):
+   - product `deleted` / không tồn tại / `variant_label` không còn →
+     `CART_ITEM_STATUS_UNAVAILABLE`
+   - `available == 0` → `CART_ITEM_STATUS_OUT_OF_STOCK`
+   - `0 < available < quantity` → `CART_ITEM_STATUS_LIMITED` (+
+     `available_quantity`)
+   - còn lại → `CART_ITEM_STATUS_AVAILABLE`
 6. Dependency down (Catalog/Inventory): set `degraded = true`; các dòng chưa
-   enrich được giữ bản ghi gốc với status `UNAVAILABLE` (reason log nội bộ).
+   enrich được giữ bản ghi gốc với status `CART_ITEM_STATUS_UNAVAILABLE`
+   (reason log nội bộ).
 7. Không auto-clamp `quantity`; server chỉ báo cáo `available_quantity`. UI đề
    xuất "Đặt về N".
 

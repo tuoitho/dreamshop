@@ -6,7 +6,6 @@ import { formatVND } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ProductImage } from "@/components/product-image"
-import { useCart } from "@/hooks/use-cart"
 import { cn } from "@/lib/utils"
 
 interface ProductCardProps {
@@ -15,7 +14,6 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, className }: ProductCardProps) {
-  const { addItem } = useCart()
   const [imageError, setImageError] = useState(false)
 
   const image = product.images?.[0]
@@ -92,10 +90,12 @@ export function ProductCard({ product, className }: ProductCardProps) {
             size="icon"
             variant="secondary"
             className="shrink-0"
-            aria-label={`Thêm ${product.name} vào giỏ`}
-            onClick={() => addItem(product.id, 0, 1)}
+            aria-label={`Chọn phân loại của ${product.name}`}
+            asChild
           >
-            <ShoppingCart />
+            <Link to={`/san-pham/${product.id}`} aria-label={`Chọn phân loại của ${product.name}`}>
+              <ShoppingCart />
+            </Link>
           </Button>
         </div>
       </div>

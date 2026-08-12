@@ -122,6 +122,9 @@ func SearchProducts(products []*Product, filter SearchFilter) *SearchResult {
 }
 
 func matches(p *Product, f SearchFilter) bool {
+	if p.Deleted {
+		return false
+	}
 	if f.Query != "" {
 		q := strings.ToLower(f.Query)
 		if !strings.Contains(strings.ToLower(p.Name), q) &&

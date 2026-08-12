@@ -1,6 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios"
 import { toast } from "sonner"
-import type { ApiError, ApiResponse, CurrentUser, LoginRequest, LoginResponse, ProductDetail, RegisterRequest, RegisterResponse, SearchProductsParams, SearchProductsResult, UpdateProfileRequest } from "./types"
+import type { ApiError, ApiResponse, CartData, CurrentUser, LoginRequest, LoginResponse, ProductDetail, RegisterRequest, RegisterResponse, SearchProductsParams, SearchProductsResult, UpdateProfileRequest } from "./types"
 import { clearAccessToken, getAccessToken, runSingleFlightRefresh, setAccessToken } from "./auth-session"
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1"
@@ -192,6 +192,60 @@ export async function updateCurrentUser(payload: UpdateProfileRequest): Promise<
 export async function logoutRequest(): Promise<void> {
   try {
     await http.post("/auth/logout")
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function getCart(): Promise<CartData> {
+  try {
+    const { data } = await http.get<ApiResponse<CartData>>("/cart")
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function addCartItem(payload: { productId: string; variantLabel: string; quantity: number }): Promise<CartData> {
+  try {
+    const { data } = await http.post<ApiResponse<CartData>>("/cart/items", payload)
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function updateCartItemQuantity(itemId: string, quantity: number): Promise<CartData> {
+  try {
+    const { data } = await http.patch<ApiResponse<CartData>>(`/cart/items/${itemId}`, { quantity })
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function removeCartItem(itemId: string): Promise<CartData> {
+  try {
+    const { data } = await http.delete<ApiResponse<CartData>>(`/cart/items/${itemId}`)
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function clearCart(): Promise<CartData> {
+  try {
+    const { data } = await http.delete<ApiResponse<CartData>>("/cart")
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function softDeleteProduct(id: string, deleted: boolean): Promise<{ id: string; deleted: boolean }> {
+  try {
+    const { data } = await http.post<ApiResponse<{ id: string; deleted: boolean }>>(`/admin/products/${id}/delete`, { deleted })
+    return data.data
   } catch (error) {
     throw toClientError(error)
   }

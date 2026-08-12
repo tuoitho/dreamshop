@@ -1,7 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { AxiosError, AxiosHeaders } from "axios"
 import { toast } from "sonner"
-import { ApiClientError, fetchHealth, getProduct, http, login, logoutRequest, searchProducts, updateCurrentUser } from "./api"
+import {
+  addCartItem,
+  ApiClientError,
+  clearCart,
+  fetchHealth,
+  getCart,
+  getProduct,
+  http,
+  login,
+  logoutRequest,
+  removeCartItem,
+  searchProducts,
+  softDeleteProduct,
+  updateCartItemQuantity,
+  updateCurrentUser,
+} from "./api"
 import { setAccessToken, clearAccessToken } from "./auth-session"
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
@@ -244,7 +259,7 @@ describe("storefront product adapters", () => {
       shortDescription: "Chip mạnh, pin trâu.",
       description: "Mô tả đầy đủ sản phẩm.",
       details: ["Màn hình 6.8 inch"],
-      variants: [{ color: "Đen", colorHex: "#1f2937" }],
+      variants: [{ label: "Đen", colorHex: "#1f2937" }],
     }
     const adapter = vi.fn(async (config) => ({
       data: { data: detail, message: "Product loaded." },
@@ -274,5 +289,94 @@ describe("storefront product adapters", () => {
     expect(err.code).toBe("PRODUCT_NOT_FOUND")
     expect(err.message).toBe("Product not found")
     expect(err.traceId).toBe("t-1")
+  })
+})
+
+describe("cart adapters", () => {
+  const cart = { items: [], degraded: false }
+
+  beforeEach(() => {
+    clearAccessToken()
+    vi.clearAllMocks()
+    delete http.defaults.adapter
+  })
+
+  it("extracts the cart envelope for GET", async () => {
+    const adapter = vi.fn(async (config) => ({
+      data: { data: cart, message: "Cart retrieved." },
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      config,
+    }))
+    http.defaults.adapter = adapter as never
+
+    await expect(getCart()).resolves.toEqual(cart)
+    expect((adapter.mock.calls[0][0] as { url: string; method: string }).url).toBe("/cart")
+    expect((adapter.mock.calls[0][0] as { method: string }).method).toBe("get")
+  })
+
+  it("sends camelCase bodies for cart mutations and extracts each envelope", async () => {
+    const adapter = vi.fn(async (config) => ({
+      data: { data: cart, message: "Cart updated." },
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      config,
+    }))
+    http.defaults.adapter = adapter as never
+
+    await addCartItem({ productId: "p-1", variantLabel: "16GB/512GB", quantity: 2 })
+    await updateCartItemQuantity("item-1", 3)
+    await removeCartItem("item-1")
+    await clearCart()
+
+    expect(adapter.mock.calls.map(([config]) => {
+      const request = config as { url: string; method: string; data?: unknown }
+      return {
+        url: request.url,
+        method: request.method,
+        data: typeof request.data === "string" ? JSON.parse(request.data) : request.data,
+      }
+    })).toEqual([
+      { url: "/cart/items", method: "post", data: { productId: "p-1", variantLabel: "16GB/512GB", quantity: 2 } },
+      { url: "/cart/items/item-1", method: "patch", data: { quantity: 3 } },
+      { url: "/cart/items/item-1", method: "delete", data: undefined },
+      { url: "/cart", method: "delete", data: undefined },
+    ])
+  })
+
+  it("posts the requested soft-delete state and extracts the response", async () => {
+    const result = { id: "p-1", deleted: true }
+    const adapter = vi.fn(async (config) => ({
+      data: { data: result, message: "Product availability updated." },
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      config,
+    }))
+    http.defaults.adapter = adapter as never
+
+    await expect(softDeleteProduct("p-1", true)).resolves.toEqual(result)
+    const request = adapter.mock.calls[0][0] as { url: string; method: string; data?: unknown }
+    expect({ ...request, data: typeof request.data === "string" ? JSON.parse(request.data) : request.data }).toMatchObject({
+      url: "/admin/products/p-1/delete",
+      method: "post",
+      data: { deleted: true },
+    })
+  })
+
+  it("maps a cart error envelope into ApiClientError", async () => {
+    vi.spyOn(http, "post").mockRejectedValueOnce(
+      axiosError(409, { code: "CART_ITEM_LIMITED", message: "Only 1 item remains", traceId: "cart-t-1" })
+    )
+
+    const error = await addCartItem({ productId: "p-1", variantLabel: "Red", quantity: 2 }).catch((value) => value)
+
+    expect(error).toBeInstanceOf(ApiClientError)
+    expect(error.status).toBe(409)
+    expect(error.code).toBe("CART_ITEM_LIMITED")
+    expect(error.message).toBe("Only 1 item remains")
+    expect(error.traceId).toBe("cart-t-1")
   })
 })

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react"
-import { Link, useParams } from "react-router-dom"
+import { useEffect, useRef, useState } from "react"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import {
   ChevronRight,
   Heart,
@@ -12,7 +12,7 @@ import {
   Star,
   Truck,
 } from "lucide-react"
-import { getProduct, searchProducts, toErrorInfo } from "@/lib/api"
+import { getProduct, searchProducts, softDeleteProduct, toErrorInfo } from "@/lib/api"
 import type { ProductDetail, ProductSummary } from "@/lib/types"
 import { formatVND } from "@/lib/utils"
 import { ProductCard } from "@/components/product-card"
@@ -22,13 +22,24 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCart } from "@/hooks/use-cart"
+import { useAuth } from "@/hooks/use-auth"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 
 const MAX_QUANTITY = 10
 
+interface BuyNowRequest {
+  productId: string
+  variantLabel: string
+  quantity: number
+  generation: number
+}
+
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const { addItem } = useCart()
+  const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
+  const { addItem, items, selectOnly } = useCart()
 
   const [product, setProduct] = useState<ProductDetail | null>(null)
   const [error, setError] = useState<{ message: string; code?: string } | null>(null)
@@ -40,19 +51,53 @@ export default function ProductDetailPage() {
   const [added, setAdded] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const [galleryError, setGalleryError] = useState(false)
+  const [buyNowRequest, setBuyNowRequest] = useState<BuyNowRequest | null>(null)
+  const [buyNowResponseReady, setBuyNowResponseReady] = useState(false)
+  const [addPending, setAddPending] = useState(false)
+  const [buyNowPending, setBuyNowPending] = useState(false)
+  const [softDeletePending, setSoftDeletePending] = useState(false)
 
   const [related, setRelated] = useState<ProductSummary[] | null>(null)
+  const mountedRef = useRef(false)
+  const productGenerationRef = useRef(0)
+  const addedTimerRef = useRef<number | null>(null)
+
+  const variantLabel = product?.variants[variantIndex]?.label ?? ""
 
   useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      productGenerationRef.current += 1
+      if (addedTimerRef.current !== null) {
+        window.clearTimeout(addedTimerRef.current)
+        addedTimerRef.current = null
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    setVariantIndex(0)
     setVariantIndex(0)
     setQuantity(1)
     setAdded(false)
     setActiveIndex(0)
     setGalleryError(false)
+    setBuyNowRequest(null)
+    setBuyNowResponseReady(false)
+    setAddPending(false)
+    setBuyNowPending(false)
+    setSoftDeletePending(false)
     setProduct(null)
     setError(null)
     setLoading(true)
     setRelated(null)
+
+    const generation = ++productGenerationRef.current
+    if (addedTimerRef.current !== null) {
+      window.clearTimeout(addedTimerRef.current)
+      addedTimerRef.current = null
+    }
 
     if (!id) {
       setError({ message: "Không tìm thấy sản phẩm", code: "PRODUCT_NOT_FOUND" })
@@ -64,22 +109,50 @@ export default function ProductDetailPage() {
     let active = true
     getProduct(id, controller.signal)
       .then((data) => {
-        if (active) {
+        if (active && mountedRef.current && productGenerationRef.current === generation) {
           setProduct(data)
           setLoading(false)
         }
       })
       .catch((err) => {
-        if (active) {
+        if (active && mountedRef.current && productGenerationRef.current === generation) {
           setError(toErrorInfo(err))
           setLoading(false)
         }
       })
     return () => {
       active = false
+      if (productGenerationRef.current === generation) {
+        productGenerationRef.current += 1
+      }
       controller.abort()
     }
   }, [id, reloadKey])
+
+  useEffect(() => {
+    if (!buyNowRequest || !buyNowResponseReady) return
+    if (
+      !mountedRef.current ||
+      productGenerationRef.current !== buyNowRequest.generation ||
+      id !== buyNowRequest.productId
+    ) {
+      return
+    }
+    const item = items.find((entry) =>
+      entry.productId === buyNowRequest.productId &&
+      entry.variantLabel === buyNowRequest.variantLabel &&
+      (entry.status === "AVAILABLE" || entry.status === "LIMITED")
+    )
+    setBuyNowRequest(null)
+    setBuyNowResponseReady(false)
+    setBuyNowPending(false)
+    if (!item) {
+      toast.error("Không tìm thấy phân loại có thể mua trong giỏ hàng")
+      return
+    }
+    selectOnly(item.itemId)
+    navigate("/gio-hang/dat-hang")
+  }, [buyNowRequest, buyNowResponseReady, id, items, navigate, selectOnly])
 
   const productCategoryId = product?.categoryId
   const productId = product?.id
@@ -161,10 +234,78 @@ export default function ProductDetailPage() {
     ? images[Math.min(activeIndex, images.length - 1)]
     : undefined
 
-  const handleAddToCart = () => {
-    addItem(product.id, variantIndex, quantity)
-    setAdded(true)
-    window.setTimeout(() => setAdded(false), 1600)
+  const requireAuthentication = () => {
+    if (isAuthenticated) return true
+    navigate("/login", { state: { from: `/san-pham/${product.id}` } })
+    return false
+  }
+
+  const handleAddToCart = async () => {
+    if (!requireAuthentication()) return
+    if (addPending || buyNowPending || softDeletePending) return
+    const generation = productGenerationRef.current
+    const productId = product.id
+    setAddPending(true)
+    try {
+      await addItem(productId, variantLabel, quantity)
+      if (!mountedRef.current || productGenerationRef.current !== generation || id !== productId) return
+      setAdded(true)
+      if (addedTimerRef.current !== null) window.clearTimeout(addedTimerRef.current)
+      addedTimerRef.current = window.setTimeout(() => {
+        if (mountedRef.current && productGenerationRef.current === generation && id === productId) {
+          setAdded(false)
+        }
+        addedTimerRef.current = null
+      }, 1600)
+    } catch (err) {
+      if (mountedRef.current && productGenerationRef.current === generation && id === productId) {
+        toast.error(toErrorInfo(err).message)
+      }
+    } finally {
+      if (mountedRef.current && productGenerationRef.current === generation && id === productId) {
+        setAddPending(false)
+      }
+    }
+  }
+
+  const handleBuyNow = async () => {
+    if (!requireAuthentication()) return
+    if (addPending || buyNowPending || softDeletePending) return
+    const request = { productId: product.id, variantLabel, quantity, generation: productGenerationRef.current }
+    setBuyNowRequest(request)
+    setBuyNowResponseReady(false)
+    setBuyNowPending(true)
+    try {
+      await addItem(request.productId, request.variantLabel, request.quantity)
+      if (!mountedRef.current || productGenerationRef.current !== request.generation || id !== request.productId) return
+      setBuyNowResponseReady(true)
+    } catch (err) {
+      if (!mountedRef.current || productGenerationRef.current !== request.generation || id !== request.productId) return
+      setBuyNowRequest(null)
+      setBuyNowResponseReady(false)
+      setBuyNowPending(false)
+      toast.error(toErrorInfo(err).message)
+    }
+  }
+
+  const handleSoftDelete = async () => {
+    if (addPending || buyNowPending || softDeletePending) return
+    const generation = productGenerationRef.current
+    const productId = product.id
+    setSoftDeletePending(true)
+    try {
+      await softDeleteProduct(productId, !product.deleted)
+      if (!mountedRef.current || productGenerationRef.current !== generation || id !== productId) return
+      setReloadKey((key) => key + 1)
+    } catch (err) {
+      if (mountedRef.current && productGenerationRef.current === generation && id === productId) {
+        toast.error(toErrorInfo(err).message)
+      }
+    } finally {
+      if (mountedRef.current && productGenerationRef.current === generation && id === productId) {
+        setSoftDeletePending(false)
+      }
+    }
   }
 
   return (
@@ -290,12 +431,12 @@ export default function ProductDetailPage() {
           {product.variants.length > 0 && (
             <div className="mt-5 rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
               <p className="text-sm font-semibold">
-                Phân loại: <span className="font-normal text-muted-foreground">{product.variants[variantIndex].color}</span>
+                <span>Phân loại</span>: <span className="font-normal text-muted-foreground">{variantLabel}</span>
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {product.variants.map((variant, index) => (
                   <button
-                    key={variant.color}
+                    key={variant.label}
                     onClick={() => setVariantIndex(index)}
                     className={cn(
                       "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors",
@@ -305,11 +446,13 @@ export default function ProductDetailPage() {
                     )}
                     aria-pressed={variantIndex === index}
                   >
-                    <span
-                      className="size-4 rounded-full border border-black/10"
-                      style={{ backgroundColor: variant.colorHex }}
-                    />
-                    {variant.color}
+                    {variant.colorHex && (
+                      <span
+                        className="size-4 rounded-full border border-black/10"
+                        style={{ backgroundColor: variant.colorHex }}
+                      />
+                    )}
+                    {variant.label}
                   </button>
                 ))}
               </div>
@@ -347,13 +490,20 @@ export default function ProductDetailPage() {
             <Button
               size="lg"
               className="flex-1 min-w-44"
-              onClick={handleAddToCart}
+              disabled={addPending || buyNowPending || softDeletePending}
+              onClick={() => void handleAddToCart()}
             >
               <ShoppingCart />
-              {added ? "Đã thêm vào giỏ" : "Thêm vào giỏ"}
+              {addPending ? "Đang thêm..." : added ? "Đã thêm vào giỏ" : "Thêm vào giỏ"}
             </Button>
-            <Button size="lg" variant="outline" className="flex-1 min-w-36" asChild>
-              <Link to={`/gio-hang?buy=${product.id}`}>Mua ngay</Link>
+            <Button
+              size="lg"
+              variant="outline"
+              className="flex-1 min-w-36"
+              disabled={addPending || buyNowPending || softDeletePending}
+              onClick={() => void handleBuyNow()}
+            >
+              {buyNowPending ? "Đang xử lý..." : "Mua ngay"}
             </Button>
             <Button size="icon" variant="outline" aria-label="Thêm vào yêu thích">
               <Heart />
@@ -362,6 +512,20 @@ export default function ProductDetailPage() {
               <Share2 />
             </Button>
           </div>
+
+          {import.meta.env.DEV && (
+            <div className="mt-4 flex items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">DEV</span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={addPending || buyNowPending || softDeletePending}
+                onClick={() => void handleSoftDelete()}
+              >
+                {softDeletePending ? "Đang cập nhật..." : product.deleted ? "Khôi phục sản phẩm" : "Xóa mềm sản phẩm"}
+              </Button>
+            </div>
+          )}
 
           <div className="mt-6 grid gap-3 rounded-2xl bg-card p-5 ring-1 ring-foreground/10 sm:grid-cols-3">
             {[

@@ -31,6 +31,16 @@ public final class Catalog {
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_ecommerce_catalog_v1_ProductVariant_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_SoftDeleteProductRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_SoftDeleteProductRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_SoftDeleteProductResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_SoftDeleteProductResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ecommerce_catalog_v1_ProductSummary_descriptor;
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
@@ -56,7 +66,7 @@ public final class Catalog {
     java.lang.String[] descriptorData = {
       "\n\030catalog/v1/catalog.proto\022\024ecommerce.ca" +
       "talog.v1\032\026common/v1/common.proto\"#\n\021GetP" +
-      "roductRequest\022\016\n\002id\030\001 \001(\tR\002id\"\242\005\n\022GetPro" +
+      "roductRequest\022\016\n\002id\030\001 \001(\tR\002id\"\274\005\n\022GetPro" +
       "ductResponse\022\016\n\002id\030\001 \001(\tR\002id\022\022\n\004name\030\002 \001" +
       "(\tR\004name\022 \n\013description\030\003 \001(\tR\013descripti" +
       "on\0220\n\005price\030\004 \001(\0132\032.ecommerce.common.v1." +
@@ -73,41 +83,48 @@ public final class Catalog {
       "red\022\024\n\005emoji\030\021 \001(\tR\005emoji\022\033\n\timage_hue\030\022" +
       " \003(\rR\010imageHue\022@\n\010variants\030\023 \003(\0132$.ecomm" +
       "erce.catalog.v1.ProductVariantR\010variants" +
-      "\022\030\n\007details\030\024 \003(\tR\007details\"C\n\016ProductVar" +
-      "iant\022\024\n\005color\030\001 \001(\tR\005color\022\033\n\tcolor_hex\030" +
-      "\002 \001(\tR\010colorHex\"\363\003\n\016ProductSummary\022\016\n\002id" +
-      "\030\001 \001(\tR\002id\022\022\n\004name\030\002 \001(\tR\004name\022\024\n\005brand\030" +
-      "\003 \001(\tR\005brand\022\037\n\013category_id\030\004 \001(\tR\ncateg" +
-      "oryId\022#\n\rcategory_name\030\005 \001(\tR\014categoryNa" +
-      "me\0220\n\005price\030\006 \001(\0132\032.ecommerce.common.v1." +
-      "MoneyR\005price\022A\n\016original_price\030\007 \001(\0132\032.e" +
-      "commerce.common.v1.MoneyR\roriginalPrice\022" +
-      "\026\n\006images\030\010 \003(\tR\006images\022\026\n\006rating\030\t \001(\001R" +
-      "\006rating\022!\n\014review_count\030\n \001(\003R\013reviewCou" +
-      "nt\022\035\n\nsold_count\030\013 \001(\003R\tsoldCount\022\025\n\006is_" +
-      "new\030\014 \001(\010R\005isNew\022\024\n\005badge\030\r \001(\tR\005badge\022\032" +
-      "\n\010featured\030\016 \001(\010R\010featured\022\024\n\005emoji\030\017 \001(" +
-      "\tR\005emoji\022\033\n\timage_hue\030\020 \003(\rR\010imageHue\"\205\002" +
-      "\n\025SearchProductsRequest\022\024\n\005query\030\001 \001(\tR\005" +
-      "query\022\037\n\013category_id\030\002 \001(\tR\ncategoryId\022\022" +
-      "\n\004sort\030\003 \001(\tR\004sort\022\033\n\tprice_min\030\004 \001(\003R\010p" +
-      "riceMin\022\033\n\tprice_max\030\005 \001(\003R\010priceMax\022\027\n\007" +
-      "on_sale\030\006 \001(\010R\006onSale\022\035\n\nrating_min\030\007 \001(" +
-      "\005R\tratingMin\022\022\n\004page\030\010 \001(\005R\004page\022\033\n\tpage" +
-      "_size\030\t \001(\005R\010pageSize\"\307\001\n\026SearchProducts" +
-      "Response\022:\n\005items\030\001 \003(\0132$.ecommerce.cata" +
-      "log.v1.ProductSummaryR\005items\022\022\n\004page\030\002 \001" +
-      "(\005R\004page\022\033\n\tpage_size\030\003 \001(\005R\010pageSize\022\037\n" +
-      "\013total_items\030\004 \001(\003R\ntotalItems\022\037\n\013total_" +
-      "pages\030\005 \001(\005R\ntotalPages2\336\001\n\016CatalogServi" +
-      "ce\022_\n\nGetProduct\022\'.ecommerce.catalog.v1." +
-      "GetProductRequest\032(.ecommerce.catalog.v1" +
-      ".GetProductResponse\022k\n\016SearchProducts\022+." +
-      "ecommerce.catalog.v1.SearchProductsReque" +
-      "st\032,.ecommerce.catalog.v1.SearchProducts" +
-      "ResponseBY\n\"com.ecommerce.contracts.cata" +
-      "log.v1P\001Z1ecommerce.local/contracts/go/c" +
-      "atalog/v1;catalogv1b\006proto3"
+      "\022\030\n\007details\030\024 \003(\tR\007details\022\030\n\007deleted\030\025 " +
+      "\001(\010R\007deleted\"C\n\016ProductVariant\022\024\n\005label\030" +
+      "\001 \001(\tR\005label\022\033\n\tcolor_hex\030\002 \001(\tR\010colorHe" +
+      "x\"D\n\030SoftDeleteProductRequest\022\016\n\002id\030\001 \001(" +
+      "\tR\002id\022\030\n\007deleted\030\002 \001(\010R\007deleted\"E\n\031SoftD" +
+      "eleteProductResponse\022\016\n\002id\030\001 \001(\tR\002id\022\030\n\007" +
+      "deleted\030\002 \001(\010R\007deleted\"\363\003\n\016ProductSummar" +
+      "y\022\016\n\002id\030\001 \001(\tR\002id\022\022\n\004name\030\002 \001(\tR\004name\022\024\n" +
+      "\005brand\030\003 \001(\tR\005brand\022\037\n\013category_id\030\004 \001(\t" +
+      "R\ncategoryId\022#\n\rcategory_name\030\005 \001(\tR\014cat" +
+      "egoryName\0220\n\005price\030\006 \001(\0132\032.ecommerce.com" +
+      "mon.v1.MoneyR\005price\022A\n\016original_price\030\007 " +
+      "\001(\0132\032.ecommerce.common.v1.MoneyR\rorigina" +
+      "lPrice\022\026\n\006images\030\010 \003(\tR\006images\022\026\n\006rating" +
+      "\030\t \001(\001R\006rating\022!\n\014review_count\030\n \001(\003R\013re" +
+      "viewCount\022\035\n\nsold_count\030\013 \001(\003R\tsoldCount" +
+      "\022\025\n\006is_new\030\014 \001(\010R\005isNew\022\024\n\005badge\030\r \001(\tR\005" +
+      "badge\022\032\n\010featured\030\016 \001(\010R\010featured\022\024\n\005emo" +
+      "ji\030\017 \001(\tR\005emoji\022\033\n\timage_hue\030\020 \003(\rR\010imag" +
+      "eHue\"\205\002\n\025SearchProductsRequest\022\024\n\005query\030" +
+      "\001 \001(\tR\005query\022\037\n\013category_id\030\002 \001(\tR\ncateg" +
+      "oryId\022\022\n\004sort\030\003 \001(\tR\004sort\022\033\n\tprice_min\030\004" +
+      " \001(\003R\010priceMin\022\033\n\tprice_max\030\005 \001(\003R\010price" +
+      "Max\022\027\n\007on_sale\030\006 \001(\010R\006onSale\022\035\n\nrating_m" +
+      "in\030\007 \001(\005R\tratingMin\022\022\n\004page\030\010 \001(\005R\004page\022" +
+      "\033\n\tpage_size\030\t \001(\005R\010pageSize\"\307\001\n\026SearchP" +
+      "roductsResponse\022:\n\005items\030\001 \003(\0132$.ecommer" +
+      "ce.catalog.v1.ProductSummaryR\005items\022\022\n\004p" +
+      "age\030\002 \001(\005R\004page\022\033\n\tpage_size\030\003 \001(\005R\010page" +
+      "Size\022\037\n\013total_items\030\004 \001(\003R\ntotalItems\022\037\n" +
+      "\013total_pages\030\005 \001(\005R\ntotalPages2\324\002\n\016Catal" +
+      "ogService\022_\n\nGetProduct\022\'.ecommerce.cata" +
+      "log.v1.GetProductRequest\032(.ecommerce.cat" +
+      "alog.v1.GetProductResponse\022k\n\016SearchProd" +
+      "ucts\022+.ecommerce.catalog.v1.SearchProduc" +
+      "tsRequest\032,.ecommerce.catalog.v1.SearchP" +
+      "roductsResponse\022t\n\021SoftDeleteProduct\022..e" +
+      "commerce.catalog.v1.SoftDeleteProductReq" +
+      "uest\032/.ecommerce.catalog.v1.SoftDeletePr" +
+      "oductResponseBY\n\"com.ecommerce.contracts" +
+      ".catalog.v1P\001Z1ecommerce.local/contracts" +
+      "/go/catalog/v1;catalogv1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -125,27 +142,39 @@ public final class Catalog {
     internal_static_ecommerce_catalog_v1_GetProductResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_catalog_v1_GetProductResponse_descriptor,
-        new java.lang.String[] { "Id", "Name", "Description", "Price", "ShortDescription", "Brand", "CategoryId", "CategoryName", "OriginalPrice", "Images", "Rating", "ReviewCount", "SoldCount", "IsNew", "Badge", "Featured", "Emoji", "ImageHue", "Variants", "Details", });
+        new java.lang.String[] { "Id", "Name", "Description", "Price", "ShortDescription", "Brand", "CategoryId", "CategoryName", "OriginalPrice", "Images", "Rating", "ReviewCount", "SoldCount", "IsNew", "Badge", "Featured", "Emoji", "ImageHue", "Variants", "Details", "Deleted", });
     internal_static_ecommerce_catalog_v1_ProductVariant_descriptor =
       getDescriptor().getMessageTypes().get(2);
     internal_static_ecommerce_catalog_v1_ProductVariant_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_catalog_v1_ProductVariant_descriptor,
-        new java.lang.String[] { "Color", "ColorHex", });
-    internal_static_ecommerce_catalog_v1_ProductSummary_descriptor =
+        new java.lang.String[] { "Label", "ColorHex", });
+    internal_static_ecommerce_catalog_v1_SoftDeleteProductRequest_descriptor =
       getDescriptor().getMessageTypes().get(3);
+    internal_static_ecommerce_catalog_v1_SoftDeleteProductRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_SoftDeleteProductRequest_descriptor,
+        new java.lang.String[] { "Id", "Deleted", });
+    internal_static_ecommerce_catalog_v1_SoftDeleteProductResponse_descriptor =
+      getDescriptor().getMessageTypes().get(4);
+    internal_static_ecommerce_catalog_v1_SoftDeleteProductResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_SoftDeleteProductResponse_descriptor,
+        new java.lang.String[] { "Id", "Deleted", });
+    internal_static_ecommerce_catalog_v1_ProductSummary_descriptor =
+      getDescriptor().getMessageTypes().get(5);
     internal_static_ecommerce_catalog_v1_ProductSummary_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_catalog_v1_ProductSummary_descriptor,
         new java.lang.String[] { "Id", "Name", "Brand", "CategoryId", "CategoryName", "Price", "OriginalPrice", "Images", "Rating", "ReviewCount", "SoldCount", "IsNew", "Badge", "Featured", "Emoji", "ImageHue", });
     internal_static_ecommerce_catalog_v1_SearchProductsRequest_descriptor =
-      getDescriptor().getMessageTypes().get(4);
+      getDescriptor().getMessageTypes().get(6);
     internal_static_ecommerce_catalog_v1_SearchProductsRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_catalog_v1_SearchProductsRequest_descriptor,
         new java.lang.String[] { "Query", "CategoryId", "Sort", "PriceMin", "PriceMax", "OnSale", "RatingMin", "Page", "PageSize", });
     internal_static_ecommerce_catalog_v1_SearchProductsResponse_descriptor =
-      getDescriptor().getMessageTypes().get(5);
+      getDescriptor().getMessageTypes().get(7);
     internal_static_ecommerce_catalog_v1_SearchProductsResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_catalog_v1_SearchProductsResponse_descriptor,

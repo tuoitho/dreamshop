@@ -5,4 +5,5 @@ use (
 	./services/bff-service
 	./services/catalog-service
 	./services/inventory-service
+	./services/cart-service
 )

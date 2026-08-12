@@ -19,6 +19,18 @@ services:
   - name: bff-service
     url: http://host.docker.internal:8081
     routes:
+      - name: cart-api
+        paths: ["/api/v1/cart"]
+        strip_path: true
+        plugins:
+          - name: caller-context
+            config:
+              jwks_uri: http://host.docker.internal:8080/.well-known/jwks.json
+              issuer: http://localhost:8080
+              audience: ecommerce-api
+      - name: admin-products-api
+        paths: ["/api/v1/admin"]
+        strip_path: true
       - name: storefront-api
         paths: ["/api/v1/storefront"]
         strip_path: true

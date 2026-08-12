@@ -70,8 +70,32 @@ export interface HealthResponse {
 }
 
 export interface ProductVariant {
-  color: string
-  colorHex: string
+  label: string
+  colorHex?: string
+}
+
+export type CartItemStatus = "AVAILABLE" | "LIMITED" | "OUT_OF_STOCK" | "UNAVAILABLE"
+
+export interface CartItem {
+  itemId: string
+  productId: string
+  variantLabel: string
+  quantity: number
+  name: string
+  brand: string
+  categoryName: string
+  unitPrice: number
+  imageEmoji: string
+  imageHue: [number, number] | number[]
+  imageUrl: string
+  variantColorHex?: string
+  status: CartItemStatus
+  availableQuantity: number
+}
+
+export interface CartData {
+  items: CartItem[]
+  degraded: boolean
 }
 
 export interface ProductSummary {
@@ -98,6 +122,7 @@ export interface ProductDetail extends ProductSummary {
   description: string
   details: string[]
   variants: ProductVariant[]
+  deleted?: boolean
 }
 
 export type ProductSort = "pho-bien" | "gia-thap" | "gia-cao" | "moi-nhat" | "danh-gia"

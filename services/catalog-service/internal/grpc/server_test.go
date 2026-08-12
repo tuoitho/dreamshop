@@ -34,6 +34,16 @@ func (m *memoryRepo) Search(_ context.Context, filter domain.SearchFilter) (*dom
 	return domain.SearchProducts(m.products, filter), nil
 }
 
+func (m *memoryRepo) SoftDelete(_ context.Context, id string, deleted bool) error {
+	for _, p := range m.products {
+		if p.ID == id {
+			p.Deleted = deleted
+			return nil
+		}
+	}
+	return domain.ErrProductNotFound
+}
+
 func demoProducts() []*domain.Product {
 	return []*domain.Product{
 		{
@@ -56,8 +66,8 @@ func demoProducts() []*domain.Product {
 			Emoji:              "📱",
 			ImageHue:           []uint32{220, 260},
 			Variants: []domain.ProductVariant{
-				{Color: "Đen", ColorHex: "#1f2937"},
-				{Color: "Xanh", ColorHex: "#1e40af"},
+				{Label: "Đen", ColorHex: "#1f2937"},
+				{Label: "Xanh", ColorHex: "#1e40af"},
 			},
 			Details: []string{"Màn hình: 6.8\" AMOLED 144Hz"},
 		},
@@ -143,11 +153,25 @@ func TestGetProductHappy(t *testing.T) {
 	if len(resp.GetImageHue()) != 2 || resp.GetImageHue()[0] != 220 || resp.GetImageHue()[1] != 260 {
 		t.Fatalf("unexpected imageHue: %v", resp.GetImageHue())
 	}
-	if len(resp.GetVariants()) != 2 || resp.GetVariants()[0].GetColorHex() != "#1f2937" {
+	if len(resp.GetVariants()) != 2 || resp.GetVariants()[0].GetLabel() != "Đen" || resp.GetVariants()[0].GetColorHex() != "#1f2937" {
 		t.Fatalf("unexpected variants: %v", resp.GetVariants())
 	}
 	if len(resp.GetDetails()) != 1 || resp.GetDetails()[0] != "Màn hình: 6.8\" AMOLED 144Hz" {
 		t.Fatalf("unexpected details: %v", resp.GetDetails())
+	}
+}
+
+func TestSoftDeleteProductChangesDeletedFlag(t *testing.T) {
+	client := newTestClient(t, &memoryRepo{products: demoProducts()})
+
+	_, err := client.SoftDeleteProduct(context.Background(), &catalogv1.SoftDeleteProductRequest{Id: "dt-1", Deleted: true})
+	if err != nil {
+		t.Fatalf("SoftDeleteProduct: %v", err)
+	}
+
+	product, err := client.GetProduct(context.Background(), &catalogv1.GetProductRequest{Id: "dt-1"})
+	if err != nil || !product.GetDeleted() {
+		t.Fatalf("expected deleted product, response=%+v err=%v", product, err)
 	}
 }
 
