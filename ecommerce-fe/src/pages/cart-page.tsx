@@ -1,13 +1,12 @@
 import { useEffect } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react"
-import { formatVND, getProductById } from "@/data/products"
+import { formatVND, cn } from "@/lib/utils"
 import { ProductImage } from "@/components/product-image"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { useCart } from "@/hooks/use-cart"
-import { cn } from "@/lib/utils"
 
 export default function CartPage() {
   const {
@@ -18,6 +17,7 @@ export default function CartPage() {
     updateQuantity,
     removeItem,
     removeSelected,
+    selectedItems,
     selectedCount,
     selectedTotal,
     clearCart,
@@ -89,64 +89,63 @@ export default function CartPage() {
           {/* Items */}
           <div className="mt-4 grid gap-3">
             {items.map((item) => {
-              const product = getProductById(item.productId)
-              if (!product) return null
-              const variant = product.variants[item.variantIndex]
-
               return (
                 <div
-                  key={`${item.productId}-${item.variantIndex}`}
+                  key={item.itemId}
                   className={cn(
                     "flex gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-opacity",
-                    !item.selected && "opacity-70"
+                    !selectedItems.some((selected) => selected.itemId === item.itemId) && "opacity-70"
                   )}
                 >
                   <label className="flex cursor-pointer items-start pt-1">
                     <Checkbox
-                      checked={item.selected}
-                      onCheckedChange={() => toggleSelected(item.productId, item.variantIndex)}
-                      aria-label={`Chọn ${product.name}`}
+                      checked={selectedItems.some((selected) => selected.itemId === item.itemId)}
+                      onCheckedChange={() => toggleSelected(item.itemId)}
+                      aria-label={`Chọn ${item.name}`}
+                      disabled={item.status === "OUT_OF_STOCK" || item.status === "UNAVAILABLE"}
                     />
                   </label>
 
                   <Link
-                    to={`/san-pham/${product.id}`}
+                    to={`/san-pham/${item.productId}`}
                     className="block size-24 shrink-0 overflow-hidden rounded-lg ring-1 ring-foreground/10"
                   >
                     <ProductImage
-                      emoji={product.emoji}
-                      hue={product.imageHue}
-                      seed={product.id}
-                      label={product.name}
+                      emoji={item.imageEmoji}
+                      hue={[item.imageHue[0] ?? 200, item.imageHue[1] ?? 240]}
+                      seed={item.productId}
+                      label={item.name}
                     />
                   </Link>
 
                   <div className="flex min-w-0 flex-1 flex-col">
                     <div className="flex items-start justify-between gap-2">
                       <Link
-                        to={`/san-pham/${product.id}`}
+                         to={`/san-pham/${item.productId}`}
                         className="line-clamp-2 text-sm font-medium hover:text-primary"
                       >
-                        {product.name}
+                         {item.name}
                       </Link>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="size-7 shrink-0"
-                        aria-label={`Xóa ${product.name}`}
-                        onClick={() => removeItem(item.productId, item.variantIndex)}
+                         aria-label={`Xóa ${item.name}`}
+                         onClick={() => void removeItem(item.itemId)}
                       >
                         <Trash2 />
                       </Button>
                     </div>
 
-                    {variant && (
+                    {item.variantLabel && (
                       <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <span
-                          className="inline-block size-3 rounded-full border border-black/10"
-                          style={{ backgroundColor: variant.colorHex }}
-                        />
-                        {variant.color}
+                        {item.variantColorHex && (
+                          <span
+                            className="inline-block size-3 rounded-full border border-black/10"
+                            style={{ backgroundColor: item.variantColorHex }}
+                          />
+                        )}
+                        {item.variantLabel}
                       </p>
                     )}
 
@@ -157,7 +156,7 @@ export default function CartPage() {
                           size="icon-sm"
                           aria-label="Giảm số lượng"
                           onClick={() =>
-                            updateQuantity(item.productId, item.variantIndex, item.quantity - 1)
+                            void updateQuantity(item.itemId, item.quantity - 1)
                           }
                         >
                           <Minus />
@@ -170,14 +169,14 @@ export default function CartPage() {
                           size="icon-sm"
                           aria-label="Tăng số lượng"
                           onClick={() =>
-                            updateQuantity(item.productId, item.variantIndex, item.quantity + 1)
+                            void updateQuantity(item.itemId, item.quantity + 1)
                           }
                         >
                           <Plus />
                         </Button>
                       </div>
                       <span className="text-sm font-bold text-red-600">
-                        {formatVND(product.price * item.quantity)}
+                         {formatVND(item.unitPrice * item.quantity)}
                       </span>
                     </div>
                   </div>
@@ -223,10 +222,8 @@ export default function CartPage() {
             size="lg"
             className="mt-4 w-full"
             disabled={selectedCount === 0}
-            onClick={() => {
-              // Giả lập đặt hàng thành công
-              removeSelected()
-              clearCart()
+            onClick={async () => {
+              await clearCart()
               window.alert("Đặt hàng thành công! Cảm ơn bạn đã mua sắm tại S-Shop 🎉")
             }}
           >

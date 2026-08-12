@@ -161,8 +161,8 @@ export default function ProductDetailPage() {
     ? images[Math.min(activeIndex, images.length - 1)]
     : undefined
 
-  const handleAddToCart = () => {
-    addItem(product.id, variantIndex, quantity)
+  const handleAddToCart = async () => {
+    await addItem(product.id, product.variants[variantIndex]?.label ?? "", quantity)
     setAdded(true)
     window.setTimeout(() => setAdded(false), 1600)
   }
@@ -290,12 +290,12 @@ export default function ProductDetailPage() {
           {product.variants.length > 0 && (
             <div className="mt-5 rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
               <p className="text-sm font-semibold">
-                Phân loại: <span className="font-normal text-muted-foreground">{product.variants[variantIndex].color}</span>
+                Phân loại: <span className="font-normal text-muted-foreground">{product.variants[variantIndex].label}</span>
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {product.variants.map((variant, index) => (
                   <button
-                    key={variant.color}
+                    key={variant.label}
                     onClick={() => setVariantIndex(index)}
                     className={cn(
                       "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors",
@@ -305,11 +305,13 @@ export default function ProductDetailPage() {
                     )}
                     aria-pressed={variantIndex === index}
                   >
-                    <span
-                      className="size-4 rounded-full border border-black/10"
-                      style={{ backgroundColor: variant.colorHex }}
-                    />
-                    {variant.color}
+                    {variant.colorHex && (
+                      <span
+                        className="size-4 rounded-full border border-black/10"
+                        style={{ backgroundColor: variant.colorHex }}
+                      />
+                    )}
+                    {variant.label}
                   </button>
                 ))}
               </div>

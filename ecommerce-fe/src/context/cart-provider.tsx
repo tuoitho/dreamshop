@@ -1,115 +1,163 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
-import { getProductById } from "@/data/products"
-import { CartContext, type CartContextValue, type CartItem } from "./cart-context"
+import { useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
+import { addCartItem, clearCart as clearCartRequest, getCart, removeCartItem, updateCartItemQuantity } from "@/lib/api"
+import type { CartData, CartItem } from "@/lib/types"
+import { AuthContext } from "@/context/auth-context"
+import { CartContext, type CartContextValue } from "./cart-context"
 
-const STORAGE_KEY = "ecommerce-fe.cart"
+function selectionKey(userId: string): string {
+  return `ecommerce-fe.cart-selection.${userId}`
+}
 
-type StoredItem = Omit<CartItem, "selected">
-
-function loadCart(): CartItem[] {
+function readSelection(key: string): Record<string, boolean> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as StoredItem[]
-    return parsed.map((item) => ({ ...item, selected: true }))
+    const value: unknown = JSON.parse(localStorage.getItem(key) ?? "{}")
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+    return Object.fromEntries(
+      Object.entries(value).filter((entry): entry is [string, boolean] => typeof entry[1] === "boolean")
+    )
   } catch {
-    return []
+    return {}
   }
 }
 
+function reconcileSelection(items: CartItem[], current: Record<string, boolean>): Record<string, boolean> {
+  return Object.fromEntries(items.map((item) => [
+    item.itemId,
+    item.status === "OUT_OF_STOCK" || item.status === "UNAVAILABLE"
+      ? false
+      : current[item.itemId] ?? true,
+  ]))
+}
+
+function isSelectable(item: CartItem): boolean {
+  return item.status === "AVAILABLE" || item.status === "LIMITED"
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>(() => loadCart())
+  const auth = useContext(AuthContext)
+  const ready = auth?.ready ?? true
+  const isAuthenticated = auth?.isAuthenticated ?? false
+  const user = auth?.user ?? null
+  const [items, setItems] = useState<CartItem[]>([])
+  const [selection, setSelection] = useState<Record<string, boolean>>({})
+  const [selectionOwner, setSelectionOwner] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [degraded, setDegraded] = useState(false)
+
+  const applyCart = useCallback((data: CartData) => {
+    setItems(data.items)
+    setDegraded(data.degraded)
+    setSelection((current) => reconcileSelection(data.items, current))
+  }, [])
 
   useEffect(() => {
-    const stored: StoredItem[] = items.map(({ productId, variantIndex, quantity }) => ({
-      productId,
-      variantIndex,
-      quantity,
-    }))
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
+    if (!ready || !isAuthenticated || !user) {
+      setItems([])
+      setSelection({})
+      setSelectionOwner(null)
+      setDegraded(false)
+      setLoading(false)
+      return
+    }
+
+    const key = selectionKey(user.userId)
+    setItems([])
+    setDegraded(false)
+    setSelection(readSelection(key))
+    setSelectionOwner(user.userId)
+    setLoading(true)
+    let active = true
+    void getCart()
+      .then((data) => {
+        if (active) applyCart(data)
+      })
+      .catch(() => {
+        if (active) setItems([])
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [applyCart, isAuthenticated, ready, user])
+
+  useEffect(() => {
+    if (ready && isAuthenticated && user && selectionOwner === user.userId) {
+      localStorage.setItem(selectionKey(user.userId), JSON.stringify(selection))
+    }
+  }, [isAuthenticated, ready, selection, selectionOwner, user])
+
+  const runMutation = useCallback(async (request: () => Promise<CartData>) => {
+    setLoading(true)
+    try {
+      applyCart(await request())
+    } finally {
+      setLoading(false)
+    }
+  }, [applyCart])
+
+  const addItem = useCallback((productId: string, variantLabel: string, quantity: number) =>
+    runMutation(() => addCartItem({ productId, variantLabel, quantity })), [runMutation])
+
+  const updateQuantity = useCallback((itemId: string, quantity: number) =>
+    runMutation(() => updateCartItemQuantity(itemId, quantity)), [runMutation])
+
+  const removeItem = useCallback((itemId: string) =>
+    runMutation(() => removeCartItem(itemId)), [runMutation])
+
+  const removeSelected = useCallback(async () => {
+    const selected = items.filter((item) => selection[item.itemId] && isSelectable(item))
+    setLoading(true)
+    try {
+      for (const item of selected) {
+        applyCart(await removeCartItem(item.itemId))
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [applyCart, items, selection])
+
+  const clearCart = useCallback(() => runMutation(clearCartRequest), [runMutation])
+
+  const toggleSelected = useCallback((itemId: string) => {
+    const item = items.find((entry) => entry.itemId === itemId)
+    if (!item || !isSelectable(item)) return
+    setSelection((current) => ({ ...current, [itemId]: !current[itemId] }))
   }, [items])
 
-  const addItem = useCallback((productId: string, variantIndex: number, quantity: number) => {
-    setItems((prev) => {
-      const existing = prev.find(
-        (item) => item.productId === productId && item.variantIndex === variantIndex
-      )
-      if (existing) {
-        return prev.map((item) =>
-          item.productId === productId && item.variantIndex === variantIndex
-            ? { ...item, quantity: Math.min(item.quantity + quantity, 99), selected: true }
-            : item
-        )
-      }
-      return [...prev, { productId, variantIndex, quantity, selected: true }]
-    })
-  }, [])
-
-  const updateQuantity = useCallback((productId: string, variantIndex: number, quantity: number) => {
-    setItems((prev) =>
-      prev
-        .map((item) =>
-          item.productId === productId && item.variantIndex === variantIndex
-            ? { ...item, quantity: Math.max(0, Math.min(quantity, 99)) }
-            : item
-        )
-        .filter((item) => item.quantity > 0)
-    )
-  }, [])
-
-  const removeItem = useCallback((productId: string, variantIndex: number) => {
-    setItems((prev) =>
-      prev.filter((item) => !(item.productId === productId && item.variantIndex === variantIndex))
-    )
-  }, [])
-
-  const toggleSelected = useCallback((productId: string, variantIndex: number) => {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.productId === productId && item.variantIndex === variantIndex
-          ? { ...item, selected: !item.selected }
-          : item
-      )
-    )
-  }, [])
-
   const toggleAllSelected = useCallback(() => {
-    setItems((prev) => {
-      const next = !prev.every((item) => item.selected)
-      return prev.map((item) => ({ ...item, selected: next }))
+    setSelection((current) => {
+      const selectableItems = items.filter(isSelectable)
+      const shouldSelect = !selectableItems.every((item) => current[item.itemId])
+      return {
+        ...current,
+        ...Object.fromEntries(selectableItems.map((item) => [item.itemId, shouldSelect])),
+      }
     })
-  }, [])
-
-  const removeSelected = useCallback(() => {
-    setItems((prev) => prev.filter((item) => !item.selected))
-  }, [])
-
-  const clearCart = useCallback(() => {
-    setItems([])
-  }, [])
+  }, [items])
 
   const value = useMemo<CartContextValue>(() => {
-    const selectedItems = items.filter((item) => item.selected)
-    const selectedTotal = selectedItems.reduce((sum, item) => {
-      const product = getProductById(item.productId)
-      return sum + (product ? product.price * item.quantity : 0)
-    }, 0)
-
+    const selectedItems = items.filter((item) => selection[item.itemId] && isSelectable(item))
     return {
       items,
       addItem,
       updateQuantity,
       removeItem,
-      toggleSelected,
-      toggleAllSelected,
       removeSelected,
       clearCart,
+      toggleSelected,
+      toggleAllSelected,
+      selectedItems,
       selectedCount: selectedItems.reduce((sum, item) => sum + item.quantity, 0),
       totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0),
-      selectedTotal,
-      allSelected: items.length > 0 && items.every((item) => item.selected),
+      selectedTotal: selectedItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0),
+      allSelected: selectedItems.length > 0 && selectedItems.length === items.filter(isSelectable).length,
+      loading,
+      degraded,
     }
-  }, [items, addItem, updateQuantity, removeItem, toggleSelected, toggleAllSelected, removeSelected, clearCart])
+  }, [addItem, clearCart, degraded, items, loading, removeItem, removeSelected, selection, toggleAllSelected, toggleSelected, updateQuantity])
 
   return <CartContext value={value}>{children}</CartContext>
 }

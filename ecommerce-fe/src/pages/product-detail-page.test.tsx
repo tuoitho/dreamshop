@@ -47,8 +47,8 @@ const DETAIL: ProductDetail = {
   description: "Mô tả chi tiết sản phẩm Nova X15 Pro.",
   details: ['Màn hình: 6.8" AMOLED 144Hz', "Pin: 5500mAh, sạc nhanh 120W"],
   variants: [
-    { color: "Đen", colorHex: "#1f2937" },
-    { color: "Xanh", colorHex: "#1e40af" },
+    { label: "Đen", colorHex: "#1f2937" },
+    { label: "Xanh", colorHex: "#1e40af" },
   ],
 }
 
