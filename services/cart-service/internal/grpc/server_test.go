@@ -431,6 +431,9 @@ func TestGetCartDeletedProductPreservesLineAndSkipsInventory(t *testing.T) {
 	if item.GetStatus() != cartv1.CartItemStatus_CART_ITEM_STATUS_UNAVAILABLE {
 		t.Fatalf("deleted line status = %v, want unavailable", item.GetStatus())
 	}
+	if item.GetName() != "Phone" || item.GetUnitPrice().GetAmountMinor() != 12345 || item.GetImageEmoji() != "📱" || item.GetVariantColorHex() != "#ff0000" {
+		t.Fatalf("deleted line display enrichment = %+v", item)
+	}
 	if len(inventory.called) != 0 {
 		t.Fatalf("inventory calls = %v, want none for deleted product", inventory.called)
 	}
