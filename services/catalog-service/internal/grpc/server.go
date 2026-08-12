@@ -102,7 +102,7 @@ func productToProto(p *domain.Product) *catalogv1.GetProductResponse {
 	}
 	for _, v := range p.Variants {
 		resp.Variants = append(resp.Variants, &catalogv1.ProductVariant{
-			Color:    v.Color,
+			Color:    v.Label,
 			ColorHex: v.ColorHex,
 		})
 	}

@@ -93,6 +93,18 @@ func ids(items []*Summary) []string {
 	return out
 }
 
+func TestSearchProductsExcludesDeletedProducts(t *testing.T) {
+	products := []*Product{
+		{ID: "active", Name: "Active", Brand: "Nova", CategoryName: "Phone", PriceMinor: 1},
+		{ID: "deleted", Name: "Deleted", Brand: "Nova", CategoryName: "Phone", PriceMinor: 1, Deleted: true},
+	}
+
+	result := SearchProducts(products, SearchFilter{})
+	if result.TotalItems != 1 || result.Items[0].ID != "active" {
+		t.Fatalf("expected only active product, got %+v", result)
+	}
+}
+
 func TestSearchProductsAllWithDefaultSort(t *testing.T) {
 	products := testProducts()
 	result := SearchProducts(products, SearchFilter{})
@@ -355,7 +367,7 @@ func TestProductSummaryProjection(t *testing.T) {
 		Featured:           true,
 		Emoji:              "📱",
 		ImageHue:           []uint32{220, 260},
-		Variants:           []ProductVariant{{Color: "Đen", ColorHex: "#111827"}},
+		Variants:           []ProductVariant{{Label: "Đen", ColorHex: "#111827"}},
 		Details:            []string{"detail"},
 	}
 	s := p.Summary()

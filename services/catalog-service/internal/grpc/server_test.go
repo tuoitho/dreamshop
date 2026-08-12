@@ -56,8 +56,8 @@ func demoProducts() []*domain.Product {
 			Emoji:              "📱",
 			ImageHue:           []uint32{220, 260},
 			Variants: []domain.ProductVariant{
-				{Color: "Đen", ColorHex: "#1f2937"},
-				{Color: "Xanh", ColorHex: "#1e40af"},
+				{Label: "Đen", ColorHex: "#1f2937"},
+				{Label: "Xanh", ColorHex: "#1e40af"},
 			},
 			Details: []string{"Màn hình: 6.8\" AMOLED 144Hz"},
 		},
@@ -143,7 +143,7 @@ func TestGetProductHappy(t *testing.T) {
 	if len(resp.GetImageHue()) != 2 || resp.GetImageHue()[0] != 220 || resp.GetImageHue()[1] != 260 {
 		t.Fatalf("unexpected imageHue: %v", resp.GetImageHue())
 	}
-	if len(resp.GetVariants()) != 2 || resp.GetVariants()[0].GetColorHex() != "#1f2937" {
+	if len(resp.GetVariants()) != 2 || resp.GetVariants()[0].GetColor() != "Đen" || resp.GetVariants()[0].GetColorHex() != "#1f2937" {
 		t.Fatalf("unexpected variants: %v", resp.GetVariants())
 	}
 	if len(resp.GetDetails()) != 1 || resp.GetDetails()[0] != "Màn hình: 6.8\" AMOLED 144Hz" {
