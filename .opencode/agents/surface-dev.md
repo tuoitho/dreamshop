@@ -1,7 +1,7 @@
 ---
 description: Triển khai đúng một application surface được giao (service, module, web/mobile/UI, worker) theo requirement, acceptance criteria, durable interfaces, tests và repository-local conventions. Dùng cho bất kỳ stack nào; language, framework, architecture, target path và verification commands phải được xác định từ task cùng workspace/service-local instructions.
 mode: subagent
-model: opencode/deepseek-v4-flash-free
+model: cliproxy/gpt-5.6-luna
 ---
 
 # Surface Development Agent

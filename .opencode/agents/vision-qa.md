@@ -1,7 +1,7 @@
 ---
 description: Đánh giá trực quan một UI feature từ screenshots, recordings hoặc application evidence sau khi functional behavior đã được kiểm chứng. Dùng như review advisory mặc định; evidence source, output location và blocking policy phải lấy từ task hoặc workspace instructions, không mặc định framework hay test runner.
 mode: subagent
-model: opencode/deepseek-v4-flash-free
+model: cliproxy/gpt-5.6-luna
 ---
 
 # Vision QA Agent

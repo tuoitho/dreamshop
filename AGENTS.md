@@ -36,6 +36,8 @@ Detailed steering documents translate those decisions into implementation rules.
 - `services/catalog-service/`: Go; product/catalog data and catalog caching.
 - `services/inventory-service/`: Go; stock, reservations, and inventory event
   consumption.
+- `services/cart-service/`: Go; shopping cart, line items, and cart event
+  consumption.
 - `ecommerce-fe/`: React/Vite/TypeScript frontend.
 - `contracts/`: protobuf sources, generated Java/Go modules, and HTTP contract
   material.
@@ -111,6 +113,33 @@ Run infrastructure in Docker Compose and application services directly from a
 Windows terminal or IDE. When containerized Kong proxies to a Windows-hosted
 service, use `host.docker.internal:<port>` as its upstream.
 
+## Local Port Topology
+
+Use this canonical topology when running the complete local stack. Check the
+port before starting a process (`Get-NetTCPConnection` on Windows or `ss -ltnp`
+on Linux/WSL) and verify the listed health endpoint after startup.
+
+| Surface | Local HTTP | Local gRPC | Notes |
+| --- | --- | --- | --- |
+| identity-service | `8080` | - | Kong obtains JWKS from this service. |
+| bff-service | `8081` | - | Kong local upstream is `host.docker.internal:8081`; set `BFF_HTTP_ADDR=0.0.0.0:8081`. Container BFF remains `8080`. |
+| catalog-service | `8085` | `127.0.0.1:50051` | Its standalone HTTP default is `8081`; set `HTTP_ADDR=:8085` when BFF runs. |
+| inventory-service | `8082` | `127.0.0.1:50052` | |
+| order-service | `8083` | - | |
+| cart-service | `8084` | `127.0.0.1:50053` | BFF calls Cart directly over gRPC. |
+| ecommerce-fe | `5173` | - | Browser development server. |
+| Kong | proxy `8000`; admin `8001` | - | Public local ingress. |
+| PostgreSQL | `5432` | - | |
+| Redis | `6379` | - | |
+| RabbitMQ | AMQP `5672`; management `15672` | - | |
+
+- The browser calls public APIs only through `http://localhost:8000/api/v1`.
+  The current frontend routes Identity auth, profile, and location requests
+  through Kong;
+- Internal service calls use direct private gRPC. BFF calls Catalog at `50051`
+  and Cart at `50053`; Cart calls Catalog at `50051` and Inventory at `50052`.
+  Do not route these calls through Kong or use another service's HTTP port.
+
 ## Naming
 
 - REST/JSON, Java, and TypeScript fields use `camelCase`.
@@ -135,3 +164,26 @@ service, use `host.docker.internal:<port>` as its upstream.
   notifications.
 
 Ngoài ra có thể dùng psql để execute db nếu cần.
+
+## Long-running processes
+
+Do not run long-lived servers or watch commands in the foreground.
+
+Commands such as:
+- `npm run dev`
+- `mvn spring-boot:run`
+- `docker compose up`
+- `tail -f`
+- watch-mode test runners
+
+must either:
+1. be started using the environment's supported background/session mechanism, or
+2. be bounded with an explicit timeout.
+
+After starting a background service:
+- verify readiness with a health check or bounded polling,
+- capture logs to a known location,
+- record the PID/session when applicable,
+- stop the process when it is no longer needed.
+
+Never wait indefinitely for a command whose expected behavior is to remain running.

@@ -1,7 +1,7 @@
 ---
 description: Thiết kế hoặc triển khai kiểm thử độc lập cho acceptance criteria và interfaces của một feature. Dùng khi primary agent cần tách test ownership khỏi implementation, cần contract/integration/E2E coverage hoặc cần phân tích failure. Test language, framework, location, environment và commands phải lấy từ repository-local instructions, không phụ thuộc backend stack.
 mode: subagent
-model: opencode/deepseek-v4-flash-free
+model: cliproxy/gpt-5.6-luna
 ---
 
 # QA Agent

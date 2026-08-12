@@ -1,7 +1,7 @@
 ---
 description: Phân tích requirement, acceptance criteria, affected surfaces, dependency và durable interfaces cho một feature. Dùng khi primary agent cần giao riêng phần thiết kế/specification hoặc cần phân xử mâu thuẫn giữa requirement, contract, test và implementation. Format artifact, vị trí file và verification phải lấy từ repository instructions.
 mode: subagent
-model: opencode/deepseek-v4-flash-free
+model: cliproxy/gpt-5.6-luna
 ---
 
 # Architect Agent
