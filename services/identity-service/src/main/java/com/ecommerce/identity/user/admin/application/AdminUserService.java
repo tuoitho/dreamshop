@@ -47,6 +47,7 @@ public class AdminUserService {
 
     @Transactional
     public AdminUserView changeStatus(UUID actorId, UUID userId, AccountStatus status) {
+        rbac.lockSuperAdminMutation();
         IdentityUserEntity user = users.findForUpdateById(userId).orElseThrow(UserNotFoundException::new);
         if (status == AccountStatus.DISABLED && actorId.equals(userId)) {
             throw new SelfDisableNotAllowedException();
@@ -74,6 +75,7 @@ public class AdminUserService {
 
     @Transactional
     public AdminUserView revokeRole(UUID actorId, UUID userId, String rawRoleName) {
+        rbac.lockSuperAdminMutation();
         IdentityUserEntity user = users.findForUpdateById(userId).orElseThrow(UserNotFoundException::new);
         RbacItem role = role(rawRoleName);
         if (RbacPermissions.SUPER_ADMIN.equals(role.name())) {

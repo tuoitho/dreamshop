@@ -201,6 +201,12 @@ public class RbacRepository {
                 .list();
     }
 
+    public void lockSuperAdminMutation() {
+        jdbc.sql("select pg_advisory_xact_lock(7242222)")
+                .query((resultSet, rowNum) -> resultSet.getObject(1))
+                .list();
+    }
+
     public boolean deleteCustomItem(String name) {
         return jdbc.sql("delete from auth_items where name = :name and system_item = false")
                 .param("name", name)
