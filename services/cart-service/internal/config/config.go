@@ -15,6 +15,8 @@ type Config struct {
 	CatalogGRPCTimeout   time.Duration
 	InventoryGRPCAddr    string
 	InventoryGRPCTimeout time.Duration
+	IdentityGRPCAddr     string
+	IdentityGRPCTimeout  time.Duration
 }
 
 func Load() (*Config, error) {
@@ -31,6 +33,10 @@ func Load() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	identityTimeout, err := loadDuration("IDENTITY_GRPC_TIMEOUT", "500ms")
+	if err != nil {
+		return nil, err
+	}
 
 	return &Config{
 		HTTPAddr:             valueOrDefault("HTTP_ADDR", ":8084"),
@@ -40,6 +46,8 @@ func Load() (*Config, error) {
 		CatalogGRPCTimeout:   catalogTimeout,
 		InventoryGRPCAddr:    valueOrDefault("INVENTORY_GRPC_ADDR", "127.0.0.1:50052"),
 		InventoryGRPCTimeout: inventoryTimeout,
+		IdentityGRPCAddr:     valueOrDefault("IDENTITY_GRPC_ADDR", "127.0.0.1:50054"),
+		IdentityGRPCTimeout:  identityTimeout,
 	}, nil
 }
 

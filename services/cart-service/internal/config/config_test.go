@@ -11,6 +11,7 @@ func clearConfigEnvironment(t *testing.T) {
 	for _, name := range []string{
 		"HTTP_ADDR", "GRPC_ADDR", "DATABASE_URL", "CATALOG_GRPC_ADDR",
 		"CATALOG_GRPC_TIMEOUT", "INVENTORY_GRPC_ADDR", "INVENTORY_GRPC_TIMEOUT",
+		"IDENTITY_GRPC_ADDR", "IDENTITY_GRPC_TIMEOUT",
 	} {
 		t.Setenv(name, "")
 	}
@@ -49,6 +50,12 @@ func TestLoadUsesCartDefaults(t *testing.T) {
 	if cfg.InventoryGRPCAddr != "127.0.0.1:50052" {
 		t.Fatalf("expected InventoryGRPCAddr 127.0.0.1:50052, got %s", cfg.InventoryGRPCAddr)
 	}
+	if cfg.IdentityGRPCAddr != "127.0.0.1:50054" {
+		t.Fatalf("IdentityGRPCAddr = %q", cfg.IdentityGRPCAddr)
+	}
+	if cfg.IdentityGRPCTimeout != 500*time.Millisecond {
+		t.Fatalf("IdentityGRPCTimeout = %s", cfg.IdentityGRPCTimeout)
+	}
 	if cfg.CatalogGRPCTimeout <= 0 || cfg.InventoryGRPCTimeout <= 0 {
 		t.Fatalf("expected positive dependency timeouts, got catalog=%s inventory=%s", cfg.CatalogGRPCTimeout, cfg.InventoryGRPCTimeout)
 	}
@@ -63,6 +70,8 @@ func TestLoadReadsEnvironmentAndValidatesDurations(t *testing.T) {
 	t.Setenv("CATALOG_GRPC_TIMEOUT", "1500ms")
 	t.Setenv("INVENTORY_GRPC_ADDR", "inventory:50052")
 	t.Setenv("INVENTORY_GRPC_TIMEOUT", "2s")
+	t.Setenv("IDENTITY_GRPC_ADDR", "identity:50054")
+	t.Setenv("IDENTITY_GRPC_TIMEOUT", "500ms")
 
 	cfg, err := Load()
 	if err != nil {
@@ -77,6 +86,9 @@ func TestLoadReadsEnvironmentAndValidatesDurations(t *testing.T) {
 	if cfg.CatalogGRPCTimeout != 1500*time.Millisecond || cfg.InventoryGRPCTimeout != 2*time.Second {
 		t.Fatalf("unexpected timeouts: %+v", cfg)
 	}
+	if cfg.IdentityGRPCAddr != "identity:50054" || cfg.IdentityGRPCTimeout != 500*time.Millisecond {
+		t.Fatalf("unexpected identity config: %+v", cfg)
+	}
 }
 
 func TestLoadRejectsNonPositiveDuration(t *testing.T) {
@@ -90,5 +102,20 @@ func TestLoadRejectsNonPositiveDuration(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "CATALOG_GRPC_TIMEOUT") {
 		t.Fatalf("expected catalog timeout in error, got %v", err)
+	}
+}
+
+func TestLoadRejectsInvalidIdentityDuration(t *testing.T) {
+	for _, value := range []string{"invalid", "0s", "-1s"} {
+		t.Run(value, func(t *testing.T) {
+			clearConfigEnvironment(t)
+			t.Setenv("DATABASE_URL", "postgres://user:pass@localhost:5432/cart_db")
+			t.Setenv("IDENTITY_GRPC_TIMEOUT", value)
+
+			_, err := Load()
+			if err == nil || !strings.Contains(err.Error(), "IDENTITY_GRPC_TIMEOUT") {
+				t.Fatalf("Load() error = %v; want IDENTITY_GRPC_TIMEOUT validation", err)
+			}
+		})
 	}
 }
