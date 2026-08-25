@@ -5,12 +5,19 @@ import java.util.Set;
 import java.util.UUID;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 public record CallerContextPrincipal(UUID userId, Set<String> roles) implements Authentication {
+    public CallerContextPrincipal {
+        roles = Set.copyOf(roles);
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Set.of();
+        return roles.stream()
+                .sorted()
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                .toList();
     }
 
     @Override
