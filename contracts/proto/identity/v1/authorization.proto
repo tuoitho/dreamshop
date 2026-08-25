@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package ecommerce.identity.v1;
+
+option go_package = "ecommerce.local/contracts/go/identity/v1;identityv1";
+option java_multiple_files = true;
+option java_package = "com.ecommerce.contracts.identity.v1";
+
+service AuthorizationService {
+  rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse);
+  rpc CheckPermissions(CheckPermissionsRequest) returns (CheckPermissionsResponse);
+}
+
+message CheckPermissionRequest {
+  string user_id = 1;
+  string permission = 2;
+}
+
+message CheckPermissionResponse {
+  bool allowed = 1;
+}
+
+message CheckPermissionsRequest {
+  string user_id = 1;
+  repeated string permissions = 2;
+}
+
+message CheckPermissionsResponse {
+  repeated PermissionDecision decisions = 1;
+}
+
+message PermissionDecision {
+  string permission = 1;
+  bool allowed = 2;
+}
