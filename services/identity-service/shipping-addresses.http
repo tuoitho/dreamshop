@@ -1,0 +1,91 @@
+### Customer shipping-address REST Client
+# Run rbac.http first, or replace the token and ID placeholders below.
+
+@api = http://localhost:8000/api/v1
+@customerToken = paste-customer-access-token-here
+@adminToken = paste-admin-access-token-here
+@addressId = 00000000-0000-0000-0000-000000000000
+
+### Get provinces (useful for choosing valid location codes)
+GET {{api}}/locations/provinces
+Authorization: Bearer {{customerToken}}
+Accept: application/json
+
+### Get wards for Ho Chi Minh City (province 79)
+GET {{api}}/locations/provinces/79
+Authorization: Bearer {{customerToken}}
+Accept: application/json
+
+### List my shipping addresses
+GET {{api}}/users/me/addresses
+Authorization: Bearer {{customerToken}}
+Accept: application/json
+
+### Create a shipping address
+# Ward 26740 belongs to province 79 in the bundled location catalog.
+# @name createAddress
+POST {{api}}/users/me/addresses
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "recipientName": "Nguyen Van A",
+  "phone": "0901234567",
+  "provinceCode": "79",
+  "wardCode": "26740",
+  "addressLine": "12 Le Loi",
+  "label": "Nha rieng"
+}
+
+> {%
+ client.global.set("addressId", response.body.data.id);
+%}
+
+### Update only the label
+PATCH {{api}}/users/me/addresses/{{addressId}}
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "label": "Van phong"
+}
+
+### Clear the optional label
+PATCH {{api}}/users/me/addresses/{{addressId}}
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "label": null
+}
+
+### Make this address the default
+PUT {{api}}/users/me/addresses/{{addressId}}/default
+Authorization: Bearer {{customerToken}}
+Accept: application/json
+
+### Delete the address
+DELETE {{api}}/users/me/addresses/{{addressId}}
+Authorization: Bearer {{customerToken}}
+
+### Remove CUSTOMER -> address.create to demonstrate a live 403
+# Run this only when the customer has no other role granting address.create.
+DELETE {{api}}/admin/rbac/items/CUSTOMER/children/address.create
+Authorization: Bearer {{adminToken}}
+
+### Create after removing address.create (expected 403 FORBIDDEN)
+POST {{api}}/users/me/addresses
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "recipientName": "Should Be Denied",
+  "phone": "0901234567",
+  "provinceCode": "79",
+  "wardCode": "26740",
+  "addressLine": "Permission test"
+}
+
+### Restore CUSTOMER -> address.create after the 403 test
+PUT {{api}}/admin/rbac/items/CUSTOMER/children/address.create
+Authorization: Bearer {{adminToken}}

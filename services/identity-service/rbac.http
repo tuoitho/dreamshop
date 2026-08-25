@@ -1,0 +1,182 @@
+### Identity RBAC REST Client
+# Start Identity with services/identity-service/start-local.ps1 and Kong on port 8000.
+# The first administrator must be bootstrapped with the SQL in RBAC.md.
+
+@api = http://localhost:8000/api/v1
+@adminEmail = rbac-admin@example.test
+@adminPassword = SecurePassword123!
+@customerEmail = rbac-customer@example.test
+@customerPassword = SecurePassword123!
+@adminToken = paste-admin-access-token-here
+@customerToken = paste-customer-access-token-here
+@adminUserId = 00000000-0000-0000-0000-000000000000
+@customerUserId = 00000000-0000-0000-0000-000000000000
+
+### Register administrator
+# Copy data.userId into @adminUserId, then execute the SUPER_ADMIN bootstrap SQL.
+# Re-running with the same email returns 409 EMAIL_ALREADY_REGISTERED.
+# @name registerAdmin
+POST {{api}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}",
+  "fullName": "RBAC Administrator"
+}
+
+> {%
+ client.global.set("adminUserId", response.body.data.userId);
+%}
+
+### Login administrator
+# @name loginAdmin
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+> {%
+ client.global.set("adminToken", response.body.data.accessToken);
+%}
+
+### Register customer
+# Registration assigns the CUSTOMER role automatically.
+# @name registerCustomer
+POST {{api}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{customerEmail}}",
+  "password": "{{customerPassword}}",
+  "fullName": "RBAC Customer"
+}
+
+> {%
+ client.global.set("customerUserId", response.body.data.userId);
+%}
+
+### Login customer
+# @name loginCustomer
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{customerEmail}}",
+  "password": "{{customerPassword}}"
+}
+
+> {%
+ client.global.set("customerToken", response.body.data.accessToken);
+%}
+
+### List all RBAC items
+GET {{api}}/admin/rbac/items
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### List roles only
+GET {{api}}/admin/rbac/items?type=ROLE
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### List permissions only
+GET {{api}}/admin/rbac/items?type=PERMISSION
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Get the CUSTOMER role and inherited permissions
+GET {{api}}/admin/rbac/items/CUSTOMER
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### List users
+GET {{api}}/admin/users?page=1&pageSize=20&q=rbac
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Get one user and assigned roles
+GET {{api}}/admin/users/{{customerUserId}}
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Assign a role to a user (idempotent)
+PUT {{api}}/admin/users/{{customerUserId}}/roles/ADMIN
+Authorization: Bearer {{adminToken}}
+
+### Revoke a role from a user (idempotent)
+DELETE {{api}}/admin/users/{{customerUserId}}/roles/ADMIN
+Authorization: Bearer {{adminToken}}
+
+### Disable a customer
+PATCH {{api}}/admin/users/{{customerUserId}}/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "status": "DISABLED"
+}
+
+### Re-enable a customer
+PATCH {{api}}/admin/users/{{customerUserId}}/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "status": "ACTIVE"
+}
+
+### Create a custom permission (first run returns 201)
+POST {{api}}/admin/rbac/items
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "address.audit",
+  "type": "PERMISSION",
+  "description": "Audit address changes"
+}
+
+### Create a custom role (first run returns 201)
+POST {{api}}/admin/rbac/items
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "ADDRESS_AUDITOR",
+  "type": "ROLE",
+  "description": "Can audit address changes"
+}
+
+### Add a permission to the custom role (idempotent)
+PUT {{api}}/admin/rbac/items/ADDRESS_AUDITOR/children/address.audit
+Authorization: Bearer {{adminToken}}
+
+### Assign the custom role to the customer
+PUT {{api}}/admin/users/{{customerUserId}}/roles/ADDRESS_AUDITOR
+Authorization: Bearer {{adminToken}}
+
+### Inspect the custom role
+GET {{api}}/admin/rbac/items/ADDRESS_AUDITOR
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Remove the custom role from the customer
+DELETE {{api}}/admin/users/{{customerUserId}}/roles/ADDRESS_AUDITOR
+Authorization: Bearer {{adminToken}}
+
+### Delete the custom role
+DELETE {{api}}/admin/rbac/items/ADDRESS_AUDITOR
+Authorization: Bearer {{adminToken}}
+
+### Delete the custom permission
+DELETE {{api}}/admin/rbac/items/address.audit
+Authorization: Bearer {{adminToken}}
+
+### Customer cannot access RBAC administration (expected 403)
+GET {{api}}/admin/rbac/items
+Authorization: Bearer {{customerToken}}
+Accept: application/json
