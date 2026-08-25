@@ -14,6 +14,6 @@ WORKDIR /app
 COPY --from=builder /app/services/identity-service/target/*.jar /app/app.jar
 
 ENV SERVER_PORT=8080
-EXPOSE 8080
+EXPOSE 8080 50054
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

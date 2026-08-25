@@ -45,7 +45,8 @@ workflow PR nằm trong [`docs/rules/README.md`](docs/rules/README.md).
 ## Service map
 
 - **identity-service** (Java/Spring Boot): đăng ký, đăng nhập, JWT/JWKS,
-  refresh session, hồ sơ và danh mục địa giới Việt Nam.
+  refresh session, hồ sơ, danh mục địa giới Việt Nam, and private RBAC
+  authorization at `127.0.0.1:50054`.
 - **bff-service** (Go): REST adapter cho storefront và cart; gọi Catalog và
   Cart trực tiếp qua gRPC.
 - **catalog-service** (Go): chi tiết sản phẩm, tìm kiếm/lọc/phân trang,
@@ -53,7 +54,8 @@ workflow PR nằm trong [`docs/rules/README.md`](docs/rules/README.md).
 - **inventory-service** (Go): tồn kho khả dụng từ quantity/reserved,
   PostgreSQL và gRPC.
 - **cart-service** (Go): lưu giỏ hàng, CRUD line item và tổng hợp thông tin
-  sản phẩm/tồn kho từ Catalog và Inventory qua gRPC.
+  sản phẩm/tồn kho từ Catalog và Inventory qua gRPC; calls Identity directly
+  for authorization.
 - **order-service** (Java/Spring Boot): application skeleton và health check;
   nghiệp vụ đặt hàng chưa được triển khai.
 - **ecommerce-fe** (React/TypeScript): storefront, auth/profile, tìm kiếm,
@@ -71,6 +73,10 @@ Browser chỉ gọi API qua Kong API Gateway tại cổng `8000`:
 - `/api/v1/admin` → BFF; soft-delete/restore sản phẩm trong cấu hình local.
 
 ## Local development
+
+For the authorization dependency, roll out provider-first: start Identity,
+then Cart, then BFF. Identity authorization is private gRPC at
+`127.0.0.1:50054` and is not exposed through Kong.
 
 - Chạy kiểm thử đơn vị Go:
   ```bash
@@ -114,7 +120,10 @@ Ví dụ body giả lập cho login:
 {"email":"customer@example.test","password":"local-only-example-password"}
 ```
 
-Identity dùng port `8080` khi chạy local trực tiếp. Access token mặc định có TTL 15 phút; refresh token opaque sống 30 ngày, chỉ được gửi trong cookie `HttpOnly`, `SameSite=Lax`, path `/api/v1/auth`. Local development đặt `IDENTITY_SESSION_COOKIE_SECURE=false`; môi trường HTTPS phải bật cờ này. Refresh token được rotate tại mỗi lần refresh. Dùng lại token đã rotate sẽ revoke toàn bộ session family, kể cả concurrent refresh không có grace interval. PEM được tạo chỉ dành cho local development, nằm ở `deployments/secrets/identity/`, và tuyệt đối không được commit hoặc tái sử dụng cho môi trường khác.
+Identity dùng HTTP port `8080` và private authorization gRPC `127.0.0.1:50054`
+khi chạy local trực tiếp. Cart gọi RPC này với timeout `500ms`; nếu Identity
+authorization unavailable, add-item trả `503` và không mutate Cart, còn bị từ
+chối permission trả `403`. Access token mặc định có TTL 15 phút; refresh token opaque sống 30 ngày, chỉ được gửi trong cookie `HttpOnly`, `SameSite=Lax`, path `/api/v1/auth`. Local development đặt `IDENTITY_SESSION_COOKIE_SECURE=false`; môi trường HTTPS phải bật cờ này. Refresh token được rotate tại mỗi lần refresh. Dùng lại token đã rotate sẽ revoke toàn bộ session family, kể cả concurrent refresh không có grace interval. PEM được tạo chỉ dành cho local development, nằm ở `deployments/secrets/identity/`, và tuyệt đối không được commit hoặc tái sử dụng cho môi trường khác.
 
 Frontend tại `http://localhost:5173` hỗ trợ đăng ký, đăng nhập, khôi phục
 session, cập nhật hồ sơ, tìm kiếm/xem sản phẩm và thao tác giỏ hàng. Trang

@@ -18,7 +18,8 @@ make infra-logs
 docker compose -f deployments/docker/compose.foundation.yml logs postgres
 ```
 
-The complete stack reserves `8081` for BFF and overrides Catalog HTTP to
+The complete stack uses Identity private authorization gRPC at
+`127.0.0.1:50054`. It reserves `8081` for BFF and overrides Catalog HTTP to
 `8085`. Catalog's standalone default remains `8081`. Kong routes are checked
 through `8000`; direct health endpoints are local diagnostics.
 
@@ -50,6 +51,11 @@ container cannot resolve the host gateway.
 - Inventory gRPC unavailable: verify Inventory is listening on
   `127.0.0.1:50052`; Cart keeps its persisted lines but returns degraded or
   unavailable stock projections while the dependency is down.
+- Identity authorization unavailable: verify Identity is listening on
+  `127.0.0.1:50054` and Cart has `IDENTITY_GRPC_ADDR=127.0.0.1:50054`.
+  Diagnose this port and address directly, never through Kong. Add-item returns
+  `503` with `AUTHORIZATION_SERVICE_UNAVAILABLE` without a Cart mutation during
+  an outage; permission denial returns `403`.
 - Cart gRPC unavailable: verify Cart is listening on `127.0.0.1:50053` and that
   BFF uses the same `BFF_CART_GRPC_ADDR`.
 - Storefront route returns an upstream error: verify BFF is bound to

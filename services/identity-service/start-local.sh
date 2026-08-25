@@ -9,6 +9,9 @@ export IDENTITY_JWT_PUBLIC_KEY_PATH="$repo_root/deployments/secrets/identity/pub
 export SERVER_PORT="8080"
 export IDENTITY_JWT_ISSUER="http://localhost:8080"
 export IDENTITY_SESSION_COOKIE_SECURE="false"
+export IDENTITY_GRPC_HOST="${IDENTITY_GRPC_HOST:-127.0.0.1}"
+export IDENTITY_GRPC_PORT="${IDENTITY_GRPC_PORT:-50054}"
+export IDENTITY_GRPC_SHUTDOWN_GRACE="${IDENTITY_GRPC_SHUTDOWN_GRACE:-5s}"
 # Docker Desktop's host.docker.internal gateway forwards to host IPv4 only;
 # force Tomcat onto an IPv4 socket so Kong can reach the service.
 export JDK_JAVA_OPTIONS="-Djava.net.preferIPv4Stack=true"

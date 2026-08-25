@@ -12,6 +12,8 @@ try {
     if (-not $env:CATALOG_GRPC_TIMEOUT) { $env:CATALOG_GRPC_TIMEOUT = "3s" }
     if (-not $env:INVENTORY_GRPC_ADDR) { $env:INVENTORY_GRPC_ADDR = "127.0.0.1:50052" }
     if (-not $env:INVENTORY_GRPC_TIMEOUT) { $env:INVENTORY_GRPC_TIMEOUT = "3s" }
+    if (-not $env:IDENTITY_GRPC_ADDR) { $env:IDENTITY_GRPC_ADDR = "127.0.0.1:50054" }
+    if (-not $env:IDENTITY_GRPC_TIMEOUT) { $env:IDENTITY_GRPC_TIMEOUT = "500ms" }
 
     go run ./cmd/server
 } finally {

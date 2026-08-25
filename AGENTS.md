@@ -121,7 +121,7 @@ on Linux/WSL) and verify the listed health endpoint after startup.
 
 | Surface | Local HTTP | Local gRPC | Notes |
 | --- | --- | --- | --- |
-| identity-service | `8080` | - | Kong obtains JWKS from this service. |
+| identity-service | `8080` | `127.0.0.1:50054` | Kong obtains JWKS from this service; authorization gRPC is private/local-only. |
 | bff-service | `8081` | - | Kong local upstream is `host.docker.internal:8081`; set `BFF_HTTP_ADDR=0.0.0.0:8081`. Container BFF remains `8080`. |
 | catalog-service | `8085` | `127.0.0.1:50051` | Its standalone HTTP default is `8081`; set `HTTP_ADDR=:8085` when BFF runs. |
 | inventory-service | `8082` | `127.0.0.1:50052` | |
@@ -137,8 +137,12 @@ on Linux/WSL) and verify the listed health endpoint after startup.
   The current frontend routes Identity auth, profile, and location requests
   through Kong;
 - Internal service calls use direct private gRPC. BFF calls Catalog at `50051`
-  and Cart at `50053`; Cart calls Catalog at `50051` and Inventory at `50052`.
-  Do not route these calls through Kong or use another service's HTTP port.
+  and Cart at `50053`; Cart calls Catalog at `50051`, Inventory at `50052`, and
+  Identity authorization at `127.0.0.1:50054` with a `500ms` timeout. Start
+  Identity before Cart. Do not route these calls through Kong or use another
+  service's HTTP port.
+- Roll out the authorization dependency provider-first: Identity, then Cart,
+  then BFF.
 
 ## Naming
 

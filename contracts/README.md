@@ -10,8 +10,10 @@ Các file dưới `proto/` là source of truth cho gRPC:
 - `catalog.v1`: lấy chi tiết, tìm kiếm và soft-delete sản phẩm.
 - `inventory.v1`: đọc tồn kho khả dụng.
 - `cart.v1`: đọc và thay đổi cart line.
-- `identity.v1` và `order.v1`: contract đã định nghĩa nhưng server gRPC tương
-  ứng chưa được application triển khai.
+- `identity.v1`: `AuthorizationService` is implemented for private Cart
+  authorization; the older `IdentityService.GetUser` RPC remains unwired.
+- `order.v1`: contract đã định nghĩa nhưng server gRPC tương ứng chưa được
+  application triển khai.
 - `common.v1`: value dùng chung như `Money`.
 
 `buf generate` sinh client/server types vào `go/` và

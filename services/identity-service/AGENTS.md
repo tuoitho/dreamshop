@@ -17,8 +17,10 @@ This service does not own:
 - Catalog products or pricing.
 - Inventory stock or reservations.
 - Order lifecycle or state.
-- Commerce authorization decisions beyond publishing trusted identity/role
-  claims.
+- The business meaning or resource rules of commerce permissions. Identity
+  evaluates current RBAC assignments and hierarchy decisions for authorization,
+  while the owning commerce service defines what each permission means and
+  which resources it governs.
 
 Other services consume Identity REST APIs, JWT/JWKS, or trusted claims. They do
 not read Identity tables, reuse its repositories/entities, or modify identity
@@ -80,6 +82,9 @@ mutation messages. REST/JSON fields use `camelCase`.
 Use generated protobuf contracts only when Identity participates in an approved
 internal gRPC boundary. Do not duplicate public identity/profile schemas in
 another service for convenience.
+
+Identity's private authorization gRPC listener is local-only at
+`127.0.0.1:50054`; it has no Kong or other public route.
 
 ## Verification
 
