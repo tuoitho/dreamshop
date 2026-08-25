@@ -5,6 +5,11 @@ import com.ecommerce.identity.auth.domain.AuthenticationUnavailableException;
 import com.ecommerce.identity.auth.domain.InvalidCredentialsException;
 import com.ecommerce.identity.auth.domain.InvalidRefreshTokenException;
 import com.ecommerce.identity.location.ProvinceNotFoundException;
+import com.ecommerce.identity.rbac.domain.InvalidRbacItemException;
+import com.ecommerce.identity.rbac.domain.RbacHierarchyConflictException;
+import com.ecommerce.identity.rbac.domain.RbacItemExistsException;
+import com.ecommerce.identity.rbac.domain.RbacItemNotFoundException;
+import com.ecommerce.identity.rbac.domain.RbacSystemItemProtectedException;
 import com.ecommerce.identity.user.domain.InvalidProfileLocationException;
 import com.ecommerce.identity.user.domain.UserNotFoundException;
 import java.util.LinkedHashMap;
@@ -12,6 +17,7 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -73,6 +79,37 @@ public class GlobalExceptionHandler {
         log.warn("validation_failed location={}", exception.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiError(
                 "VALIDATION_FAILED", "Request validation failed", exception.errors(), TraceIdProvider.current()));
+    }
+
+    @ExceptionHandler(InvalidRbacItemException.class)
+    ResponseEntity<ApiError> handleInvalidRbacItem(InvalidRbacItemException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiError(
+                "VALIDATION_FAILED", "Request validation failed", exception.errors(), TraceIdProvider.current()));
+    }
+
+    @ExceptionHandler(RbacItemNotFoundException.class)
+    ResponseEntity<ApiError> handleRbacItemNotFound(RbacItemNotFoundException exception) {
+        return error(HttpStatus.NOT_FOUND, "RBAC_ITEM_NOT_FOUND", "RBAC item not found");
+    }
+
+    @ExceptionHandler(RbacItemExistsException.class)
+    ResponseEntity<ApiError> handleRbacItemExists(RbacItemExistsException exception) {
+        return error(HttpStatus.CONFLICT, "RBAC_ITEM_EXISTS", "RBAC item already exists");
+    }
+
+    @ExceptionHandler(RbacHierarchyConflictException.class)
+    ResponseEntity<ApiError> handleRbacHierarchyConflict(RbacHierarchyConflictException exception) {
+        return error(HttpStatus.CONFLICT, "RBAC_HIERARCHY_CONFLICT", "RBAC hierarchy change is invalid");
+    }
+
+    @ExceptionHandler(RbacSystemItemProtectedException.class)
+    ResponseEntity<ApiError> handleRbacSystemItemProtected(RbacSystemItemProtectedException exception) {
+        return error(HttpStatus.CONFLICT, "RBAC_SYSTEM_ITEM_PROTECTED", "RBAC system item is protected");
+    }
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    ResponseEntity<ApiError> handleAuthorizationDenied(AuthorizationDeniedException exception) {
+        return error(HttpStatus.FORBIDDEN, "FORBIDDEN", "Access is denied");
     }
 
     @ExceptionHandler(Exception.class)
