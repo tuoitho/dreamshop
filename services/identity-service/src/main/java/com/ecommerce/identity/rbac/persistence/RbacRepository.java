@@ -90,6 +90,45 @@ public class RbacRepository {
                 .update() > 0;
     }
 
+    public boolean revokeRole(UUID userId, String roleName) {
+        return jdbc.sql("""
+                delete from auth_assignments a
+                using auth_items i
+                where a.user_id = :userId
+                  and a.item_name = i.name
+                  and i.type = 'ROLE'
+                  and a.item_name = :roleName
+                """)
+                .param("userId", userId)
+                .param("roleName", roleName)
+                .update() > 0;
+    }
+
+    public boolean isSuperAdmin(UUID userId) {
+        return jdbc.sql("""
+                select exists (
+                    select 1
+                    from auth_assignments a
+                    join identity_users u on u.id = a.user_id and u.status = 'ACTIVE'
+                    where a.user_id = :userId and a.item_name = 'SUPER_ADMIN'
+                )
+                """)
+                .param("userId", userId)
+                .query(Boolean.class)
+                .single();
+    }
+
+    public long activeSuperAdminCount() {
+        return jdbc.sql("""
+                select count(distinct a.user_id)
+                from auth_assignments a
+                join identity_users u on u.id = a.user_id and u.status = 'ACTIVE'
+                where a.item_name = 'SUPER_ADMIN'
+                """)
+                .query(Long.class)
+                .single();
+    }
+
     public List<RbacItem> findItems(AuthItemType type) {
         if (type == null) {
             return jdbc.sql("""

@@ -12,6 +12,9 @@ import com.ecommerce.identity.rbac.domain.RbacItemNotFoundException;
 import com.ecommerce.identity.rbac.domain.RbacSystemItemProtectedException;
 import com.ecommerce.identity.user.domain.InvalidProfileLocationException;
 import com.ecommerce.identity.user.domain.UserNotFoundException;
+import com.ecommerce.identity.user.admin.domain.LastSuperAdminRequiredException;
+import com.ecommerce.identity.user.admin.domain.SelfDisableNotAllowedException;
+import com.ecommerce.identity.user.admin.domain.SuperAdminAssignmentForbiddenException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -109,6 +112,22 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AuthorizationDeniedException.class)
     ResponseEntity<ApiError> handleAuthorizationDenied(AuthorizationDeniedException exception) {
+        return error(HttpStatus.FORBIDDEN, "FORBIDDEN", "Access is denied");
+    }
+
+    @ExceptionHandler(SelfDisableNotAllowedException.class)
+    ResponseEntity<ApiError> handleSelfDisable(SelfDisableNotAllowedException exception) {
+        return error(HttpStatus.CONFLICT, "SELF_DISABLE_NOT_ALLOWED", "An administrator cannot disable their own account");
+    }
+
+    @ExceptionHandler(LastSuperAdminRequiredException.class)
+    ResponseEntity<ApiError> handleLastSuperAdmin(LastSuperAdminRequiredException exception) {
+        return error(HttpStatus.CONFLICT, "LAST_SUPER_ADMIN_REQUIRED",
+                "At least one active super administrator is required");
+    }
+
+    @ExceptionHandler(SuperAdminAssignmentForbiddenException.class)
+    ResponseEntity<ApiError> handleSuperAdminAssignmentForbidden(SuperAdminAssignmentForbiddenException exception) {
         return error(HttpStatus.FORBIDDEN, "FORBIDDEN", "Access is denied");
     }
 

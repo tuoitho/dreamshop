@@ -99,7 +99,11 @@ public class IdentityUserEntity {
     }
 
     public void disable(Instant now) {
-        status = AccountStatus.DISABLED;
+        changeStatus(AccountStatus.DISABLED, now);
+    }
+
+    public void changeStatus(AccountStatus newStatus, Instant now) {
+        status = Objects.requireNonNull(newStatus, "newStatus");
         updatedAt = Objects.requireNonNull(now, "now");
     }
 
