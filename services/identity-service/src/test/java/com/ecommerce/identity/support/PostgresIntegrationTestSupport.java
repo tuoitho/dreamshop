@@ -25,6 +25,9 @@ public abstract class PostgresIntegrationTestSupport {
 
     @DynamicPropertySource
     static void jwtProperties(DynamicPropertyRegistry registry) {
+        registry.add("identity.grpc.host", () -> "127.0.0.1");
+        registry.add("identity.grpc.port", () -> "0");
+        registry.add("identity.grpc.shutdown-grace", () -> "2s");
         registry.add("identity.jwt.private-key-path", () -> KEYS.privateKeyPath().toString());
         registry.add("identity.jwt.public-key-path", () -> KEYS.publicKeyPath().toString());
         registry.add("identity.jwt.key-id", () -> "identity-test-key");
