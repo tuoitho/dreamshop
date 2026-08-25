@@ -14,9 +14,9 @@ spring:
 identity:
   bootstrap:
     super-admin:
-      email: ${IDENTITY_BOOTSTRAP_SUPER_ADMIN_EMAIL:}
-      password: ${IDENTITY_BOOTSTRAP_SUPER_ADMIN_PASSWORD:}
-      full-name: ${IDENTITY_BOOTSTRAP_SUPER_ADMIN_FULL_NAME:}
+      email: ${IDENTITY_BOOTSTRAP_SUPER_ADMIN_EMAIL:admin@example.com}
+      password: ${IDENTITY_BOOTSTRAP_SUPER_ADMIN_PASSWORD:AdminPassword123!}
+      full-name: ${IDENTITY_BOOTSTRAP_SUPER_ADMIN_FULL_NAME:Administrator}
   grpc:
     host: ${IDENTITY_GRPC_HOST:127.0.0.1}
     port: ${IDENTITY_GRPC_PORT:50054}

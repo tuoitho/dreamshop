@@ -3,8 +3,8 @@
 # The first administrator must be bootstrapped with the SQL in RBAC.md.
 
 @api = http://localhost:8000/api/v1
-@adminEmail = rbac-admin@example.test
-@adminPassword = SecurePassword123!
+@adminEmail = admin@example.com
+@adminPassword = AdminPassword123!
 @customerEmail = rbac-customer@example.test
 @customerPassword = SecurePassword123!
 @adminToken = paste-admin-access-token-here
@@ -25,9 +25,6 @@ Content-Type: application/json
   "fullName": "RBAC Administrator"
 }
 
-> {%
- client.global.set("adminUserId", response.body.data.userId);
-%}
 
 ### Login administrator
 # @name loginAdmin
@@ -35,13 +32,10 @@ POST {{api}}/auth/login
 Content-Type: application/json
 
 {
-  "email": "{{adminEmail}}",
+  "email": "admin@example.com",
   "password": "{{adminPassword}}"
 }
 
-> {%
- client.global.set("adminToken", response.body.data.accessToken);
-%}
 
 ### Register customer
 # Registration assigns the CUSTOMER role automatically.
@@ -55,9 +49,6 @@ Content-Type: application/json
   "fullName": "RBAC Customer"
 }
 
-> {%
- client.global.set("customerUserId", response.body.data.userId);
-%}
 
 ### Login customer
 # @name loginCustomer
@@ -69,18 +60,15 @@ Content-Type: application/json
   "password": "{{customerPassword}}"
 }
 
-> {%
- client.global.set("customerToken", response.body.data.accessToken);
-%}
 
 ### List all RBAC items
 GET {{api}}/admin/rbac/items
-Authorization: Bearer {{adminToken}}
+Authorization: Bearer eyJraWQiOiJpZGVudGl0eS1kZXYtMjAyNi0wMSIsInR5cCI6IkpXVCIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiJhZmNlOGViNC1hODA4LTQ4ZjUtOWIzMy0xOGI1NGU1ZGU2NGYiLCJhdWQiOiJlY29tbWVyY2UtYXBpIiwicm9sZXMiOlsiQ1VTVE9NRVIiLCJTVVBFUl9BRE1JTiJdLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAiLCJleHAiOjE3ODc2NDk2MjYsImlhdCI6MTc4NzY0ODcyNiwianRpIjoiMjFjNjk5NjgtZGI0OS00MTIzLWFiYTctZjI5ODhjNmFjNDkwIn0.PlhguhbEjW2dMc4rBTCutUQJ9AyiySLrrOCoh3IfFzbV5hSwLyG0AyNyZmABPCIbz1qnripXXv7_sQZKKuyN4B0yGV0AvwD6oCA9OeFw0_hBMa2zA5VRHOyBB1Yk0-w5Gvk9wqj9l2M_2WAVK0owV4m8HRRiy8Hdb42fVDrdnaDnBoheBRnD2mNWMCJ5vQRMrx1Zp_7ZtorCf0HNBe-dkXjywKkXhgxI_G45Qrcs4xtRQxBiyYZMRuIwhTXyWehkgFwZo1YW-omGDoLPvhgR3sOgMPyFtwc57zOsHfUPR0blGus_4OOArD8j_SLyOGyfI-abY4OYqkFnOYHLSSl3og
 Accept: application/json
 
 ### List roles only
 GET {{api}}/admin/rbac/items?type=ROLE
-Authorization: Bearer {{adminToken}}
+Authorization: Bearer eyJraWQiOiJpZGVudGl0eS1kZXYtMjAyNi0wMSIsInR5cCI6IkpXVCIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiJhZmNlOGViNC1hODA4LTQ4ZjUtOWIzMy0xOGI1NGU1ZGU2NGYiLCJhdWQiOiJlY29tbWVyY2UtYXBpIiwicm9sZXMiOlsiQ1VTVE9NRVIiLCJTVVBFUl9BRE1JTiJdLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAiLCJleHAiOjE3ODc2NDk2MjYsImlhdCI6MTc4NzY0ODcyNiwianRpIjoiMjFjNjk5NjgtZGI0OS00MTIzLWFiYTctZjI5ODhjNmFjNDkwIn0.PlhguhbEjW2dMc4rBTCutUQJ9AyiySLrrOCoh3IfFzbV5hSwLyG0AyNyZmABPCIbz1qnripXXv7_sQZKKuyN4B0yGV0AvwD6oCA9OeFw0_hBMa2zA5VRHOyBB1Yk0-w5Gvk9wqj9l2M_2WAVK0owV4m8HRRiy8Hdb42fVDrdnaDnBoheBRnD2mNWMCJ5vQRMrx1Zp_7ZtorCf0HNBe-dkXjywKkXhgxI_G45Qrcs4xtRQxBiyYZMRuIwhTXyWehkgFwZo1YW-omGDoLPvhgR3sOgMPyFtwc57zOsHfUPR0blGus_4OOArD8j_SLyOGyfI-abY4OYqkFnOYHLSSl3og
 Accept: application/json
 
 ### List permissions only

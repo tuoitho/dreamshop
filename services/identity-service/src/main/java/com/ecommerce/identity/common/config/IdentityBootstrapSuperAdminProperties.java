@@ -9,7 +9,7 @@ public record IdentityBootstrapSuperAdminProperties(String email, String passwor
 
     public IdentityBootstrapSuperAdminProperties {
         email = trim(email);
-        password = password == null ? null : password;
+        password = trim(password);
         fullName = trim(fullName);
 
         boolean anyConfigured = notBlank(email) || notBlank(password) || notBlank(fullName);
