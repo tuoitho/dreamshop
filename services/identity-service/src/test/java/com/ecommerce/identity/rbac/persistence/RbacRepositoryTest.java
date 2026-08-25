@@ -3,6 +3,7 @@ package com.ecommerce.identity.rbac.persistence;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.ecommerce.identity.rbac.domain.AuthItemType;
+import com.ecommerce.identity.rbac.domain.RbacItem;
 import com.ecommerce.identity.support.PostgresIntegrationTestSupport;
 import java.time.Instant;
 import java.util.List;
@@ -41,6 +42,13 @@ class RbacRepositoryTest extends PostgresIntegrationTestSupport {
         assertThat(repository.findAllByTypeOrderByName(AuthItemType.PERMISSION))
                 .extracting(AuthItemEntity::getName)
                 .contains("address.create", "cart.item.add");
+        assertThat(repository.findItems(null))
+                .extracting(RbacItem::name)
+                .contains("CUSTOMER", "address.create", "cart.item.add");
+        assertThat(repository.findItems(AuthItemType.ROLE))
+                .extracting(RbacItem::name)
+                .contains("CUSTOMER")
+                .doesNotContain("address.create");
         assertThat(repository.findById("CUSTOMER")).isPresent();
     }
 
@@ -59,10 +67,11 @@ class RbacRepositoryTest extends PostgresIntegrationTestSupport {
 
     @Test
     @Transactional
-    void managesAuthorizationItemsAndHierarchyWithNativeQueries() {
-        assertThat(repository.insertItem("SUPPORT", "ROLE", "Support role", NOW)).isEqualTo(1);
-        assertThat(repository.insertItem("ticket.view", "PERMISSION", "View tickets", NOW)).isEqualTo(1);
-        assertThat(repository.insertChild("SUPPORT", "ticket.view")).isEqualTo(1);
+    void managesAuthorizationItemsAndHierarchyThroughRepositoryApi() {
+        assertThat(repository.createItem("SUPPORT", AuthItemType.ROLE, "Support role", NOW)).isTrue();
+        assertThat(repository.createItem(
+                "ticket.view", AuthItemType.PERMISSION, "View tickets", NOW)).isTrue();
+        assertThat(repository.addChild("SUPPORT", "ticket.view")).isTrue();
 
         AuthItemEntity item = repository.findById("ticket.view").orElseThrow();
         assertThat(item.getType()).isEqualTo(AuthItemType.PERMISSION);
@@ -73,9 +82,9 @@ class RbacRepositoryTest extends PostgresIntegrationTestSupport {
                 "ticket.view", "ticket.audit", "Audit tickets", NOW.plusSeconds(1))).isTrue();
         assertThat(repository.findById("ticket.audit").orElseThrow().getDescription())
                 .isEqualTo("Audit tickets");
-        assertThat(repository.deleteChild("SUPPORT", "ticket.audit")).isEqualTo(1);
-        assertThat(repository.deleteByNameAndSystemItemFalse("ticket.audit")).isEqualTo(1);
-        assertThat(repository.deleteByNameAndSystemItemFalse("SUPPORT")).isEqualTo(1);
+        assertThat(repository.removeChild("SUPPORT", "ticket.audit")).isTrue();
+        assertThat(repository.deleteCustomItem("ticket.audit")).isTrue();
+        assertThat(repository.deleteCustomItem("SUPPORT")).isTrue();
     }
 
     @Test
