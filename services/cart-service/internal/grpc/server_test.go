@@ -15,6 +15,7 @@ import (
 	catalogv1 "ecommerce.local/contracts/go/catalog/v1"
 	commonv1 "ecommerce.local/contracts/go/common/v1"
 	inventoryv1 "ecommerce.local/contracts/go/inventory/v1"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -40,9 +41,13 @@ type fakeStore struct {
 	updateArgs   []any
 	removeArgs   []any
 	clearCartID  string
+	events       *[]string
 }
 
 func (f *fakeStore) EnsureCart(_ context.Context, userID string) (string, error) {
+	if f.events != nil {
+		*f.events = append(*f.events, "ensure-cart")
+	}
 	f.ensureUserID = userID
 	return f.cartID, f.ensureErr
 }
@@ -107,6 +112,25 @@ type fakeInventory struct {
 	called       []string
 }
 
+type fakeAuthorization struct {
+	allowed    bool
+	err        error
+	userID     string
+	permission string
+	calls      int
+	events     *[]string
+}
+
+func (f *fakeAuthorization) CheckPermission(_ context.Context, userID, permission string) (bool, error) {
+	if f.events != nil {
+		*f.events = append(*f.events, "check-permission")
+	}
+	f.calls++
+	f.userID = userID
+	f.permission = permission
+	return f.allowed, f.err
+}
+
 func (f *fakeInventory) GetAvailability(_ context.Context, productID string) (*inventoryv1.GetAvailabilityResponse, error) {
 	f.mu.Lock()
 	f.called = append(f.called, productID)
@@ -153,7 +177,7 @@ func TestGetCartEnrichesDistinctProductsInParallelWithBoundedConcurrencyAndLineO
 	var cart *cartv1.Cart
 	var err error
 	go func() {
-		cart, err = NewServer(store, catalog, inventory).getCart(context.Background(), "cart-1")
+		cart, err = NewServer(store, catalog, inventory, &fakeAuthorization{allowed: true}).getCart(context.Background(), "cart-1")
 		close(done)
 	}()
 
@@ -206,7 +230,7 @@ func TestGetCartDeduplicatesCatalogAndInventoryAcrossProductVariants(t *testing.
 		"p-2": {ProductId: "p-2", AvailableQuantity: 1},
 	}, errors: map[string]error{}}
 
-	cart, err := NewServer(store, catalog, inventory).getCart(context.Background(), "cart-1")
+	cart, err := NewServer(store, catalog, inventory, &fakeAuthorization{allowed: true}).getCart(context.Background(), "cart-1")
 	if err != nil {
 		t.Fatalf("getCart() error = %v", err)
 	}
@@ -238,7 +262,7 @@ func TestGetCartDeduplicatesCatalogFailureAndAggregatesDegradedStatus(t *testing
 		"ok": {ProductId: "ok", AvailableQuantity: 1},
 	}, errors: map[string]error{}}
 
-	cart, err := NewServer(store, catalog, inventory).getCart(context.Background(), "cart-1")
+	cart, err := NewServer(store, catalog, inventory, &fakeAuthorization{allowed: true}).getCart(context.Background(), "cart-1")
 	if err != nil {
 		t.Fatalf("getCart() error = %v", err)
 	}
@@ -323,7 +347,7 @@ func TestGetCartEnrichesLinesAndMapsAllStatuses(t *testing.T) {
 		errors: map[string]error{},
 	}
 
-	client := newBufconnClient(t, NewServer(store, catalog, inventory))
+	client := newBufconnClient(t, NewServer(store, catalog, inventory, &fakeAuthorization{allowed: true}))
 	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: "user-1"})
 	if err != nil {
 		t.Fatalf("GetCart() error = %v", err)
@@ -374,7 +398,7 @@ func TestGetCartCatalogOutageDegradesOnlyAffectedLine(t *testing.T) {
 		"p-ok": {ProductId: "p-ok", AvailableQuantity: 1},
 	}, errors: map[string]error{}}
 
-	client := newBufconnClient(t, NewServer(store, catalog, inventory))
+	client := newBufconnClient(t, NewServer(store, catalog, inventory, &fakeAuthorization{allowed: true}))
 	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: "user-1"})
 	if err != nil {
 		t.Fatalf("GetCart() error = %v", err)
@@ -396,7 +420,7 @@ func TestGetCartCatalogNotFoundIsUnavailableWithoutDegraded(t *testing.T) {
 	catalog := &fakeCatalog{products: map[string]*catalogv1.GetProductResponse{}, errors: map[string]error{}}
 	inventory := &fakeInventory{availability: map[string]*inventoryv1.GetAvailabilityResponse{}, errors: map[string]error{}}
 
-	client := newBufconnClient(t, NewServer(store, catalog, inventory))
+	client := newBufconnClient(t, NewServer(store, catalog, inventory, &fakeAuthorization{allowed: true}))
 	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: "user-1"})
 	if err != nil {
 		t.Fatalf("GetCart() error = %v", err)
@@ -419,7 +443,7 @@ func TestGetCartDeletedProductPreservesLineAndSkipsInventory(t *testing.T) {
 	catalog := &fakeCatalog{products: map[string]*catalogv1.GetProductResponse{"p-deleted": deleted}, errors: map[string]error{}}
 	inventory := &fakeInventory{availability: map[string]*inventoryv1.GetAvailabilityResponse{}, errors: map[string]error{}}
 
-	client := newBufconnClient(t, NewServer(store, catalog, inventory))
+	client := newBufconnClient(t, NewServer(store, catalog, inventory, &fakeAuthorization{allowed: true}))
 	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: "user-1"})
 	if err != nil {
 		t.Fatalf("GetCart() error = %v", err)
@@ -447,7 +471,7 @@ func TestGetCartInventoryOutagePreservesCatalogEnrichment(t *testing.T) {
 		errors:       map[string]error{"p-1": status.Error(codes.Unavailable, "inventory unavailable")},
 	}
 
-	client := newBufconnClient(t, NewServer(store, catalog, inventory))
+	client := newBufconnClient(t, NewServer(store, catalog, inventory, &fakeAuthorization{allowed: true}))
 	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: "user-1"})
 	if err != nil {
 		t.Fatalf("GetCart() error = %v", err)
@@ -463,7 +487,7 @@ func TestGetCartInventoryOutagePreservesCatalogEnrichment(t *testing.T) {
 
 func TestGetCartWithoutExistingCartReturnsEmptyCart(t *testing.T) {
 	store := &fakeStore{found: false, lines: nil}
-	client := newBufconnClient(t, NewServer(store, &fakeCatalog{}, &fakeInventory{}))
+	client := newBufconnClient(t, NewServer(store, &fakeCatalog{}, &fakeInventory{}, &fakeAuthorization{allowed: true}))
 	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: "user-1"})
 	if err != nil {
 		t.Fatalf("GetCart() error = %v", err)
@@ -476,9 +500,62 @@ func TestGetCartWithoutExistingCartReturnsEmptyCart(t *testing.T) {
 	}
 }
 
+func TestAddItemValidationSkipsAuthorization(t *testing.T) {
+	store := &fakeStore{cartID: "cart-1"}
+	authorization := &fakeAuthorization{allowed: true}
+	client := newBufconnClient(t, NewServer(store, &fakeCatalog{}, &fakeInventory{}, authorization))
+
+	_, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: "user-1", ProductId: "p-1", VariantLabel: "red", Quantity: 0})
+	if code := status.Code(err); code != codes.InvalidArgument {
+		t.Fatalf("AddItem() code = %v, want InvalidArgument", code)
+	}
+	if authorization.calls != 0 {
+		t.Fatalf("authorization calls = %d, want 0 for invalid input", authorization.calls)
+	}
+}
+
+func TestAddItemDeniedLeavesCartAndDependenciesUntouched(t *testing.T) {
+	store := &fakeStore{cartID: "cart-1"}
+	catalog := &fakeCatalog{products: map[string]*catalogv1.GetProductResponse{}, errors: map[string]error{}}
+	inventory := &fakeInventory{availability: map[string]*inventoryv1.GetAvailabilityResponse{}, errors: map[string]error{}}
+	authorization := &fakeAuthorization{}
+	client := newBufconnClient(t, NewServer(store, catalog, inventory, authorization))
+
+	_, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: "user-1", ProductId: "p-1", VariantLabel: "red", Quantity: 1})
+	if code := status.Code(err); code != codes.PermissionDenied {
+		t.Fatalf("AddItem() code = %v, want PermissionDenied", code)
+	}
+	assertErrorInfoReason(t, err, "CART_PERMISSION_DENIED")
+	if authorization.calls != 1 || authorization.userID != "user-1" || authorization.permission != "cart.item.add" {
+		t.Fatalf("authorization = calls=%d user=%q permission=%q, want 1/user-1/cart.item.add", authorization.calls, authorization.userID, authorization.permission)
+	}
+	if store.ensureUserID != "" || len(store.addArgs) != 0 || len(catalog.called) != 0 || len(inventory.called) != 0 {
+		t.Fatalf("denied AddItem side effects = ensure=%q add=%v catalog=%v inventory=%v, want none", store.ensureUserID, store.addArgs, catalog.called, inventory.called)
+	}
+}
+
+func TestAddItemAuthorizationOutageLeavesCartAndDependenciesUntouched(t *testing.T) {
+	store := &fakeStore{cartID: "cart-1"}
+	catalog := &fakeCatalog{products: map[string]*catalogv1.GetProductResponse{}, errors: map[string]error{}}
+	inventory := &fakeInventory{availability: map[string]*inventoryv1.GetAvailabilityResponse{}, errors: map[string]error{}}
+	authorization := &fakeAuthorization{err: status.Error(codes.Unavailable, "identity unavailable")}
+	client := newBufconnClient(t, NewServer(store, catalog, inventory, authorization))
+
+	_, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: "user-1", ProductId: "p-1", VariantLabel: "red", Quantity: 1})
+	if code := status.Code(err); code != codes.Unavailable {
+		t.Fatalf("AddItem() code = %v, want Unavailable", code)
+	}
+	assertErrorInfoReason(t, err, "AUTHORIZATION_UNAVAILABLE")
+	if store.ensureUserID != "" || len(store.addArgs) != 0 || len(catalog.called) != 0 || len(inventory.called) != 0 {
+		t.Fatalf("unavailable AddItem side effects = ensure=%q add=%v catalog=%v inventory=%v, want none", store.ensureUserID, store.addArgs, catalog.called, inventory.called)
+	}
+}
+
 func TestMutationsValidateInputForwardUserAndReturnMethodResponse(t *testing.T) {
-	store := &fakeStore{cartID: "cart-1", found: true, lines: nil}
-	client := newBufconnClient(t, NewServer(store, &fakeCatalog{products: map[string]*catalogv1.GetProductResponse{}, errors: map[string]error{}}, &fakeInventory{availability: map[string]*inventoryv1.GetAvailabilityResponse{}, errors: map[string]error{}}))
+	events := make([]string, 0, 2)
+	store := &fakeStore{cartID: "cart-1", found: true, lines: nil, events: &events}
+	authorization := &fakeAuthorization{allowed: true, events: &events}
+	client := newBufconnClient(t, NewServer(store, &fakeCatalog{products: map[string]*catalogv1.GetProductResponse{}, errors: map[string]error{}}, &fakeInventory{availability: map[string]*inventoryv1.GetAvailabilityResponse{}, errors: map[string]error{}}, authorization))
 
 	if _, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: " ", ProductId: "p-1", VariantLabel: "red", Quantity: 1}); status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("blank user AddItem code = %v, want InvalidArgument", status.Code(err))
@@ -492,6 +569,12 @@ func TestMutationsValidateInputForwardUserAndReturnMethodResponse(t *testing.T) 
 	}
 	if store.ensureUserID != "user-1" || len(store.addArgs) != 4 || response.GetCart() == nil {
 		t.Fatalf("AddItem forwarding/response invalid: user=%q args=%v response=%+v", store.ensureUserID, store.addArgs, response.GetCart())
+	}
+	if authorization.calls != 1 || authorization.userID != "user-1" || authorization.permission != "cart.item.add" {
+		t.Fatalf("AddItem authorization = calls=%d user=%q permission=%q, want 1/user-1/cart.item.add", authorization.calls, authorization.userID, authorization.permission)
+	}
+	if len(events) < 2 || events[0] != "check-permission" || events[1] != "ensure-cart" {
+		t.Fatalf("AddItem order = %v, want authorization before EnsureCart", events)
 	}
 
 	if _, err := client.UpdateItemQuantity(context.Background(), &cartv1.UpdateItemQuantityRequest{UserId: "user-1", ItemId: "item-1", Quantity: 0}); status.Code(err) != codes.InvalidArgument {
@@ -509,7 +592,7 @@ func TestMutationsValidateInputForwardUserAndReturnMethodResponse(t *testing.T) 
 }
 
 func TestMutationsRejectBlankIDsAndNegativeQuantities(t *testing.T) {
-	client := newBufconnClient(t, NewServer(&fakeStore{cartID: "cart-1", found: true}, &fakeCatalog{}, &fakeInventory{}))
+	client := newBufconnClient(t, NewServer(&fakeStore{cartID: "cart-1", found: true}, &fakeCatalog{}, &fakeInventory{}, &fakeAuthorization{allowed: true}))
 	tests := []struct {
 		name string
 		call func() error
@@ -577,7 +660,7 @@ func TestMutationsMapStoreFailuresAndMissingItems(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			client := newBufconnClient(t, NewServer(test.makeStore(), &fakeCatalog{}, &fakeInventory{}))
+			client := newBufconnClient(t, NewServer(test.makeStore(), &fakeCatalog{}, &fakeInventory{}, &fakeAuthorization{allowed: true}))
 			if code := status.Code(test.call(client)); code != codes.Internal {
 				t.Fatalf("status code = %v, want Internal", code)
 			}
@@ -592,7 +675,7 @@ func TestMutationsMapStoreFailuresAndMissingItems(t *testing.T) {
 			} else {
 				store.removeErr = cartstore.ErrItemNotFound
 			}
-			client := newBufconnClient(t, NewServer(store, &fakeCatalog{}, &fakeInventory{}))
+			client := newBufconnClient(t, NewServer(store, &fakeCatalog{}, &fakeInventory{}, &fakeAuthorization{allowed: true}))
 			var err error
 			if method == "update" {
 				_, err = client.UpdateItemQuantity(context.Background(), &cartv1.UpdateItemQuantityRequest{UserId: "user-1", ItemId: "item-1", Quantity: 2})
@@ -606,13 +689,24 @@ func TestMutationsMapStoreFailuresAndMissingItems(t *testing.T) {
 	}
 }
 
+func assertErrorInfoReason(t *testing.T, err error, wantReason string) {
+	t.Helper()
+	for _, detail := range status.Convert(err).Details() {
+		info, ok := detail.(*errdetails.ErrorInfo)
+		if ok && info.GetReason() == wantReason {
+			return
+		}
+	}
+	t.Fatalf("status details = %v, want ErrorInfo reason %q", status.Convert(err).Details(), wantReason)
+}
+
 func TestUpdateAndRemoveReturnRefreshedEnrichedCartWrappers(t *testing.T) {
 	line := domain.Line{ID: "item-1", ProductID: "p-1", VariantLabel: "red", Quantity: 4}
 	newServer := func() (*fakeStore, cartv1.CartServiceClient) {
 		store := &fakeStore{cartID: "cart-1", lines: []domain.Line{line}}
 		catalog := &fakeCatalog{products: map[string]*catalogv1.GetProductResponse{"p-1": validProduct("p-1")}, errors: map[string]error{}}
 		inventory := &fakeInventory{availability: map[string]*inventoryv1.GetAvailabilityResponse{"p-1": {ProductId: "p-1", AvailableQuantity: 4}}, errors: map[string]error{}}
-		return store, newBufconnClient(t, NewServer(store, catalog, inventory))
+		return store, newBufconnClient(t, NewServer(store, catalog, inventory, &fakeAuthorization{allowed: true}))
 	}
 
 	_, client := newServer()

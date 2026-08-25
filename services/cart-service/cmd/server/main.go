@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"ecommerce.local/cart-service/internal/authorization"
 	"ecommerce.local/cart-service/internal/catalog"
 	"ecommerce.local/cart-service/internal/config"
 	cartgrpc "ecommerce.local/cart-service/internal/grpc"
@@ -71,7 +72,15 @@ func buildProductionService(ctx context.Context, cfg *config.Config) (cartv1.Car
 		cleanupPool()
 		return nil, nil, errors.New("failed to create inventory client")
 	}
-	return cartgrpc.NewServer(store.New(pool), catalogClient, inventoryClient), func() {
+	authorizationClient, err := authorization.NewClient(cfg.IdentityGRPCAddr, cfg.IdentityGRPCTimeout)
+	if err != nil {
+		_ = inventoryClient.Close()
+		_ = catalogClient.Close()
+		cleanupPool()
+		return nil, nil, errors.New("failed to create identity authorization client")
+	}
+	return cartgrpc.NewServer(store.New(pool), catalogClient, inventoryClient, authorizationClient), func() {
+		_ = authorizationClient.Close()
 		_ = catalogClient.Close()
 		_ = inventoryClient.Close()
 		cleanupPool()

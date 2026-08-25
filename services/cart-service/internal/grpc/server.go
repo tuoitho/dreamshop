@@ -4,6 +4,7 @@ package grpc
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"strings"
 	"sync"
 
@@ -12,8 +13,16 @@ import (
 	cartv1 "ecommerce.local/contracts/go/cart/v1"
 	catalogv1 "ecommerce.local/contracts/go/catalog/v1"
 	inventoryv1 "ecommerce.local/contracts/go/inventory/v1"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+)
+
+const (
+	cartItemAddPermission          = "cart.item.add"
+	grpcErrorDomain                = "ecommerce.cart.v1"
+	reasonCartPermissionDenied     = "CART_PERMISSION_DENIED"
+	reasonAuthorizationUnavailable = "AUTHORIZATION_UNAVAILABLE"
 )
 
 type cartStore interface {
@@ -34,15 +43,20 @@ type inventoryClient interface {
 	GetAvailability(context.Context, string) (*inventoryv1.GetAvailabilityResponse, error)
 }
 
-type Server struct {
-	cartv1.UnimplementedCartServiceServer
-	store     cartStore
-	catalog   catalogClient
-	inventory inventoryClient
+type authorizationClient interface {
+	CheckPermission(context.Context, string, string) (bool, error)
 }
 
-func NewServer(cartStore cartStore, catalog catalogClient, inventory inventoryClient) *Server {
-	return &Server{store: cartStore, catalog: catalog, inventory: inventory}
+type Server struct {
+	cartv1.UnimplementedCartServiceServer
+	store         cartStore
+	catalog       catalogClient
+	inventory     inventoryClient
+	authorization authorizationClient
+}
+
+func NewServer(cartStore cartStore, catalog catalogClient, inventory inventoryClient, authorization authorizationClient) *Server {
+	return &Server{store: cartStore, catalog: catalog, inventory: inventory, authorization: authorization}
 }
 
 func (s *Server) GetCart(ctx context.Context, req *cartv1.GetCartRequest) (*cartv1.GetCartResponse, error) {
@@ -79,6 +93,18 @@ func (s *Server) AddItem(ctx context.Context, req *cartv1.AddItemRequest) (*cart
 	}
 	if err := positiveQuantity(req.GetQuantity()); err != nil {
 		return nil, err
+	}
+	allowed, err := s.authorization.CheckPermission(ctx, userID, cartItemAddPermission)
+	if err != nil {
+		if ctx.Err() != nil {
+			return nil, status.FromContextError(ctx.Err()).Err()
+		}
+		slog.WarnContext(ctx, "cart item authorization unavailable", "user_id", userID, "permission", cartItemAddPermission)
+		return nil, statusWithReason(codes.Unavailable, "authorization service is unavailable", reasonAuthorizationUnavailable)
+	}
+	if !allowed {
+		slog.DebugContext(ctx, "cart item authorization denied", "user_id", userID, "permission", cartItemAddPermission)
+		return nil, statusWithReason(codes.PermissionDenied, "cart permission denied", reasonCartPermissionDenied)
 	}
 	cartID, err := s.store.EnsureCart(ctx, userID)
 	if err != nil {
@@ -353,4 +379,13 @@ func mutationError(err error) error {
 
 func internalError(operation string, err error) error {
 	return status.Errorf(codes.Internal, "%s failed", operation)
+}
+
+func statusWithReason(code codes.Code, message, reason string) error {
+	base := status.New(code, message)
+	withDetails, err := base.WithDetails(&errdetails.ErrorInfo{Reason: reason, Domain: grpcErrorDomain})
+	if err != nil {
+		return base.Err()
+	}
+	return withDetails.Err()
 }
