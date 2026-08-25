@@ -4,6 +4,7 @@ import com.ecommerce.identity.auth.application.AccessTokenResult;
 import com.ecommerce.identity.auth.domain.AuthenticationUnavailableException;
 import com.ecommerce.identity.security.JwtTokenService;
 import com.ecommerce.identity.support.PostgresIntegrationTestSupport;
+import com.ecommerce.identity.rbac.support.RbacTestData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,11 +38,7 @@ class LoginApiTest extends PostgresIntegrationTestSupport {
 
     @BeforeEach
     void resetDatabase() {
-        jdbcTemplate.update("delete from user_roles");
-        jdbcTemplate.update("delete from identity_profiles");
-        jdbcTemplate.update("delete from identity_users");
-        jdbcTemplate.update("delete from roles");
-        jdbcTemplate.update("insert into roles (id, code) values (1, 'CUSTOMER')");
+        RbacTestData.resetDatabase(jdbcTemplate);
         reset(jwtTokenService);
     }
 

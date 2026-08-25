@@ -1,9 +1,9 @@
 package com.ecommerce.identity.auth.application;
 
 import com.ecommerce.identity.auth.domain.EmailAlreadyRegisteredException;
+import com.ecommerce.identity.rbac.support.RbacTestData;
 import com.ecommerce.identity.support.PostgresIntegrationTestSupport;
 import com.ecommerce.identity.user.persistence.IdentityUserRepository;
-import com.ecommerce.identity.user.persistence.RoleRepository;
 import java.util.List;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
@@ -26,9 +26,6 @@ class RegisterUserServiceTest extends PostgresIntegrationTestSupport {
     IdentityUserRepository users;
 
     @Autowired
-    RoleRepository roles;
-
-    @Autowired
     PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -36,11 +33,7 @@ class RegisterUserServiceTest extends PostgresIntegrationTestSupport {
 
     @BeforeEach
     void resetDatabase() {
-        jdbcTemplate.update("delete from user_roles");
-        jdbcTemplate.update("delete from identity_profiles");
-        jdbcTemplate.update("delete from identity_users");
-        jdbcTemplate.update("delete from roles");
-        jdbcTemplate.update("insert into roles (id, code) values (1, 'CUSTOMER')");
+        RbacTestData.resetDatabase(jdbcTemplate);
     }
 
     @Test
@@ -48,7 +41,7 @@ class RegisterUserServiceTest extends PostgresIntegrationTestSupport {
         RegisteredUser result = service.register(new RegisterCommand(
                 " User@Example.com ", "correct horse battery staple", " Nguyen Van A "));
 
-        var stored = users.findWithRolesByNormalizedEmail("user@example.com").orElseThrow();
+        var stored = users.findWithProfileByNormalizedEmail("user@example.com").orElseThrow();
 
         assertThat(result.email()).isEqualTo("user@example.com");
         assertThat(result.roles()).containsExactly("CUSTOMER");
@@ -69,8 +62,9 @@ class RegisterUserServiceTest extends PostgresIntegrationTestSupport {
     @Test
     void rejectsExistingEmailBeforeLookingUpCustomerRole() {
         service.register(new RegisterCommand("user@example.com", "password", "Nguyen Van A"));
-        jdbcTemplate.update("delete from user_roles");
-        jdbcTemplate.update("delete from roles");
+        jdbcTemplate.update("delete from auth_assignments");
+        jdbcTemplate.update("delete from auth_item_children");
+        jdbcTemplate.update("delete from auth_items");
 
         assertThatThrownBy(() -> service.register(
                 new RegisterCommand("USER@example.com", "password", "Nguyen Van B")))
@@ -79,8 +73,8 @@ class RegisterUserServiceTest extends PostgresIntegrationTestSupport {
 
     @Test
     void doesNotCommitUserOrProfileWhenCustomerRoleIsMissing() {
-        roles.delete(roles.findByCode("CUSTOMER").orElseThrow());
-        roles.flush();
+        jdbcTemplate.update("delete from auth_item_children where parent_name = 'CUSTOMER'");
+        jdbcTemplate.update("delete from auth_items where name = 'CUSTOMER'");
 
         assertThatThrownBy(() -> service.register(
                 new RegisterCommand("missing-role@example.com", "password", "Nguyen Van A")))
@@ -95,8 +89,8 @@ class RegisterUserServiceTest extends PostgresIntegrationTestSupport {
         service.register(new RegisterCommand("first@example.com", "same password", "First User"));
         service.register(new RegisterCommand("second@example.com", "same password", "Second User"));
 
-        String firstHash = users.findWithRolesByNormalizedEmail("first@example.com").orElseThrow().passwordHash();
-        String secondHash = users.findWithRolesByNormalizedEmail("second@example.com").orElseThrow().passwordHash();
+        String firstHash = users.findWithProfileByNormalizedEmail("first@example.com").orElseThrow().passwordHash();
+        String secondHash = users.findWithProfileByNormalizedEmail("second@example.com").orElseThrow().passwordHash();
 
         assertThat(firstHash).isNotEqualTo(secondHash);
         assertThat(passwordEncoder.matches("same password", firstHash)).isTrue();

@@ -24,7 +24,10 @@ class IdentityDatabaseMigrationTest extends PostgresIntegrationTestSupport {
                 select table_name from information_schema.tables where table_schema = 'public'
                 """).query(String.class).list();
 
-        assertThat(tables).contains("identity_users", "identity_profiles", "roles", "user_roles");
+        assertThat(tables)
+                .contains("identity_users", "identity_profiles", "auth_items",
+                        "auth_item_children", "auth_assignments", "shipping_addresses")
+                .doesNotContain("roles", "user_roles");
         assertThat(jdbc.sql("""
                 select column_name || ':' || data_type
                 from information_schema.columns
@@ -46,8 +49,69 @@ class IdentityDatabaseMigrationTest extends PostgresIntegrationTestSupport {
                   and pg_get_constraintdef(oid) = 'UNIQUE (normalized_email)'
                 """).query(String.class).list())
                 .containsExactly("uq_identity_users_normalized_email");
-        assertThat(jdbc.sql("select code from roles").query(String.class).list())
-                .containsExactly("CUSTOMER");
+        assertThat(jdbc.sql("select name from auth_items where type = 'ROLE' order by name")
+                .query(String.class).list())
+                .contains("ADMIN", "CUSTOMER", "SUPER_ADMIN");
+        assertThat(jdbc.sql("select name from auth_items where type = 'PERMISSION' order by name")
+                .query(String.class).list())
+                .containsExactly("address.create", "address.delete", "address.set-default",
+                        "address.update", "address.view", "rbac.manage", "rbac.view",
+                        "user.role.assign", "user.status.update", "user.view");
+    }
+
+    @Test
+    @Transactional
+    void migratesLegacyRolesAndAssignmentsToRbacTables() throws Exception {
+        jdbcTemplate.execute("create schema if not exists migration_target");
+        jdbcTemplate.execute("""
+                create table migration_target.identity_users (
+                    id uuid primary key,
+                    email varchar(254) not null,
+                    normalized_email varchar(254) not null,
+                    password_hash varchar(255) not null,
+                    status varchar(32) not null,
+                    created_at timestamptz not null,
+                    updated_at timestamptz not null
+                )
+                """);
+        jdbcTemplate.execute("""
+                create table migration_target.roles (
+                    id smallint primary key,
+                    code varchar(32) not null unique
+                )
+                """);
+        jdbcTemplate.execute("""
+                create table migration_target.user_roles (
+                    user_id uuid not null,
+                    role_id smallint not null,
+                    primary key (user_id, role_id)
+                )
+                """);
+        jdbcTemplate.execute("""
+                insert into migration_target.identity_users
+                    (id, email, normalized_email, password_hash, status, created_at, updated_at)
+                values ('00000000-0000-0000-0000-000000000001', 'legacy@example.com',
+                        'legacy@example.com', 'hash', 'ACTIVE', now(), now())
+                """);
+        jdbcTemplate.execute("insert into migration_target.roles (id, code) values (1, 'CUSTOMER'), (2, 'SUPPORT')");
+        jdbcTemplate.execute("""
+                insert into migration_target.user_roles (user_id, role_id)
+                values ('00000000-0000-0000-0000-000000000001', 1),
+                       ('00000000-0000-0000-0000-000000000001', 2)
+                """);
+
+        jdbcTemplate.execute("set local search_path to migration_target");
+        jdbcTemplate.execute(v5MigrationSql());
+
+        assertThat(jdbc.sql("select name from migration_target.auth_items where type = 'ROLE' order by name")
+                .query(String.class).list())
+                .contains("CUSTOMER", "SUPPORT", "ADMIN", "SUPER_ADMIN");
+        assertThat(jdbc.sql("""
+                select item_name from migration_target.auth_assignments
+                where user_id = '00000000-0000-0000-0000-000000000001'
+                order by item_name
+                """).query(String.class).list())
+                .containsExactly("CUSTOMER", "SUPPORT");
     }
 
     @Test
@@ -121,6 +185,11 @@ class IdentityDatabaseMigrationTest extends PostgresIntegrationTestSupport {
 
     private String v4MigrationSql() throws Exception {
         return new ClassPathResource("db/migration/V4__migrate_profile_address_to_two_levels.sql")
+                .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private String v5MigrationSql() throws Exception {
+        return new ClassPathResource("db/migration/V5__add_rbac_and_shipping_addresses.sql")
                 .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
     }
 

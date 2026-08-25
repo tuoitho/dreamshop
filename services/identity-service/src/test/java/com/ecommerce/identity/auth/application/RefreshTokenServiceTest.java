@@ -4,6 +4,7 @@ import com.ecommerce.identity.auth.domain.InvalidRefreshTokenException;
 import com.ecommerce.identity.auth.persistence.RefreshTokenRevocationReason;
 import com.ecommerce.identity.auth.persistence.RefreshTokenSessionEntity;
 import com.ecommerce.identity.auth.persistence.RefreshTokenSessionRepository;
+import com.ecommerce.identity.rbac.support.RbacTestData;
 import com.ecommerce.identity.security.JwtTokenService;
 import com.ecommerce.identity.support.PostgresIntegrationTestSupport;
 import java.util.List;
@@ -56,12 +57,7 @@ class RefreshTokenServiceTest extends PostgresIntegrationTestSupport {
     @BeforeEach
     void resetDatabase() {
         transactionTemplate = new TransactionTemplate(transactionManager);
-        jdbcTemplate.update("delete from refresh_token_sessions");
-        jdbcTemplate.update("delete from user_roles");
-        jdbcTemplate.update("delete from identity_profiles");
-        jdbcTemplate.update("delete from identity_users");
-        jdbcTemplate.update("delete from roles");
-        jdbcTemplate.update("insert into roles (id, code) values (1, 'CUSTOMER')");
+        RbacTestData.resetDatabase(jdbcTemplate);
         reset(jwtTokenService);
     }
 

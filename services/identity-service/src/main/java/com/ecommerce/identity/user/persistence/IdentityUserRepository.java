@@ -6,11 +6,11 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface IdentityUserRepository extends JpaRepository<IdentityUserEntity, UUID> {
-    @EntityGraph(attributePaths = {"profile", "roles"})
-    Optional<IdentityUserEntity> findWithRolesByNormalizedEmail(String normalizedEmail);
+    @EntityGraph(attributePaths = {"profile"})
+    Optional<IdentityUserEntity> findWithProfileByNormalizedEmail(String normalizedEmail);
 
-    @EntityGraph(attributePaths = {"profile", "roles"})
-    Optional<IdentityUserEntity> findWithProfileAndRolesById(UUID id);
+    @EntityGraph(attributePaths = {"profile"})
+    Optional<IdentityUserEntity> findWithProfileById(UUID id);
 
     boolean existsByNormalizedEmail(String normalizedEmail);
 

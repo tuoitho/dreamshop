@@ -2,6 +2,7 @@ package com.ecommerce.identity.auth.application;
 
 import com.ecommerce.identity.auth.domain.AccountStatus;
 import com.ecommerce.identity.auth.domain.InvalidCredentialsException;
+import com.ecommerce.identity.rbac.support.RbacTestData;
 import com.ecommerce.identity.security.JwtTokenService;
 import com.ecommerce.identity.support.PostgresIntegrationTestSupport;
 import com.ecommerce.identity.user.persistence.IdentityUserRepository;
@@ -43,12 +44,7 @@ class LoginServiceTest extends PostgresIntegrationTestSupport {
 
     @BeforeEach
     void resetDatabase() {
-        jdbcTemplate.update("delete from refresh_token_sessions");
-        jdbcTemplate.update("delete from user_roles");
-        jdbcTemplate.update("delete from identity_profiles");
-        jdbcTemplate.update("delete from identity_users");
-        jdbcTemplate.update("delete from roles");
-        jdbcTemplate.update("insert into roles (id, code) values (1, 'CUSTOMER')");
+        RbacTestData.resetDatabase(jdbcTemplate);
         clearInvocations(passwordEncoder, jwtTokenService);
     }
 
@@ -62,7 +58,7 @@ class LoginServiceTest extends PostgresIntegrationTestSupport {
 
         assertThat(session.accessToken()).isEqualTo(new AccessTokenResult("token", 900));
         assertThat(session.rawRefreshToken()).isNotBlank();
-        verify(passwordEncoder).matches("correct password", users.findWithRolesByNormalizedEmail("user@example.com")
+        verify(passwordEncoder).matches("correct password", users.findWithProfileByNormalizedEmail("user@example.com")
                 .orElseThrow().passwordHash());
         verify(jwtTokenService).issue(any(), any());
     }
@@ -75,7 +71,7 @@ class LoginServiceTest extends PostgresIntegrationTestSupport {
         assertThatThrownBy(() -> service.login(new LoginCommand("user@example.com", "wrong password")))
                 .isInstanceOf(InvalidCredentialsException.class);
 
-        verify(passwordEncoder).matches("wrong password", users.findWithRolesByNormalizedEmail("user@example.com")
+        verify(passwordEncoder).matches("wrong password", users.findWithProfileByNormalizedEmail("user@example.com")
                 .orElseThrow().passwordHash());
         verify(jwtTokenService, never()).issue(any(), any());
     }
@@ -94,7 +90,7 @@ class LoginServiceTest extends PostgresIntegrationTestSupport {
     @Test
     void rejectsDisabledAccountWithoutIssuingToken() {
         registerUserService.register(new RegisterCommand("user@example.com", "correct password", "User"));
-        var user = users.findWithRolesByNormalizedEmail("user@example.com").orElseThrow();
+        var user = users.findWithProfileByNormalizedEmail("user@example.com").orElseThrow();
         user.disable(Instant.now());
         users.saveAndFlush(user);
         clearInvocations(passwordEncoder, jwtTokenService);

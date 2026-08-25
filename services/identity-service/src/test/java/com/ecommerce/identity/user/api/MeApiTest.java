@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.ecommerce.identity.support.PostgresIntegrationTestSupport;
+import com.ecommerce.identity.rbac.support.RbacTestData;
 import com.jayway.jsonpath.JsonPath;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,12 +31,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
 
     @BeforeEach
     void resetDatabase() {
-        jdbcTemplate.update("delete from refresh_token_sessions");
-        jdbcTemplate.update("delete from user_roles");
-        jdbcTemplate.update("delete from identity_profiles");
-        jdbcTemplate.update("delete from identity_users");
-        jdbcTemplate.update("delete from roles");
-        jdbcTemplate.update("insert into roles (id, code) values (1, 'CUSTOMER')");
+        RbacTestData.resetDatabase(jdbcTemplate);
     }
 
     @Test

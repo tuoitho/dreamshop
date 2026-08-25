@@ -1,6 +1,7 @@
 package com.ecommerce.identity.auth.api;
 
 import com.ecommerce.identity.support.PostgresIntegrationTestSupport;
+import com.ecommerce.identity.rbac.support.RbacTestData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,11 +28,7 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
 
     @BeforeEach
     void resetDatabase() {
-        jdbcTemplate.update("delete from user_roles");
-        jdbcTemplate.update("delete from identity_profiles");
-        jdbcTemplate.update("delete from identity_users");
-        jdbcTemplate.update("delete from roles");
-        jdbcTemplate.update("insert into roles (id, code) values (1, 'CUSTOMER')");
+        RbacTestData.resetDatabase(jdbcTemplate);
     }
 
     @Test

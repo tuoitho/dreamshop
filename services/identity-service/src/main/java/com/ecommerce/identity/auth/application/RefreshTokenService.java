@@ -1,10 +1,12 @@
 package com.ecommerce.identity.auth.application;
 
+import com.ecommerce.identity.auth.domain.AccountStatus;
 import com.ecommerce.identity.auth.domain.InvalidRefreshTokenException;
 import com.ecommerce.identity.auth.persistence.RefreshTokenRevocationReason;
 import com.ecommerce.identity.auth.persistence.RefreshTokenSessionEntity;
 import com.ecommerce.identity.auth.persistence.RefreshTokenSessionRepository;
 import com.ecommerce.identity.common.config.IdentitySessionProperties;
+import com.ecommerce.identity.rbac.persistence.RbacRepository;
 import com.ecommerce.identity.security.JwtTokenService;
 import com.ecommerce.identity.user.persistence.IdentityUserEntity;
 import com.ecommerce.identity.user.persistence.IdentityUserRepository;
@@ -22,17 +24,20 @@ public class RefreshTokenService {
     private final IdentityUserRepository users;
     private final RefreshTokenGenerator tokenGenerator;
     private final JwtTokenService jwtTokenService;
+    private final RbacRepository rbac;
     private final IdentitySessionProperties properties;
     private final Clock clock;
     private final TransactionTemplate revocationTransaction;
 
     public RefreshTokenService(RefreshTokenSessionRepository sessions, IdentityUserRepository users,
             RefreshTokenGenerator tokenGenerator, JwtTokenService jwtTokenService,
-            IdentitySessionProperties properties, Clock clock, PlatformTransactionManager transactionManager) {
+            RbacRepository rbac, IdentitySessionProperties properties, Clock clock,
+            PlatformTransactionManager transactionManager) {
         this.sessions = sessions;
         this.users = users;
         this.tokenGenerator = tokenGenerator;
         this.jwtTokenService = jwtTokenService;
+        this.rbac = rbac;
         this.properties = properties;
         this.clock = clock;
         this.revocationTransaction = new TransactionTemplate(transactionManager);
@@ -73,9 +78,10 @@ public class RefreshTokenService {
         current.rotate(now, replacement.id());
         sessions.saveAndFlush(current);
 
-        Set<String> roles = users.findWithProfileAndRolesById(current.userId())
-                .map(IdentityUserEntity::roleCodes)
+        IdentityUserEntity user = users.findWithProfileById(current.userId())
+                .filter(candidate -> candidate.status() == AccountStatus.ACTIVE)
                 .orElseThrow(InvalidRefreshTokenException::new);
+        Set<String> roles = rbac.assignedRoles(user.id());
         return new AuthenticatedSession(jwtTokenService.issue(current.userId(), roles), successor.raw());
     }
 

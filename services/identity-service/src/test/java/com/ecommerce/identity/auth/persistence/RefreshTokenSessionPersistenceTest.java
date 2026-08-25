@@ -4,12 +4,9 @@ import com.ecommerce.identity.auth.domain.AccountStatus;
 import com.ecommerce.identity.support.PostgresIntegrationTestSupport;
 import com.ecommerce.identity.user.persistence.IdentityUserEntity;
 import com.ecommerce.identity.user.persistence.IdentityUserRepository;
-import com.ecommerce.identity.user.persistence.RoleEntity;
-import com.ecommerce.identity.user.persistence.RoleRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.time.Instant;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,9 +26,6 @@ class RefreshTokenSessionPersistenceTest extends PostgresIntegrationTestSupport 
 
     @Autowired
     IdentityUserRepository users;
-
-    @Autowired
-    RoleRepository roles;
 
     @PersistenceContext
     EntityManager entityManager;
@@ -120,10 +114,9 @@ class RefreshTokenSessionPersistenceTest extends PostgresIntegrationTestSupport 
     }
 
     private UUID registerUser() {
-        RoleEntity customer = roles.findByCode("CUSTOMER").orElseThrow();
         IdentityUserEntity user = IdentityUserEntity.create(UUID.randomUUID(),
                 "session@example.com", "session@example.com", "{argon2id}hash",
-                AccountStatus.ACTIVE, ISSUED, "Session User", Set.of(customer));
+                AccountStatus.ACTIVE, ISSUED, "Session User");
         users.saveAndFlush(user);
         return user.id();
     }

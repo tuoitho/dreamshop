@@ -2,6 +2,7 @@ package com.ecommerce.identity.user.application;
 
 import com.ecommerce.identity.auth.domain.AccountStatus;
 import com.ecommerce.identity.location.LocationCatalog;
+import com.ecommerce.identity.rbac.persistence.RbacRepository;
 import com.ecommerce.identity.user.domain.Gender;
 import com.ecommerce.identity.user.domain.InvalidProfileLocationException;
 import com.ecommerce.identity.user.domain.ProfilePatch;
@@ -21,24 +22,27 @@ public class MeService {
     private final IdentityUserRepository repository;
     private final Clock clock;
     private final LocationCatalog locationCatalog;
+    private final RbacRepository rbac;
 
-    public MeService(IdentityUserRepository repository, Clock clock, LocationCatalog locationCatalog) {
+    public MeService(IdentityUserRepository repository, Clock clock, LocationCatalog locationCatalog,
+            RbacRepository rbac) {
         this.repository = repository;
         this.clock = clock;
         this.locationCatalog = locationCatalog;
+        this.rbac = rbac;
     }
 
     public CurrentUser current(UUID userId) {
-        IdentityUserEntity user = repository.findWithProfileAndRolesById(userId)
+        IdentityUserEntity user = repository.findWithProfileById(userId)
                 .filter(candidate -> candidate.status() == AccountStatus.ACTIVE)
                 .orElseThrow(UserNotFoundException::new);
-        return toCurrentUser(user);
+        return toCurrentUser(user, rbac.assignedRoles(userId));
     }
 
     @Transactional
     public CurrentUser update(UUID userId, String fullName, String phone, String dateOfBirth,
             String gender, String provinceCode, String wardCode, String addressLine) {
-        IdentityUserEntity user = repository.findWithProfileAndRolesById(userId)
+        IdentityUserEntity user = repository.findWithProfileById(userId)
                 .filter(candidate -> candidate.status() == AccountStatus.ACTIVE)
                 .orElseThrow(UserNotFoundException::new);
         ProfilePatch<String> provincePatch = patch(provinceCode, Function.identity());
@@ -52,7 +56,7 @@ public class MeService {
                 location.wardCode(),
                 patch(addressLine, Function.identity()),
                 clock.instant());
-        return toCurrentUser(user);
+        return toCurrentUser(user, rbac.assignedRoles(userId));
     }
 
     private static <T> ProfilePatch<T> patch(String raw, Function<String, T> parse) {
@@ -96,8 +100,8 @@ public class MeService {
         return new ResolvedLocation(provincePatch, wardPatch);
     }
 
-    private CurrentUser toCurrentUser(IdentityUserEntity user) {
-        return new CurrentUser(user.id(), user.email(), user.fullName(), user.roleCodes(),
+    private CurrentUser toCurrentUser(IdentityUserEntity user, java.util.Set<String> roles) {
+        return new CurrentUser(user.id(), user.email(), user.fullName(), roles,
                 user.phone(), user.dateOfBirth(), user.gender(),
                 user.provinceCode(), user.wardCode(), user.addressLine());
     }

@@ -3,6 +3,7 @@ package com.ecommerce.identity.auth.api;
 import com.ecommerce.identity.auth.application.AccessTokenResult;
 import com.ecommerce.identity.security.JwtTokenService;
 import com.ecommerce.identity.support.PostgresIntegrationTestSupport;
+import com.ecommerce.identity.rbac.support.RbacTestData;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,12 +38,7 @@ class RefreshApiTest extends PostgresIntegrationTestSupport {
 
     @BeforeEach
     void resetDatabase() {
-        jdbcTemplate.update("delete from refresh_token_sessions");
-        jdbcTemplate.update("delete from user_roles");
-        jdbcTemplate.update("delete from identity_profiles");
-        jdbcTemplate.update("delete from identity_users");
-        jdbcTemplate.update("delete from roles");
-        jdbcTemplate.update("insert into roles (id, code) values (1, 'CUSTOMER')");
+        RbacTestData.resetDatabase(jdbcTemplate);
         reset(jwtTokenService);
     }
 
