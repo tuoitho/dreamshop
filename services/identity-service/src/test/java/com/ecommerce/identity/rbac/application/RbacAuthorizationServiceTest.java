@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import com.ecommerce.identity.rbac.persistence.RbacRepository;
-import com.ecommerce.identity.security.CallerContextPrincipal;
+import com.ecommerce.identity.security.context.CallerContextPrincipal;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;

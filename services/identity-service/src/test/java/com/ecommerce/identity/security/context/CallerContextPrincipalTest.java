@@ -1,4 +1,4 @@
-package com.ecommerce.identity.security;
+package com.ecommerce.identity.security.context;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

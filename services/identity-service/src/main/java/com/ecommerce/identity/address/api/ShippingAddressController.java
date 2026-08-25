@@ -3,7 +3,7 @@ package com.ecommerce.identity.address.api;
 import com.ecommerce.identity.address.application.CreateShippingAddressCommand;
 import com.ecommerce.identity.address.application.ShippingAddressService;
 import com.ecommerce.identity.common.api.ApiResponse;
-import com.ecommerce.identity.security.CallerContextPrincipal;
+import com.ecommerce.identity.security.context.CallerContextPrincipal;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;

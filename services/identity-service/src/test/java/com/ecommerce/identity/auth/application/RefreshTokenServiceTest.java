@@ -5,7 +5,7 @@ import com.ecommerce.identity.auth.persistence.RefreshTokenRevocationReason;
 import com.ecommerce.identity.auth.persistence.RefreshTokenSessionEntity;
 import com.ecommerce.identity.auth.persistence.RefreshTokenSessionRepository;
 import com.ecommerce.identity.rbac.support.RbacTestData;
-import com.ecommerce.identity.security.JwtTokenService;
+import com.ecommerce.identity.security.jwt.JwtTokenService;
 import com.ecommerce.identity.support.PostgresIntegrationTestSupport;
 import java.util.List;
 import java.util.UUID;

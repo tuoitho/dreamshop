@@ -1,4 +1,4 @@
-package com.ecommerce.identity.security;
+package com.ecommerce.identity.security.context;
 
 import java.util.Set;
 import java.util.UUID;

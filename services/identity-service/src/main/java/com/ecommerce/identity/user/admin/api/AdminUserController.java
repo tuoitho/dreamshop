@@ -1,7 +1,7 @@
 package com.ecommerce.identity.user.admin.api;
 
 import com.ecommerce.identity.common.api.ApiResponse;
-import com.ecommerce.identity.security.CallerContextPrincipal;
+import com.ecommerce.identity.security.context.CallerContextPrincipal;
 import com.ecommerce.identity.user.admin.application.AdminUserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;

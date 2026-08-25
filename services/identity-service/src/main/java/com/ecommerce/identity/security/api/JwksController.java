@@ -1,5 +1,6 @@
-package com.ecommerce.identity.security;
+package com.ecommerce.identity.security.api;
 
+import com.ecommerce.identity.security.jwt.SigningKeyMaterial;
 import com.nimbusds.jose.jwk.JWKSet;
 import java.time.Duration;
 import java.util.Map;

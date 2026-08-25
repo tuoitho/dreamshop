@@ -1,4 +1,4 @@
-package com.ecommerce.identity.security;
+package com.ecommerce.identity.security.jwt;
 
 import com.ecommerce.identity.auth.application.AccessTokenResult;
 import com.ecommerce.identity.auth.domain.AuthenticationUnavailableException;

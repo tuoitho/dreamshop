@@ -1,4 +1,4 @@
-package com.ecommerce.identity.security;
+package com.ecommerce.identity.security.jwt;
 
 import com.nimbusds.jose.jwk.RSAKey;
 import java.security.interfaces.RSAPrivateKey;

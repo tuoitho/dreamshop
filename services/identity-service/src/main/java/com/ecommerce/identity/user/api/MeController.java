@@ -1,6 +1,6 @@
 package com.ecommerce.identity.user.api;
 
-import com.ecommerce.identity.security.CallerContextPrincipal;
+import com.ecommerce.identity.security.context.CallerContextPrincipal;
 import com.ecommerce.identity.common.api.ApiResponse;
 import com.ecommerce.identity.user.application.MeService;
 import jakarta.validation.Valid;

@@ -3,7 +3,7 @@ package com.ecommerce.identity.auth.application;
 import com.ecommerce.identity.auth.domain.AccountStatus;
 import com.ecommerce.identity.auth.domain.InvalidCredentialsException;
 import com.ecommerce.identity.rbac.support.RbacTestData;
-import com.ecommerce.identity.security.JwtTokenService;
+import com.ecommerce.identity.security.jwt.JwtTokenService;
 import com.ecommerce.identity.support.PostgresIntegrationTestSupport;
 import com.ecommerce.identity.user.persistence.IdentityUserRepository;
 import java.time.Instant;

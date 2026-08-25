@@ -1,4 +1,4 @@
-package com.ecommerce.identity.security;
+package com.ecommerce.identity.security.config;
 
 import java.time.Clock;
 import java.util.Map;

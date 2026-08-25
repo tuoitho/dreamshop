@@ -7,7 +7,7 @@ import com.ecommerce.identity.auth.persistence.RefreshTokenSessionEntity;
 import com.ecommerce.identity.auth.persistence.RefreshTokenSessionRepository;
 import com.ecommerce.identity.common.config.IdentitySessionProperties;
 import com.ecommerce.identity.rbac.persistence.RbacRepository;
-import com.ecommerce.identity.security.JwtTokenService;
+import com.ecommerce.identity.security.jwt.JwtTokenService;
 import com.ecommerce.identity.user.persistence.IdentityUserEntity;
 import com.ecommerce.identity.user.persistence.IdentityUserRepository;
 import java.time.Clock;
