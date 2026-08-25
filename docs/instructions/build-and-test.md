@@ -12,6 +12,7 @@ mvn -pl services/order-service -am test
 go test ./services/bff-service/internal/...
 go test ./services/catalog-service/internal/...
 go test ./services/inventory-service/internal/...
+go test ./services/cart-service/internal/...
 npm --prefix ecommerce-fe test -- --run src/lib/api.test.ts
 ```
 
@@ -20,8 +21,8 @@ npm --prefix ecommerce-fe test -- --run src/lib/api.test.ts
 ```powershell
 mvn -pl services/identity-service -am verify
 mvn -pl services/order-service -am verify
-go test ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/...
-go build ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/...
+go test ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...
+go build ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...
 npm --prefix ecommerce-fe test -- --run
 npm --prefix ecommerce-fe run lint
 npm --prefix ecommerce-fe run build
@@ -56,8 +57,8 @@ buf lint
 buf generate
 git diff --exit-code -- contracts/go contracts/java/src/main/generated
 mvn --batch-mode --no-transfer-progress verify
-go test ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/...
-go build ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/...
+go test ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...
+go build ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...
 npm --prefix ecommerce-fe ci
 npm --prefix ecommerce-fe test -- --run
 npm --prefix ecommerce-fe run lint
@@ -68,3 +69,9 @@ The existing `make verify`, `make verify-identity`, and
 `make verify-edge-auth` scripts are focused foundation/runtime checks. They may
 require local infrastructure and running applications; they are not a
 replacement for the direct build and test commands above.
+
+The current `cart-service/cmd/server` tests use Unix process signaling. On
+Windows, `go test ./services/cart-service/...` fails to compile that test
+package because `syscall.Kill` is unavailable; the Cart internal-package check
+above remains usable. Run the complete Cart test command on Linux/CI until the
+server lifecycle test is made portable.

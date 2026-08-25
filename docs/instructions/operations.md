@@ -11,14 +11,16 @@ Invoke-RestMethod http://localhost:8080/actuator/health
 Invoke-RestMethod http://localhost:8081/healthz
 Invoke-RestMethod http://localhost:8082/healthz
 Invoke-RestMethod http://localhost:8083/actuator/health
+Invoke-RestMethod http://localhost:8084/healthz
+Invoke-RestMethod http://localhost:8085/healthz
 Invoke-RestMethod http://localhost:8000/api/v1/auth/.well-known/jwks.json
 make infra-logs
 docker compose -f deployments/docker/compose.foundation.yml logs postgres
 ```
 
-The `8081` health URL belongs to whichever host process currently owns that
-port. Kong public routes are checked through `8000`; direct health endpoints
-are local diagnostics.
+The complete stack reserves `8081` for BFF and overrides Catalog HTTP to
+`8085`. Catalog's standalone default remains `8081`. Kong routes are checked
+through `8000`; direct health endpoints are local diagnostics.
 
 ## Kong routing
 
@@ -43,8 +45,15 @@ container cannot resolve the host gateway.
 - PostgreSQL not ready: inspect `docker compose -f deployments/docker/compose.foundation.yml logs postgres` and wait for `pg_isready` health.
 - RabbitMQ broker unavailable: inspect the RabbitMQ logs and management UI at
   `http://localhost:15672`.
-- Catalog gRPC unavailable: the address is configured for BFF, but the current
-  Catalog skeleton does not implement a gRPC server.
+- Catalog gRPC unavailable: verify Catalog is listening on `127.0.0.1:50051`;
+  both BFF product calls and Cart enrichment depend on it.
+- Inventory gRPC unavailable: verify Inventory is listening on
+  `127.0.0.1:50052`; Cart keeps its persisted lines but returns degraded or
+  unavailable stock projections while the dependency is down.
+- Cart gRPC unavailable: verify Cart is listening on `127.0.0.1:50053` and that
+  BFF uses the same `BFF_CART_GRPC_ADDR`.
+- Storefront route returns an upstream error: verify BFF is bound to
+  `0.0.0.0:8081` so containerized Kong can reach the Windows host process.
 
 ## Safe shutdown
 

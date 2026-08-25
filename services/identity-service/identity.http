@@ -1,5 +1,6 @@
 ### Identity Service REST API Client
-@baseUrl = http://localhost:8080
+@identityPort = 8080
+@baseUrl = http://localhost:{{identityPort}}
 @kongUrl = http://localhost:8000
 @api = {{kongUrl}}/api/v1
 @email = identity-demo@example.test
@@ -39,9 +40,9 @@ Content-Type: application/json
   "password": "SecurePassword123!"
 }
 
-> {%
- client.global.set("accessToken", response.body.data.accessToken);
-%}
+# > {%
+#  client.global.set("accessToken", response.body.data.accessToken);
+# %}
 
 
 ### Refresh Access Token

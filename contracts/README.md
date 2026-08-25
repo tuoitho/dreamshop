@@ -1,28 +1,48 @@
-# Quy ước viết contract (OpenAPI 3.1) — hướng C
+# Quy ước viết contract
 
-`openapi.yaml` là source of truth của API cho pipeline `fullstack-feature`. Chỉ architect agent được sửa.
+Thư mục này chứa contract dùng chung giữa các bounded context. Domain logic vẫn
+thuộc service sở hữu và không được đưa vào module contract.
 
-## Vai trò của file này
-`openapi.yaml` là **tài liệu thuần**: KHÔNG sinh code. Không có `gen.go`, không có `schema.d.ts`.
-- Backend đọc contract → tự viết Gin handler + DTO struct khớp shape (theo `.docs/steering/api-conventions.md`).
-- Frontend đọc contract → tự viết type + gọi qua lớp services của repo (`services/*Api.ts`).
-- Enforcement conformance nằm ở **QA integration test** (black-box HTTP trong `tests/integration/`), KHÔNG ở compiler. Vì vậy `examples` phải đầy đủ và đúng ngữ nghĩa — chúng là baseline test vector; contract mơ hồ = test yếu = drift lọt lưới.
-- Chỉ `redocly lint` chạy tự động (gate `contract`) để bắt lỗi cú pháp OpenAPI.
+## Protobuf và gRPC
 
-## Bắt buộc với mọi operation
-1. `operationId`: camelCase, duy nhất (ví dụ `createSalesRequest`). KHÔNG còn sinh code từ nó — backend/frontend tự đặt tên hàm/handler theo nó; QA dùng đặt tên test; spec.md map AC → operationId. Vì không có compiler ràng buộc, operationId + path + shape phải được mô tả ĐỦ RÕ để dev implement đúng mà không đoán.
-2. `examples` cho request body và response chính — đây là **baseline semantic** cho test, KHÔNG phải toàn bộ test vector. QA dùng làm điểm xuất phát cho happy path; với dữ liệu động (ID sinh từ sequence, token) QA tự sinh/tự lấy. Ngoài happy path, QA bổ sung boundary/field thiếu-sai/stateful (trùng lặp)/authorization và validate response theo schema.
-3. Response 2xx nghiệp vụ mô tả theo envelope chuẩn `ResponseEnvelope` (`{code, message, data}`); mô tả rõ shape của `data`. Mọi response 4xx/5xx dùng schema `#/components/schemas/Error` (`{code, message, error?}`) kèm business error code cụ thể — khớp `pkg/response`.
-4. `tags` theo resource/module; thêm extension `x-feature: <NNN-slug>` vào operation để trace về feature spec.
-5. Endpoint cần auth: khai `security` + ghi RBAC permission code trong `description`. Token test theo role có sẵn ở `.docs/contracts/accesstokenfortestonly.md` — QA dùng khi viết integration test.
-6. Endpoint dạng list: dùng đúng pagination chuẩn của repo — `page`, `pageSize`, `sortField`, `sortOrder` (xem `.docs/steering/api-conventions.md`).
+Các file dưới `proto/` là source of truth cho gRPC:
 
-## Schema
-- Tên PascalCase (`SalesRequest`, `CreateSalesRequestRequest`).
-- Khai báo `required` tường minh — dev đọc để biết field nào bắt buộc. Đây là hợp đồng đọc-bằng-mắt, QA integration test kiểm chứng.
+- `catalog.v1`: lấy chi tiết, tìm kiếm và soft-delete sản phẩm.
+- `inventory.v1`: đọc tồn kho khả dụng.
+- `cart.v1`: đọc và thay đổi cart line.
+- `identity.v1` và `order.v1`: contract đã định nghĩa nhưng server gRPC tương
+  ứng chưa được application triển khai.
+- `common.v1`: value dùng chung như `Money`.
 
-## Quan hệ với `.docs/contracts/` (flow fico-fullstack có sẵn)
-Repo có sẵn convention contract `.docs/contracts/<feature>.md` + `.http` (viết SAU backend, từ DTO đã implement) dùng cho skill `fico-fullstack`. Hai flow tồn tại song song:
-- Pipeline `fullstack-feature` (contract-FIRST): dùng `contracts/openapi.yaml` — architect viết TRƯỚC khi có code.
-- Skill `fico-fullstack` (backend-first): dùng `.docs/contracts/` như cũ.
-Đừng trộn: một feature đi theo một flow, contract của flow nào nằm ở chỗ flow đó.
+`buf generate` sinh client/server types vào `go/` và
+`java/src/main/generated/`. Không sửa generated source trực tiếp. Thay đổi
+contract công khai phải giữ tương thích; ưu tiên thêm field/RPC và không tái sử
+dụng field number đã phát hành.
+
+## REST và OpenAPI
+
+`openapi.yaml` là tài liệu OpenAPI 3.1 và hiện mới mô tả health foundation; nó
+chưa bao phủ toàn bộ Identity/BFF REST surface. REST behavior hiện được kiểm
+chứng bởi controller/handler tests và frontend API adapter. Khi mở rộng OpenAPI,
+giữ envelope chuẩn của repository:
+
+- Success: `{ "data": <payload>, "message": "..." }`.
+- Error: `{ "code": "STABLE_ERROR_CODE", "message": "...", "errors": {}, "traceId": "..." }`.
+- Pagination nằm trong `data` với `items`, `page`, `pageSize`, `totalItems`, và
+  `totalPages`.
+
+## Verification
+
+```powershell
+$gitRoot = Split-Path (Split-Path (Get-Command git).Source -Parent) -Parent
+$env:PATH = "$gitRoot\usr\bin;$env:PATH"
+buf format --diff --exit-code
+buf lint
+buf generate
+git diff --exit-code -- contracts/go contracts/java/src/main/generated
+```
+
+Sau khi thay đổi protobuf, chạy build/test của generated Java module và mọi Go
+hoặc Java consumer bị ảnh hưởng. Xem thêm
+[`docs/steering/api-contracts.md`](../docs/steering/api-contracts.md) và
+[`docs/instructions/build-and-test.md`](../docs/instructions/build-and-test.md).

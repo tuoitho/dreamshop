@@ -1,6 +1,9 @@
-# E-commerce Microservices Platform Foundation (Phase 0)
+# E-commerce Microservices Platform
 
-Monorepo chứa các microservice cho hệ thống thương mại điện tử với 5 service skeletons (Identity, Order, BFF, Catalog, Inventory), cơ sở hạ tầng Docker, Kong API Gateway và hợp đồng gRPC Protobuf được sinh mã tự động.
+Monorepo chứa frontend React và 6 microservice độc lập cho hệ thống thương mại
+điện tử: Identity, BFF, Catalog, Inventory, Cart và Order. Hệ thống hiện hỗ trợ
+luồng xác thực, hồ sơ người dùng, duyệt sản phẩm và giỏ hàng; luồng checkout và
+vòng đời đơn hàng vẫn đang ở giai đoạn nền tảng.
 
 ## Prerequisites
 
@@ -41,25 +44,37 @@ workflow PR nằm trong [`docs/rules/README.md`](docs/rules/README.md).
 
 ## Service map
 
-Hệ thống bao gồm 5 dịch vụ microservices:
-- **identity-service** (Java/Spring Boot): Quản lý danh tính người dùng và xác thực.
-- **order-service** (Java/Spring Boot): Xử lý và lưu trữ đơn hàng.
-- **bff-service** (Go): Backend-for-Frontend tổng hợp API cho client.
-- **catalog-service** (Go): Quản lý danh mục sản phẩm.
-- **inventory-service** (Go): Quản lý tồn kho sản phẩm.
+- **identity-service** (Java/Spring Boot): đăng ký, đăng nhập, JWT/JWKS,
+  refresh session, hồ sơ và danh mục địa giới Việt Nam.
+- **bff-service** (Go): REST adapter cho storefront và cart; gọi Catalog và
+  Cart trực tiếp qua gRPC.
+- **catalog-service** (Go): chi tiết sản phẩm, tìm kiếm/lọc/phân trang,
+  soft-delete, PostgreSQL và gRPC.
+- **inventory-service** (Go): tồn kho khả dụng từ quantity/reserved,
+  PostgreSQL và gRPC.
+- **cart-service** (Go): lưu giỏ hàng, CRUD line item và tổng hợp thông tin
+  sản phẩm/tồn kho từ Catalog và Inventory qua gRPC.
+- **order-service** (Java/Spring Boot): application skeleton và health check;
+  nghiệp vụ đặt hàng chưa được triển khai.
+- **ecommerce-fe** (React/TypeScript): storefront, auth/profile, tìm kiếm,
+  chi tiết sản phẩm, giỏ hàng và xem trước đơn hàng.
 
-## Public routes
+## Kong routes
 
-Các API công khai duy nhất được định tuyến qua Kong API Gateway (cổng `8000`):
-- `/api/v1/auth` -> Định tuyến tới `identity-service` (ví dụ: `/api/v1/auth/actuator/health`)
-- `/api/v1/users` -> Định tuyến tới `identity-service`
-- `/api/v1/storefront` -> Định tuyến tới `bff-service` (ví dụ: `/api/v1/storefront/healthz`)
+Browser chỉ gọi API qua Kong API Gateway tại cổng `8000`:
+
+- `/api/v1/auth` → Identity; register/login/refresh/logout và JWKS.
+- `/api/v1/users` và `/api/v1/locations` → Identity; được bảo vệ bởi
+  `caller-context` trừ các route auth công khai.
+- `/api/v1/storefront` → BFF; tìm kiếm và chi tiết sản phẩm.
+- `/api/v1/cart` → BFF; giỏ hàng có xác thực.
+- `/api/v1/admin` → BFF; soft-delete/restore sản phẩm trong cấu hình local.
 
 ## Local development
 
 - Chạy kiểm thử đơn vị Go:
   ```bash
-  go test ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/...
+  go test ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...
   ```
 - Chạy kiểm thử đơn vị Java:
   ```bash
@@ -101,7 +116,9 @@ Ví dụ body giả lập cho login:
 
 Identity dùng port `8080` khi chạy local trực tiếp. Access token mặc định có TTL 15 phút; refresh token opaque sống 30 ngày, chỉ được gửi trong cookie `HttpOnly`, `SameSite=Lax`, path `/api/v1/auth`. Local development đặt `IDENTITY_SESSION_COOKIE_SECURE=false`; môi trường HTTPS phải bật cờ này. Refresh token được rotate tại mỗi lần refresh. Dùng lại token đã rotate sẽ revoke toàn bộ session family, kể cả concurrent refresh không có grace interval. PEM được tạo chỉ dành cho local development, nằm ở `deployments/secrets/identity/`, và tuyệt đối không được commit hoặc tái sử dụng cho môi trường khác.
 
-Frontend demo tại `http://localhost:5173/profile`: đăng ký, đăng nhập, reload để khôi phục session, cập nhật tên, rồi logout. Sau logout, reload `/profile` chuyển về login.
+Frontend tại `http://localhost:5173` hỗ trợ đăng ký, đăng nhập, khôi phục
+session, cập nhật hồ sơ, tìm kiếm/xem sản phẩm và thao tác giỏ hàng. Trang
+`/gio-hang/dat-hang` chỉ xem trước các line item đã chọn; chưa tạo Order.
 
 ## Verification
 
@@ -116,12 +133,23 @@ make verify
 
 ## Security boundary
 
-- Tất cả các dịch vụ nội bộ (`catalog-service`, `inventory-service`, `order-service`) không được public ra bên ngoài và chỉ truy cập được trong mạng Docker `ecommerce-net`.
+- Các dịch vụ nội bộ (`catalog-service`, `inventory-service`, `cart-service`,
+  `order-service`) không có public Kong route; direct host port chỉ phục vụ
+  local development và diagnostics.
 - Kong API Gateway là cổng duy nhất cho traffic bên ngoài đi vào hệ thống.
 - Các secret và mật khẩu local chỉ nằm trong tệp `.env` (không được commit lên Git).
 
-## Known phase-0 limitations
+## Current limitations
 
-- Phase 0 tập trung xây dựng nền tảng khung (skeletons), chưa triển khai logic nghiệp vụ chi tiết (checkout, giao dịch DB, RabbitMQ consumer).
-- Kong JWT plugin chưa kích hoạt ở Phase 0 do Identity service chưa phát hành JWT token chính thức.
-- Không sử dụng `docker compose down -v` mặc định để tránh mất dữ liệu volume local trừ khi cần xóa sạch hoàn toàn.
+- Order chưa triển khai create-order, persistence, idempotency hoặc
+  transactional outbox; frontend order preview chưa submit checkout.
+- Inventory mới hỗ trợ đọc tồn khả dụng; chưa có reserve/release, reservation
+  TTL, RabbitMQ consumer hoặc event publication.
+- Redis và RabbitMQ được provision cho kiến trúc mục tiêu nhưng chưa được
+  application code sử dụng.
+- OpenAPI hiện chưa bao phủ toàn bộ REST surface; protobuf là contract đã được
+  sinh mã cho các gRPC service.
+- Route admin local chưa gắn plugin xác thực và không phù hợp để expose ngoài
+  môi trường phát triển.
+- Không sử dụng `docker compose down -v` trong luồng thông thường vì thao tác
+  đó xóa dữ liệu volume local.

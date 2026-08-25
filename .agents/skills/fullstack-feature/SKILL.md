@@ -28,6 +28,9 @@ Khi cần xác định context hoặc repository có nhiều service, đọc
 
 - Giữ primary agent chịu trách nhiệm end-to-end và cho phép primary trực tiếp viết
   code trong single-agent mode.
+- Xem primary agent là authority mặc định cho shared/durable interface và quyết
+  định cross-surface, trừ khi ownership đó đã được giao rõ cho `architect` hoặc
+  một owner khác.
 - Ưu tiên single-agent. Chỉ delegate khi phần việc độc lập đủ để giảm thời gian hoặc
   khi người dùng/workspace yêu cầu nhiều agent.
 - Phân chia theo implementation surface và ownership thực tế, không mặc định theo
@@ -78,6 +81,8 @@ Chọn selective delegation khi có từ hai implementation unit độc lập, o
 - target surface và ownership boundary;
 - interface/spec cần tuân thủ;
 - instructions cần đọc;
+- test artifacts và test levels thuộc QA ownership khi có delegate QA, cùng các
+  local regression tests vẫn thuộc surface owner;
 - verification cần chạy;
 - format báo cáo files changed, command và result.
 
@@ -107,6 +112,10 @@ phụ thuộc tuần tự.
 - Thêm regression coverage cho mọi behavior path thay đổi theo local convention.
 - Nếu dùng multi-agent, giao test/QA độc lập với implementation khi việc đó mang lại
   kiểm chứng thực sự; không bắt buộc tạo QA agent cho thay đổi nhỏ.
+- Khi không delegate QA, surface owner sở hữu local regression tests. Khi có
+  delegate QA, implementation owner xem các test artifacts đã giao cho QA là
+  read-only và vẫn sở hữu local tests không giao cho QA, trừ khi primary agent
+  chuyển ownership hoặc xác nhận test sai theo self-heal protocol.
 - Triển khai theo dependency order trong single-agent mode, hoặc song song chỉ với
   các unit đã độc lập.
 - Không sửa file generated thủ công và không mở rộng ownership ngoài scope nếu chưa
