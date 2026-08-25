@@ -63,6 +63,9 @@ public class ShippingAddressService {
         String provinceCode = resolveRequired(command.provinceCode(), address.provinceCode(), "provinceCode");
         String wardCode = resolveRequired(command.wardCode(), address.wardCode(), "wardCode");
         validateLocation(provinceCode, wardCode);
+        rejectClear(command.recipientName(), "recipientName");
+        rejectClear(command.phone(), "phone");
+        rejectClear(command.addressLine(), "addressLine");
         address.apply(new UpdateShippingAddressCommand(
                 command.recipientName(), command.phone(), ShippingAddressPatch.set(provinceCode),
                 ShippingAddressPatch.set(wardCode), command.addressLine(), command.label()), clock.instant());
@@ -126,6 +129,12 @@ public class ShippingAddressService {
             case SET -> required(patch.value(), field);
             case CLEAR -> throw new InvalidProfileLocationException(Map.of(field, "must not be blank"));
         };
+    }
+
+    private static void rejectClear(ShippingAddressPatch<String> patch, String field) {
+        if (patch.action() == ShippingAddressPatch.Action.CLEAR) {
+            throw new InvalidProfileLocationException(Map.of(field, "must not be blank"));
+        }
     }
 
     private static String required(String value, String field) {

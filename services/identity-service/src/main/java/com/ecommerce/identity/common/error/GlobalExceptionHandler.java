@@ -5,6 +5,7 @@ import com.ecommerce.identity.auth.domain.AuthenticationUnavailableException;
 import com.ecommerce.identity.auth.domain.InvalidCredentialsException;
 import com.ecommerce.identity.auth.domain.InvalidRefreshTokenException;
 import com.ecommerce.identity.location.ProvinceNotFoundException;
+import com.ecommerce.identity.address.domain.ShippingAddressNotFoundException;
 import com.ecommerce.identity.rbac.domain.InvalidRbacItemException;
 import com.ecommerce.identity.rbac.domain.RbacHierarchyConflictException;
 import com.ecommerce.identity.rbac.domain.RbacItemExistsException;
@@ -70,6 +71,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UserNotFoundException.class)
     ResponseEntity<ApiError> handleUserNotFound(UserNotFoundException exception) {
         return error(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found");
+    }
+
+    @ExceptionHandler(ShippingAddressNotFoundException.class)
+    ResponseEntity<ApiError> handleShippingAddressNotFound(ShippingAddressNotFoundException exception) {
+        return error(HttpStatus.NOT_FOUND, "ADDRESS_NOT_FOUND", "Shipping address not found");
     }
 
     @ExceptionHandler(ProvinceNotFoundException.class)
