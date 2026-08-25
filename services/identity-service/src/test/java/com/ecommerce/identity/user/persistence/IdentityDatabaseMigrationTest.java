@@ -203,4 +203,29 @@ class IdentityDatabaseMigrationTest extends PostgresIntegrationTestSupport {
                 where conrelid = 'refresh_token_sessions'::regclass and contype = 'u'
                 """).query(String.class).list()).contains("uq_refresh_token_sessions_token_hash");
     }
+
+    @Test
+    void createsShippingAddressColumnsAndOneDefaultConstraint() {
+        assertThat(jdbc.sql("""
+                select column_name || ':' || data_type || ':'
+                        || coalesce(character_maximum_length::text, '') || ':' || is_nullable
+                from information_schema.columns
+                where table_schema = 'public' and table_name = 'shipping_addresses'
+                """).query(String.class).list())
+                .contains(
+                        "id:uuid::NO",
+                        "user_id:uuid::NO",
+                        "recipient_name:character varying:100:NO",
+                        "phone:character varying:20:NO",
+                        "province_code:character varying:20:NO",
+                        "ward_code:character varying:20:NO",
+                        "address_line:character varying:255:NO",
+                        "label:character varying:50:YES",
+                        "is_default:boolean::NO");
+        assertThat(jdbc.sql("""
+                select indexname from pg_indexes
+                where schemaname = 'public' and tablename = 'shipping_addresses'
+                """).query(String.class).list())
+                .contains("uq_shipping_addresses_default_per_user");
+    }
 }
