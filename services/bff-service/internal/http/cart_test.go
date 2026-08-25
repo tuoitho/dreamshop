@@ -310,3 +310,33 @@ func TestCartUnavailableMapsToBadGateway(t *testing.T) {
 		t.Fatalf("expected code CART_UNAVAILABLE, got %v", body["code"])
 	}
 }
+
+func TestCartPermissionDeniedMapsToForbidden(t *testing.T) {
+	client := &fakeCartClient{addFn: func(context.Context, string, string, string, int32) (*cartv1.AddItemResponse, error) {
+		return nil, cartclient.ErrPermissionDenied
+	}}
+	req := httptest.NewRequest(http.MethodPost, "/items", strings.NewReader(`{"productId":"dt-1","variantLabel":"red","quantity":2}`))
+	req.Header.Set("X-User-Id", "user-1")
+	rec := httptest.NewRecorder()
+	newCartTestMux(t, client).ServeHTTP(rec, req)
+
+	body := decodeBody(t, rec)
+	if rec.Code != http.StatusForbidden || body["code"] != "FORBIDDEN" {
+		t.Fatalf("denied response = %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestCartAuthorizationUnavailableMapsToServiceUnavailable(t *testing.T) {
+	client := &fakeCartClient{addFn: func(context.Context, string, string, string, int32) (*cartv1.AddItemResponse, error) {
+		return nil, cartclient.ErrAuthorizationUnavailable
+	}}
+	req := httptest.NewRequest(http.MethodPost, "/items", strings.NewReader(`{"productId":"dt-1","variantLabel":"red","quantity":2}`))
+	req.Header.Set("X-User-Id", "user-1")
+	rec := httptest.NewRecorder()
+	newCartTestMux(t, client).ServeHTTP(rec, req)
+
+	body := decodeBody(t, rec)
+	if rec.Code != http.StatusServiceUnavailable || body["code"] != "AUTHORIZATION_SERVICE_UNAVAILABLE" {
+		t.Fatalf("unavailable response = %d %s", rec.Code, rec.Body.String())
+	}
+}

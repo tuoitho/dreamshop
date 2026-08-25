@@ -8,13 +8,18 @@ import (
 	"time"
 
 	cartv1 "ecommerce.local/contracts/go/cart/v1"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 )
 
-var ErrCartItemNotFound = errors.New("cart: item not found")
+var (
+	ErrCartItemNotFound         = errors.New("cart: item not found")
+	ErrPermissionDenied         = errors.New("cart: permission denied")
+	ErrAuthorizationUnavailable = errors.New("cart: authorization unavailable")
+)
 
 type Client interface {
 	GetCart(ctx context.Context, userID string) (*cartv1.GetCartResponse, error)
@@ -81,10 +86,25 @@ func (c *client) mapError(err error) error {
 	if err == nil {
 		return nil
 	}
+	if reason := cartErrorReason(err); reason == "CART_PERMISSION_DENIED" {
+		return fmt.Errorf("%w: %v", ErrPermissionDenied, err)
+	} else if reason == "AUTHORIZATION_UNAVAILABLE" {
+		return fmt.Errorf("%w: %v", ErrAuthorizationUnavailable, err)
+	}
 	if status.Code(err) == codes.NotFound {
 		return fmt.Errorf("%w: %v", ErrCartItemNotFound, err)
 	}
 	return err
+}
+
+func cartErrorReason(err error) string {
+	for _, detail := range status.Convert(err).Details() {
+		info, ok := detail.(*errdetails.ErrorInfo)
+		if ok && info.GetDomain() == "ecommerce.cart.v1" {
+			return info.GetReason()
+		}
+	}
+	return ""
 }
 
 func (c *client) withTimeout(ctx context.Context) (context.Context, context.CancelFunc) {

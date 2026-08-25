@@ -8,6 +8,7 @@ import (
 	"time"
 
 	cartv1 "ecommerce.local/contracts/go/cart/v1"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -22,6 +23,7 @@ type recordingCartServer struct {
 	clearRequest  *cartv1.ClearCartRequest
 	getBlock      bool
 	getErr        error
+	addErr        error
 }
 
 func (s *recordingCartServer) GetCart(ctx context.Context, req *cartv1.GetCartRequest) (*cartv1.GetCartResponse, error) {
@@ -38,6 +40,9 @@ func (s *recordingCartServer) GetCart(ctx context.Context, req *cartv1.GetCartRe
 
 func (s *recordingCartServer) AddItem(_ context.Context, req *cartv1.AddItemRequest) (*cartv1.AddItemResponse, error) {
 	s.addRequest = req
+	if s.addErr != nil {
+		return nil, s.addErr
+	}
 	return &cartv1.AddItemResponse{Cart: &cartv1.Cart{}}, nil
 }
 
@@ -150,5 +155,45 @@ func TestClientPreservesNonNotFoundGRPCStatusErrors(t *testing.T) {
 				t.Fatalf("GetCart() error unexpectedly mapped to ErrCartItemNotFound: %v", err)
 			}
 		})
+	}
+}
+
+func TestClientMapsCartPermissionErrorInfoToErrPermissionDenied(t *testing.T) {
+	err := status.New(codes.PermissionDenied, "permission denied")
+	err, detailErr := err.WithDetails(&errdetails.ErrorInfo{Domain: "ecommerce.cart.v1", Reason: "CART_PERMISSION_DENIED"})
+	if detailErr != nil {
+		t.Fatalf("add error details: %v", detailErr)
+	}
+	client := newRecordingCartClient(t, &recordingCartServer{addErr: err.Err()}, time.Second)
+
+	_, got := client.AddItem(context.Background(), "user-1", "product-1", "red", 2)
+	if !errors.Is(got, ErrPermissionDenied) {
+		t.Fatalf("error = %v, want ErrPermissionDenied", got)
+	}
+}
+
+func TestClientMapsCartAuthorizationUnavailableErrorInfoToErrAuthorizationUnavailable(t *testing.T) {
+	err := status.New(codes.Unavailable, "authorization unavailable")
+	err, detailErr := err.WithDetails(&errdetails.ErrorInfo{Domain: "ecommerce.cart.v1", Reason: "AUTHORIZATION_UNAVAILABLE"})
+	if detailErr != nil {
+		t.Fatalf("add error details: %v", detailErr)
+	}
+	client := newRecordingCartClient(t, &recordingCartServer{addErr: err.Err()}, time.Second)
+
+	_, got := client.AddItem(context.Background(), "user-1", "product-1", "red", 2)
+	if !errors.Is(got, ErrAuthorizationUnavailable) {
+		t.Fatalf("error = %v, want ErrAuthorizationUnavailable", got)
+	}
+}
+
+func TestClientPreservesBareCartUnavailableError(t *testing.T) {
+	client := newRecordingCartClient(t, &recordingCartServer{addErr: status.Error(codes.Unavailable, "cart down")}, time.Second)
+
+	_, err := client.AddItem(context.Background(), "user-1", "product-1", "red", 2)
+	if status.Code(err) != codes.Unavailable {
+		t.Fatalf("error code = %s, want Unavailable; error = %v", status.Code(err), err)
+	}
+	if errors.Is(err, ErrPermissionDenied) || errors.Is(err, ErrAuthorizationUnavailable) {
+		t.Fatalf("bare Cart outage unexpectedly matched authorization sentinel: %v", err)
 	}
 }
