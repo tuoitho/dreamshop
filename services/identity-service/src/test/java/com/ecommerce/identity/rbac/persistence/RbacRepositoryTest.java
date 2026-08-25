@@ -13,7 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
-class RbacJpaRepositoryTest extends PostgresIntegrationTestSupport {
+class RbacRepositoryTest extends PostgresIntegrationTestSupport {
     private static final UUID USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000088");
     private static final Instant NOW = Instant.parse("2026-08-25T00:00:00Z");
 
@@ -21,7 +21,7 @@ class RbacJpaRepositoryTest extends PostgresIntegrationTestSupport {
     JdbcTemplate jdbc;
 
     @Autowired
-    RbacJpaRepository repository;
+    RbacRepository repository;
 
     @BeforeEach
     void reset() {
@@ -36,14 +36,22 @@ class RbacJpaRepositoryTest extends PostgresIntegrationTestSupport {
     }
 
     @Test
+    void usesDerivedQueriesForSimpleAuthorizationItemReads() {
+        assertThat(repository.existsByNameAndType("CUSTOMER", AuthItemType.ROLE)).isTrue();
+        assertThat(repository.findAllByTypeOrderByName(AuthItemType.PERMISSION))
+                .extracting(AuthItemEntity::getName)
+                .contains("address.create", "cart.item.add");
+        assertThat(repository.findById("CUSTOMER")).isPresent();
+    }
+
+    @Test
     void resolvesAssignmentsAndCurrentPermissionsWithNativeQueries() {
         assertThat(repository.insertAssignment(USER_ID, "CUSTOMER", NOW)).isEqualTo(1);
 
-        assertThat(repository.findAssignedRoles(USER_ID)).containsExactly("CUSTOMER");
+        assertThat(repository.findAssignedRoleNames(USER_ID)).containsExactly("CUSTOMER");
         assertThat(repository.findAllowedPermissionNames(
                 USER_ID, List.of("address.create", "rbac.manage", "missing.permission")))
                 .containsExactly("address.create");
-        assertThat(repository.existsRole("CUSTOMER")).isTrue();
         assertThat(repository.deleteAssignment(USER_ID, "CUSTOMER")).isEqualTo(1);
         assertThat(repository.findAllowedPermissionNames(USER_ID, List.of("address.create")))
                 .isEmpty();
@@ -56,18 +64,18 @@ class RbacJpaRepositoryTest extends PostgresIntegrationTestSupport {
         assertThat(repository.insertItem("ticket.view", "PERMISSION", "View tickets", NOW)).isEqualTo(1);
         assertThat(repository.insertChild("SUPPORT", "ticket.view")).isEqualTo(1);
 
-        AuthItemEntity item = repository.findItem("ticket.view").orElseThrow();
+        AuthItemEntity item = repository.findById("ticket.view").orElseThrow();
         assertThat(item.getType()).isEqualTo(AuthItemType.PERMISSION);
-        assertThat(repository.findDirectChildren("SUPPORT")).containsExactly("ticket.view");
+        assertThat(repository.findDirectChildNames("SUPPORT")).containsExactly("ticket.view");
         assertThat(repository.wouldCreateCycle("ticket.view", "SUPPORT")).isTrue();
 
         assertThat(repository.updateItem(
-                "ticket.view", "ticket.audit", "Audit tickets", NOW.plusSeconds(1))).isEqualTo(1);
-        assertThat(repository.findItem("ticket.audit").orElseThrow().getDescription())
+                "ticket.view", "ticket.audit", "Audit tickets", NOW.plusSeconds(1))).isTrue();
+        assertThat(repository.findById("ticket.audit").orElseThrow().getDescription())
                 .isEqualTo("Audit tickets");
         assertThat(repository.deleteChild("SUPPORT", "ticket.audit")).isEqualTo(1);
-        assertThat(repository.deleteCustomItem("ticket.audit")).isEqualTo(1);
-        assertThat(repository.deleteCustomItem("SUPPORT")).isEqualTo(1);
+        assertThat(repository.deleteByNameAndSystemItemFalse("ticket.audit")).isEqualTo(1);
+        assertThat(repository.deleteByNameAndSystemItemFalse("SUPPORT")).isEqualTo(1);
     }
 
     @Test
