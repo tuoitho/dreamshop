@@ -1,7 +1,9 @@
-package com.ecommerce.identity.security;
+package com.ecommerce.identity.security.config;
 
 import com.ecommerce.identity.common.error.ApiError;
 import com.ecommerce.identity.common.error.TraceIdProvider;
+import com.ecommerce.identity.security.context.CallerContextFilter;
+import com.ecommerce.identity.security.context.CallerContextPrincipal;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import tools.jackson.databind.ObjectMapper;

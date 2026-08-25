@@ -1,4 +1,4 @@
-package com.ecommerce.identity.security;
+package com.ecommerce.identity.security.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.ecommerce.identity.support.PostgresIntegrationTestSupport;
 import com.ecommerce.identity.rbac.support.RbacTestData;
+import com.ecommerce.identity.security.jwt.SigningKeyMaterial;
 import com.jayway.jsonpath.JsonPath;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;

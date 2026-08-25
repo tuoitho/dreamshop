@@ -1,4 +1,4 @@
-package com.ecommerce.identity.security;
+package com.ecommerce.identity.security.jwt;
 
 import com.ecommerce.identity.common.config.IdentityJwtProperties;
 import com.nimbusds.jose.JWSAlgorithm;

@@ -1,7 +1,7 @@
 package com.ecommerce.identity.rbac.application;
 
 import com.ecommerce.identity.rbac.persistence.RbacRepository;
-import com.ecommerce.identity.security.CallerContextPrincipal;
+import com.ecommerce.identity.security.context.CallerContextPrincipal;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;

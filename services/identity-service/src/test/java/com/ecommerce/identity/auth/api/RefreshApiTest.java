@@ -1,7 +1,7 @@
 package com.ecommerce.identity.auth.api;
 
 import com.ecommerce.identity.auth.application.AccessTokenResult;
-import com.ecommerce.identity.security.JwtTokenService;
+import com.ecommerce.identity.security.jwt.JwtTokenService;
 import com.ecommerce.identity.support.PostgresIntegrationTestSupport;
 import com.ecommerce.identity.rbac.support.RbacTestData;
 import jakarta.servlet.http.Cookie;
