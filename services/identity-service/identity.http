@@ -40,10 +40,6 @@ Content-Type: application/json
   "password": "SecurePassword123!"
 }
 
-# > {%
-#  client.global.set("accessToken", response.body.data.accessToken);
-# %}
-
 
 ### Refresh Access Token
 # The HTTP client retains the HttpOnly refresh_token cookie from login.
