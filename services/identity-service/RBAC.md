@@ -33,6 +33,29 @@ hierarchy, user-status, and assignment changes. The final active
 `SUPER_ADMIN` assignment cannot be revoked, and a super administrator cannot be
 disabled when it is the last active assignment.
 
+## Opt-in startup seed
+
+For local development, Identity can create a `SUPER_ADMIN` during application
+startup when all three variables below are supplied:
+
+```powershell
+$env:IDENTITY_BOOTSTRAP_SUPER_ADMIN_EMAIL = "root@example.test"
+$env:IDENTITY_BOOTSTRAP_SUPER_ADMIN_PASSWORD = "SecurePassword123!"
+$env:IDENTITY_BOOTSTRAP_SUPER_ADMIN_FULL_NAME = "Local Root"
+```
+
+The equivalent shell variables are
+`IDENTITY_BOOTSTRAP_SUPER_ADMIN_EMAIL`,
+`IDENTITY_BOOTSTRAP_SUPER_ADMIN_PASSWORD`, and
+`IDENTITY_BOOTSTRAP_SUPER_ADMIN_FULL_NAME`. The feature is disabled when any
+variable is missing. If the email already exists, startup leaves that account's
+password, status, and roles unchanged. Credentials are read from environment
+or a secret manager and are never logged or committed.
+
+This seed is intended for explicit local/bootstrap use. Do not enable it in
+production unless the values come from a controlled secret manager and the
+resulting account is reviewed.
+
 ## Permission changes
 
 The customer address permissions are independent:
