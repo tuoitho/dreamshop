@@ -3,6 +3,8 @@ package com.ecommerce.identity.rbac.persistence;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.ecommerce.identity.support.PostgresIntegrationTestSupport;
+import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,28 +39,44 @@ class RbacPersistenceTest extends PostgresIntegrationTestSupport {
 
     @Test
     void resolvesAssignedRolesAndNestedPermissionsForActiveUser() {
-        repository.assignRole(USER_ID, "CUSTOMER", java.time.Instant.now());
+        repository.assignRole(USER_ID, "CUSTOMER", Instant.now());
 
         assertThat(repository.assignedRoles(USER_ID)).containsExactly("CUSTOMER");
-        assertThat(repository.hasPermission(USER_ID, "address.create")).isTrue();
-        assertThat(repository.hasPermission(USER_ID, "rbac.manage")).isFalse();
+        assertThat(repository.findAllowedPermissions(USER_ID,
+                List.of("address.create", "rbac.manage"))).containsExactly("address.create");
     }
 
     @Test
     void deniesPermissionsForDisabledUser() {
-        repository.assignRole(USER_ID, "CUSTOMER", java.time.Instant.now());
+        repository.assignRole(USER_ID, "CUSTOMER", Instant.now());
         jdbcTemplate.update("update identity_users set status = 'DISABLED' where id = ?", USER_ID);
 
-        assertThat(repository.hasPermission(USER_ID, "address.create")).isFalse();
+        assertThat(repository.findAllowedPermissions(USER_ID, List.of("address.create"))).isEmpty();
     }
 
     @Test
     void superAdminReceivesPermissionCreatedAfterAssignment() {
-        repository.assignRole(USER_ID, "SUPER_ADMIN", java.time.Instant.now());
+        repository.assignRole(USER_ID, "SUPER_ADMIN", Instant.now());
         jdbcTemplate.update("insert into auth_items "
                 + "(name, type, description, system_item, created_at, updated_at) "
                 + "values ('ticket.view', 'PERMISSION', 'View tickets', false, now(), now())");
 
-        assertThat(repository.hasPermission(USER_ID, "ticket.view")).isTrue();
+        assertThat(repository.findAllowedPermissions(USER_ID, List.of("ticket.view")))
+                .containsExactly("ticket.view");
+    }
+
+    @Test
+    @org.springframework.transaction.annotation.Transactional
+    void resolvesCurrentAllowedSubsetAndReflectsRevocationImmediately() {
+        repository.assignRole(USER_ID, "CUSTOMER", Instant.now());
+
+        assertThat(repository.findAllowedPermissions(USER_ID,
+                List.of("cart.item.add", "rbac.manage", "missing.permission")))
+                .containsExactly("cart.item.add");
+
+        jdbcTemplate.update("delete from auth_item_children "
+                + "where parent_name = 'CUSTOMER' and child_name = 'cart.item.add'");
+
+        assertThat(repository.findAllowedPermissions(USER_ID, List.of("cart.item.add"))).isEmpty();
     }
 }

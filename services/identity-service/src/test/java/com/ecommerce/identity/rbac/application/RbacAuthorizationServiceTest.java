@@ -5,6 +5,7 @@ import static org.mockito.Mockito.when;
 
 import com.ecommerce.identity.rbac.persistence.RbacRepository;
 import com.ecommerce.identity.security.CallerContextPrincipal;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -19,10 +20,27 @@ class RbacAuthorizationServiceTest {
 
     @Test
     void delegatesPermissionCheckToCurrentDatabaseState() {
-        when(repository.hasPermission(userId, "address.create")).thenReturn(true);
+        when(repository.findAllowedPermissions(userId, List.of("address.create")))
+                .thenReturn(Set.of("address.create"));
 
         assertThat(service.can(new CallerContextPrincipal(userId, Set.of("CUSTOMER")),
                 "address.create")).isTrue();
+    }
+
+    @Test
+    void checksPermissionForExplicitUserId() {
+        when(repository.findAllowedPermissions(userId, List.of("cart.item.add")))
+                .thenReturn(Set.of("cart.item.add"));
+
+        assertThat(service.can(userId, "cart.item.add")).isTrue();
+    }
+
+    @Test
+    void returnsAllowedSubsetForBatchWithoutLosingInputContract() {
+        List<String> requested = List.of("cart.item.add", "cart.item.remove");
+        when(repository.findAllowedPermissions(userId, requested)).thenReturn(Set.of("cart.item.add"));
+
+        assertThat(service.allowedPermissions(userId, requested)).containsExactly("cart.item.add");
     }
 
     @Test
@@ -30,7 +48,7 @@ class RbacAuthorizationServiceTest {
         Authentication unrelated = new UsernamePasswordAuthenticationToken("user", "credentials");
 
         assertThat(service.can(unrelated, "address.create")).isFalse();
-        assertThat(service.can(null, "address.create")).isFalse();
+        assertThat(service.can((Authentication) null, "address.create")).isFalse();
         assertThat(service.can(new CallerContextPrincipal(userId, Set.of("CUSTOMER")), " ")).isFalse();
         assertThat(service.can(new CallerContextPrincipal(userId, Set.of("CUSTOMER")), null)).isFalse();
     }

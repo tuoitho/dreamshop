@@ -5,6 +5,9 @@ import com.ecommerce.identity.rbac.domain.RbacItem;
 import java.time.Instant;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -32,7 +35,14 @@ public class RbacRepository {
     }
 
     public boolean hasPermission(UUID userId, String permission) {
-        Boolean result = jdbc.sql("""
+        return findAllowedPermissions(userId, List.of(permission)).contains(permission);
+    }
+
+    public Set<String> findAllowedPermissions(UUID userId, Collection<String> permissions) {
+        if (permissions.isEmpty()) {
+            return Set.of();
+        }
+        List<String> allowed = jdbc.sql("""
                 with recursive reachable(name) as (
                     select a.item_name
                     from auth_assignments a
@@ -43,26 +53,21 @@ public class RbacRepository {
                     from auth_item_children c
                     join reachable r on r.name = c.parent_name
                 )
-                select exists (
-                    select 1
-                    from auth_items target
-                    where target.name = :permission
-                      and (
-                          exists (select 1 from reachable where name = 'SUPER_ADMIN')
-                          or exists (
-                              select 1
-                              from reachable r
-                              join auth_items i on i.name = r.name and i.type = 'PERMISSION'
-                              where r.name = :permission
-                          )
-                      )
-                )
+                select target.name
+                from auth_items target
+                where target.type = 'PERMISSION'
+                  and target.name in (:permissions)
+                  and (
+                      exists (select 1 from reachable where name = 'SUPER_ADMIN')
+                      or exists (select 1 from reachable where name = target.name)
+                  )
+                order by target.name
                 """)
                 .param("userId", userId)
-                .param("permission", permission)
-                .query(Boolean.class)
-                .single();
-        return Boolean.TRUE.equals(result);
+                .param("permissions", permissions)
+                .query(String.class)
+                .list();
+        return Collections.unmodifiableSet(new LinkedHashSet<>(allowed));
     }
 
     public boolean roleExists(String roleName) {
