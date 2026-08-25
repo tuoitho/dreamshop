@@ -15,6 +15,7 @@ import (
 	inventoryv1 "ecommerce.local/contracts/go/inventory/v1"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -23,6 +24,8 @@ const (
 	grpcErrorDomain                = "ecommerce.cart.v1"
 	reasonCartPermissionDenied     = "CART_PERMISSION_DENIED"
 	reasonAuthorizationUnavailable = "AUTHORIZATION_UNAVAILABLE"
+	traceMetadataKey               = "x-trace-id"
+	maxTraceIDLength               = 64
 )
 
 type cartStore interface {
@@ -94,16 +97,19 @@ func (s *Server) AddItem(ctx context.Context, req *cartv1.AddItemRequest) (*cart
 	if err := positiveQuantity(req.GetQuantity()); err != nil {
 		return nil, err
 	}
-	allowed, err := s.authorization.CheckPermission(ctx, userID, cartItemAddPermission)
+	authorizationCtx, traceID := withAuthorizationTrace(ctx)
+	allowed, err := s.authorization.CheckPermission(authorizationCtx, userID, cartItemAddPermission)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, status.FromContextError(ctx.Err()).Err()
 		}
-		slog.WarnContext(ctx, "cart item authorization unavailable", "user_id", userID, "permission", cartItemAddPermission)
+		slog.WarnContext(ctx, "cart item authorization unavailable", "user_id", userID,
+			"permission", cartItemAddPermission, "trace_id", traceID)
 		return nil, statusWithReason(codes.Unavailable, "authorization service is unavailable", reasonAuthorizationUnavailable)
 	}
 	if !allowed {
-		slog.DebugContext(ctx, "cart item authorization denied", "user_id", userID, "permission", cartItemAddPermission)
+		slog.DebugContext(ctx, "cart item authorization denied", "user_id", userID,
+			"permission", cartItemAddPermission, "trace_id", traceID)
 		return nil, statusWithReason(codes.PermissionDenied, "cart permission denied", reasonCartPermissionDenied)
 	}
 	cartID, err := s.store.EnsureCart(ctx, userID)
@@ -118,6 +124,33 @@ func (s *Server) AddItem(ctx context.Context, req *cartv1.AddItemRequest) (*cart
 		return nil, err
 	}
 	return &cartv1.AddItemResponse{Cart: cart}, nil
+}
+
+func withAuthorizationTrace(ctx context.Context) (context.Context, string) {
+	incoming, _ := metadata.FromIncomingContext(ctx)
+	values := incoming.Get(traceMetadataKey)
+	if len(values) != 1 || !validTraceID(values[0]) {
+		return ctx, ""
+	}
+	outgoing, _ := metadata.FromOutgoingContext(ctx)
+	outgoing = outgoing.Copy()
+	outgoing.Set(traceMetadataKey, values[0])
+	return metadata.NewOutgoingContext(ctx, outgoing), values[0]
+}
+
+func validTraceID(candidate string) bool {
+	if len(candidate) == 0 || len(candidate) > maxTraceIDLength {
+		return false
+	}
+	for i := range len(candidate) {
+		value := candidate[i]
+		if (value >= 'a' && value <= 'z') || (value >= 'A' && value <= 'Z') ||
+			(value >= '0' && value <= '9') || value == '-' || value == '_' || value == '.' {
+			continue
+		}
+		return false
+	}
+	return true
 }
 
 func (s *Server) UpdateItemQuantity(ctx context.Context, req *cartv1.UpdateItemQuantityRequest) (*cartv1.UpdateItemQuantityResponse, error) {

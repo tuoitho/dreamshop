@@ -1,23 +1,29 @@
 package grpc
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"log/slog"
 	"net"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"ecommerce.local/cart-service/internal/authorization"
 	"ecommerce.local/cart-service/internal/domain"
 	cartstore "ecommerce.local/cart-service/internal/store"
 	cartv1 "ecommerce.local/contracts/go/cart/v1"
 	catalogv1 "ecommerce.local/contracts/go/catalog/v1"
 	commonv1 "ecommerce.local/contracts/go/common/v1"
+	identityv1 "ecommerce.local/contracts/go/identity/v1"
 	inventoryv1 "ecommerce.local/contracts/go/inventory/v1"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 )
@@ -548,6 +554,67 @@ func TestAddItemAuthorizationOutageLeavesCartAndDependenciesUntouched(t *testing
 	assertErrorInfoReason(t, err, "AUTHORIZATION_UNAVAILABLE")
 	if store.ensureUserID != "" || len(store.addArgs) != 0 || len(catalog.called) != 0 || len(inventory.called) != 0 {
 		t.Fatalf("unavailable AddItem side effects = ensure=%q add=%v catalog=%v inventory=%v, want none", store.ensureUserID, store.addArgs, catalog.called, inventory.called)
+	}
+}
+
+type traceRecordingAuthorizationServer struct {
+	identityv1.UnimplementedAuthorizationServiceServer
+	traceID string
+}
+
+func (s *traceRecordingAuthorizationServer) CheckPermission(ctx context.Context, _ *identityv1.CheckPermissionRequest) (*identityv1.CheckPermissionResponse, error) {
+	if values := metadata.ValueFromIncomingContext(ctx, "x-trace-id"); len(values) == 1 {
+		s.traceID = values[0]
+	}
+	return nil, status.Error(codes.Unavailable, "identity unavailable")
+}
+
+func newTraceRecordingAuthorizationClient(t *testing.T) (*traceRecordingAuthorizationServer, authorization.Client) {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen for Identity authorization: %v", err)
+	}
+	server := &traceRecordingAuthorizationServer{}
+	grpcServer := grpc.NewServer()
+	identityv1.RegisterAuthorizationServiceServer(grpcServer, server)
+	go func() { _ = grpcServer.Serve(listener) }()
+	t.Cleanup(func() {
+		grpcServer.Stop()
+		_ = listener.Close()
+	})
+
+	client, err := authorization.NewClient(listener.Addr().String(), time.Second)
+	if err != nil {
+		t.Fatalf("create Identity authorization client: %v", err)
+	}
+	t.Cleanup(func() { _ = client.Close() })
+	return server, client
+}
+
+func TestAddItemForwardsIncomingTraceToIdentityAndLogsIt(t *testing.T) {
+	previousLogger := slog.Default()
+	var logs bytes.Buffer
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&logs, nil)))
+	t.Cleanup(func() { slog.SetDefault(previousLogger) })
+
+	identityServer, authorizationClient := newTraceRecordingAuthorizationClient(t)
+	client := newBufconnClient(t, NewServer(&fakeStore{cartID: "cart-1"}, &fakeCatalog{}, &fakeInventory{}, authorizationClient))
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "x-trace-id", "trace-abc-123")
+
+	_, err := client.AddItem(ctx, &cartv1.AddItemRequest{
+		UserId: "user-1", ProductId: "p-1", VariantLabel: "red", Quantity: 1,
+	})
+
+	if status.Code(err) != codes.Unavailable {
+		t.Fatalf("AddItem() code = %v, want Unavailable", status.Code(err))
+	}
+	assertErrorInfoReason(t, err, "AUTHORIZATION_UNAVAILABLE")
+	if identityServer.traceID != "trace-abc-123" {
+		t.Fatalf("Identity metadata trace = %q, want trace-abc-123", identityServer.traceID)
+	}
+	if !strings.Contains(logs.String(), `"trace_id":"trace-abc-123"`) {
+		t.Fatalf("authorization log = %s, want propagated trace_id", logs.String())
 	}
 }
 

@@ -1,11 +1,22 @@
 package http
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
+
+	"google.golang.org/grpc/metadata"
 )
+
+const (
+	traceHeader      = "X-Trace-Id"
+	traceMetadataKey = "x-trace-id"
+	maxTraceIDLength = 64
+)
+
+type traceIDKey struct{}
 
 // envelope is the shared success response shape documented in the repository
 // REST contract.
@@ -42,13 +53,48 @@ func writeError(w http.ResponseWriter, r *http.Request, status int, code, messag
 	})
 }
 
-// requestTraceID returns the caller-provided correlation id when present,
-// otherwise generates a short random hex id for the response.
+func correlateTrace(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		traceID := resolveTraceID(r.Header.Get(traceHeader))
+		ctx := context.WithValue(r.Context(), traceIDKey{}, traceID)
+		outgoing, _ := metadata.FromOutgoingContext(ctx)
+		outgoing = outgoing.Copy()
+		outgoing.Set(traceMetadataKey, traceID)
+		ctx = metadata.NewOutgoingContext(ctx, outgoing)
+		w.Header().Set(traceHeader, traceID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// requestTraceID returns the request's resolved correlation ID. Handlers not
+// using correlation middleware still receive a bounded ID in error responses.
 func requestTraceID(r *http.Request) string {
-	if id := r.Header.Get("X-Trace-Id"); id != "" {
+	if id, ok := r.Context().Value(traceIDKey{}).(string); ok {
 		return id
 	}
+	return resolveTraceID(r.Header.Get(traceHeader))
+}
+
+func resolveTraceID(candidate string) string {
+	if validTraceID(candidate) {
+		return candidate
+	}
 	return newTraceID()
+}
+
+func validTraceID(candidate string) bool {
+	if len(candidate) == 0 || len(candidate) > maxTraceIDLength {
+		return false
+	}
+	for i := range len(candidate) {
+		value := candidate[i]
+		if (value >= 'a' && value <= 'z') || (value >= 'A' && value <= 'Z') ||
+			(value >= '0' && value <= '9') || value == '-' || value == '_' || value == '.' {
+			continue
+		}
+		return false
+	}
+	return true
 }
 
 func newTraceID() string {

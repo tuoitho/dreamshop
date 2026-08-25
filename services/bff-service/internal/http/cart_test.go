@@ -2,15 +2,20 @@ package http
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	cartclient "ecommerce.local/bff-service/internal/cart"
 	cartv1 "ecommerce.local/contracts/go/cart/v1"
 	commonv1 "ecommerce.local/contracts/go/common/v1"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -134,6 +139,86 @@ func TestAddCartItemAcceptsPayloadAndForwardsCallerIdentity(t *testing.T) {
 	}
 	if body := decodeBody(t, rec); body["message"] != "Product added to cart." {
 		t.Fatalf("expected add message, got %v", body["message"])
+	}
+}
+
+type traceRecordingCartServer struct {
+	cartv1.UnimplementedCartServiceServer
+	traceID string
+}
+
+func (s *traceRecordingCartServer) AddItem(ctx context.Context, _ *cartv1.AddItemRequest) (*cartv1.AddItemResponse, error) {
+	if values := metadata.ValueFromIncomingContext(ctx, "x-trace-id"); len(values) == 1 {
+		s.traceID = values[0]
+	}
+	base := status.New(codes.Unavailable, "authorization unavailable")
+	withDetails, err := base.WithDetails(&errdetails.ErrorInfo{
+		Domain: "ecommerce.cart.v1",
+		Reason: "AUTHORIZATION_UNAVAILABLE",
+	})
+	if err != nil {
+		return nil, base.Err()
+	}
+	return nil, withDetails.Err()
+}
+
+func newTraceRecordingCartClient(t *testing.T, server *traceRecordingCartServer) cartclient.Client {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	grpcServer := grpc.NewServer()
+	cartv1.RegisterCartServiceServer(grpcServer, server)
+	go func() { _ = grpcServer.Serve(listener) }()
+	t.Cleanup(func() {
+		grpcServer.Stop()
+		_ = listener.Close()
+	})
+
+	client, err := cartclient.NewClient(listener.Addr().String(), time.Second)
+	if err != nil {
+		t.Fatalf("create Cart client: %v", err)
+	}
+	t.Cleanup(func() { _ = client.Close() })
+	return client
+}
+
+func TestAddCartItemPropagatesResolvedTraceToCartAndErrorEnvelope(t *testing.T) {
+	tests := []struct {
+		name          string
+		requestTrace  string
+		wantRequestID bool
+	}{
+		{name: "valid caller trace", requestTrace: "trace-abc-123", wantRequestID: true},
+		{name: "oversized caller trace", requestTrace: strings.Repeat("a", 65)},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			server := &traceRecordingCartServer{}
+			req := httptest.NewRequest(http.MethodPost, "/items", strings.NewReader(`{"productId":"dt-1","variantLabel":"red","quantity":2}`))
+			req.Header.Set("X-User-Id", "user-1")
+			req.Header.Set("X-Trace-Id", test.requestTrace)
+			rec := httptest.NewRecorder()
+
+			newCartTestMux(t, newTraceRecordingCartClient(t, server)).ServeHTTP(rec, req)
+
+			body := decodeBody(t, rec)
+			traceID, ok := body["traceId"].(string)
+			if rec.Code != http.StatusServiceUnavailable || !ok || traceID == "" {
+				t.Fatalf("response = %d %s, want 503 with traceId", rec.Code, rec.Body.String())
+			}
+			if test.wantRequestID && traceID != test.requestTrace {
+				t.Fatalf("response traceId = %q, want request trace %q", traceID, test.requestTrace)
+			}
+			if !test.wantRequestID && (traceID == test.requestTrace || len(traceID) > 64) {
+				t.Fatalf("response traceId = %q, want bounded generated ID", traceID)
+			}
+			if server.traceID != traceID {
+				t.Fatalf("Cart metadata trace = %q, want response trace %q", server.traceID, traceID)
+			}
+		})
 	}
 }
 

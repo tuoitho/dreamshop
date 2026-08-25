@@ -119,3 +119,15 @@ func TestClientCheckPermissionAppliesTimeout(t *testing.T) {
 		t.Fatalf("CheckPermission() took %s; want less than one second", elapsed)
 	}
 }
+
+func TestNewClientRejectsNonPositiveTimeout(t *testing.T) {
+	for _, timeout := range []time.Duration{0, -time.Millisecond} {
+		t.Run(timeout.String(), func(t *testing.T) {
+			client, err := NewClient("127.0.0.1:50054", timeout)
+			if err == nil {
+				_ = client.Close()
+				t.Fatalf("NewClient() error = nil for timeout %s, want rejection", timeout)
+			}
+		})
+	}
+}

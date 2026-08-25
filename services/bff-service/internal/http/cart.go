@@ -77,11 +77,11 @@ func NewCartHandler(client cartclient.Client) *CartHandler {
 }
 
 func (h *CartHandler) Register(mux *http.ServeMux) {
-	mux.Handle("GET /{$}", RequireCaller(http.HandlerFunc(h.get)))
-	mux.Handle("POST /items", RequireCaller(http.HandlerFunc(h.add)))
-	mux.Handle("PATCH /items/{itemId}", RequireCaller(http.HandlerFunc(h.updateQuantity)))
-	mux.Handle("DELETE /items/{itemId}", RequireCaller(http.HandlerFunc(h.remove)))
-	mux.Handle("DELETE /{$}", RequireCaller(http.HandlerFunc(h.clear)))
+	mux.Handle("GET /{$}", correlateTrace(RequireCaller(http.HandlerFunc(h.get))))
+	mux.Handle("POST /items", correlateTrace(RequireCaller(http.HandlerFunc(h.add))))
+	mux.Handle("PATCH /items/{itemId}", correlateTrace(RequireCaller(http.HandlerFunc(h.updateQuantity))))
+	mux.Handle("DELETE /items/{itemId}", correlateTrace(RequireCaller(http.HandlerFunc(h.remove))))
+	mux.Handle("DELETE /{$}", correlateTrace(RequireCaller(http.HandlerFunc(h.clear))))
 }
 
 func (h *CartHandler) get(w http.ResponseWriter, r *http.Request) {

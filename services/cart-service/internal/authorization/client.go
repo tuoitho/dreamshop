@@ -22,6 +22,9 @@ type client struct {
 }
 
 func NewClient(target string, timeout time.Duration) (*client, error) {
+	if timeout <= 0 {
+		return nil, fmt.Errorf("authorization timeout must be positive: %s", timeout)
+	}
 	conn, err := grpc.NewClient(target, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("create authorization connection: %w", err)
@@ -42,8 +45,5 @@ func (c *client) CheckPermission(ctx context.Context, userID, permission string)
 }
 
 func (c *client) withTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
-	if c.timeout <= 0 {
-		return ctx, func() {}
-	}
 	return context.WithTimeout(ctx, c.timeout)
 }
