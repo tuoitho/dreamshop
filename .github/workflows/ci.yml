@@ -20,22 +20,39 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.24.x'
       - name: Validate pull-request title
-        shell: pwsh
-        run: ./scripts/validate-pr-title.ps1 -Title $env:PR_TITLE
+        run: go run ./scripts/validate-pr-title -title "$PR_TITLE"
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
+
+  boundaries:
+    name: Boundaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.24.x'
+      - name: Check service boundaries
+        run: go run ./scripts/check-boundaries
 
   contracts:
     name: Contracts
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - uses: bufbuild/buf-setup-action@v1
       - name: Check protobuf formatting
         run: buf format --diff --exit-code
       - name: Lint protobuf contracts
         run: buf lint
+      - name: Check protobuf breaking changes against main
+        run: buf breaking --against '.git#branch=main'
       - name: Generate contract modules
         run: buf generate
       - name: Verify generated contract modules are synchronized
@@ -73,13 +90,16 @@ jobs:
             go.work.sum
             contracts/go/go.sum
             services/bff-service/go.sum
+            services/catalog-service/go.sum
+            services/inventory-service/go.sum
+            services/cart-service/go.sum
       - uses: bufbuild/buf-setup-action@v1
       - name: Generate contract modules
         run: buf generate
-      - name: Test Go services
-        run: go test ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/...
-      - name: Build Go services
-        run: go build ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/...
+      - name: Test Go services and scripts
+        run: go test ./scripts/... ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...
+      - name: Build Go services and scripts
+        run: go build ./scripts/... ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...
 
   frontend:
     name: Frontend

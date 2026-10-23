@@ -1,8 +1,8 @@
 # Build and Test
 
 Choose the smallest scope that gives sufficient confidence, following the
-[testing steering rules](../steering/testing.md). There is no universal wrapper
-that replaces selecting the relevant direct checks.
+[testing steering rules](../steering/testing.md). Focused checks are selected
+directly; surface and contract gates also have a single-command wrapper.
 
 ## Focused checks
 
@@ -18,6 +18,21 @@ npm --prefix ecommerce-fe test -- --run src/lib/api.test.ts
 
 ## Surface checks
 
+`make verify SERVICE=<surface>` runs `scripts/check-boundaries` and then the
+gate for one surface. Its exit code is the gate result.
+
+| `SERVICE` | Gate |
+| --- | --- |
+| Java service, e.g. `identity-service` | `mvn -pl services/<name> -am verify` |
+| Go service, e.g. `cart-service` | `go build` and `go test` for `./services/<name>/...` |
+| `ecommerce-fe` | Frontend tests, lint, and build |
+| `contracts` | Contract checks below, plus `buf breaking` against `main` |
+
+On Windows, the `cart-service` gate tests `./services/cart-service/internal/...`
+only, for the reason described at the end of this document.
+
+The equivalent direct commands are:
+
 ```powershell
 mvn -pl services/identity-service -am verify
 mvn -pl services/order-service -am verify
@@ -27,6 +42,20 @@ npm --prefix ecommerce-fe test -- --run
 npm --prefix ecommerce-fe run lint
 npm --prefix ecommerce-fe run build
 ```
+
+## Boundary check
+
+```powershell
+make check-boundaries
+```
+
+The check fails on Go or Java imports of another service, Maven dependencies on
+another service module, references to another service's `<name>_db` database,
+internal service calls through Kong (`:8000`), contract modules importing
+service code, and frontend imports of backend or contract source. Rules that
+need semantic judgment, such as copied domain logic or holding a database
+transaction across a network call, are covered by the boundary review in
+[`service-boundaries.md`](../steering/service-boundaries.md).
 
 ## Contract checks
 
@@ -57,17 +86,16 @@ buf lint
 buf generate
 git diff --exit-code -- contracts/go contracts/java/src/main/generated
 mvn --batch-mode --no-transfer-progress verify
-go test ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...
-go build ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...
+go test ./scripts/... ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...
+go build ./scripts/... ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...
 npm --prefix ecommerce-fe ci
 npm --prefix ecommerce-fe test -- --run
 npm --prefix ecommerce-fe run lint
 npm --prefix ecommerce-fe run build
 ```
 
-The existing `make verify`, `make verify-identity`, and
-`make verify-edge-auth` scripts are focused foundation/runtime checks. They may
-require local infrastructure and running applications; they are not a
+Without `SERVICE`, `make verify` runs the foundation/runtime check. It may
+require local infrastructure and running applications; it is not a
 replacement for the direct build and test commands above.
 
 The current `cart-service/cmd/server` tests use Unix process signaling. On

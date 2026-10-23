@@ -15,8 +15,8 @@ letters, digits, and hyphens. The description must be non-empty.
 
 Validate locally:
 
-```powershell
-pwsh -NoProfile -File scripts/validate-pr-title.ps1 -Title 'feat(order): add checkout validation'
+```bash
+go run ./scripts/validate-pr-title -title 'feat(order): add checkout validation'
 ```
 
 Valid examples:

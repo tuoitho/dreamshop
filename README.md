@@ -12,7 +12,6 @@ vòng đời đơn hàng vẫn đang ở giai đoạn nền tảng.
 - Go 1.24+
 - Docker Desktop (với Docker Compose v2)
 - Buf CLI 1.70+
-- PowerShell 7+ (`pwsh`)
 
 ## Quick start
 
@@ -95,8 +94,6 @@ Chạy infrastructure trong Docker và Identity trực tiếp trên Windows. Kon
 make identity-keys
 make infra-up
 make identity
-make verify-identity
-make verify-edge-auth
 ```
 
 Các public endpoint qua Kong là:
@@ -111,7 +108,7 @@ Các public endpoint qua Kong là:
 Ví dụ body giả lập cho register:
 
 ```json
-{"email":"customer@example.test","password":"local-only-example-password","full_name":"Example Customer"}
+{"email":"customer@example.test","password":"local-only-example-password","fullName":"Example Customer"}
 ```
 
 Ví dụ body giả lập cho login:

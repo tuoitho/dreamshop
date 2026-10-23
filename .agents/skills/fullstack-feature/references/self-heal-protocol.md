@@ -32,6 +32,9 @@ Không gửi toàn bộ log cho assignee nếu một trích đoạn đã đủ t
 Route theo root cause, không theo tên gate. Một E2E failure có thể thuộc UI, API,
 contract, fixture hoặc environment.
 
+Nếu root cause chưa rõ từ failure record, điều tra theo skill `debugging-services`
+trước khi route. Không giao vòng sửa dựa trên phỏng đoán.
+
 ## 3. Giao vòng sửa
 
 Dùng payload tương đương:
@@ -63,8 +66,10 @@ gate rộng hơn sau khi focused gate đã pass.
 
 ## 5. Giới hạn và dừng
 
-Mặc định tối đa 3 vòng cho cùng root cause trên cùng surface, trừ khi workspace quy
-định giới hạn thấp hơn. Không reset bộ đếm chỉ vì lỗi biểu hiện ở gate khác.
+Mặc định tối đa 3 vòng cho mỗi gate/surface (đếm theo lượt chạy gate, không đếm
+theo từng finding riêng lẻ để tránh goalpost drift), trừ khi workspace quy định
+giới hạn thấp hơn. Không reset bộ đếm chỉ vì lỗi biểu hiện ở gate khác hoặc phát
+sinh finding mới ở vòng sau.
 
 Dừng self-heal và báo người dùng khi:
 

@@ -1,6 +1,6 @@
 ---
 name: fullstack-feature
-description: Điều phối việc xây dựng hoặc thay đổi một feature end-to-end qua một hay nhiều application surface. Dùng khi cần làm rõ requirement và acceptance criteria, xác định phạm vi, chọn single-agent hay selective delegation, ổn định interface khi cần, triển khai kèm test, chạy verification, self-heal có giới hạn và báo cáo evidence. Skill chỉ quy định workflow; kiến trúc, technology, convention và lệnh kiểm tra phải lấy từ workspace và service-local instructions.
+description: Điều phối việc xây dựng hoặc thay đổi một feature end-to-end qua một hay nhiều application surface. Dùng khi cần làm rõ requirement và acceptance criteria, xác định phạm vi, chọn single-agent hay selective delegation, ổn định interface khi cần, triển khai theo TDD, chạy verification, self-heal có giới hạn, review độc lập và báo cáo evidence. Skill chỉ quy định workflow; kiến trúc, technology, convention và lệnh kiểm tra phải lấy từ workspace và service-local instructions.
 ---
 
 # Fullstack Feature
@@ -29,8 +29,7 @@ Khi cần xác định context hoặc repository có nhiều service, đọc
 - Giữ primary agent chịu trách nhiệm end-to-end và cho phép primary trực tiếp viết
   code trong single-agent mode.
 - Xem primary agent là authority mặc định cho shared/durable interface và quyết
-  định cross-surface, trừ khi ownership đó đã được giao rõ cho `architect` hoặc
-  một owner khác.
+  định cross-surface, trừ khi ownership đó đã được giao rõ cho một assignee khác.
 - Ưu tiên single-agent. Chỉ delegate khi phần việc độc lập đủ để giảm thời gian hoặc
   khi người dùng/workspace yêu cầu nhiều agent.
 - Phân chia theo implementation surface và ownership thực tế, không mặc định theo
@@ -41,7 +40,12 @@ Khi cần xác định context hoặc repository có nhiều service, đọc
   implementation owner sửa hoặc xóa test chỉ để làm gate xanh.
 - Xem kết quả command/harness của repository là bằng chứng pass/fail. Không tự suy
   diễn rằng gate đã pass khi chưa chạy.
-- Giữ Vision QA là advisory, trừ khi workspace hoặc người dùng quy định nó là gate.
+- Behavior change đi theo TDD: test fail đúng lý do trước, implementation sau.
+- Bug hoặc gate fail chưa rõ nguyên nhân: tìm root cause trước khi sửa; không
+  thử-sai.
+- Implementer không tự duyệt code của mình: review độc lập trước khi bàn giao.
+- Giữ visual review là advisory, trừ khi workspace hoặc người dùng quy định nó là
+  gate.
 
 ## Workflow
 
@@ -75,22 +79,18 @@ Chọn single-agent khi thay đổi nhỏ, coupling cao, cần nhiều vòng ch�
 chi phí handoff lớn hơn lợi ích song song hóa.
 
 Chọn selective delegation khi có từ hai implementation unit độc lập, ownership rõ,
-ít shared state và interface dùng chung đã ổn định. Mỗi task giao đi phải chứa:
+ít shared state và interface dùng chung đã ổn định.
 
-- outcome và acceptance criteria liên quan;
-- target surface và ownership boundary;
-- interface/spec cần tuân thủ;
-- instructions cần đọc;
-- test artifacts và test levels thuộc QA ownership khi có delegate QA, cùng các
-  local regression tests vẫn thuộc surface owner;
-- verification cần chạy;
-- format báo cáo files changed, command và result.
+Giao việc cho general-purpose subagent bằng prompt dựng từ
+[`references/delegation-prompts.md`](references/delegation-prompts.md): khung chung
+(outcome, AC, ownership, interface, instructions cần đọc, verification, format báo
+cáo) cộng một phần vai trò (implementer, test owner, interface analyst hoặc visual
+reviewer). Khi có test owner, ghi rõ test artifacts nào thuộc test owner và local
+regression tests nào vẫn thuộc implementer.
 
 Không delegate chỉ để mô phỏng một pipeline cố định. Không tạo agent theo technology
-nếu generic assignee có thể đọc local rules và làm đúng surface.
-
-Các agent chuyên biệt có thể dùng nếu hiện diện: `architect`, `surface-dev`, `qa`,
-`vision-qa`.
+hoặc vai trò khi general-purpose assignee nhận prompt đầy đủ làm được. Agent chuyên
+biệt chỉ dành cho việc cần quyền hạn riêng, như reviewer chỉ đọc ở bước 7.
 
 ### 4. Quyết định interface/contract
 
@@ -100,7 +100,8 @@ thực hiện.
 Cập nhật durable interface khi feature thay đổi public API, cross-service call,
 event/schema hoặc boundary được nhiều implementation unit sử dụng. Dùng artifact mà
 repository đã chọn, ví dụ OpenAPI, Protobuf, event schema hoặc typed interface; không
-mặc định mọi boundary đều là một `openapi.yaml`.
+mặc định mọi boundary đều là một `openapi.yaml`. Với protobuf, gRPC, event hoặc REST
+contract dùng chung, làm theo skill `contract-change`.
 
 Trong multi-agent mode, ổn định phần shared interface tối thiểu trước khi dispatch
 các consumer/provider phụ thuộc vào nó. Nếu contract còn tranh chấp, giữ các phần
@@ -109,6 +110,12 @@ phụ thuộc tuần tự.
 ### 5. Lập test và triển khai
 
 - Bám acceptance criteria và testing policy của repository.
+- Với mỗi behavior thay đổi: viết hoặc chọn test, chạy và xác nhận nó fail vì
+  behavior chưa có (không vì syntax, fixture hay environment), implement tối
+  thiểu cho pass, rồi refactor khi test vẫn xanh. Test pass ngay từ đầu nghĩa là
+  nó chưa kiểm chứng thay đổi; sửa test trước khi đi tiếp.
+- Với bug: tái hiện bằng test fail và xác định root cause theo skill
+  `debugging-services` trước khi sửa.
 - Thêm regression coverage cho mọi behavior path thay đổi theo local convention.
 - Nếu dùng multi-agent, giao test/QA độc lập với implementation khi việc đó mang lại
   kiểm chứng thực sự; không bắt buộc tạo QA agent cho thay đổi nhỏ.
@@ -136,7 +143,27 @@ không dựng một universal harness trong feature task.
 
 Khi fail, áp dụng [`references/self-heal-protocol.md`](references/self-heal-protocol.md).
 
-### 7. Kết thúc bằng evidence
+### 7. Review độc lập
+
+Sau khi gates xanh và trước khi bàn giao, giao diff cho reviewer không tham gia
+implementation:
+
+- `code-reviewer`: spec compliance theo AC, conventions, dead code, security
+  anti-patterns, test integrity và nội dung hội thoại lọt vào artifact.
+- `boundary-reviewer`: thêm khi thay đổi chạm contract, nhiều service, persistence,
+  routing hoặc communication path.
+
+Truyền cho reviewer: diff range, AC, contract đã đổi và commands đã chạy. Không
+đưa lời biện minh thiết kế hoặc gợi ý hạ mức độ lỗi ("do not flag", "at most
+minor") vào prompt gọi reviewer để giữ tính độc lập.
+
+Sửa các finding blocking, chạy lại focused gate, rồi gửi reviewer re-review đúng
+phạm vi đã sửa (scoped re-review: từ vòng 2 chỉ kiểm tra finding cũ chưa đóng và
+regression trực tiếp do bản sửa tạo ra; không mở rộng bới thêm lỗi minor mới để
+block). Finding bị bác bỏ phải có lý do kỹ thuật trong báo cáo cuối. Tối đa 3
+vòng cho mỗi cổng review trên cùng phạm vi; sau đó báo người dùng.
+
+### 8. Kết thúc bằng evidence
 
 Chỉ tuyên bố hoàn thành khi các acceptance criteria trong scope đã có evidence.
 Báo cáo ngắn gọn:
@@ -145,8 +172,9 @@ Báo cáo ngắn gọn:
 - contract/interface đã thêm hoặc cập nhật;
 - commands thực tế đã chạy và kết quả;
 - checks bị skip cùng lý do;
+- kết quả review độc lập và findings còn mở;
 - assumptions hoặc high-risk decisions đã được chốt;
 - blocker hoặc residual risk còn lại.
 
-Nếu UI thay đổi, có thể đề xuất hoặc thực hiện Vision QA sau functional gates và ghi
+Nếu UI thay đổi, có thể đề xuất hoặc thực hiện visual review sau functional gates và ghi
 rõ kết quả advisory hay blocking theo rules của workspace.

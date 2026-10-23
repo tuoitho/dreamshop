@@ -23,6 +23,9 @@ Forbidden dependencies:
 If a consumer needs behavior owned elsewhere, expose that behavior through an
 approved contract instead of moving the implementation into a shared location.
 
+`make check-boundaries` enforces the import, build-dependency, foreign-database,
+internal-Kong-call (`:8000`), and contract/frontend import rules and runs in CI.
+
 ## Communication Paths
 
 Choose communication by consistency and response requirements:

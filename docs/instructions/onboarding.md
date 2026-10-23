@@ -7,10 +7,9 @@
 - Node.js 22.12 or newer for Vite 8, with npm from that Node release.
 - Docker Desktop with Docker Compose v2.
 - Buf CLI 1.70 or newer.
-- PowerShell 7 (`pwsh`).
 - GNU Make when using Makefile shortcuts.
 
-Check the installed tools from PowerShell:
+Check the installed tools:
 
 ```powershell
 java -version
@@ -20,7 +19,6 @@ node --version
 npm --version
 docker compose version
 buf --version
-pwsh --version
 make --version
 ```
 
@@ -46,7 +44,7 @@ Run only the checks needed for the first change:
 
 ```powershell
 buf lint
-go test ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/...
+go test ./scripts/... ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/internal/...
 mvn --batch-mode --no-transfer-progress test
 npm --prefix ecommerce-fe test -- --run
 ```

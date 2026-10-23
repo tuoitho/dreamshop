@@ -1,5 +1,5 @@
 ### Identity RBAC REST Client
-# Start Identity with services/identity-service/start-local.ps1 and Kong on port 8000.
+# Start Identity with `make identity` (or `go run ./scripts/start-local -service identity-service`) and Kong on port 8000.
 # The first administrator must be bootstrapped with the SQL in RBAC.md.
 
 @api = http://localhost:8000/api/v1

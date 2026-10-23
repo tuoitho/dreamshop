@@ -62,6 +62,20 @@ Classify affected files using the process in
 [`docs/steering/change-impact.md`](docs/steering/change-impact.md). Inspect
 dependent services, but modify them only when a contract change requires it.
 
+## Development Process
+
+- Behavior changes follow test-driven development: write or select a test, run
+  it, confirm it fails for the missing behavior, then implement until it passes.
+- Bugs, failing gates, and flaky tests require a root cause backed by evidence
+  before any fix; follow the `debugging-services` skill.
+- Contract changes follow the `contract-change` skill.
+- Before handoff, an independent read-only reviewer that did not implement the
+  change reviews the diff: `code-reviewer` for every change, plus
+  `boundary-reviewer` when contracts, several services, persistence, routing,
+  or communication paths change.
+- Gate results come from exit codes of `make verify SERVICE=<surface>` and the
+  commands in [`docs/instructions/build-and-test.md`](docs/instructions/build-and-test.md).
+
 ## Instruction Routing
 
 Start with the routing index in
@@ -99,18 +113,24 @@ Contribution policy is routed through [`docs/rules/README.md`](docs/rules/README
 - `make infra-up` starts or refreshes the local foundation; `make infra-down`
   stops it without deleting volumes.
 - `make identity-keys` generates local-only Identity signing keys.
-- `make identity` or `make order` runs the corresponding Java service directly
-  from Windows.
+- `make identity`, `make order`, `make cart`, or `make bff` runs the
+  corresponding service directly from the host.
 - `mvn test` builds and tests all Maven modules.
-- `go test ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/...`
-  runs all Go service tests.
+- `go test ./scripts/... ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...`
+  runs all Go script and service tests.
 - `npm --prefix ecommerce-fe run dev` starts the frontend. Replace `dev` with
   `test`, `lint`, or `build` for the corresponding check.
 - `buf lint` validates protobuf sources; `buf generate` regenerates Java and Go
   contract modules.
+- `make verify SERVICE=<surface>` runs the boundary check and the build/test gate
+  for one surface: a service directory name under `services/`, `ecommerce-fe`,
+  or `contracts`. A zero exit code means the gate passed.
+- `make check-boundaries` fails on cross-service imports, service-to-service
+  build dependencies, foreign database references, internal service calls
+  through Kong (`:8000`), and frontend imports of backend or contract source.
 
 Run infrastructure in Docker Compose and application services directly from a
-Windows terminal or IDE. When containerized Kong proxies to a Windows-hosted
+terminal or IDE. When containerized Kong proxies to a Windows-hosted
 service, use `host.docker.internal:<port>` as its upstream.
 
 ## Local Port Topology
