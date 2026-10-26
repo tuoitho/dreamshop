@@ -113,6 +113,9 @@ func TestDevelopmentKongConsolidatesTwoServicesWithStripPathFalseAndPreservesCOR
 				if !ok || cc.Config.JWKSURI != "http://host.docker.internal:8080/.well-known/jwks.json" || cc.Config.Issuer != "http://localhost:8080" || cc.Config.Audience != "ecommerce-api" {
 					t.Errorf("dev protected route %q caller-context = %#v (present=%t)", route.Name, cc.Config, ok)
 				}
+				if removesCallerHeaders(route.Plugins) {
+					t.Errorf("dev protected route %q must not attach request-transformer alongside caller-context", route.Name)
+				}
 			} else if !removesCallerHeaders(route.Plugins) {
 				t.Errorf("dev unauthenticated route %q must strip X-User-Id and X-User-Roles via request-transformer", route.Name)
 			}

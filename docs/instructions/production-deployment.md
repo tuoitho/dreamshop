@@ -63,7 +63,7 @@ Startup follows `service_healthy` dependencies automatically:
 
 ## 4. Verify Health and Public Routes
 
-Internal Actuator management ports (`8090` on `identity-service`, `8093` on `order-service`) and Go/Nginx `/healthz` endpoints are restricted to `ecommerce-prod-net` and are not exposed publicly through Kong. Verify container health and public ingress routes:
+Internal Actuator management ports (`8090` on `identity-service`, `8093` on `order-service`) and backend Go `/healthz` endpoints are restricted to `ecommerce-prod-net` and are not exposed publicly through Kong. Verify container health and public ingress routes:
 
 ```bash
 docker compose --env-file .env.production -f deployments/docker/compose.production.yml ps

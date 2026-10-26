@@ -68,7 +68,7 @@ boilerplate; use `camelCase` in Java and `snake_case` in database columns.
 During Red/Green, run the changed method from this service directory:
 
 ```powershell
-mvn test '-Dtest=OrderApplicationTest#contextLoads'
+mvn test '-Dtest=OrderApplicationTest#isolatesActuatorOnDedicatedManagementPort'
 ```
 
 Then run its test class:
