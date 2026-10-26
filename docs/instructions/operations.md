@@ -7,10 +7,10 @@ diagnosis only.
 ## Health and logs
 
 ```powershell
-Invoke-RestMethod http://localhost:8080/actuator/health
+Invoke-RestMethod http://localhost:8090/actuator/health
 Invoke-RestMethod http://localhost:8081/healthz
 Invoke-RestMethod http://localhost:8082/healthz
-Invoke-RestMethod http://localhost:8083/actuator/health
+Invoke-RestMethod http://localhost:8093/actuator/health
 Invoke-RestMethod http://localhost:8084/healthz
 Invoke-RestMethod http://localhost:8085/healthz
 Invoke-RestMethod http://localhost:8000/api/v1/auth/.well-known/jwks.json

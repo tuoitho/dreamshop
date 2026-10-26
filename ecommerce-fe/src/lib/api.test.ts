@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { AxiosError, AxiosHeaders } from "axios"
 import { toast } from "sonner"
+import * as apiModule from "./api"
 import {
   addCartItem,
   ApiClientError,
   clearCart,
-  fetchHealth,
+  fetchCurrentUser,
   getCart,
   getProduct,
   http,
@@ -50,10 +51,14 @@ describe("api client", () => {
       throw new AxiosError("network error", "ERR_NETWORK", config)
     })
     http.defaults.adapter = adapter as never
-    await fetchHealth().catch(() => undefined)
+    await fetchCurrentUser().catch(() => undefined)
     const config = adapter.mock.calls[0][0] as { headers?: { Authorization?: string } }
     expect(config.headers?.Authorization).toBe("Bearer jwt-xyz")
     delete http.defaults.adapter
+  })
+
+  it("does not expose internal actuator health probes on the public client", () => {
+    expect("fetchHealth" in apiModule).toBe(false)
   })
 
   it("uses credentials for cookie-backed refresh", () => {
@@ -140,14 +145,14 @@ describe("api client", () => {
 
   it("does not show a toast for GET requests", async () => {
     http.defaults.adapter = vi.fn(async (config) => ({
-      data: { status: "UP", message: "Health loaded" },
+      data: { id: "u-1", email: "user@example.com", fullName: "Test User" },
       status: 200,
       statusText: "OK",
       headers: {},
       config,
     })) as never
 
-    await fetchHealth()
+    await fetchCurrentUser()
 
     expect(toast.success).not.toHaveBeenCalled()
     expect(toast.error).not.toHaveBeenCalled()

@@ -40,20 +40,21 @@ denial returns `403`.
 Order is independent of the current browser flow and can be started separately
 with `make order`.
 
-Identity uses HTTP `8080`; BFF `8081`; Inventory `8082`; Order `8083`; Cart
-HTTP `8084`; Catalog HTTP `8085`; and the frontend `5173`. Catalog's standalone
-HTTP default is `8081`, so the complete stack must override it to `8085` as
-shown above. Internal gRPC listeners are Catalog `50051`, Inventory `50052`,
-and Cart `50053`. Identity authorization is `127.0.0.1:50054`, and Cart uses a
-`500ms` timeout. Container BFF remains on HTTP `8080`.
+Identity uses HTTP `8080` (Actuator management `8090`); BFF `8081`; Inventory
+`8082`; Order `8083` (Actuator management `8093`); Cart HTTP `8084`; Catalog
+HTTP `8085`; and the frontend `5173`. Catalog's standalone HTTP default is
+`8081`, so the complete stack must override it to `8085` as shown above.
+Internal gRPC listeners are Catalog `50051`, Inventory `50052`, and Cart
+`50053`. Identity authorization is `127.0.0.1:50054`, and Cart uses a `500ms`
+timeout. Container BFF remains on HTTP `8080`.
 
 ## Access paths
 
-- Identity health: `http://localhost:8080/actuator/health`.
+- Identity health: `http://localhost:8090/actuator/health`.
 - BFF health: `http://localhost:8081/healthz`.
 - Catalog health: `http://localhost:8085/healthz` in the complete stack.
 - Inventory health: `http://localhost:8082/healthz`.
-- Order health: `http://localhost:8083/actuator/health`.
+- Order health: `http://localhost:8093/actuator/health`.
 - Cart health: `http://localhost:8084/healthz`.
 - Frontend: `http://localhost:5173`.
 - Public API ingress: `http://localhost:8000` through Kong.

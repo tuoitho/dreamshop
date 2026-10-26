@@ -162,15 +162,6 @@ export async function register(payload: RegisterRequest): Promise<RegisterRespon
   }
 }
 
-export async function fetchHealth(): Promise<{ status: string }> {
-  try {
-    const { data } = await http.get<{ status: string }>("/auth/actuator/health")
-    return data
-  } catch (error) {
-    throw toClientError(error)
-  }
-}
-
 export async function fetchCurrentUser(): Promise<CurrentUser> {
   try {
     const { data } = await http.get<CurrentUser>("/users/me")

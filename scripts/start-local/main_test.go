@@ -47,7 +47,7 @@ func TestStartLocalIdentityOrderCartBff(t *testing.T) {
 	if got.Name != "mvn" || !reflect.DeepEqual(got.Args, []string{"-f", "services/identity-service/pom.xml", "spring-boot:run"}) {
 		t.Fatalf("unexpected identity command: %s %v", got.Name, got.Args)
 	}
-	if got.Env["SERVER_PORT"] != "8080" || got.Env["IDENTITY_GRPC_PORT"] != "50054" {
+	if got.Env["SERVER_PORT"] != "8080" || got.Env["MANAGEMENT_SERVER_PORT"] != "8090" || got.Env["IDENTITY_GRPC_PORT"] != "50054" {
 		t.Fatalf("unexpected identity env: %v", got.Env)
 	}
 	if !strings.Contains(got.Env["JDK_JAVA_OPTIONS"], "-Djava.net.preferIPv4Stack=true") {
@@ -55,12 +55,15 @@ func TestStartLocalIdentityOrderCartBff(t *testing.T) {
 	}
 
 	// Order service
-	code = runWithDeps([]string{"-root", root, "-service", "order"}, strings.NewReader(""), &out, &errOut, nil, launcher)
+	code = runWithDeps([]string{"-root", root, "-service", "order"}, strings.NewReader(""), &out, &errOut, []string{}, launcher)
 	if code != 0 {
 		t.Fatalf("order-service exit %d", code)
 	}
 	if got.Name != "mvn" || !reflect.DeepEqual(got.Args, []string{"-f", "services/order-service/pom.xml", "spring-boot:run"}) {
 		t.Fatalf("unexpected order command: %s %v", got.Name, got.Args)
+	}
+	if got.Env["SERVER_PORT"] != "8083" || got.Env["MANAGEMENT_SERVER_PORT"] != "8093" {
+		t.Fatalf("unexpected order env: %v", got.Env)
 	}
 
 	// Cart service

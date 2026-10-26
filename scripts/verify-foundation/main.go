@@ -99,11 +99,11 @@ func runWithDeps(args []string, out, errOut io.Writer, runner cmdRunner) int {
 		client := &http.Client{Timeout: 5 * time.Second}
 		base := strings.TrimRight(kongURL, "/")
 
-		if err := checkHealth(client, base+"/api/v1/storefront/healthz", "BFF"); err != nil {
+		if err := checkPublicRoute(client, base+"/api/v1/storefront/products", "BFF"); err != nil {
 			fmt.Fprintln(errOut, err)
 			return 1
 		}
-		if err := checkHealth(client, base+"/api/v1/auth/actuator/health", "Identity"); err != nil {
+		if err := checkPublicRoute(client, base+"/api/v1/auth/.well-known/jwks.json", "Identity"); err != nil {
 			fmt.Fprintln(errOut, err)
 			return 1
 		}
@@ -113,14 +113,14 @@ func runWithDeps(args []string, out, errOut io.Writer, runner cmdRunner) int {
 	return 0
 }
 
-func checkHealth(client *http.Client, url, target string) error {
+func checkPublicRoute(client *http.Client, url, target string) error {
 	resp, err := client.Get(url)
 	if err != nil {
 		return fmt.Errorf("Failed to reach %s through Kong: %w", target, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Failed to reach %s through Kong: %s health route returned status %d", target, target, resp.StatusCode)
+		return fmt.Errorf("Failed to reach %s through Kong: %s public route returned status %d", target, target, resp.StatusCode)
 	}
 	return nil
 }

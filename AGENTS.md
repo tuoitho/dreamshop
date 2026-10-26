@@ -141,11 +141,11 @@ on Linux/WSL) and verify the listed health endpoint after startup.
 
 | Surface | Local HTTP | Local gRPC | Notes |
 | --- | --- | --- | --- |
-| identity-service | `8080` | `127.0.0.1:50054` | Kong obtains JWKS from this service; authorization gRPC is private/local-only. |
+| identity-service | `8080` (mgmt `8090`) | `127.0.0.1:50054` | Kong obtains JWKS from `:8080`; Actuator health is isolated on `:8090`; authorization gRPC is private/local-only. |
 | bff-service | `8081` | - | Kong local upstream is `host.docker.internal:8081`; set `BFF_HTTP_ADDR=0.0.0.0:8081`. Container BFF remains `8080`. |
 | catalog-service | `8085` | `127.0.0.1:50051` | Its standalone HTTP default is `8081`; set `HTTP_ADDR=:8085` when BFF runs. |
 | inventory-service | `8082` | `127.0.0.1:50052` | |
-| order-service | `8083` | - | |
+| order-service | `8083` (mgmt `8093`) | - | Actuator health is isolated on `:8093`. |
 | cart-service | `8084` | `127.0.0.1:50053` | BFF calls Cart directly over gRPC. |
 | ecommerce-fe | `5173` | - | Browser development server. |
 | Kong | proxy `8000`; admin `8001` | - | Public local ingress. |

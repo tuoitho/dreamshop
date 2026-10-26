@@ -1,6 +1,8 @@
 ### Identity Service REST API Client
 @identityPort = 8080
+@identityManagementPort = 8090
 @baseUrl = http://localhost:{{identityPort}}
+@managementUrl = http://localhost:{{identityManagementPort}}
 @kongUrl = http://localhost:8000
 @api = {{kongUrl}}/api/v1
 @email = identity-demo@example.test
@@ -8,8 +10,8 @@
 @userId = 00000000-0000-0000-0000-000000000000
 @accessToken = paste-access-token-here
 
-### Health Check
-GET {{baseUrl}}/actuator/health
+### Health Check (Dedicated Internal Management Port)
+GET {{managementUrl}}/actuator/health
 Accept: application/json
 
 ### JWKS Public Keys
@@ -48,7 +50,7 @@ POST {{api}}/auth/refresh
 
 ### Get Current User Directly
 # Kong normally derives this header from the Bearer JWT. Use it only for direct Identity calls.
-GET {{baseUrl}}/users/me
+GET {{baseUrl}}/api/v1/users/me
 X-User-Id: {{userId}}
 Accept: application/json
 
@@ -59,7 +61,7 @@ Authorization: Bearer {{accessToken}}
 Accept: application/json
 
 ### Update Current User Directly
-PATCH {{baseUrl}}/users/me
+PATCH {{baseUrl}}/api/v1/users/me
 X-User-Id: {{userId}}
 Content-Type: application/json
 

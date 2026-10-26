@@ -103,6 +103,7 @@ func runWithDeps(args []string, in io.Reader, out, errOut io.Writer, baseEnv []s
 		setEnv(env, "IDENTITY_JWT_PRIVATE_KEY_PATH", filepath.Join(root, "deployments", "secrets", "identity", "private.pem"))
 		setEnv(env, "IDENTITY_JWT_PUBLIC_KEY_PATH", filepath.Join(root, "deployments", "secrets", "identity", "public.pem"))
 		setEnv(env, "SERVER_PORT", "8080")
+		setDefaultEnv(env, "MANAGEMENT_SERVER_PORT", "8090")
 		setEnv(env, "IDENTITY_JWT_ISSUER", "http://localhost:8080")
 		setEnv(env, "IDENTITY_SESSION_COOKIE_SECURE", "false")
 		setDefaultEnv(env, "IDENTITY_GRPC_HOST", "127.0.0.1")
@@ -151,6 +152,8 @@ func runWithDeps(args []string, in io.Reader, out, errOut io.Writer, baseEnv []s
 		return launch(root, formatEnv(env), "mvn", "-f", "services/identity-service/pom.xml", "spring-boot:run")
 
 	case "order-service":
+		setDefaultEnv(env, "SERVER_PORT", "8083")
+		setDefaultEnv(env, "MANAGEMENT_SERVER_PORT", "8093")
 		return launch(root, formatEnv(env), "mvn", "-f", "services/order-service/pom.xml", "spring-boot:run")
 
 	case "cart-service":

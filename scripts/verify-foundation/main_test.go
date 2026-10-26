@@ -29,7 +29,7 @@ func TestVerifyFoundationPassesWithRunningContainers(t *testing.T) {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/v1/storefront/healthz", "/api/v1/auth/actuator/health":
+		case "/api/v1/storefront/products", "/api/v1/auth/.well-known/jwks.json":
 			w.WriteHeader(http.StatusOK)
 		default:
 			w.WriteHeader(http.StatusNotFound)
