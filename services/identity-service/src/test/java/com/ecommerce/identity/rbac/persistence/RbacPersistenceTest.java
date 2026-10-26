@@ -79,4 +79,20 @@ class RbacPersistenceTest extends PostgresIntegrationTestSupport {
 
         assertThat(repository.findAllowedPermissions(USER_ID, List.of("cart.item.add"))).isEmpty();
     }
+
+    @Test
+    void grantsProductDeleteToAdminAndSuperAdminButNotCustomer() {
+        repository.assignRole(USER_ID, "CUSTOMER", Instant.now());
+        assertThat(repository.findAllowedPermissions(USER_ID, List.of("product.delete"))).isEmpty();
+
+        jdbcTemplate.update("delete from auth_assignments where user_id = ?", USER_ID);
+        repository.assignRole(USER_ID, "ADMIN", Instant.now());
+        assertThat(repository.findAllowedPermissions(USER_ID, List.of("product.delete")))
+                .containsExactly("product.delete");
+
+        jdbcTemplate.update("delete from auth_assignments where user_id = ?", USER_ID);
+        repository.assignRole(USER_ID, "SUPER_ADMIN", Instant.now());
+        assertThat(repository.findAllowedPermissions(USER_ID, List.of("product.delete")))
+                .containsExactly("product.delete");
+    }
 }

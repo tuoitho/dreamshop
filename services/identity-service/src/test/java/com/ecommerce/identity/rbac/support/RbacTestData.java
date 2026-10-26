@@ -22,6 +22,7 @@ public final class RbacTestData {
                     ('address.delete', 'PERMISSION', 'Delete shipping addresses', true, now(), now()),
                     ('address.set-default', 'PERMISSION', 'Set default shipping address', true, now(), now()),
                     ('cart.item.add', 'PERMISSION', 'Add products to the current user cart', true, now(), now()),
+                    ('product.delete', 'PERMISSION', 'Soft delete or restore catalog products', true, now(), now()),
                     ('user.view', 'PERMISSION', 'View users', true, now(), now()),
                     ('user.status.update', 'PERMISSION', 'Update user status', true, now(), now()),
                     ('user.role.assign', 'PERMISSION', 'Assign user roles', true, now(), now()),
@@ -41,7 +42,8 @@ public final class RbacTestData {
                     ('ADMIN', 'user.status.update'),
                     ('ADMIN', 'user.role.assign'),
                     ('ADMIN', 'rbac.view'),
-                    ('ADMIN', 'rbac.manage')
+                    ('ADMIN', 'rbac.manage'),
+                    ('ADMIN', 'product.delete')
                 """);
     }
 
