@@ -76,7 +76,7 @@ func TestGetCartMapsItemToExactCamelCaseEnvelope(t *testing.T) {
 		}
 		return cartResponse(cartItemFixture()), nil
 	}}
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/cart", nil)
 	req.Header.Set("X-User-Id", "user-1")
 	rec := httptest.NewRecorder()
 	newCartTestMux(t, client).ServeHTTP(rec, req)
@@ -101,7 +101,7 @@ func TestGetCartMapsUnknownStatusesToUnavailable(t *testing.T) {
 			client := &fakeCartClient{getFn: func(context.Context, string) (*cartv1.GetCartResponse, error) {
 				return cartResponse(item), nil
 			}}
-			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/cart", nil)
 			req.Header.Set("X-User-Id", "user-1")
 			rec := httptest.NewRecorder()
 			newCartTestMux(t, client).ServeHTTP(rec, req)
@@ -128,7 +128,7 @@ func TestAddCartItemAcceptsPayloadAndForwardsCallerIdentity(t *testing.T) {
 		}
 		return &cartv1.AddItemResponse{Cart: &cartv1.Cart{}}, nil
 	}}
-	req := httptest.NewRequest(http.MethodPost, "/items", strings.NewReader(`{"productId":"dt-1","variantLabel":"16GB/512GB","quantity":2}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/cart/items", strings.NewReader(`{"productId":"dt-1","variantLabel":"16GB/512GB","quantity":2}`))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-User-Id", "user-1")
 	rec := httptest.NewRecorder()
@@ -197,7 +197,7 @@ func TestAddCartItemPropagatesResolvedTraceToCartAndErrorEnvelope(t *testing.T) 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			server := &traceRecordingCartServer{}
-			req := httptest.NewRequest(http.MethodPost, "/items", strings.NewReader(`{"productId":"dt-1","variantLabel":"red","quantity":2}`))
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/cart/items", strings.NewReader(`{"productId":"dt-1","variantLabel":"red","quantity":2}`))
 			req.Header.Set("X-User-Id", "user-1")
 			req.Header.Set("X-Trace-Id", test.requestTrace)
 			rec := httptest.NewRecorder()
@@ -227,7 +227,7 @@ func TestAddCartItemRejectsNonPositiveQuantity(t *testing.T) {
 		t.Fatal("cart client must not be called")
 		return nil, nil
 	}}
-	req := httptest.NewRequest(http.MethodPost, "/items", strings.NewReader(`{"productId":"dt-1","variantLabel":"16GB/512GB","quantity":0}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/cart/items", strings.NewReader(`{"productId":"dt-1","variantLabel":"16GB/512GB","quantity":0}`))
 	req.Header.Set("X-User-Id", "user-1")
 	rec := httptest.NewRecorder()
 	newCartTestMux(t, client).ServeHTTP(rec, req)
@@ -248,10 +248,10 @@ func TestCartMutationRejectsInvalidJSONBodies(t *testing.T) {
 		body   string
 		code   string
 	}{
-		{name: "unknown field", method: http.MethodPost, target: "/items", body: `{"productId":"dt-1","variantLabel":"red","quantity":2,"userId":"forged"}`, code: "INVALID_PARAMETER"},
-		{name: "trailing json", method: http.MethodPost, target: "/items", body: `{"productId":"dt-1","variantLabel":"red","quantity":2}{}`, code: "INVALID_PARAMETER"},
-		{name: "blank quantity", method: http.MethodPost, target: "/items", body: `{"productId":"dt-1","variantLabel":"red","quantity":""}`, code: "INVALID_QUANTITY"},
-		{name: "omitted quantity", method: http.MethodPatch, target: "/items/item-1", body: `{}`, code: "INVALID_QUANTITY"},
+		{name: "unknown field", method: http.MethodPost, target: "/api/v1/cart/items", body: `{"productId":"dt-1","variantLabel":"red","quantity":2,"userId":"forged"}`, code: "INVALID_PARAMETER"},
+		{name: "trailing json", method: http.MethodPost, target: "/api/v1/cart/items", body: `{"productId":"dt-1","variantLabel":"red","quantity":2}{}`, code: "INVALID_PARAMETER"},
+		{name: "blank quantity", method: http.MethodPost, target: "/api/v1/cart/items", body: `{"productId":"dt-1","variantLabel":"red","quantity":""}`, code: "INVALID_QUANTITY"},
+		{name: "omitted quantity", method: http.MethodPatch, target: "/api/v1/cart/items/item-1", body: `{}`, code: "INVALID_QUANTITY"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -289,7 +289,7 @@ func TestUpdateCartItemQuantitySuccess(t *testing.T) {
 		}
 		return &cartv1.UpdateItemQuantityResponse{Cart: &cartv1.Cart{}}, nil
 	}}
-	req := httptest.NewRequest(http.MethodPatch, "/items/item-1", strings.NewReader(`{"quantity":4}`))
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/cart/items/item-1", strings.NewReader(`{"quantity":4}`))
 	req.Header.Set("X-User-Id", "user-1")
 	rec := httptest.NewRecorder()
 	newCartTestMux(t, client).ServeHTTP(rec, req)
@@ -311,7 +311,7 @@ func TestRemoveCartItemSuccess(t *testing.T) {
 		}
 		return &cartv1.RemoveItemResponse{Cart: &cartv1.Cart{}}, nil
 	}}
-	req := httptest.NewRequest(http.MethodDelete, "/items/item-1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/cart/items/item-1", nil)
 	req.Header.Set("X-User-Id", "user-1")
 	rec := httptest.NewRecorder()
 	newCartTestMux(t, client).ServeHTTP(rec, req)
@@ -333,7 +333,7 @@ func TestClearCartSuccess(t *testing.T) {
 		}
 		return &cartv1.ClearCartResponse{Cart: &cartv1.Cart{}}, nil
 	}}
-	req := httptest.NewRequest(http.MethodDelete, "/", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/cart", nil)
 	req.Header.Set("X-User-Id", "user-1")
 	rec := httptest.NewRecorder()
 	newCartTestMux(t, client).ServeHTTP(rec, req)
@@ -352,7 +352,7 @@ func TestCartRouteWithoutCallerReturnsUnauthorized(t *testing.T) {
 		return nil, nil
 	}}
 	rec := httptest.NewRecorder()
-	newCartTestMux(t, client).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	newCartTestMux(t, client).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/cart", nil))
 
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("expected status 401, got %d", rec.Code)
@@ -366,7 +366,7 @@ func TestCartItemNotFoundMapsToStableError(t *testing.T) {
 	client := &fakeCartClient{removeFn: func(context.Context, string, string) (*cartv1.RemoveItemResponse, error) {
 		return nil, cartclient.ErrCartItemNotFound
 	}}
-	req := httptest.NewRequest(http.MethodDelete, "/items/item-1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/cart/items/item-1", nil)
 	req.Header.Set("X-User-Id", "user-1")
 	rec := httptest.NewRecorder()
 	newCartTestMux(t, client).ServeHTTP(rec, req)
@@ -383,7 +383,7 @@ func TestCartUnavailableMapsToBadGateway(t *testing.T) {
 	client := &fakeCartClient{getFn: func(context.Context, string) (*cartv1.GetCartResponse, error) {
 		return nil, status.Error(codes.Unavailable, "cart down")
 	}}
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/cart", nil)
 	req.Header.Set("X-User-Id", "user-1")
 	rec := httptest.NewRecorder()
 	newCartTestMux(t, client).ServeHTTP(rec, req)
@@ -400,7 +400,7 @@ func TestCartPermissionDeniedMapsToForbidden(t *testing.T) {
 	client := &fakeCartClient{addFn: func(context.Context, string, string, string, int32) (*cartv1.AddItemResponse, error) {
 		return nil, cartclient.ErrPermissionDenied
 	}}
-	req := httptest.NewRequest(http.MethodPost, "/items", strings.NewReader(`{"productId":"dt-1","variantLabel":"red","quantity":2}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/cart/items", strings.NewReader(`{"productId":"dt-1","variantLabel":"red","quantity":2}`))
 	req.Header.Set("X-User-Id", "user-1")
 	rec := httptest.NewRecorder()
 	newCartTestMux(t, client).ServeHTTP(rec, req)
@@ -415,7 +415,7 @@ func TestCartAuthorizationUnavailableMapsToServiceUnavailable(t *testing.T) {
 	client := &fakeCartClient{addFn: func(context.Context, string, string, string, int32) (*cartv1.AddItemResponse, error) {
 		return nil, cartclient.ErrAuthorizationUnavailable
 	}}
-	req := httptest.NewRequest(http.MethodPost, "/items", strings.NewReader(`{"productId":"dt-1","variantLabel":"red","quantity":2}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/cart/items", strings.NewReader(`{"productId":"dt-1","variantLabel":"red","quantity":2}`))
 	req.Header.Set("X-User-Id", "user-1")
 	rec := httptest.NewRecorder()
 	newCartTestMux(t, client).ServeHTTP(rec, req)
@@ -423,5 +423,18 @@ func TestCartAuthorizationUnavailableMapsToServiceUnavailable(t *testing.T) {
 	body := decodeBody(t, rec)
 	if rec.Code != http.StatusServiceUnavailable || body["code"] != "AUTHORIZATION_SERVICE_UNAVAILABLE" {
 		t.Fatalf("unavailable response = %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestCartUnknownSubroutesAndLegacyRootReturnNotFound(t *testing.T) {
+	mux := newCartTestMux(t, &fakeCartClient{})
+	for _, path := range []string{"/", "/items", "/api/v1/cart/unknown"} {
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		req.Header.Set("X-User-Id", "user-1")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("expected %s to return 404, got %d", path, rec.Code)
+		}
 	}
 }

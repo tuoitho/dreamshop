@@ -32,7 +32,7 @@ func TestAdminSoftDeleteProductWithoutCallerReturnsUnauthorized(t *testing.T) {
 			return nil
 		},
 	}
-	req := httptest.NewRequest(http.MethodPost, "/products/dt-1/delete", strings.NewReader(`{"deleted":true}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/products/dt-1/delete", strings.NewReader(`{"deleted":true}`))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
@@ -57,7 +57,7 @@ func TestAdminSoftDeleteProductSuccessForwardsCallerIdentity(t *testing.T) {
 			return nil
 		},
 	}
-	req := httptest.NewRequest(http.MethodPost, "/products/dt-1/delete", strings.NewReader(`{"deleted":true}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/products/dt-1/delete", strings.NewReader(`{"deleted":true}`))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-User-Id", "admin-1")
 	rec := httptest.NewRecorder()
@@ -90,7 +90,7 @@ func TestAdminSoftDeleteProductRejectsMalformedOrMissingDeleted(t *testing.T) {
 					return nil
 				},
 			}
-			req := httptest.NewRequest(http.MethodPost, "/products/dt-1/delete", strings.NewReader(tc.body))
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/products/dt-1/delete", strings.NewReader(tc.body))
 			req.Header.Set("X-User-Id", "admin-1")
 			rec := httptest.NewRecorder()
 
@@ -112,7 +112,7 @@ func TestAdminSoftDeleteProductPermissionDeniedMapsToForbidden(t *testing.T) {
 			return catalog.ErrPermissionDenied
 		},
 	}
-	req := httptest.NewRequest(http.MethodPost, "/products/dt-1/delete", strings.NewReader(`{"deleted":true}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/products/dt-1/delete", strings.NewReader(`{"deleted":true}`))
 	req.Header.Set("X-User-Id", "customer-1")
 	rec := httptest.NewRecorder()
 
@@ -130,7 +130,7 @@ func TestAdminSoftDeleteProductAuthorizationUnavailableMapsToServiceUnavailable(
 			return catalog.ErrAuthorizationUnavailable
 		},
 	}
-	req := httptest.NewRequest(http.MethodPost, "/products/dt-1/delete", strings.NewReader(`{"deleted":true}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/products/dt-1/delete", strings.NewReader(`{"deleted":true}`))
 	req.Header.Set("X-User-Id", "admin-1")
 	rec := httptest.NewRecorder()
 
@@ -148,7 +148,7 @@ func TestAdminSoftDeleteProductNotFoundMapsToStableError(t *testing.T) {
 			return catalog.ErrProductNotFound
 		},
 	}
-	req := httptest.NewRequest(http.MethodPost, "/products/dt-1/delete", strings.NewReader(`{"deleted":true}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/products/dt-1/delete", strings.NewReader(`{"deleted":true}`))
 	req.Header.Set("X-User-Id", "admin-1")
 	rec := httptest.NewRecorder()
 
@@ -168,7 +168,7 @@ func TestAdminSoftDeleteProductCatalogUnavailableMapsToBadGateway(t *testing.T) 
 			return status.Error(codes.Unavailable, "catalog down")
 		},
 	}
-	req := httptest.NewRequest(http.MethodPost, "/products/dt-1/delete", strings.NewReader(`{"deleted":true}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/products/dt-1/delete", strings.NewReader(`{"deleted":true}`))
 	req.Header.Set("X-User-Id", "admin-1")
 	rec := httptest.NewRecorder()
 
@@ -222,7 +222,7 @@ func TestAdminSoftDeleteProductPropagatesResolvedTraceToCatalogAndErrorEnvelope(
 	}
 	t.Cleanup(func() { _ = client.Close() })
 
-	req := httptest.NewRequest(http.MethodPost, "/products/dt-1/delete", strings.NewReader(`{"deleted":true}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/products/dt-1/delete", strings.NewReader(`{"deleted":true}`))
 	req.Header.Set("X-User-Id", "admin-1")
 	req.Header.Set("X-Trace-Id", "trace-catalog-789")
 	rec := httptest.NewRecorder()
@@ -235,5 +235,16 @@ func TestAdminSoftDeleteProductPropagatesResolvedTraceToCatalogAndErrorEnvelope(
 	}
 	if server.traceID != "trace-catalog-789" {
 		t.Fatalf("Catalog metadata trace = %q, want trace-catalog-789", server.traceID)
+	}
+}
+
+func TestAdminLegacySoftDeletePathReturnsNotFound(t *testing.T) {
+	mux := newAdminProductsTestMux(t, &fakeCatalogClient{})
+	req := httptest.NewRequest(http.MethodPost, "/products/dt-1/delete", strings.NewReader(`{"deleted":true}`))
+	req.Header.Set("X-User-Id", "admin-1")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected legacy /products/dt-1/delete to return 404, got %d", rec.Code)
 	}
 }

@@ -72,11 +72,11 @@ func NewProductsHandler(client catalog.Client) *ProductsHandler {
 }
 
 func (h *ProductsHandler) Register(mux *http.ServeMux) {
-	mux.HandleFunc("GET /products", h.search)
-	mux.HandleFunc("GET /products/{id}", h.detail)
+	mux.HandleFunc("GET /api/v1/storefront/products", h.search)
+	mux.HandleFunc("GET /api/v1/storefront/products/{id}", h.detail)
 }
 
-// search handles GET /products.
+// search handles GET /api/v1/storefront/products.
 func (h *ProductsHandler) search(w http.ResponseWriter, r *http.Request) {
 	p, err := parseSearchParams(r.URL.Query())
 	if err != nil {
@@ -118,7 +118,7 @@ func (h *ProductsHandler) search(w http.ResponseWriter, r *http.Request) {
 	}, "Products retrieved.")
 }
 
-// detail handles GET /products/{id}.
+// detail handles GET /api/v1/storefront/products/{id}.
 func (h *ProductsHandler) detail(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.catalog.GetProduct(r.Context(), r.PathValue("id"))
 	if err != nil {

@@ -27,7 +27,7 @@ func NewAdminProductsHandler(client catalog.Client) *AdminProductsHandler {
 }
 
 func (h *AdminProductsHandler) Register(mux *http.ServeMux) {
-	mux.Handle("POST /products/{id}/delete", correlateTrace(RequireCaller(http.HandlerFunc(h.softDelete))))
+	mux.Handle("POST /api/v1/admin/products/{id}/delete", correlateTrace(RequireCaller(http.HandlerFunc(h.softDelete))))
 }
 
 func (h *AdminProductsHandler) softDelete(w http.ResponseWriter, r *http.Request) {

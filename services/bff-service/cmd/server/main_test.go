@@ -45,15 +45,30 @@ func (fakeCatalogClient) SoftDeleteProduct(context.Context, string, string, bool
 var _ cart.Client = fakeCartClient{}
 var _ catalog.Client = fakeCatalogClient{}
 
-func TestBuildMuxMakesAuthenticatedCartRouteReachable(t *testing.T) {
+func TestBuildMuxMakesCanonicalRoutesReachableAndRejectsLegacyPaths(t *testing.T) {
 	mux := buildMux(fakeCartClient{}, fakeCatalogClient{})
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set("X-User-Id", "user-1")
-	rec := httptest.NewRecorder()
 
-	mux.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected cart route to reach handler, got %d: %s", rec.Code, rec.Body.String())
+	for _, tc := range []struct {
+		method string
+		path   string
+		caller string
+		status int
+	}{
+		{method: http.MethodGet, path: "/healthz", status: http.StatusOK},
+		{method: http.MethodGet, path: "/api/v1/storefront/products", status: http.StatusOK},
+		{method: http.MethodGet, path: "/api/v1/cart", caller: "user-1", status: http.StatusOK},
+		{method: http.MethodGet, path: "/", caller: "user-1", status: http.StatusNotFound},
+		{method: http.MethodGet, path: "/products", status: http.StatusNotFound},
+		{method: http.MethodGet, path: "/api/v1/cart/unknown", caller: "user-1", status: http.StatusNotFound},
+	} {
+		req := httptest.NewRequest(tc.method, tc.path, nil)
+		if tc.caller != "" {
+			req.Header.Set("X-User-Id", tc.caller)
+		}
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != tc.status {
+			t.Fatalf("%s %s = %d, want %d: %s", tc.method, tc.path, rec.Code, tc.status, rec.Body.String())
+		}
 	}
 }

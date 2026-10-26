@@ -116,7 +116,7 @@ func TestSearchProductsHappyPathEnvelope(t *testing.T) {
 	}
 	mux := newTestMux(t, client)
 
-	rec := doRequest(mux, http.MethodGet, "/products")
+	rec := doRequest(mux, http.MethodGet, "/api/v1/storefront/products")
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
@@ -135,7 +135,7 @@ func TestSearchProductsEmptyItemsIsArray(t *testing.T) {
 	client := &fakeCatalogClient{}
 	mux := newTestMux(t, client)
 
-	rec := doRequest(mux, http.MethodGet, "/products")
+	rec := doRequest(mux, http.MethodGet, "/api/v1/storefront/products")
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
@@ -158,7 +158,7 @@ func TestSearchProductsMapsQueryParams(t *testing.T) {
 	}{
 		{
 			name:   "all params",
-			target: "/products?q=iphone&danh-muc=dien-thoai&gia=500000-2000000&giam-gia=1&danh-gia=4&sap-xep=gia-cao&page=3&pageSize=25",
+			target: "/api/v1/storefront/products?q=iphone&danh-muc=dien-thoai&gia=500000-2000000&giam-gia=1&danh-gia=4&sap-xep=gia-cao&page=3&pageSize=25",
 			check: func(t *testing.T, req *catalogv1.SearchProductsRequest) {
 				if req.GetQuery() != "iphone" {
 					t.Errorf("expected query iphone, got %q", req.GetQuery())
@@ -188,7 +188,7 @@ func TestSearchProductsMapsQueryParams(t *testing.T) {
 		},
 		{
 			name:   "unbounded price max",
-			target: "/products?gia=10000000-0",
+			target: "/api/v1/storefront/products?gia=10000000-0",
 			check: func(t *testing.T, req *catalogv1.SearchProductsRequest) {
 				if req.GetPriceMin() != 10000000 {
 					t.Errorf("expected priceMin 10000000, got %d", req.GetPriceMin())
@@ -200,7 +200,7 @@ func TestSearchProductsMapsQueryParams(t *testing.T) {
 		},
 		{
 			name:   "defaults",
-			target: "/products",
+			target: "/api/v1/storefront/products",
 			check: func(t *testing.T, req *catalogv1.SearchProductsRequest) {
 				if req.GetPage() != 1 {
 					t.Errorf("expected default page 1, got %d", req.GetPage())
@@ -239,22 +239,22 @@ func TestSearchProductsInvalidParams(t *testing.T) {
 		target string
 		field  string
 	}{
-		{"bad gia format", "/products?gia=abc-def", "gia"},
-		{"gia missing max", "/products?gia=500-", "gia"},
-		{"negative gia min", "/products?gia=-100-500", "gia"},
-		{"negative gia max", "/products?gia=500--100", "gia"},
-		{"extra dash in gia", "/products?gia=1-2-3", "gia"},
-		{"page zero", "/products?page=0", "page"},
-		{"page negative", "/products?page=-1", "page"},
-		{"page non-numeric", "/products?page=abc", "page"},
-		{"pageSize zero", "/products?pageSize=0", "pageSize"},
-		{"pageSize too large", "/products?pageSize=51", "pageSize"},
-		{"pageSize non-numeric", "/products?pageSize=abc", "pageSize"},
-		{"rating too low", "/products?danh-gia=0", "danh-gia"},
-		{"rating too high", "/products?danh-gia=6", "danh-gia"},
-		{"rating non-numeric", "/products?danh-gia=abc", "danh-gia"},
-		{"sort invalid", "/products?sap-xep=bogus", "sap-xep"},
-		{"giam-gia invalid", "/products?giam-gia=2", "giam-gia"},
+		{"bad gia format", "/api/v1/storefront/products?gia=abc-def", "gia"},
+		{"gia missing max", "/api/v1/storefront/products?gia=500-", "gia"},
+		{"negative gia min", "/api/v1/storefront/products?gia=-100-500", "gia"},
+		{"negative gia max", "/api/v1/storefront/products?gia=500--100", "gia"},
+		{"extra dash in gia", "/api/v1/storefront/products?gia=1-2-3", "gia"},
+		{"page zero", "/api/v1/storefront/products?page=0", "page"},
+		{"page negative", "/api/v1/storefront/products?page=-1", "page"},
+		{"page non-numeric", "/api/v1/storefront/products?page=abc", "page"},
+		{"pageSize zero", "/api/v1/storefront/products?pageSize=0", "pageSize"},
+		{"pageSize too large", "/api/v1/storefront/products?pageSize=51", "pageSize"},
+		{"pageSize non-numeric", "/api/v1/storefront/products?pageSize=abc", "pageSize"},
+		{"rating too low", "/api/v1/storefront/products?danh-gia=0", "danh-gia"},
+		{"rating too high", "/api/v1/storefront/products?danh-gia=6", "danh-gia"},
+		{"rating non-numeric", "/api/v1/storefront/products?danh-gia=abc", "danh-gia"},
+		{"sort invalid", "/api/v1/storefront/products?sap-xep=bogus", "sap-xep"},
+		{"giam-gia invalid", "/api/v1/storefront/products?giam-gia=2", "giam-gia"},
 	}
 
 	for _, tc := range cases {
@@ -305,7 +305,7 @@ func TestSearchProductsCatalogUnavailable(t *testing.T) {
 			}
 			mux := newTestMux(t, client)
 
-			rec := doRequest(mux, http.MethodGet, "/products")
+			rec := doRequest(mux, http.MethodGet, "/api/v1/storefront/products")
 
 			if rec.Code != http.StatusBadGateway {
 				t.Fatalf("expected status 502, got %d: %s", rec.Code, rec.Body.String())
@@ -329,7 +329,7 @@ func TestSearchProductsGRPCInvalidArgument(t *testing.T) {
 	}
 	mux := newTestMux(t, client)
 
-	rec := doRequest(mux, http.MethodGet, "/products")
+	rec := doRequest(mux, http.MethodGet, "/api/v1/storefront/products")
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d: %s", rec.Code, rec.Body.String())
@@ -374,7 +374,7 @@ func TestGetProductHappyPathEnvelope(t *testing.T) {
 	}
 	mux := newTestMux(t, client)
 
-	rec := doRequest(mux, http.MethodGet, "/products/dt-1")
+	rec := doRequest(mux, http.MethodGet, "/api/v1/storefront/products/dt-1")
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
@@ -394,7 +394,7 @@ func TestGetProductNotFound(t *testing.T) {
 	}
 	mux := newTestMux(t, client)
 
-	rec := doRequest(mux, http.MethodGet, "/products/missing")
+	rec := doRequest(mux, http.MethodGet, "/api/v1/storefront/products/missing")
 
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected status 404, got %d: %s", rec.Code, rec.Body.String())
@@ -422,7 +422,7 @@ func TestGetProductCatalogUnavailable(t *testing.T) {
 	}
 	mux := newTestMux(t, client)
 
-	rec := doRequest(mux, http.MethodGet, "/products/dt-1")
+	rec := doRequest(mux, http.MethodGet, "/api/v1/storefront/products/dt-1")
 
 	if rec.Code != http.StatusBadGateway {
 		t.Fatalf("expected status 502, got %d: %s", rec.Code, rec.Body.String())
@@ -437,7 +437,7 @@ func TestErrorResponseUsesTraceIDFromHeader(t *testing.T) {
 	client := &fakeCatalogClient{}
 	mux := newTestMux(t, client)
 
-	req := httptest.NewRequest(http.MethodGet, "/products?page=0", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/storefront/products?page=0", nil)
 	req.Header.Set("X-Trace-Id", "trace-abc-123")
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
@@ -448,5 +448,13 @@ func TestErrorResponseUsesTraceIDFromHeader(t *testing.T) {
 	body := decodeBody(t, rec)
 	if body["traceId"] != "trace-abc-123" {
 		t.Errorf("expected traceId from X-Trace-Id header, got %v", body["traceId"])
+	}
+}
+
+func TestLegacyProductsRouteReturnsNotFound(t *testing.T) {
+	mux := newTestMux(t, &fakeCatalogClient{})
+	rec := doRequest(mux, http.MethodGet, "/products")
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected legacy /products to return 404, got %d", rec.Code)
 	}
 }
