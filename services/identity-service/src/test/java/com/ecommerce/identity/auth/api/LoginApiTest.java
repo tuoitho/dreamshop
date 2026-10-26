@@ -47,7 +47,7 @@ class LoginApiTest extends PostgresIntegrationTestSupport {
         register("user@example.com", "correct horse battery staple");
         when(jwtTokenService.issue(any(), any())).thenReturn(new AccessTokenResult("access-token", 900));
 
-        mockMvc.perform(post("/login")
+        mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"user@example.com\",\"password\":\"correct horse battery staple\"}"))
                 .andExpect(status().isOk())
@@ -113,14 +113,14 @@ class LoginApiTest extends PostgresIntegrationTestSupport {
     }
 
     private void register(String email, String password) throws Exception {
-        mockMvc.perform(post("/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"%s\",\"password\":\"%s\",\"fullName\":\"User\"}".formatted(email, password)))
                 .andExpect(status().isCreated());
     }
 
     private org.springframework.test.web.servlet.ResultActions login(String email, String password) throws Exception {
-        return mockMvc.perform(post("/login")
+        return mockMvc.perform(post("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"%s\",\"password\":\"%s\"}".formatted(email, password)));
     }

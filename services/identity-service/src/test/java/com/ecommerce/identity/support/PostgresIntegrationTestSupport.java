@@ -25,6 +25,7 @@ public abstract class PostgresIntegrationTestSupport {
 
     @DynamicPropertySource
     static void jwtProperties(DynamicPropertyRegistry registry) {
+        registry.add("MANAGEMENT_SERVER_PORT", () -> "0");
         registry.add("identity.grpc.host", () -> "127.0.0.1");
         registry.add("identity.grpc.port", () -> "0");
         registry.add("identity.grpc.shutdown-grace", () -> "2s");

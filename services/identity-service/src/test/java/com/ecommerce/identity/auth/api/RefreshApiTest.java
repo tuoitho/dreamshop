@@ -47,7 +47,7 @@ class RefreshApiTest extends PostgresIntegrationTestSupport {
         register("user@example.com");
         when(jwtTokenService.issue(any(), any())).thenReturn(new AccessTokenResult("access-token", 900));
 
-        mockMvc.perform(post("/login")
+        mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"user@example.com\",\"password\":\"correct horse battery staple\"}"))
                 .andExpect(status().isOk())
@@ -63,7 +63,7 @@ class RefreshApiTest extends PostgresIntegrationTestSupport {
         String cookieValue = loginAndExtractCookie();
         when(jwtTokenService.issue(any(), any())).thenReturn(new AccessTokenResult("new-jwt", 900));
 
-        mockMvc.perform(post("/refresh").cookie(new Cookie(COOKIE_NAME, cookieValue)))
+        mockMvc.perform(post("/api/v1/auth/refresh").cookie(new Cookie(COOKIE_NAME, cookieValue)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.accessToken").value("new-jwt"))
                 .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
@@ -75,7 +75,7 @@ class RefreshApiTest extends PostgresIntegrationTestSupport {
 
     @Test
     void refreshRejectsMissingCookie() throws Exception {
-        mockMvc.perform(post("/refresh"))
+        mockMvc.perform(post("/api/v1/auth/refresh"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_REFRESH_TOKEN"))
                 .andExpect(jsonPath("$.message").value("Refresh token is invalid or expired"))
@@ -90,7 +90,7 @@ class RefreshApiTest extends PostgresIntegrationTestSupport {
                 set expires_at = now() - interval '1 hour'
                 """);
 
-        mockMvc.perform(post("/refresh").cookie(new Cookie(COOKIE_NAME, cookieValue)))
+        mockMvc.perform(post("/api/v1/auth/refresh").cookie(new Cookie(COOKIE_NAME, cookieValue)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_REFRESH_TOKEN"))
                 .andExpect(cookie().maxAge(COOKIE_NAME, 0));
@@ -99,11 +99,11 @@ class RefreshApiTest extends PostgresIntegrationTestSupport {
     @Test
     void refreshRejectsReusedCookieAndClearsIt() throws Exception {
         String cookieValue = loginAndExtractCookie();
-        mockMvc.perform(post("/refresh").cookie(new Cookie(COOKIE_NAME, cookieValue)))
+        mockMvc.perform(post("/api/v1/auth/refresh").cookie(new Cookie(COOKIE_NAME, cookieValue)))
                 .andExpect(status().isOk());
         reset(jwtTokenService);
 
-        mockMvc.perform(post("/refresh").cookie(new Cookie(COOKIE_NAME, cookieValue)))
+        mockMvc.perform(post("/api/v1/auth/refresh").cookie(new Cookie(COOKIE_NAME, cookieValue)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_REFRESH_TOKEN"))
                 .andExpect(cookie().maxAge(COOKIE_NAME, 0));
@@ -113,13 +113,13 @@ class RefreshApiTest extends PostgresIntegrationTestSupport {
     void logoutReturnsSuccessMessageAndClearsCookie() throws Exception {
         String cookieValue = loginAndExtractCookie();
 
-        mockMvc.perform(post("/logout").cookie(new Cookie(COOKIE_NAME, cookieValue)))
+        mockMvc.perform(post("/api/v1/auth/logout").cookie(new Cookie(COOKIE_NAME, cookieValue)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Logout successful"))
                 .andExpect(cookie().maxAge(COOKIE_NAME, 0))
                 .andExpect(cookie().value(COOKIE_NAME, ""));
 
-        mockMvc.perform(post("/logout"))
+        mockMvc.perform(post("/api/v1/auth/logout"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Logout successful"))
                 .andExpect(cookie().maxAge(COOKIE_NAME, 0))
@@ -127,7 +127,7 @@ class RefreshApiTest extends PostgresIntegrationTestSupport {
     }
 
     private void register(String email) throws Exception {
-        mockMvc.perform(post("/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"%s\",\"password\":\"correct horse battery staple\",\"fullName\":\"User\"}"
                                 .formatted(email)))
@@ -137,7 +137,7 @@ class RefreshApiTest extends PostgresIntegrationTestSupport {
     private String loginAndExtractCookie() throws Exception {
         register("user@example.com");
         when(jwtTokenService.issue(any(), any())).thenReturn(new AccessTokenResult("access-token", 900));
-        MvcResult result = mockMvc.perform(post("/login")
+        MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"user@example.com\",\"password\":\"correct horse battery staple\"}"))
                 .andExpect(status().isOk())

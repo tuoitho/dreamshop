@@ -43,7 +43,7 @@ class AdminUserApiTest extends PostgresIntegrationTestSupport {
 
     @Test
     void listsUsersForCallerWithUserViewPermission() throws Exception {
-        mockMvc.perform(get("/admin/users")
+        mockMvc.perform(get("/api/v1/admin/users")
                         .header("X-User-Id", SUPER_ADMIN_ID.toString())
                         .param("page", "1")
                         .param("pageSize", "20"))
@@ -58,7 +58,7 @@ class AdminUserApiTest extends PostgresIntegrationTestSupport {
 
     @Test
     void customerCannotListUsers() throws Exception {
-        mockMvc.perform(get("/admin/users")
+        mockMvc.perform(get("/api/v1/admin/users")
                         .header("X-User-Id", CUSTOMER_ID.toString()))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("FORBIDDEN"));
@@ -66,7 +66,7 @@ class AdminUserApiTest extends PostgresIntegrationTestSupport {
 
     @Test
     void adminCanDisableAndAssignNormalRole() throws Exception {
-        mockMvc.perform(patch("/admin/users/%s/status".formatted(CUSTOMER_ID))
+        mockMvc.perform(patch("/api/v1/admin/users/%s/status".formatted(CUSTOMER_ID))
                         .header("X-User-Id", ADMIN_ID.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -75,7 +75,7 @@ class AdminUserApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("DISABLED"));
 
-        mockMvc.perform(put("/admin/users/%s/roles/ADMIN".formatted(CUSTOMER_ID))
+        mockMvc.perform(put("/api/v1/admin/users/%s/roles/ADMIN".formatted(CUSTOMER_ID))
                         .header("X-User-Id", ADMIN_ID.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("User role assigned."));
@@ -83,7 +83,7 @@ class AdminUserApiTest extends PostgresIntegrationTestSupport {
 
     @Test
     void protectsSelfDisableAndSuperAdminEscalation() throws Exception {
-        mockMvc.perform(patch("/admin/users/%s/status".formatted(ADMIN_ID))
+        mockMvc.perform(patch("/api/v1/admin/users/%s/status".formatted(ADMIN_ID))
                         .header("X-User-Id", ADMIN_ID.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -92,7 +92,7 @@ class AdminUserApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("SELF_DISABLE_NOT_ALLOWED"));
 
-        mockMvc.perform(put("/admin/users/%s/roles/SUPER_ADMIN".formatted(CUSTOMER_ID))
+        mockMvc.perform(put("/api/v1/admin/users/%s/roles/SUPER_ADMIN".formatted(CUSTOMER_ID))
                         .header("X-User-Id", ADMIN_ID.toString()))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("FORBIDDEN"));
@@ -100,7 +100,7 @@ class AdminUserApiTest extends PostgresIntegrationTestSupport {
 
     @Test
     void protectsTheLastSuperAdminAssignment() throws Exception {
-        mockMvc.perform(delete("/admin/users/%s/roles/SUPER_ADMIN".formatted(SUPER_ADMIN_ID))
+        mockMvc.perform(delete("/api/v1/admin/users/%s/roles/SUPER_ADMIN".formatted(SUPER_ADMIN_ID))
                         .header("X-User-Id", SUPER_ADMIN_ID.toString()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("LAST_SUPER_ADMIN_REQUIRED"));

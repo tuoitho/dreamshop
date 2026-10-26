@@ -19,7 +19,7 @@ class LocationApiTest extends PostgresIntegrationTestSupport {
 
     @Test
     void returnsSnapshotProvinces() throws Exception {
-        mockMvc.perform(get("/locations/provinces").header("X-User-Id", UUID.randomUUID().toString()))
+        mockMvc.perform(get("/api/v1/locations/provinces").header("X-User-Id", UUID.randomUUID().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(34))
                 .andExpect(jsonPath("$[0].code").value("79"))
@@ -28,7 +28,7 @@ class LocationApiTest extends PostgresIntegrationTestSupport {
 
     @Test
     void returnsWardsForKnownProvince() throws Exception {
-        mockMvc.perform(get("/locations/provinces/79/wards").header("X-User-Id", UUID.randomUUID().toString()))
+        mockMvc.perform(get("/api/v1/locations/provinces/79/wards").header("X-User-Id", UUID.randomUUID().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(greaterThan(0)))
                 .andExpect(jsonPath("$[0].code").value("26734"))
@@ -37,14 +37,14 @@ class LocationApiTest extends PostgresIntegrationTestSupport {
 
     @Test
     void returnsNotFoundForUnknownProvince() throws Exception {
-        mockMvc.perform(get("/locations/provinces/999/wards").header("X-User-Id", UUID.randomUUID().toString()))
+        mockMvc.perform(get("/api/v1/locations/provinces/999/wards").header("X-User-Id", UUID.randomUUID().toString()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"));
     }
 
     @Test
     void requiresCallerContext() throws Exception {
-        mockMvc.perform(get("/locations/provinces"))
+        mockMvc.perform(get("/api/v1/locations/provinces"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }

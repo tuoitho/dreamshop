@@ -65,6 +65,14 @@ class JwksApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(header().string("Cache-Control", containsString("public")))
                 .andReturn();
 
+        MvcResult publicRouteResult = mockMvc.perform(get("/api/v1/auth/.well-known/jwks.json"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", containsString("max-age=300")))
+                .andExpect(header().string("Cache-Control", containsString("public")))
+                .andReturn();
+        assertThat(publicRouteResult.getResponse().getContentAsString())
+                .isEqualTo(result.getResponse().getContentAsString());
+
         JWKSet jwkSet = JWKSet.parse(result.getResponse().getContentAsString());
         RSAKey jwk = (RSAKey) jwkSet.getKeyByKeyId(SignedJWT.parse(token).getHeader().getKeyID());
         Map<String, Object> jwkJson = jwk.toJSONObject();
@@ -93,11 +101,11 @@ class JwksApiTest extends PostgresIntegrationTestSupport {
     private String registerAndLogin() throws Exception {
         String email = "jwks-" + UUID.randomUUID() + "@example.com";
         String password = "correct horse battery staple";
-        mockMvc.perform(post("/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                         .contentType("application/json")
                         .content("{\"email\":\"%s\",\"password\":\"%s\",\"fullName\":\"JWKS User\"}".formatted(email, password)))
                 .andExpect(status().isCreated());
-        MvcResult login = mockMvc.perform(post("/login")
+        MvcResult login = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType("application/json")
                         .content("{\"email\":\"%s\",\"password\":\"%s\"}".formatted(email, password)))
                 .andExpect(status().isOk())

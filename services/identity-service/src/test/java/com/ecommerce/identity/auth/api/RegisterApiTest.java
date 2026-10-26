@@ -33,7 +33,7 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
 
     @Test
     void registersCustomerAndDoesNotReturnPassword() throws Exception {
-        mockMvc.perform(post("/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email":"User@Example.com","password":"correct horse battery staple","fullName":"Nguyen Van A"}
@@ -50,7 +50,7 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
 
     @Test
     void trimsEmailAndFullNameBeforeValidationAndPersistence() throws Exception {
-        mockMvc.perform(post("/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email":"  User@Example.com  ","password":"correct horse battery staple","fullName":"  Nguyen Van A  "}
@@ -65,7 +65,7 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
 
     @Test
     void rejectsInvalidRegistrationWithSafeValidationError() throws Exception {
-        mockMvc.perform(post("/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email":"not-an-email","password":"short","fullName":""}
@@ -81,7 +81,7 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
 
     @Test
     void rejectsMalformedBodyWithoutFieldErrors() throws Exception {
-        mockMvc.perform(post("/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\""))
                 .andExpect(status().isBadRequest())
@@ -94,10 +94,10 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
         String request = """
                 {"email":"duplicate@example.com","password":"correct horse battery staple","fullName":"Nguyen Van A"}
                 """;
-        mockMvc.perform(post("/register").contentType(MediaType.APPLICATION_JSON).content(request))
+        mockMvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content(request))
                 .andExpect(status().isCreated());
 
-        mockMvc.perform(post("/register").contentType(MediaType.APPLICATION_JSON).content(request))
+        mockMvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content(request))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("EMAIL_ALREADY_REGISTERED"))
                 .andExpect(jsonPath("$.message").value("Email is already registered"))
@@ -109,7 +109,10 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
     @Test
     void permitsPublicEndpointsButDeniesUnlistedEndpoints() throws Exception {
         mockMvc.perform(get("/actuator/health"))
-                .andExpect(status().isOk());
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/register"))
+                .andExpect(status().isUnauthorized());
 
         mockMvc.perform(get("/private"))
                 .andExpect(status().isUnauthorized())
@@ -124,6 +127,9 @@ class RegisterApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(jsonPath("$.traceId", matchesPattern("[0-9a-f]{32}")));
 
         mockMvc.perform(get("/.well-known/jwks.json"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/auth/.well-known/jwks.json"))
                 .andExpect(status().isOk());
     }
 }

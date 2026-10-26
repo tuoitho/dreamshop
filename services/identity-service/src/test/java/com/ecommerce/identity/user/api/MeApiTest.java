@@ -38,7 +38,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
     void returnsCallerProfileForVerifiedUserIdHeader() throws Exception {
         String userId = registerUser("me@example.com");
 
-        mockMvc.perform(get("/users/me").header("X-User-Id", userId))
+        mockMvc.perform(get("/api/v1/users/me").header("X-User-Id", userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(userId))
                 .andExpect(jsonPath("$.email").value("me@example.com"))
@@ -50,7 +50,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
     void loadsRolesFromDatabaseNotFromForgedRolesHeader() throws Exception {
         String userId = registerUser("roles@example.com");
 
-        mockMvc.perform(get("/users/me")
+        mockMvc.perform(get("/api/v1/users/me")
                         .header("X-User-Id", userId)
                         .header("X-User-Roles", "ADMIN"))
                 .andExpect(status().isOk())
@@ -59,7 +59,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
 
     @Test
     void rejectsRequestWithoutCallerHeader() throws Exception {
-        mockMvc.perform(get("/users/me"))
+        mockMvc.perform(get("/api/v1/users/me"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
                 .andExpect(jsonPath("$.traceId", matchesPattern("[0-9a-f]{32}")));
@@ -67,14 +67,14 @@ class MeApiTest extends PostgresIntegrationTestSupport {
 
     @Test
     void rejectsMalformedCallerHeader() throws Exception {
-        mockMvc.perform(get("/users/me").header("X-User-Id", "not-a-uuid"))
+        mockMvc.perform(get("/api/v1/users/me").header("X-User-Id", "not-a-uuid"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }
 
     @Test
     void returnsNotFoundForUnknownUser() throws Exception {
-        mockMvc.perform(get("/users/me").header("X-User-Id", UUID.randomUUID().toString()))
+        mockMvc.perform(get("/api/v1/users/me").header("X-User-Id", UUID.randomUUID().toString()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("USER_NOT_FOUND"));
     }
@@ -85,7 +85,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
         jdbcTemplate.update("update identity_users set status = 'DISABLED' where normalized_email = ?",
                 "disabled@example.com");
 
-        mockMvc.perform(get("/users/me").header("X-User-Id", userId))
+        mockMvc.perform(get("/api/v1/users/me").header("X-User-Id", userId))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("USER_NOT_FOUND"));
     }
@@ -94,7 +94,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
     void updatesCurrentUserFullName() throws Exception {
         String userId = registerUser("update@example.com");
 
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"Updated Name\"}"))
                 .andExpect(status().isOk())
@@ -107,7 +107,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
     void rejectsBlankCurrentUserFullName() throws Exception {
         String userId = registerUser("blank@example.com");
 
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"   \"}"))
                 .andExpect(status().isBadRequest())
@@ -118,14 +118,14 @@ class MeApiTest extends PostgresIntegrationTestSupport {
     void acceptsPatchWithOnlyPhoneAndPreservesStoredFullName() throws Exception {
         String userId = registerUser("phone-only@example.com");
 
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"phone\":\"0912345678\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.fullName").value("Me User"))
                 .andExpect(jsonPath("$.data.phone").value("0912345678"));
 
-        mockMvc.perform(get("/users/me").header("X-User-Id", userId))
+        mockMvc.perform(get("/api/v1/users/me").header("X-User-Id", userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fullName").value("Me User"))
                 .andExpect(jsonPath("$.phone").value("0912345678"));
@@ -135,7 +135,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
     void acceptsPatchWithOnlyLocationPairAndPreservesStoredFullName() throws Exception {
         String userId = registerUser("location-only@example.com");
 
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"provinceCode\":\"79\",\"wardCode\":\"26740\"}"))
                 .andExpect(status().isOk())
@@ -143,7 +143,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(jsonPath("$.data.provinceCode").value("79"))
                 .andExpect(jsonPath("$.data.wardCode").value("26740"));
 
-        mockMvc.perform(get("/users/me").header("X-User-Id", userId))
+        mockMvc.perform(get("/api/v1/users/me").header("X-User-Id", userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fullName").value("Me User"))
                 .andExpect(jsonPath("$.provinceCode").value("79"))
@@ -154,7 +154,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
     void rejectsExplicitNullFullName() throws Exception {
         String userId = registerUser("null-name@example.com");
 
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":null}"))
                 .andExpect(status().isBadRequest())
@@ -165,7 +165,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
     void returnsNullableProfileFieldsInGetResponse() throws Exception {
         String userId = registerUser("fields@example.com");
 
-        mockMvc.perform(get("/users/me").header("X-User-Id", userId))
+        mockMvc.perform(get("/api/v1/users/me").header("X-User-Id", userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.phone").value(nullValue()))
                 .andExpect(jsonPath("$.dateOfBirth").value(nullValue()))
@@ -179,7 +179,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
     void updatesAllProfileFieldsAndPersistsThem() throws Exception {
         String userId = registerUser("all-fields@example.com");
 
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -202,7 +202,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(jsonPath("$.data.wardCode").value("26740"))
                 .andExpect(jsonPath("$.data.addressLine").value("12 Le Loi"));
 
-        mockMvc.perform(get("/users/me").header("X-User-Id", userId))
+        mockMvc.perform(get("/api/v1/users/me").header("X-User-Id", userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.phone").value("0901234567"))
                 .andExpect(jsonPath("$.dateOfBirth").value("1995-04-20"))
@@ -219,7 +219,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
                 {"fullName":"Original Name","phone":"0901234567","provinceCode":"79","wardCode":"26740"}
                 """);
 
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"Renamed\",\"phone\":\"0912345678\"}"))
                 .andExpect(status().isOk())
@@ -236,7 +236,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
                 {"fullName":"Original Name","phone":"0901234567","provinceCode":"79","wardCode":"26740"}
                 """);
 
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"Kept Name\",\"phone\":\"\",\"provinceCode\":\"\"}"))
                 .andExpect(status().isOk())
@@ -244,7 +244,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(jsonPath("$.data.provinceCode").value(nullValue()))
                 .andExpect(jsonPath("$.data.wardCode").value(nullValue()));
 
-        mockMvc.perform(get("/users/me").header("X-User-Id", userId))
+        mockMvc.perform(get("/api/v1/users/me").header("X-User-Id", userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.phone").value(nullValue()))
                 .andExpect(jsonPath("$.provinceCode").value(nullValue()))
@@ -256,13 +256,13 @@ class MeApiTest extends PostgresIntegrationTestSupport {
         String userId = registerUser("clear-dob@example.com");
         patchProfile(userId, "{\"fullName\":\"Original Name\",\"dateOfBirth\":\"1995-04-20\"}");
 
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"Kept Name\",\"dateOfBirth\":\"\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.dateOfBirth").value(nullValue()));
 
-        mockMvc.perform(get("/users/me").header("X-User-Id", userId))
+        mockMvc.perform(get("/api/v1/users/me").header("X-User-Id", userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.dateOfBirth").value(nullValue()));
     }
@@ -272,13 +272,13 @@ class MeApiTest extends PostgresIntegrationTestSupport {
         String userId = registerUser("clear-gender@example.com");
         patchProfile(userId, "{\"fullName\":\"Original Name\",\"gender\":\"MALE\"}");
 
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"Kept Name\",\"gender\":\"\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.gender").value(nullValue()));
 
-        mockMvc.perform(get("/users/me").header("X-User-Id", userId))
+        mockMvc.perform(get("/api/v1/users/me").header("X-User-Id", userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.gender").value(nullValue()));
     }
@@ -287,7 +287,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
     void rejectsInvalidVietnameseMobileNumber() throws Exception {
         String userId = registerUser("bad-phone@example.com");
 
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"Me User\",\"phone\":\"0123456789\"}"))
                 .andExpect(status().isBadRequest())
@@ -299,7 +299,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
     void rejectsFutureDateOfBirth() throws Exception {
         String userId = registerUser("future-dob@example.com");
 
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"Me User\",\"dateOfBirth\":\"2999-01-01\"}"))
                 .andExpect(status().isBadRequest())
@@ -311,7 +311,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
     void rejectsUnknownGender() throws Exception {
         String userId = registerUser("unknown-gender@example.com");
 
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"Me User\",\"gender\":\"ALIEN\"}"))
                 .andExpect(status().isBadRequest())
@@ -324,7 +324,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
         String userId = registerUser("clear-province@example.com");
         patchProfile(userId, "{\"fullName\":\"Original Name\",\"provinceCode\":\"79\",\"wardCode\":\"26740\"}");
 
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"Kept Name\",\"provinceCode\":\"\"}"))
                 .andExpect(status().isOk())
@@ -337,7 +337,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
         String userId = registerUser("clear-ward@example.com");
         patchProfile(userId, "{\"fullName\":\"Original Name\",\"provinceCode\":\"79\",\"wardCode\":\"26740\"}");
 
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"Kept Name\",\"wardCode\":\"\"}"))
                 .andExpect(status().isOk())
@@ -349,7 +349,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
     void rejectsProvinceCodeWithoutWardCode() throws Exception {
         String userId = registerUser("province-only@example.com");
 
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"Me User\",\"provinceCode\":\"79\"}"))
                 .andExpect(status().isBadRequest())
@@ -361,7 +361,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
     void rejectsWardCodeWithoutProvinceCode() throws Exception {
         String userId = registerUser("ward-only@example.com");
 
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"Me User\",\"wardCode\":\"26740\"}"))
                 .andExpect(status().isBadRequest())
@@ -373,7 +373,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
     void rejectsWardCodeNotBelongingToProvince() throws Exception {
         String userId = registerUser("mismatched@example.com");
 
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"Me User\",\"provinceCode\":\"79\",\"wardCode\":\"00043\"}"))
                 .andExpect(status().isBadRequest())
@@ -385,7 +385,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
     void rejectsUnknownProvinceCode() throws Exception {
         String userId = registerUser("unknown-province@example.com");
 
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"Me User\",\"provinceCode\":\"999\",\"wardCode\":\"26740\"}"))
                 .andExpect(status().isBadRequest())
@@ -397,7 +397,7 @@ class MeApiTest extends PostgresIntegrationTestSupport {
     void rejectsUnknownWardCode() throws Exception {
         String userId = registerUser("unknown-ward@example.com");
 
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fullName\":\"Me User\",\"provinceCode\":\"79\",\"wardCode\":\"99999\"}"))
                 .andExpect(status().isBadRequest())
@@ -406,14 +406,14 @@ class MeApiTest extends PostgresIntegrationTestSupport {
     }
 
     private void patchProfile(String userId, String json) throws Exception {
-        mockMvc.perform(patch("/users/me").header("X-User-Id", userId)
+        mockMvc.perform(patch("/api/v1/users/me").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isOk());
     }
 
     private String registerUser(String email) throws Exception {
-        MvcResult result = mockMvc.perform(post("/register")
+        MvcResult result = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"%s\",\"password\":\"correct horse battery staple\",\"fullName\":\"Me User\"}"
                                 .formatted(email)))

@@ -16,6 +16,7 @@ WORKDIR /app
 COPY --from=builder /app/services/order-service/target/*.jar /app/app.jar
 
 ENV SERVER_PORT=8083
-EXPOSE 8083
+ENV MANAGEMENT_SERVER_PORT=8093
+EXPOSE 8083 8093
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

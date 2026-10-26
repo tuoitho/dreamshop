@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class JwksController {
     private final SigningKeyMaterial keys;
 
-    @GetMapping("/.well-known/jwks.json")
+    @GetMapping({"/.well-known/jwks.json", "/api/v1/auth/.well-known/jwks.json"})
     ResponseEntity<Map<String, Object>> jwks() {
         Map<String, Object> body = new JWKSet(keys.publicJwk().toPublicJWK()).toJSONObject();
         return ResponseEntity.ok()

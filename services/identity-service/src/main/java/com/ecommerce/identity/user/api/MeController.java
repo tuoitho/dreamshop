@@ -16,12 +16,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class MeController {
     private final MeService meService;
 
-    @GetMapping("/users/me")
+    @GetMapping("/api/v1/users/me")
     MeResponse me(@AuthenticationPrincipal CallerContextPrincipal caller) {
         return MeResponse.from(meService.current(caller.userId()));
     }
 
-    @PatchMapping("/users/me")
+    @PatchMapping("/api/v1/users/me")
     ApiResponse<MeUpdateResponse> update(@AuthenticationPrincipal CallerContextPrincipal caller,
             @Valid @RequestBody UpdateMeRequest request) {
         return new ApiResponse<>(MeUpdateResponse.from(meService.update(caller.userId(), request.fullName(), request.phone(),

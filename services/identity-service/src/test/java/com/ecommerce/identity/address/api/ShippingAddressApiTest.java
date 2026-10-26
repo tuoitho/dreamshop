@@ -45,12 +45,12 @@ class ShippingAddressApiTest extends PostgresIntegrationTestSupport {
     void createsListsUpdatesSetsDefaultAndDeletesOwnAddress() throws Exception {
         String addressId = createAddress(USER_ID.toString(), "Home");
 
-        mockMvc.perform(get("/users/me/addresses").header("X-User-Id", USER_ID.toString()))
+        mockMvc.perform(get("/api/v1/users/me/addresses").header("X-User-Id", USER_ID.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].id").value(addressId))
                 .andExpect(jsonPath("$.data[0].isDefault").value(true));
 
-        mockMvc.perform(patch("/users/me/addresses/%s".formatted(addressId))
+        mockMvc.perform(patch("/api/v1/users/me/addresses/%s".formatted(addressId))
                         .header("X-User-Id", USER_ID.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -60,12 +60,12 @@ class ShippingAddressApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(jsonPath("$.data.label").value("Updated home"))
                 .andExpect(jsonPath("$.data.addressLine").value("99 Le Loi"));
 
-        mockMvc.perform(put("/users/me/addresses/%s/default".formatted(addressId))
+        mockMvc.perform(put("/api/v1/users/me/addresses/%s/default".formatted(addressId))
                         .header("X-User-Id", USER_ID.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.isDefault").value(true));
 
-        mockMvc.perform(delete("/users/me/addresses/%s".formatted(addressId))
+        mockMvc.perform(delete("/api/v1/users/me/addresses/%s".formatted(addressId))
                         .header("X-User-Id", USER_ID.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value((Object) null))
@@ -79,7 +79,7 @@ class ShippingAddressApiTest extends PostgresIntegrationTestSupport {
                 where parent_name = 'CUSTOMER' and child_name = 'address.create'
                 """);
 
-        mockMvc.perform(post("/users/me/addresses")
+        mockMvc.perform(post("/api/v1/users/me/addresses")
                         .header("X-User-Id", USER_ID.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -93,7 +93,7 @@ class ShippingAddressApiTest extends PostgresIntegrationTestSupport {
 
     @Test
     void rejectsInvalidLocationAndMissingCaller() throws Exception {
-        mockMvc.perform(post("/users/me/addresses")
+        mockMvc.perform(post("/api/v1/users/me/addresses")
                         .header("X-User-Id", USER_ID.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -105,7 +105,7 @@ class ShippingAddressApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.errors.wardCode").value("ward code does not belong to province code"));
 
-        mockMvc.perform(get("/users/me/addresses"))
+        mockMvc.perform(get("/api/v1/users/me/addresses"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
                 .andExpect(jsonPath("$.traceId", matchesPattern("[0-9a-f]{32}")));
@@ -115,7 +115,7 @@ class ShippingAddressApiTest extends PostgresIntegrationTestSupport {
     void addressIdFromAnotherUserIsNotEnumerable() throws Exception {
         String addressId = createAddress(USER_ID.toString(), "Private");
 
-        mockMvc.perform(patch("/users/me/addresses/%s".formatted(addressId))
+        mockMvc.perform(patch("/api/v1/users/me/addresses/%s".formatted(addressId))
                         .header("X-User-Id", OTHER_USER_ID.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -126,7 +126,7 @@ class ShippingAddressApiTest extends PostgresIntegrationTestSupport {
     }
 
     private String createAddress(String userId, String label) throws Exception {
-        MvcResult result = mockMvc.perform(post("/users/me/addresses")
+        MvcResult result = mockMvc.perform(post("/api/v1/users/me/addresses")
                         .header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""

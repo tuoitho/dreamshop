@@ -43,7 +43,7 @@ class RbacAdminApiTest extends PostgresIntegrationTestSupport {
 
     @Test
     void customerCannotCreateRbacItems() throws Exception {
-        mockMvc.perform(post("/admin/rbac/items")
+        mockMvc.perform(post("/api/v1/admin/rbac/items")
                         .header("X-User-Id", CUSTOMER_ID.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -55,7 +55,7 @@ class RbacAdminApiTest extends PostgresIntegrationTestSupport {
 
     @Test
     void superAdminCreatesItemsAndHierarchy() throws Exception {
-        mockMvc.perform(post("/admin/rbac/items")
+        mockMvc.perform(post("/api/v1/admin/rbac/items")
                         .header("X-User-Id", SUPER_ADMIN_ID.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -64,7 +64,7 @@ class RbacAdminApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.name").value("SUPPORT"));
 
-        mockMvc.perform(post("/admin/rbac/items")
+        mockMvc.perform(post("/api/v1/admin/rbac/items")
                         .header("X-User-Id", SUPER_ADMIN_ID.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -72,12 +72,12 @@ class RbacAdminApiTest extends PostgresIntegrationTestSupport {
                                 """))
                 .andExpect(status().isCreated());
 
-        mockMvc.perform(put("/admin/rbac/items/SUPPORT/children/ticket.view")
+        mockMvc.perform(put("/api/v1/admin/rbac/items/SUPPORT/children/ticket.view")
                         .header("X-User-Id", SUPER_ADMIN_ID.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value((Object) null));
 
-        mockMvc.perform(get("/admin/rbac/items/SUPPORT")
+        mockMvc.perform(get("/api/v1/admin/rbac/items/SUPPORT")
                         .header("X-User-Id", SUPER_ADMIN_ID.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.directChildren[0]").value("ticket.view"));
@@ -89,20 +89,20 @@ class RbacAdminApiTest extends PostgresIntegrationTestSupport {
         createItem("ticket.view", "PERMISSION");
         addChild("SUPPORT", "ticket.view");
 
-        mockMvc.perform(put("/admin/rbac/items/ticket.view/children/SUPPORT")
+        mockMvc.perform(put("/api/v1/admin/rbac/items/ticket.view/children/SUPPORT")
                         .header("X-User-Id", SUPER_ADMIN_ID.toString()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("RBAC_HIERARCHY_CONFLICT"));
 
-        mockMvc.perform(put("/admin/rbac/items/SUPPORT/children/ticket.view")
+        mockMvc.perform(put("/api/v1/admin/rbac/items/SUPPORT/children/ticket.view")
                         .header("X-User-Id", SUPER_ADMIN_ID.toString()))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(put("/admin/rbac/items/CUSTOMER/children/address.create")
+        mockMvc.perform(put("/api/v1/admin/rbac/items/CUSTOMER/children/address.create")
                         .header("X-User-Id", SUPER_ADMIN_ID.toString()))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(patch("/admin/rbac/items/CUSTOMER")
+        mockMvc.perform(patch("/api/v1/admin/rbac/items/CUSTOMER")
                         .header("X-User-Id", SUPER_ADMIN_ID.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -114,7 +114,7 @@ class RbacAdminApiTest extends PostgresIntegrationTestSupport {
     }
 
     private void createItem(String name, String type) throws Exception {
-        mockMvc.perform(post("/admin/rbac/items")
+        mockMvc.perform(post("/api/v1/admin/rbac/items")
                         .header("X-User-Id", SUPER_ADMIN_ID.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -125,7 +125,7 @@ class RbacAdminApiTest extends PostgresIntegrationTestSupport {
     }
 
     private void addChild(String parent, String child) throws Exception {
-        mockMvc.perform(put("/admin/rbac/items/%s/children/%s".formatted(parent, child))
+        mockMvc.perform(put("/api/v1/admin/rbac/items/%s/children/%s".formatted(parent, child))
                         .header("X-User-Id", SUPER_ADMIN_ID.toString()))
                 .andExpect(status().isOk());
     }

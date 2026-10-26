@@ -14,14 +14,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class LocationController {
     private final LocationCatalog catalog;
 
-    @GetMapping("/locations/provinces")
+    @GetMapping("/api/v1/locations/provinces")
     List<ProvinceResponse> provinces() {
         return catalog.provinces().stream()
                 .map(province -> new ProvinceResponse(province.code(), province.name()))
                 .toList();
     }
 
-    @GetMapping("/locations/provinces/{provinceCode}/wards")
+    @GetMapping("/api/v1/locations/provinces/{provinceCode}/wards")
     List<WardResponse> wards(@PathVariable("provinceCode") String provinceCode) {
         Province province = catalog.province(provinceCode).orElseThrow(ProvinceNotFoundException::new);
         return province.wards().stream()

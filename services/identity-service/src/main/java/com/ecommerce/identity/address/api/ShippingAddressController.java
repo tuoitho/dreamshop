@@ -26,14 +26,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class ShippingAddressController {
     private final ShippingAddressService service;
 
-    @GetMapping("/users/me/addresses")
+    @GetMapping("/api/v1/users/me/addresses")
     @PreAuthorize("@rbac.can(authentication, 'address.view')")
     ApiResponse<List<ShippingAddressResponse>> list(@AuthenticationPrincipal CallerContextPrincipal caller) {
         return new ApiResponse<>(service.list(caller.userId()).stream().map(ShippingAddressResponse::from).toList(),
                 "Shipping addresses retrieved.");
     }
 
-    @PostMapping("/users/me/addresses")
+    @PostMapping("/api/v1/users/me/addresses")
     @PreAuthorize("@rbac.can(authentication, 'address.create')")
     ResponseEntity<ApiResponse<ShippingAddressResponse>> create(
             @AuthenticationPrincipal CallerContextPrincipal caller,
@@ -45,7 +45,7 @@ public class ShippingAddressController {
                 "Shipping address created."));
     }
 
-    @PatchMapping("/users/me/addresses/{addressId}")
+    @PatchMapping("/api/v1/users/me/addresses/{addressId}")
     @PreAuthorize("@rbac.can(authentication, 'address.update')")
     ApiResponse<ShippingAddressResponse> update(
             @AuthenticationPrincipal CallerContextPrincipal caller,
@@ -56,7 +56,7 @@ public class ShippingAddressController {
                 "Shipping address updated.");
     }
 
-    @DeleteMapping("/users/me/addresses/{addressId}")
+    @DeleteMapping("/api/v1/users/me/addresses/{addressId}")
     @PreAuthorize("@rbac.can(authentication, 'address.delete')")
     ApiResponse<Void> delete(
             @AuthenticationPrincipal CallerContextPrincipal caller,
@@ -65,7 +65,7 @@ public class ShippingAddressController {
         return new ApiResponse<>(null, "Shipping address deleted.");
     }
 
-    @PutMapping("/users/me/addresses/{addressId}/default")
+    @PutMapping("/api/v1/users/me/addresses/{addressId}/default")
     @PreAuthorize("@rbac.can(authentication, 'address.set-default')")
     ApiResponse<ShippingAddressResponse> setDefault(
             @AuthenticationPrincipal CallerContextPrincipal caller,
