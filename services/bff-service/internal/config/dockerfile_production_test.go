@@ -123,3 +123,42 @@ func TestGoServicesBuildStandaloneWithGoWorkOff(t *testing.T) {
 		}
 	}
 }
+
+func TestFrontendDockerfileAndNginxConfig(t *testing.T) {
+	root := repoRoot(t)
+
+	feIgnore := readRepoFile(t, root, "ecommerce-fe", ".dockerignore")
+	for _, entry := range []string{"node_modules", "dist", ".env", ".env.*", ".opencode", ".agents"} {
+		if !hasTrimmedLine(feIgnore, entry) {
+			t.Errorf("ecommerce-fe/.dockerignore missing %q", entry)
+		}
+	}
+
+	feDockerfile := readRepoFile(t, root, "ecommerce-fe", "Dockerfile")
+	for _, expected := range []string{
+		"FROM node:22.12-alpine",
+		"ARG VITE_API_BASE_URL=/api/v1",
+		"ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}",
+		"npm ci",
+		"npm run build",
+		"FROM nginxinc/nginx-unprivileged:1.27-alpine",
+		"/etc/nginx/conf.d/default.conf",
+		"EXPOSE 8080",
+	} {
+		if !strings.Contains(feDockerfile, expected) {
+			t.Errorf("ecommerce-fe/Dockerfile missing %q", expected)
+		}
+	}
+
+	nginxConf := readRepoFile(t, root, "ecommerce-fe", "nginx.conf")
+	for _, expected := range []string{
+		"listen 8080;",
+		"location = /healthz",
+		"return 200",
+		"try_files $uri $uri/ /index.html;",
+	} {
+		if !strings.Contains(nginxConf, expected) {
+			t.Errorf("ecommerce-fe/nginx.conf missing %q", expected)
+		}
+	}
+}
