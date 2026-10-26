@@ -32,10 +32,10 @@ make bff
 npm --prefix ecommerce-fe run dev
 ```
 
-The provider-first order is Identity, Cart, then BFF. If Identity authorization
-is unavailable, Cart add-item returns `503` with
-`AUTHORIZATION_SERVICE_UNAVAILABLE` and does not mutate the cart; a permission
-denial returns `403`.
+The provider-first order is Identity, then Catalog and Cart, then BFF. If
+Identity authorization is unavailable, Catalog soft-delete and Cart add-item
+return `503` with `AUTHORIZATION_SERVICE_UNAVAILABLE` without mutating state; a
+permission denial returns `403`.
 
 Order is independent of the current browser flow and can be started separately
 with `make order`.
@@ -45,8 +45,8 @@ Identity uses HTTP `8080` (Actuator management `8090`); BFF `8081`; Inventory
 HTTP `8085`; and the frontend `5173`. Catalog's standalone HTTP default is
 `8081`, so the complete stack must override it to `8085` as shown above.
 Internal gRPC listeners are Catalog `50051`, Inventory `50052`, and Cart
-`50053`. Identity authorization is `127.0.0.1:50054`, and Cart uses a `500ms`
-timeout. Container BFF remains on HTTP `8080`.
+`50053`. Identity authorization is `127.0.0.1:50054`, and both Catalog and Cart
+use a `500ms` timeout. Container BFF remains on HTTP `8080`.
 
 ## Access paths
 
@@ -60,7 +60,8 @@ timeout. Container BFF remains on HTTP `8080`.
 - Public API ingress: `http://localhost:8000` through Kong.
 
 The browser uses Kong for public API calls. Internal service calls do not route
-through Kong: BFF calls Catalog and Cart directly over gRPC, while Cart calls
-Catalog, Inventory, and Identity authorization directly over gRPC. Kong routes
-to a host-run Identity or BFF process through `host.docker.internal`; it never
-routes the authorization RPC.
+through Kong: BFF calls Catalog and Cart directly over gRPC, Catalog calls
+Identity authorization directly over gRPC, and Cart calls Catalog, Inventory,
+and Identity authorization directly over gRPC. Kong routes to a host-run
+Identity or BFF process through `host.docker.internal`; it never routes the
+authorization RPC.

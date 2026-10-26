@@ -13,17 +13,13 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type Client interface {
-	CheckPermission(context.Context, string, string) (bool, error)
-}
-
-type client struct {
+type Client struct {
 	conn    *grpc.ClientConn
 	service identityv1.AuthorizationServiceClient
 	timeout time.Duration
 }
 
-func NewClient(target string, timeout time.Duration) (*client, error) {
+func NewClient(target string, timeout time.Duration) (*Client, error) {
 	target = strings.TrimSpace(target)
 	if target == "" {
 		return nil, errors.New("authorization target address is required")
@@ -35,12 +31,12 @@ func NewClient(target string, timeout time.Duration) (*client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create authorization connection: %w", err)
 	}
-	return &client{conn: conn, service: identityv1.NewAuthorizationServiceClient(conn), timeout: timeout}, nil
+	return &Client{conn: conn, service: identityv1.NewAuthorizationServiceClient(conn), timeout: timeout}, nil
 }
 
-func (c *client) Close() error { return c.conn.Close() }
+func (c *Client) Close() error { return c.conn.Close() }
 
-func (c *client) CheckPermission(ctx context.Context, userID, permission string) (bool, error) {
+func (c *Client) CheckPermission(ctx context.Context, userID, permission string) (bool, error) {
 	callCtx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 	response, err := c.service.CheckPermission(callCtx, &identityv1.CheckPermissionRequest{

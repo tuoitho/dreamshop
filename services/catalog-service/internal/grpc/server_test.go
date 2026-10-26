@@ -312,6 +312,25 @@ func TestSoftDeleteProductNilAuthorizationFailsClosed(t *testing.T) {
 	}
 }
 
+func TestSoftDeleteProductPreservesCallerCancellation(t *testing.T) {
+	repo := &memoryRepo{products: demoProducts()}
+	srv := NewServer(repo, &fakeAuthorization{err: context.Canceled})
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := srv.SoftDeleteProduct(ctx, &catalogv1.SoftDeleteProductRequest{
+		Id:      "dt-1",
+		Deleted: true,
+		UserId:  "admin-1",
+	})
+	if status.Code(err) != codes.Canceled {
+		t.Fatalf("SoftDeleteProduct() code = %v, want Canceled", status.Code(err))
+	}
+	if repo.softDeleteCalls != 0 {
+		t.Fatalf("canceled SoftDeleteProduct mutated repository: calls=%d", repo.softDeleteCalls)
+	}
+}
+
 type traceRecordingAuthorizationServer struct {
 	identityv1.UnimplementedAuthorizationServiceServer
 	traceID string
