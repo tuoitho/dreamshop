@@ -180,3 +180,16 @@ func TestProductionComposeEnforcesIsolationSecretsAndStartupOrder(t *testing.T) 
 		t.Error(".env.production.example must not contain local fallback passwords")
 	}
 }
+
+func TestProductionRunbookDocumentsSecretDirectoryPermissionsAndTLSHeaders(t *testing.T) {
+	root := repoRoot(t)
+	runbook := readRepoFile(t, root, "docs", "instructions", "production-deployment.md")
+	for _, required := range []string{
+		"chmod 0755 /etc/ecommerce",
+		"X-Forwarded-Proto",
+	} {
+		if !strings.Contains(runbook, required) {
+			t.Errorf("production-deployment.md missing %q", required)
+		}
+	}
+}

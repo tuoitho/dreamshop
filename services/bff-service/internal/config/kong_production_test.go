@@ -96,15 +96,33 @@ func TestProductionKongLocksDownPublicRoutesAndServesSPA(t *testing.T) {
 	}
 	seenAuthRoutes := make(map[string]bool)
 
-	var storefrontFound, frontendFound, identityProtectedFound bool
+	expectedProtectedRoutes := map[string]struct {
+		url     string
+		path    string
+		methods []string
+	}{
+		"identity-users-protected":       {url: "http://identity-service:8080/users", path: "/api/v1/users", methods: []string{"GET", "POST", "PUT", "PATCH", "DELETE"}},
+		"identity-locations-protected":   {url: "http://identity-service:8080/locations", path: "/api/v1/locations", methods: []string{"GET"}},
+		"identity-admin-users-protected": {url: "http://identity-service:8080/admin/users", path: "/api/v1/admin/users", methods: []string{"GET", "PATCH", "PUT", "DELETE"}},
+		"identity-admin-rbac-protected":  {url: "http://identity-service:8080/admin/rbac", path: "/api/v1/admin/rbac", methods: []string{"GET", "POST", "PUT", "PATCH", "DELETE"}},
+		"cart-api":                       {url: "http://bff-service:8080", path: "/api/v1/cart", methods: []string{"GET", "DELETE"}},
+		"cart-items-api":                 {url: "http://bff-service:8080/items", path: "/api/v1/cart/items", methods: []string{"POST", "PATCH", "DELETE"}},
+	}
+	seenProtectedRoutes := make(map[string]bool)
+
+	var storefrontFound, frontendFound bool
 
 	for _, svc := range doc.Services {
 		svcRemovesHeaders := removesCallerHeaders(svc.Plugins)
 		_, svcHasCallerCtx := hasPlugin(svc.Plugins, "caller-context")
 
 		for _, route := range svc.Routes {
+			if len(route.Methods) == 0 {
+				t.Errorf("route %q (service %q) must declare explicit methods so Kong 3.8 match_weight cannot be shadowed by frontend-spa", route.Name, svc.Name)
+			}
+
 			for _, p := range route.Paths {
-				if p == "/api/v1/auth" || p == "/api/v1/storefront" || strings.HasPrefix(p, "/api/v1/admin") {
+				if p == "/api/v1" || p == "/api/v1/auth" || p == "/api/v1/storefront" || p == "/api/v1/admin" || strings.HasPrefix(p, "/api/v1/admin/products") {
 					t.Errorf("unsafe broad or unauthenticated admin route path %q on route %q", p, route.Name)
 				}
 			}
@@ -130,14 +148,23 @@ func TestProductionKongLocksDownPublicRoutesAndServesSPA(t *testing.T) {
 				}
 			}
 
-			if route.Name == "identity-users-protected" {
-				identityProtectedFound = true
-				if svc.URL != "http://identity-service:8080" || !slices.Equal(route.Paths, []string{"/api/v1"}) {
-					t.Errorf("identity-users-protected service/paths = %q / %v", svc.URL, route.Paths)
+			if exp, isProtected := expectedProtectedRoutes[route.Name]; isProtected {
+				seenProtectedRoutes[route.Name] = true
+				if svc.URL != exp.url {
+					t.Errorf("protected route %q upstream = %q, want %q", route.Name, svc.URL, exp.url)
+				}
+				if !slices.Equal(route.Paths, []string{exp.path}) {
+					t.Errorf("protected route %q paths = %v, want [%s]", route.Name, route.Paths, exp.path)
+				}
+				if !slices.Equal(route.Methods, exp.methods) {
+					t.Errorf("protected route %q methods = %v, want %v", route.Name, route.Methods, exp.methods)
+				}
+				if route.StripPath == nil || !*route.StripPath {
+					t.Errorf("protected route %q must set strip_path: true", route.Name)
 				}
 				cc, ok := hasPlugin(route.Plugins, "caller-context")
 				if !ok || cc.Config.JWKSURI != "http://identity-service:8080/.well-known/jwks.json" || cc.Config.Issuer != "http://identity-service:8080" || cc.Config.Audience != "ecommerce-api" {
-					t.Errorf("identity-users-protected caller-context = %#v (present=%t)", cc.Config, ok)
+					t.Errorf("protected route %q caller-context = %#v (present=%t)", route.Name, cc.Config, ok)
 				}
 			}
 
@@ -180,8 +207,10 @@ func TestProductionKongLocksDownPublicRoutesAndServesSPA(t *testing.T) {
 			t.Errorf("missing expected public auth route %q", path)
 		}
 	}
-	if !identityProtectedFound {
-		t.Error("missing identity-users-protected route")
+	for name := range expectedProtectedRoutes {
+		if !seenProtectedRoutes[name] {
+			t.Errorf("missing expected protected route %q", name)
+		}
 	}
 	if !storefrontFound {
 		t.Error("missing hardened storefront-api route")

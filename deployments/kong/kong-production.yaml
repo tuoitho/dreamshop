@@ -76,11 +76,54 @@ services:
         methods: ["GET"]
         strip_path: true
 
-  - name: identity-service
-    url: http://identity-service:8080
+  - name: identity-users
+    url: http://identity-service:8080/users
     routes:
       - name: identity-users-protected
-        paths: ["/api/v1"]
+        paths: ["/api/v1/users"]
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
+        strip_path: true
+        plugins:
+          - name: caller-context
+            config:
+              jwks_uri: http://identity-service:8080/.well-known/jwks.json
+              issuer: http://identity-service:8080
+              audience: ecommerce-api
+
+  - name: identity-locations
+    url: http://identity-service:8080/locations
+    routes:
+      - name: identity-locations-protected
+        paths: ["/api/v1/locations"]
+        methods: ["GET"]
+        strip_path: true
+        plugins:
+          - name: caller-context
+            config:
+              jwks_uri: http://identity-service:8080/.well-known/jwks.json
+              issuer: http://identity-service:8080
+              audience: ecommerce-api
+
+  - name: identity-admin-users
+    url: http://identity-service:8080/admin/users
+    routes:
+      - name: identity-admin-users-protected
+        paths: ["/api/v1/admin/users"]
+        methods: ["GET", "PATCH", "PUT", "DELETE"]
+        strip_path: true
+        plugins:
+          - name: caller-context
+            config:
+              jwks_uri: http://identity-service:8080/.well-known/jwks.json
+              issuer: http://identity-service:8080
+              audience: ecommerce-api
+
+  - name: identity-admin-rbac
+    url: http://identity-service:8080/admin/rbac
+    routes:
+      - name: identity-admin-rbac-protected
+        paths: ["/api/v1/admin/rbac"]
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
         strip_path: true
         plugins:
           - name: caller-context
@@ -94,6 +137,21 @@ services:
     routes:
       - name: cart-api
         paths: ["/api/v1/cart"]
+        methods: ["GET", "DELETE"]
+        strip_path: true
+        plugins:
+          - name: caller-context
+            config:
+              jwks_uri: http://identity-service:8080/.well-known/jwks.json
+              issuer: http://identity-service:8080
+              audience: ecommerce-api
+
+  - name: bff-cart-items
+    url: http://bff-service:8080/items
+    routes:
+      - name: cart-items-api
+        paths: ["/api/v1/cart/items"]
+        methods: ["POST", "PATCH", "DELETE"]
         strip_path: true
         plugins:
           - name: caller-context

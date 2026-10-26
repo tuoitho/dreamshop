@@ -10,6 +10,7 @@ Generate a dedicated production RSA keypair outside the repository (do **not** r
 
 ```bash
 sudo mkdir -p /etc/ecommerce/secrets/identity
+sudo chmod 0755 /etc/ecommerce /etc/ecommerce/secrets /etc/ecommerce/secrets/identity
 sudo openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out /etc/ecommerce/secrets/identity/private.pem
 sudo openssl rsa -pubout -in /etc/ecommerce/secrets/identity/private.pem -out /etc/ecommerce/secrets/identity/public.pem
 sudo chown 10001:10001 /etc/ecommerce/secrets/identity/private.pem
@@ -30,7 +31,7 @@ Required settings:
 - `POSTGRES_PASSWORD`: strong URL-safe password (`[A-Za-z0-9_-]`, for example `openssl rand -hex 24`) because Go services interpolate it into `DATABASE_URL` URIs.
 - `RABBITMQ_DEFAULT_PASS`: strong broker password (`openssl rand -hex 24`).
 - `IDENTITY_KEYS_DIR`: absolute path to the directory containing `private.pem` and `public.pem` (`/etc/ecommerce/secrets/identity`).
-- `IDENTITY_SESSION_COOKIE_SECURE`: keep `true` when traffic reaches users over HTTPS (through an upstream reverse proxy/CDN such as Nginx, Caddy, or Cloudflare); set `false` only for plain-HTTP staging verification.
+- `IDENTITY_SESSION_COOKIE_SECURE`: keep `true` when traffic reaches users over HTTPS (through an upstream reverse proxy/CDN such as Nginx, Caddy, or Cloudflare forwarding `Host`, `X-Forwarded-Proto: https`, and `X-Forwarded-For`); set `false` only for plain-HTTP staging verification.
 - `IDENTITY_BOOTSTRAP_SUPER_ADMIN_*`: leave all three blank unless bootstrapping an initial `SUPER_ADMIN` account (password must be 12-128 characters).
 
 Validate the rendered Compose configuration before starting containers:

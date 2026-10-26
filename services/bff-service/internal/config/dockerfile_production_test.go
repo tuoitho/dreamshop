@@ -155,10 +155,27 @@ func TestFrontendDockerfileAndNginxConfig(t *testing.T) {
 		"listen 8080;",
 		"location = /healthz",
 		"return 200",
+		"location ^~ /api/",
 		"try_files $uri $uri/ /index.html;",
 	} {
 		if !strings.Contains(nginxConf, expected) {
 			t.Errorf("ecommerce-fe/nginx.conf missing %q", expected)
+		}
+	}
+}
+
+func TestRootGitignoreProtectsProductionEnvWithoutIgnoringTrackedWorkspace(t *testing.T) {
+	root := repoRoot(t)
+	gitignore := readRepoFile(t, root, ".gitignore")
+
+	for _, required := range []string{".env", ".env.production", ".env.*.local", ".superpowers/"} {
+		if !hasTrimmedLine(gitignore, required) {
+			t.Errorf(".gitignore missing required entry %q", required)
+		}
+	}
+	for _, forbidden := range []string{"go.work", "go.work.sum"} {
+		if hasTrimmedLine(gitignore, forbidden) {
+			t.Errorf(".gitignore must not ignore tracked Go workspace file %q", forbidden)
 		}
 	}
 }
