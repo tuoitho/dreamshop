@@ -6,12 +6,18 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/hooks/use-auth"
 
+const DEV_ACCOUNTS = [
+  { label: "Customer", email: "customer1@gmail.com", password: "123456123456" },
+  { label: "Admin", email: "admin@example.com", password: "AdminPassword123!" },
+] as const
+
 export default function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const isDevMode = import.meta.env.MODE === "development"
+  const [email, setEmail] = useState<string>(isDevMode ? DEV_ACCOUNTS[0].email : "")
+  const [password, setPassword] = useState<string>(isDevMode ? DEV_ACCOUNTS[0].password : "")
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -39,6 +45,33 @@ export default function LoginPage() {
           <CardDescription>Đăng nhập vào tài khoản của bạn</CardDescription>
         </CardHeader>
         <CardContent>
+          {isDevMode ? (
+            <div className="mb-4 flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted/40 px-3 py-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">DEV</span>
+              <div className="flex flex-wrap gap-1.5">
+                {DEV_ACCOUNTS.map((account) => {
+                  const selected = email === account.email && password === account.password
+                  return (
+                    <Button
+                      key={account.email}
+                      type="button"
+                      size="sm"
+                      variant={selected ? "secondary" : "outline"}
+                      aria-pressed={selected}
+                      disabled={submitting}
+                      onClick={() => {
+                        setEmail(account.email)
+                        setPassword(account.password)
+                        setError(null)
+                      }}
+                    >
+                      {account.label}
+                    </Button>
+                  )
+                })}
+              </div>
+            </div>
+          ) : null}
           <form className="grid gap-4" onSubmit={handleSubmit}>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>

@@ -27,6 +27,13 @@ npm run dev
 
 Mở `http://localhost:5173`.
 
+Khi chạy ở chế độ `development` (`npm run dev`), trang `/login` điền sẵn tài
+khoản `CUSTOMER` local (`customer1@gmail.com` / `123456123456`) và hiển thị cụm
+nút `DEV` chuyển nhanh sang `SUPER_ADMIN` (`admin@example.com` /
+`AdminPassword123!`). Cụm preset này tự động bị loại bỏ khi build production
+(`npm run build`). Nếu chạy trên database mới chưa có `customer1@gmail.com`, xem
+lệnh khởi tạo tại [`docs/instructions/local-development.md`](../docs/instructions/local-development.md#local-test-accounts).
+
 ## Cấu hình
 
 | Biến | Mặc định | Mô tả |

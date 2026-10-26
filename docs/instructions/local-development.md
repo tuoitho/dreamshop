@@ -65,3 +65,23 @@ Identity authorization directly over gRPC, and Cart calls Catalog, Inventory,
 and Identity authorization directly over gRPC. Kong routes to a host-run
 Identity or BFF process through `host.docker.internal`; it never routes the
 authorization RPC.
+
+## Local test accounts
+
+When running `ecommerce-fe` in Vite `development` mode (`make fe` or
+`npm --prefix ecommerce-fe run dev`), `http://localhost:5173/login` prefills the
+customer account and provides `DEV` preset buttons for switching between the two
+standard local accounts (omitted from production builds):
+
+| Role | Email | Password | Provisioning |
+| --- | --- | --- | --- |
+| `CUSTOMER`, `SUPER_ADMIN` | `admin@example.com` | `AdminPassword123!` | Created automatically on local `identity-service` startup unless `IDENTITY_BOOTSTRAP_SUPER_ADMIN_*` overrides it (disabled in `compose.production.yml`). |
+| `CUSTOMER` | `customer1@gmail.com` | `123456123456` | Register once per `postgres_data` volume through Kong. |
+
+To create `customer1@gmail.com` on a fresh local database after Kong and
+Identity are healthy:
+
+```powershell
+'{"email":"customer1@gmail.com","password":"123456123456","fullName":"Customer One"}' |
+  curl.exe -sS -X POST "http://localhost:8000/api/v1/auth/register" -H "Content-Type: application/json" --data-binary "@-"
+```
