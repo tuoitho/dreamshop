@@ -63,7 +63,7 @@ func NewServer(cartStore cartStore, catalog catalogClient, inventory inventoryCl
 }
 
 func (s *Server) GetCart(ctx context.Context, req *cartv1.GetCartRequest) (*cartv1.GetCartResponse, error) {
-	userID, err := required(req.GetUserId(), "user_id")
+	userID, err := requiredUUID(req.GetUserId(), "user_id")
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (s *Server) GetCart(ctx context.Context, req *cartv1.GetCartRequest) (*cart
 }
 
 func (s *Server) AddItem(ctx context.Context, req *cartv1.AddItemRequest) (*cartv1.AddItemResponse, error) {
-	userID, err := required(req.GetUserId(), "user_id")
+	userID, err := requiredUUID(req.GetUserId(), "user_id")
 	if err != nil {
 		return nil, err
 	}
@@ -96,6 +96,9 @@ func (s *Server) AddItem(ctx context.Context, req *cartv1.AddItemRequest) (*cart
 	}
 	if err := positiveQuantity(req.GetQuantity()); err != nil {
 		return nil, err
+	}
+	if s.authorization == nil {
+		return nil, statusWithReason(codes.Unavailable, "authorization service is unavailable", reasonAuthorizationUnavailable)
 	}
 	authorizationCtx, traceID := withAuthorizationTrace(ctx)
 	allowed, err := s.authorization.CheckPermission(authorizationCtx, userID, cartItemAddPermission)
@@ -154,11 +157,11 @@ func validTraceID(candidate string) bool {
 }
 
 func (s *Server) UpdateItemQuantity(ctx context.Context, req *cartv1.UpdateItemQuantityRequest) (*cartv1.UpdateItemQuantityResponse, error) {
-	userID, err := required(req.GetUserId(), "user_id")
+	userID, err := requiredUUID(req.GetUserId(), "user_id")
 	if err != nil {
 		return nil, err
 	}
-	itemID, err := required(req.GetItemId(), "item_id")
+	itemID, err := requiredUUID(req.GetItemId(), "item_id")
 	if err != nil {
 		return nil, err
 	}
@@ -180,11 +183,11 @@ func (s *Server) UpdateItemQuantity(ctx context.Context, req *cartv1.UpdateItemQ
 }
 
 func (s *Server) RemoveItem(ctx context.Context, req *cartv1.RemoveItemRequest) (*cartv1.RemoveItemResponse, error) {
-	userID, err := required(req.GetUserId(), "user_id")
+	userID, err := requiredUUID(req.GetUserId(), "user_id")
 	if err != nil {
 		return nil, err
 	}
-	itemID, err := required(req.GetItemId(), "item_id")
+	itemID, err := requiredUUID(req.GetItemId(), "item_id")
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +206,7 @@ func (s *Server) RemoveItem(ctx context.Context, req *cartv1.RemoveItemRequest) 
 }
 
 func (s *Server) ClearCart(ctx context.Context, req *cartv1.ClearCartRequest) (*cartv1.ClearCartResponse, error) {
-	userID, err := required(req.GetUserId(), "user_id")
+	userID, err := requiredUUID(req.GetUserId(), "user_id")
 	if err != nil {
 		return nil, err
 	}
@@ -394,6 +397,37 @@ func required(value, field string) (string, error) {
 		return "", status.Errorf(codes.InvalidArgument, "%s is required", field)
 	}
 	return value, nil
+}
+
+func requiredUUID(value, field string) (string, error) {
+	value, err := required(value, field)
+	if err != nil {
+		return "", err
+	}
+	if !isValidUUID(value) {
+		return "", status.Errorf(codes.InvalidArgument, "%s must be a valid UUID", field)
+	}
+	return value, nil
+}
+
+func isValidUUID(value string) bool {
+	if len(value) != 36 {
+		return false
+	}
+	for i := range len(value) {
+		c := value[i]
+		switch i {
+		case 8, 13, 18, 23:
+			if c != '-' {
+				return false
+			}
+		default:
+			if (c < '0' || c > '9') && (c < 'a' || c > 'f') && (c < 'A' || c > 'F') {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func positiveQuantity(quantity int32) error {

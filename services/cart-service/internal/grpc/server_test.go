@@ -28,7 +28,11 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
-const testBufSize = 1024 * 1024
+const (
+	testBufSize = 1024 * 1024
+	testUserID  = "00000000-0000-0000-0000-000000000001"
+	testItemID  = "00000000-0000-0000-0000-000000000011"
+)
 
 type fakeStore struct {
 	cartID       string
@@ -354,7 +358,7 @@ func TestGetCartEnrichesLinesAndMapsAllStatuses(t *testing.T) {
 	}
 
 	client := newBufconnClient(t, NewServer(store, catalog, inventory, &fakeAuthorization{allowed: true}))
-	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: "user-1"})
+	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: testUserID})
 	if err != nil {
 		t.Fatalf("GetCart() error = %v", err)
 	}
@@ -405,7 +409,7 @@ func TestGetCartCatalogOutageDegradesOnlyAffectedLine(t *testing.T) {
 	}, errors: map[string]error{}}
 
 	client := newBufconnClient(t, NewServer(store, catalog, inventory, &fakeAuthorization{allowed: true}))
-	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: "user-1"})
+	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: testUserID})
 	if err != nil {
 		t.Fatalf("GetCart() error = %v", err)
 	}
@@ -427,7 +431,7 @@ func TestGetCartCatalogNotFoundIsUnavailableWithoutDegraded(t *testing.T) {
 	inventory := &fakeInventory{availability: map[string]*inventoryv1.GetAvailabilityResponse{}, errors: map[string]error{}}
 
 	client := newBufconnClient(t, NewServer(store, catalog, inventory, &fakeAuthorization{allowed: true}))
-	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: "user-1"})
+	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: testUserID})
 	if err != nil {
 		t.Fatalf("GetCart() error = %v", err)
 	}
@@ -450,7 +454,7 @@ func TestGetCartDeletedProductPreservesLineAndSkipsInventory(t *testing.T) {
 	inventory := &fakeInventory{availability: map[string]*inventoryv1.GetAvailabilityResponse{}, errors: map[string]error{}}
 
 	client := newBufconnClient(t, NewServer(store, catalog, inventory, &fakeAuthorization{allowed: true}))
-	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: "user-1"})
+	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: testUserID})
 	if err != nil {
 		t.Fatalf("GetCart() error = %v", err)
 	}
@@ -478,7 +482,7 @@ func TestGetCartInventoryOutagePreservesCatalogEnrichment(t *testing.T) {
 	}
 
 	client := newBufconnClient(t, NewServer(store, catalog, inventory, &fakeAuthorization{allowed: true}))
-	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: "user-1"})
+	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: testUserID})
 	if err != nil {
 		t.Fatalf("GetCart() error = %v", err)
 	}
@@ -494,15 +498,15 @@ func TestGetCartInventoryOutagePreservesCatalogEnrichment(t *testing.T) {
 func TestGetCartWithoutExistingCartReturnsEmptyCart(t *testing.T) {
 	store := &fakeStore{found: false, lines: nil}
 	client := newBufconnClient(t, NewServer(store, &fakeCatalog{}, &fakeInventory{}, &fakeAuthorization{allowed: true}))
-	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: "user-1"})
+	response, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: testUserID})
 	if err != nil {
 		t.Fatalf("GetCart() error = %v", err)
 	}
 	if response.GetCart() == nil || len(response.GetCart().GetItems()) != 0 || response.GetCart().GetDegraded() {
 		t.Fatalf("empty cart response = %+v", response.GetCart())
 	}
-	if store.findUserID != "user-1" {
-		t.Fatalf("FindCart user id = %q, want user-1", store.findUserID)
+	if store.findUserID != testUserID {
+		t.Fatalf("FindCart user id = %q, want %s", store.findUserID, testUserID)
 	}
 }
 
@@ -511,7 +515,7 @@ func TestAddItemValidationSkipsAuthorization(t *testing.T) {
 	authorization := &fakeAuthorization{allowed: true}
 	client := newBufconnClient(t, NewServer(store, &fakeCatalog{}, &fakeInventory{}, authorization))
 
-	_, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: "user-1", ProductId: "p-1", VariantLabel: "red", Quantity: 0})
+	_, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: testUserID, ProductId: "p-1", VariantLabel: "red", Quantity: 0})
 	if code := status.Code(err); code != codes.InvalidArgument {
 		t.Fatalf("AddItem() code = %v, want InvalidArgument", code)
 	}
@@ -527,13 +531,13 @@ func TestAddItemDeniedLeavesCartAndDependenciesUntouched(t *testing.T) {
 	authorization := &fakeAuthorization{}
 	client := newBufconnClient(t, NewServer(store, catalog, inventory, authorization))
 
-	_, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: "user-1", ProductId: "p-1", VariantLabel: "red", Quantity: 1})
+	_, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: testUserID, ProductId: "p-1", VariantLabel: "red", Quantity: 1})
 	if code := status.Code(err); code != codes.PermissionDenied {
 		t.Fatalf("AddItem() code = %v, want PermissionDenied", code)
 	}
 	assertErrorInfoReason(t, err, "CART_PERMISSION_DENIED")
-	if authorization.calls != 1 || authorization.userID != "user-1" || authorization.permission != "cart.item.add" {
-		t.Fatalf("authorization = calls=%d user=%q permission=%q, want 1/user-1/cart.item.add", authorization.calls, authorization.userID, authorization.permission)
+	if authorization.calls != 1 || authorization.userID != testUserID || authorization.permission != "cart.item.add" {
+		t.Fatalf("authorization = calls=%d user=%q permission=%q, want 1/%s/cart.item.add", authorization.calls, authorization.userID, authorization.permission, testUserID)
 	}
 	if store.ensureUserID != "" || len(store.addArgs) != 0 || len(catalog.called) != 0 || len(inventory.called) != 0 {
 		t.Fatalf("denied AddItem side effects = ensure=%q add=%v catalog=%v inventory=%v, want none", store.ensureUserID, store.addArgs, catalog.called, inventory.called)
@@ -547,7 +551,7 @@ func TestAddItemAuthorizationOutageLeavesCartAndDependenciesUntouched(t *testing
 	authorization := &fakeAuthorization{err: status.Error(codes.Unavailable, "identity unavailable")}
 	client := newBufconnClient(t, NewServer(store, catalog, inventory, authorization))
 
-	_, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: "user-1", ProductId: "p-1", VariantLabel: "red", Quantity: 1})
+	_, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: testUserID, ProductId: "p-1", VariantLabel: "red", Quantity: 1})
 	if code := status.Code(err); code != codes.Unavailable {
 		t.Fatalf("AddItem() code = %v, want Unavailable", code)
 	}
@@ -603,7 +607,7 @@ func TestAddItemForwardsIncomingTraceToIdentityAndLogsIt(t *testing.T) {
 	ctx := metadata.AppendToOutgoingContext(context.Background(), "x-trace-id", "trace-abc-123")
 
 	_, err := client.AddItem(ctx, &cartv1.AddItemRequest{
-		UserId: "user-1", ProductId: "p-1", VariantLabel: "red", Quantity: 1,
+		UserId: testUserID, ProductId: "p-1", VariantLabel: "red", Quantity: 1,
 	})
 
 	if status.Code(err) != codes.Unavailable {
@@ -627,30 +631,30 @@ func TestMutationsValidateInputForwardUserAndReturnMethodResponse(t *testing.T) 
 	if _, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: " ", ProductId: "p-1", VariantLabel: "red", Quantity: 1}); status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("blank user AddItem code = %v, want InvalidArgument", status.Code(err))
 	}
-	if _, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: "user-1", ProductId: "p-1", VariantLabel: "red", Quantity: 0}); status.Code(err) != codes.InvalidArgument {
+	if _, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: testUserID, ProductId: "p-1", VariantLabel: "red", Quantity: 0}); status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("zero quantity AddItem code = %v, want InvalidArgument", status.Code(err))
 	}
-	response, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: "user-1", ProductId: "p-1", VariantLabel: "red", Quantity: 2})
+	response, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: testUserID, ProductId: "p-1", VariantLabel: "red", Quantity: 2})
 	if err != nil {
 		t.Fatalf("AddItem() error = %v", err)
 	}
-	if store.ensureUserID != "user-1" || len(store.addArgs) != 4 || response.GetCart() == nil {
+	if store.ensureUserID != testUserID || len(store.addArgs) != 4 || response.GetCart() == nil {
 		t.Fatalf("AddItem forwarding/response invalid: user=%q args=%v response=%+v", store.ensureUserID, store.addArgs, response.GetCart())
 	}
-	if authorization.calls != 1 || authorization.userID != "user-1" || authorization.permission != "cart.item.add" {
-		t.Fatalf("AddItem authorization = calls=%d user=%q permission=%q, want 1/user-1/cart.item.add", authorization.calls, authorization.userID, authorization.permission)
+	if authorization.calls != 1 || authorization.userID != testUserID || authorization.permission != "cart.item.add" {
+		t.Fatalf("AddItem authorization = calls=%d user=%q permission=%q, want 1/%s/cart.item.add", authorization.calls, authorization.userID, authorization.permission, testUserID)
 	}
 	if len(events) < 2 || events[0] != "check-permission" || events[1] != "ensure-cart" {
 		t.Fatalf("AddItem order = %v, want authorization before EnsureCart", events)
 	}
 
-	if _, err := client.UpdateItemQuantity(context.Background(), &cartv1.UpdateItemQuantityRequest{UserId: "user-1", ItemId: "item-1", Quantity: 0}); status.Code(err) != codes.InvalidArgument {
+	if _, err := client.UpdateItemQuantity(context.Background(), &cartv1.UpdateItemQuantityRequest{UserId: testUserID, ItemId: testItemID, Quantity: 0}); status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("zero quantity UpdateItemQuantity code = %v, want InvalidArgument", status.Code(err))
 	}
-	if _, err := client.RemoveItem(context.Background(), &cartv1.RemoveItemRequest{UserId: " ", ItemId: "item-1"}); status.Code(err) != codes.InvalidArgument {
+	if _, err := client.RemoveItem(context.Background(), &cartv1.RemoveItemRequest{UserId: " ", ItemId: testItemID}); status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("blank user RemoveItem code = %v, want InvalidArgument", status.Code(err))
 	}
-	if _, err := client.ClearCart(context.Background(), &cartv1.ClearCartRequest{UserId: "user-1"}); err != nil {
+	if _, err := client.ClearCart(context.Background(), &cartv1.ClearCartRequest{UserId: testUserID}); err != nil {
 		t.Fatalf("ClearCart() error = %v", err)
 	}
 	if store.clearCartID != "cart-1" {
@@ -665,27 +669,27 @@ func TestMutationsRejectBlankIDsAndNegativeQuantities(t *testing.T) {
 		call func() error
 	}{
 		{"blank product id", func() error {
-			_, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: "user-1", VariantLabel: "red", Quantity: 1})
+			_, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: testUserID, VariantLabel: "red", Quantity: 1})
 			return err
 		}},
 		{"blank variant label", func() error {
-			_, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: "user-1", ProductId: "p-1", Quantity: 1})
+			_, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: testUserID, ProductId: "p-1", Quantity: 1})
 			return err
 		}},
 		{"blank update item id", func() error {
-			_, err := client.UpdateItemQuantity(context.Background(), &cartv1.UpdateItemQuantityRequest{UserId: "user-1", Quantity: 1})
+			_, err := client.UpdateItemQuantity(context.Background(), &cartv1.UpdateItemQuantityRequest{UserId: testUserID, Quantity: 1})
 			return err
 		}},
 		{"blank remove item id", func() error {
-			_, err := client.RemoveItem(context.Background(), &cartv1.RemoveItemRequest{UserId: "user-1"})
+			_, err := client.RemoveItem(context.Background(), &cartv1.RemoveItemRequest{UserId: testUserID})
 			return err
 		}},
 		{"negative add quantity", func() error {
-			_, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: "user-1", ProductId: "p-1", VariantLabel: "red", Quantity: -1})
+			_, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: testUserID, ProductId: "p-1", VariantLabel: "red", Quantity: -1})
 			return err
 		}},
 		{"negative update quantity", func() error {
-			_, err := client.UpdateItemQuantity(context.Background(), &cartv1.UpdateItemQuantityRequest{UserId: "user-1", ItemId: "item-1", Quantity: -1})
+			_, err := client.UpdateItemQuantity(context.Background(), &cartv1.UpdateItemQuantityRequest{UserId: testUserID, ItemId: testItemID, Quantity: -1})
 			return err
 		}},
 	}
@@ -698,6 +702,68 @@ func TestMutationsRejectBlankIDsAndNegativeQuantities(t *testing.T) {
 	}
 }
 
+func TestCartMethodsRejectInvalidUUIDsBeforeDependencies(t *testing.T) {
+	invalidUUIDs := []string{
+		"not-a-uuid",
+		"123",
+		"00000000000000000000000000000001",
+		"00000000-0000-0000-0000-00000000000g",
+		"{00000000-0000-0000-0000-000000000001}",
+	}
+
+	for _, invalid := range invalidUUIDs {
+		t.Run(invalid, func(t *testing.T) {
+			store := &fakeStore{cartID: "cart-1", found: true}
+			auth := &fakeAuthorization{allowed: true}
+			client := newBufconnClient(t, NewServer(store, &fakeCatalog{}, &fakeInventory{}, auth))
+
+			calls := []struct {
+				name string
+				fn   func() error
+			}{
+				{"GetCart user_id", func() error {
+					_, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: invalid})
+					return err
+				}},
+				{"AddItem user_id", func() error {
+					_, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: invalid, ProductId: "p-1", VariantLabel: "red", Quantity: 1})
+					return err
+				}},
+				{"UpdateItemQuantity user_id", func() error {
+					_, err := client.UpdateItemQuantity(context.Background(), &cartv1.UpdateItemQuantityRequest{UserId: invalid, ItemId: testItemID, Quantity: 2})
+					return err
+				}},
+				{"UpdateItemQuantity item_id", func() error {
+					_, err := client.UpdateItemQuantity(context.Background(), &cartv1.UpdateItemQuantityRequest{UserId: testUserID, ItemId: invalid, Quantity: 2})
+					return err
+				}},
+				{"RemoveItem user_id", func() error {
+					_, err := client.RemoveItem(context.Background(), &cartv1.RemoveItemRequest{UserId: invalid, ItemId: testItemID})
+					return err
+				}},
+				{"RemoveItem item_id", func() error {
+					_, err := client.RemoveItem(context.Background(), &cartv1.RemoveItemRequest{UserId: testUserID, ItemId: invalid})
+					return err
+				}},
+				{"ClearCart user_id", func() error {
+					_, err := client.ClearCart(context.Background(), &cartv1.ClearCartRequest{UserId: invalid})
+					return err
+				}},
+			}
+
+			for _, call := range calls {
+				if code := status.Code(call.fn()); code != codes.InvalidArgument {
+					t.Fatalf("%s(%q) code = %v, want InvalidArgument", call.name, invalid, code)
+				}
+			}
+			if auth.calls != 0 || store.findUserID != "" || store.ensureUserID != "" || len(store.updateArgs) != 0 || len(store.removeArgs) != 0 {
+				t.Fatalf("invalid UUID triggered side effects: authCalls=%d findUser=%q ensureUser=%q updateArgs=%v removeArgs=%v",
+					auth.calls, store.findUserID, store.ensureUserID, store.updateArgs, store.removeArgs)
+			}
+		})
+	}
+}
+
 func TestMutationsMapStoreFailuresAndMissingItems(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -705,23 +771,23 @@ func TestMutationsMapStoreFailuresAndMissingItems(t *testing.T) {
 		makeStore func() *fakeStore
 	}{
 		{"ensure failure", func(client cartv1.CartServiceClient) error {
-			_, err := client.ClearCart(context.Background(), &cartv1.ClearCartRequest{UserId: "user-1"})
+			_, err := client.ClearCart(context.Background(), &cartv1.ClearCartRequest{UserId: testUserID})
 			return err
 		}, func() *fakeStore { return &fakeStore{cartID: "cart-1", ensureErr: errors.New("ensure failed")} }},
 		{"add failure", func(client cartv1.CartServiceClient) error {
-			_, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: "user-1", ProductId: "p-1", VariantLabel: "red", Quantity: 1})
+			_, err := client.AddItem(context.Background(), &cartv1.AddItemRequest{UserId: testUserID, ProductId: "p-1", VariantLabel: "red", Quantity: 1})
 			return err
 		}, func() *fakeStore { return &fakeStore{cartID: "cart-1", addErr: errors.New("add failed")} }},
 		{"update failure", func(client cartv1.CartServiceClient) error {
-			_, err := client.UpdateItemQuantity(context.Background(), &cartv1.UpdateItemQuantityRequest{UserId: "user-1", ItemId: "item-1", Quantity: 2})
+			_, err := client.UpdateItemQuantity(context.Background(), &cartv1.UpdateItemQuantityRequest{UserId: testUserID, ItemId: testItemID, Quantity: 2})
 			return err
 		}, func() *fakeStore { return &fakeStore{cartID: "cart-1", updateErr: errors.New("update failed")} }},
 		{"remove failure", func(client cartv1.CartServiceClient) error {
-			_, err := client.RemoveItem(context.Background(), &cartv1.RemoveItemRequest{UserId: "user-1", ItemId: "item-1"})
+			_, err := client.RemoveItem(context.Background(), &cartv1.RemoveItemRequest{UserId: testUserID, ItemId: testItemID})
 			return err
 		}, func() *fakeStore { return &fakeStore{cartID: "cart-1", removeErr: errors.New("remove failed")} }},
 		{"clear failure", func(client cartv1.CartServiceClient) error {
-			_, err := client.ClearCart(context.Background(), &cartv1.ClearCartRequest{UserId: "user-1"})
+			_, err := client.ClearCart(context.Background(), &cartv1.ClearCartRequest{UserId: testUserID})
 			return err
 		}, func() *fakeStore { return &fakeStore{cartID: "cart-1", clearErr: errors.New("clear failed")} }},
 	}
@@ -745,9 +811,9 @@ func TestMutationsMapStoreFailuresAndMissingItems(t *testing.T) {
 			client := newBufconnClient(t, NewServer(store, &fakeCatalog{}, &fakeInventory{}, &fakeAuthorization{allowed: true}))
 			var err error
 			if method == "update" {
-				_, err = client.UpdateItemQuantity(context.Background(), &cartv1.UpdateItemQuantityRequest{UserId: "user-1", ItemId: "item-1", Quantity: 2})
+				_, err = client.UpdateItemQuantity(context.Background(), &cartv1.UpdateItemQuantityRequest{UserId: testUserID, ItemId: testItemID, Quantity: 2})
 			} else {
-				_, err = client.RemoveItem(context.Background(), &cartv1.RemoveItemRequest{UserId: "user-1", ItemId: "item-1"})
+				_, err = client.RemoveItem(context.Background(), &cartv1.RemoveItemRequest{UserId: testUserID, ItemId: testItemID})
 			}
 			if code := status.Code(err); code != codes.NotFound {
 				t.Fatalf("status code = %v, want NotFound", code)
@@ -768,7 +834,7 @@ func assertErrorInfoReason(t *testing.T, err error, wantReason string) {
 }
 
 func TestUpdateAndRemoveReturnRefreshedEnrichedCartWrappers(t *testing.T) {
-	line := domain.Line{ID: "item-1", ProductID: "p-1", VariantLabel: "red", Quantity: 4}
+	line := domain.Line{ID: testItemID, ProductID: "p-1", VariantLabel: "red", Quantity: 4}
 	newServer := func() (*fakeStore, cartv1.CartServiceClient) {
 		store := &fakeStore{cartID: "cart-1", lines: []domain.Line{line}}
 		catalog := &fakeCatalog{products: map[string]*catalogv1.GetProductResponse{"p-1": validProduct("p-1")}, errors: map[string]error{}}
@@ -777,7 +843,7 @@ func TestUpdateAndRemoveReturnRefreshedEnrichedCartWrappers(t *testing.T) {
 	}
 
 	_, client := newServer()
-	updated, err := client.UpdateItemQuantity(context.Background(), &cartv1.UpdateItemQuantityRequest{UserId: "user-1", ItemId: "item-1", Quantity: 4})
+	updated, err := client.UpdateItemQuantity(context.Background(), &cartv1.UpdateItemQuantityRequest{UserId: testUserID, ItemId: testItemID, Quantity: 4})
 	if err != nil {
 		t.Fatalf("UpdateItemQuantity() error = %v", err)
 	}
@@ -786,11 +852,30 @@ func TestUpdateAndRemoveReturnRefreshedEnrichedCartWrappers(t *testing.T) {
 	}
 
 	_, client = newServer()
-	removed, err := client.RemoveItem(context.Background(), &cartv1.RemoveItemRequest{UserId: "user-1", ItemId: "item-1"})
+	removed, err := client.RemoveItem(context.Background(), &cartv1.RemoveItemRequest{UserId: testUserID, ItemId: testItemID})
 	if err != nil {
 		t.Fatalf("RemoveItem() error = %v", err)
 	}
 	if removed.GetCart() == nil || len(removed.GetCart().GetItems()) != 1 || removed.GetCart().GetItems()[0].GetImageUrl() == "" {
 		t.Fatalf("removed wrapper cart was not refreshed/enriched: %+v", removed.GetCart())
+	}
+}
+
+func TestAddItemFailsClosedWhenAuthorizationClientIsNil(t *testing.T) {
+	store := &fakeStore{cartID: "cart-1"}
+	server := NewServer(store, &fakeCatalog{}, &fakeInventory{}, nil)
+
+	_, err := server.AddItem(context.Background(), &cartv1.AddItemRequest{
+		UserId:       testUserID,
+		ProductId:    "p-1",
+		VariantLabel: "red",
+		Quantity:     1,
+	})
+	if code := status.Code(err); code != codes.Unavailable {
+		t.Fatalf("AddItem() status code = %v, want Unavailable", code)
+	}
+	assertErrorInfoReason(t, err, reasonAuthorizationUnavailable)
+	if store.ensureUserID != "" || len(store.addArgs) != 0 {
+		t.Fatalf("AddItem() with nil authorization mutated cart state: ensureUserID=%q addArgs=%v", store.ensureUserID, store.addArgs)
 	}
 }
