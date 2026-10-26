@@ -1,0 +1,17 @@
+.git
+.github
+.agents
+.opencode
+.superpowers
+.worktrees
+.idea
+.vscode
+**/node_modules
+**/target
+**/tmp
+ecommerce-fe/dist
+.env
+.env.*
+deployments/secrets
+**/*.pem
+**/*.key
