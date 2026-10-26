@@ -10,9 +10,9 @@ E-commerce cần đăng ký, đăng nhập, profile và quyền cơ bản. Dùng
 
 ## Decision
 
-Tạo một Identity Service bằng Java + Spring Boot/Spring Security, chỉ phục vụ first-party clients của dự án. Service sở hữu user/profile, role, password credential, session và refresh token; public qua Kong tại `/api/v1/auth/*` và `/api/v1/users/me`.
+Tạo một Identity Service bằng Java + Spring Boot/Spring Security, chỉ phục vụ first-party clients của dự án. Service sở hữu user/profile, sổ địa chỉ giao hàng, địa giới hành chính, phân quyền RBAC, password credential, session và refresh token; public qua Kong tại `/api/v1/auth`, `/api/v1/users`, `/api/v1/locations`, `/api/v1/admin/users` và `/api/v1/admin/rbac`, đồng thời phục vụ đánh giá phân quyền nội bộ qua private gRPC (`AuthorizationService` trên cổng `50054`).
 
-Password được hash bằng Argon2id (bcrypt là fallback có ghi rõ lý do). Access JWT ký bất đối xứng, có `sub`, role, issuer, audience, expiry, token ID và `kid`; JWKS public phục vụ verify/key rotation. Refresh token lưu hash, rotate mỗi lần refresh, có token family/revocation; reuse token revoked revoke toàn family. BFF/Identity verify issuer, audience và signature trước khi tạo caller context; Order vẫn làm authorization ownership.
+Password được hash bằng Argon2id. Access JWT ký bất đối xứng (RS256), có `sub`, `roles`, `iss`, `aud`, `exp`, `jti` và `kid`; JWKS công khai phục vụ verify/key rotation. Refresh token lưu hash, rotate mỗi lần refresh, có token family/revocation; reuse token đã rotate sẽ revoke toàn family. Plugin `caller-context` trên Kong xác thực chữ ký RS256, `iss`, `aud` và `exp` rồi gắn `X-User-Id` / `X-User-Roles` cho các route được bảo vệ (còn các route public strip sẵn hai header này); các thao tác nhạy cảm về quyền thời gian thực (như `cart.item.add`, `product.delete`) được Catalog/Cart kiểm tra trực tiếp qua private gRPC tới Identity.
 
 MVP không implement generic OIDC/OAuth authorization server, MFA, email verification/reset, social login hay third-party client integration.
 

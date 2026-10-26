@@ -106,10 +106,12 @@ From an individual Go service:
 go test ./...
 ```
 
-From repository root:
+From repository root (on Linux/CI; on Windows PowerShell replace
+`./services/cart-service/...` with `./services/cart-service/internal/...`
+because `cart-service/cmd/server` tests use Unix `syscall.Kill`):
 
 ```powershell
-go test ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...
+go test ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/internal/...
 ```
 
 Place `_test.go` files beside the package under test. Prefer table-driven tests

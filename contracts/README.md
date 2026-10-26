@@ -7,14 +7,15 @@ thuộc service sở hữu và không được đưa vào module contract.
 
 Các file dưới `proto/` là source of truth cho gRPC:
 
-- `catalog.v1`: lấy chi tiết, tìm kiếm và soft-delete sản phẩm.
-- `inventory.v1`: đọc tồn kho khả dụng.
-- `cart.v1`: đọc và thay đổi cart line.
-- `identity.v1`: `AuthorizationService` is implemented for private Cart
-  authorization; the older `IdentityService.GetUser` RPC remains unwired.
-- `order.v1`: contract đã định nghĩa nhưng server gRPC tương ứng chưa được
-  application triển khai.
-- `common.v1`: value dùng chung như `Money`.
+- `ecommerce.catalog.v1`: lấy chi tiết, tìm kiếm và soft-delete/restore sản phẩm.
+- `ecommerce.inventory.v1`: đọc tồn kho khả dụng.
+- `ecommerce.cart.v1`: đọc và thay đổi cart line.
+- `ecommerce.identity.v1`: `AuthorizationService` được triển khai cho kiểm tra
+  phân quyền riêng tư từ Catalog (`product.delete`) và Cart (`cart.item.add`);
+  RPC `IdentityService.GetUser` cũ hiện chưa được nối dây.
+- `ecommerce.order.v1`: contract đã định nghĩa nhưng server gRPC tương ứng chưa
+  được application triển khai.
+- `ecommerce.common.v1`: value dùng chung như `Money`.
 
 `buf generate` sinh client/server types vào `go/` và
 `java/src/main/generated/`. Không sửa generated source trực tiếp. Thay đổi
@@ -23,10 +24,10 @@ dụng field number đã phát hành.
 
 ## REST và OpenAPI
 
-`openapi.yaml` là tài liệu OpenAPI 3.1 và hiện mới mô tả health foundation; nó
-chưa bao phủ toàn bộ Identity/BFF REST surface. REST behavior hiện được kiểm
-chứng bởi controller/handler tests và frontend API adapter. Khi mở rộng OpenAPI,
-giữ envelope chuẩn của repository:
+`openapi.yaml` hiện chỉ là file placeholder khung ban đầu và chưa phản ánh REST
+surface hay envelope thực tế của Identity/BFF. REST behavior hiện được kiểm
+chứng bởi controller/handler tests và frontend API adapter. Khi cập nhật hoặc mở
+rộng OpenAPI, phải đồng bộ theo đúng envelope chuẩn của repository:
 
 - Success: `{ "data": <payload>, "message": "..." }`.
 - Error: `{ "code": "STABLE_ERROR_CODE", "message": "...", "errors": {}, "traceId": "..." }`.

@@ -38,11 +38,12 @@ flowchart LR
 
     BFF -->|"Private gRPC / Protobuf over HTTP/2\n(Binary, Multiplexing, Strong Typing)"| Catalog
     BFF -->|"Private gRPC / Protobuf"| Cart
+    Catalog -->|"Private gRPC (Port 50054)"| Identity
     Cart -->|"Private gRPC / Protobuf"| Catalog
     Cart -->|"Private gRPC / Protobuf"| Inventory
     Cart -->|"Private gRPC (Port 50054)"| Identity
 
-    Order -.->|"AMQP 0-9-1 (Domain Events)\nAt-least-once, Eventual Consistency"| RabbitMQ
+    Order -.->|"AMQP 0-9-1 (Domain Events - Thiết kế ADR)\nAt-least-once, Eventual Consistency"| RabbitMQ
     RabbitMQ -.-> Inventory
 ```
 
@@ -74,12 +75,14 @@ flowchart TD
 
     Kong --> Decision{"Loại Endpoint Là Gì?"}
 
-    Decision -- "1. Nghiệp vụ Auth / Profile Đặc Thù" --> DirectId["Direct Route tới Identity Service\n(POST /auth/login, GET /users/me)"]
-    Decision -- "2. Unary RPC 1:1 Đơn Giản\n(Có google.api.http annotation)" --> Transcode["Kong gRPC Transcoding\n(Chuyển đổi trực tiếp HTTP REST sang gRPC)"]
-    Decision -- "3. Cần Tổng Hợp (Composition),\nMapping Lỗi Riêng, Hoặc UI-Specific Shape" --> BFFRoute["BFF Service (Go)\n(GET /storefront/products, /cart)"]
+    Decision -- "1. Nghiệp vụ Auth / Profile Đặc Thù" --> DirectId["Direct Route tới Identity Service\n(/api/v1/auth, /users, /locations, /admin/users, /admin/rbac)"]
+    Decision -- "2. Unary RPC 1:1 Đơn Giản\n(Có google.api.http annotation - Tùy chọn mở rộng)" --> Transcode["Kong gRPC Transcoding\n(Chuyển đổi trực tiếp HTTP REST sang gRPC)"]
+    Decision -- "3. Cần Tổng Hợp (Composition),\nMapping Lỗi Riêng, Hoặc UI-Specific Shape" --> BFFRoute["BFF Service (Go)\n(/api/v1/storefront/products, /cart, /admin/products)"]
 
     BFFRoute --> InternalMesh["Gọi gRPC Trực Tiếp Vào Catalog & Cart"]
 ```
+
+> **Hiện trạng định tuyến trong codebase**: Toàn bộ các public route hiện hành trên Kong đều đi theo nhánh (1) tới `identity-service` hoặc nhánh (3) tới `bff-service` với `strip_path: false`; nhánh (2) Kong gRPC Transcoding qua `google.api.http` được ADR-008 phê duyệt làm tùy chọn mở rộng cho các unary RPC 1:1 đơn giản trong tương lai (hiện chưa có file `.proto` nào gắn annotation này).
 
 #### Quy Tắc Thép:
 - **Nghiêm cấm Microservices gọi nhau qua Kong hoặc BFF**: Giao tiếp giữa các internal service (`Cart -> Catalog`, `Cart -> Inventory`) bắt buộc phải dùng gRPC trực tiếp trên mạng riêng nội bộ. Kong và BFF chỉ là bề mặt đón khách ở cửa ngõ, tuyệt đối không được biến thành "internal message bus".
@@ -100,16 +103,17 @@ buf generate
 ### 3.1. Cấu Hình Sinh Mã Polyglot Trong `buf.gen.yaml`:
 ```yaml
 version: v2
+clean: false
 plugins:
-  - local: protoc-gen-go
+  - remote: buf.build/protocolbuffers/go:v1.34.2
     out: contracts/go
     opt: paths=source_relative
-  - local: protoc-gen-go-grpc
+  - remote: buf.build/grpc/go:v1.5.1
     out: contracts/go
     opt: paths=source_relative
-  - local: protoc-gen-java
+  - remote: buf.build/protocolbuffers/java:v25.3
     out: contracts/java/src/main/generated
-  - local: protoc-gen-grpc-java
+  - remote: buf.build/grpc/java:v1.65.1
     out: contracts/java/src/main/generated
 ```
 
@@ -157,10 +161,10 @@ Tại BFF ([services/bff-service/internal/http/cart.go](../../services/bff-servi
 {
   "code": "FORBIDDEN",
   "message": "You do not have permission to add products to the cart.",
-  "errors": {},
-  "traceId": "01J7K8M9N0PQR..."
+  "traceId": "4f8c2e19a7b30d61"
 }
 ```
+*(Trường `errors` được khai báo `omitempty` và tự động lược bỏ khi không có chi tiết lỗi cấp trường).*
 
 #### Nguyên Tắc Bảo Mật:
 - **Triệt tiêu hoàn toàn rò rỉ Stack Trace**: Không bao giờ để thông báo lỗi của database (ví dụ: `pq: relation "users" does not exist` hay Java `NullPointerException`) lọt ra JSON trả về cho khách hàng. Mọi chi tiết nhạy cảm chỉ được ghi lại trong log nội bộ kèm `traceId`.
@@ -183,13 +187,13 @@ sequenceDiagram
     participant Cart as cart-service
     participant IdP as identity-service
 
-    Fe->>Kong: HTTP Header [X-Trace-Id: 01J8A4BC...]
-    Kong->>BFF: HTTP Header [X-Trace-Id: 01J8A4BC...]
-    Note over BFF: Middleware correlateTrace():<br/>Đọc hoặc sinh mới X-Trace-Id.<br/>Đóng gói vào outgoing gRPC Metadata: 'x-trace-id'
-    BFF->>Cart: gRPC Call + Metadata ['x-trace-id': '01J8A4BC...']
+    Fe->>Kong: HTTP Request (kèm X-Trace-Id tùy chọn nếu client cung cấp)
+    Kong->>BFF: Forward HTTP Request
+    Note over BFF: Middleware correlateTrace():<br/>Giữ X-Trace-Id hợp lệ từ request hoặc sinh mới chuỗi hex 16 ký tự.<br/>Đóng gói vào outgoing gRPC Metadata: 'x-trace-id'
+    BFF->>Cart: gRPC Call + Metadata ['x-trace-id': '4f8c2e19a7b30d61']
     Note over Cart: withAuthorizationTrace():<br/>Trích xuất 'x-trace-id' từ incoming metadata,<br/>chuyển tiếp sang outgoing metadata gọi Identity
-    Cart->>IdP: gRPC Call + Metadata ['x-trace-id': '01J8A4BC...']
-    Note over IdP: MDC.put("trace_id", traceId)<br/>Mọi dòng Log Java Spring Boot đều in kèm [trace_id=01J8A4BC...]
+    Cart->>IdP: gRPC Call + Metadata ['x-trace-id': '4f8c2e19a7b30d61']
+    Note over IdP: MDC.put("trace_id", traceId)<br/>Mọi dòng Log Java Spring Boot đều in kèm [trace_id=4f8c2e19a7b30d61]
 ```
 
 ### Đánh Giá Kiến Trúc: Tự Triển Khai (Custom Trace) vs Chuẩn W3C / OpenTelemetry
@@ -207,8 +211,8 @@ sequenceDiagram
 
 ### 🧑‍💻 Mid-Level: Làm Chủ Kỹ Thuật Triển Khai
 - **Thiết kế API Contract Additive**: Khi cần sửa API, luôn luôn ưu tiên bổ sung thêm trường mới thay vì sửa trường cũ. Duy trì cả hai trường trong ít nhất 1-2 chu kỳ release để đảm bảo các service cũ deploy chậm hơn vẫn hoạt động bình thường.
-- **Xử lý Deadline / Timeout Budget**: Trong một chuỗi gọi `BFF (Timeout 2s) -> Cart (Timeout 1.5s) -> Identity (Timeout 500ms)`, timeout của service tầng dưới bắt buộc phải ngắn hơn timeout của service tầng trên. Nếu tầng dưới đặt timeout 3s, tầng trên sẽ bị timeout trước và hủy request trong khi tầng dưới vẫn miệt mài chạy vô ích.
+- **Xử lý Deadline / Timeout Budget**: Trong một chuỗi gọi nhiều tầng, timeout của service tầng dưới nên ngắn hơn timeout của service tầng trên. Hiện tại trong codebase, nhánh ủy quyền đã thu hẹp chặt (`Catalog/Cart -> Identity: 500ms` so với `BFF -> Catalog/Cart: 3s`), trong khi `Cart -> Catalog/Inventory` mặc định vẫn là `3s` — có thể tinh chỉnh xuống `1.5s - 2s` để BFF luôn kịp nhận phản hồi suy thoái (`degraded=true`) trước khi hết deadline tổng.
 
 ### 🧙 Senior / Staff / Architect: Tư Duy Hệ Thống & Scale Lớn
 - **HTTP/2 Multiplexing & Head-of-Line Blocking**: gRPC tận dụng HTTP/2 để truyền nhiều RPC stream trên cùng một kết nối TCP duy nhất. Tuy nhiên, ở tầng TCP, nếu có một gói tin bị rớt (Packet Loss), toàn bộ các stream trên kết nối đó sẽ bị nghẽn (TCP Head-of-line blocking). Trong môi trường Cloud/WAN không ổn định, các kiến trúc sư cần cân nhắc chuyển dịch sang **HTTP/3 (gRPC over QUIC/UDP)** để loại bỏ triệt để vấn đề này.
-- **Contract Governance ở quy mô 50+ Teams**: Cần tích hợp `buf breaking --against` vào CI/CD pipeline để tự động từ chối mọi Pull Request có chứa breaking changes vi phạm quy tắc tương thích, ngăn chặn thảm họa sập hệ thống dây chuyền khi deploy.
+- **Contract Governance ở quy mô 50+ Teams**: Dreamshop đã tích hợp sẵn `buf breaking --against '.git#branch=main'` trong job `contracts` của `.github/workflows/ci.yml` để tự động từ chối mọi Pull Request có chứa breaking changes vi phạm quy tắc tương thích; ở quy mô 50+ teams, cơ chế này có thể mở rộng thêm với Buf Schema Registry (BSR) tập trung.

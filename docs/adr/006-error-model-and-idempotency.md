@@ -16,7 +16,7 @@ gRPC dùng status code chuẩn và domain `reason` có version, ưu tiên `googl
 {
   "code": "INVENTORY_INSUFFICIENT",
   "message": "Số lượng còn lại không đủ để đặt hàng.",
-  "trace_id": "01J..."
+  "traceId": "01J..."
 }
 ```
 
@@ -24,7 +24,7 @@ Không gửi stack trace hoặc internal detail cho client. Cùng `Idempotency-K
 
 ## Consequences
 
-- Được: REST client có contract ổn định, gRPC caller có tín hiệu retry/failure rõ và support có thể tìm trace bằng `trace_id`.
+- Được: REST client có contract ổn định, gRPC caller có tín hiệu retry/failure rõ và support có thể tìm trace bằng `traceId`.
 - Được: retry client không tạo duplicate order hay nhận false conflict.
 - Mất: cần duy trì mapping table, error reason catalogue, fingerprint storage và policy retention.
 - Trade-off: message cho client có thể ít chi tiết hơn log nội bộ; đây là chủ đích bảo vệ bảo mật và giữ compatibility.

@@ -28,7 +28,8 @@ Detailed steering documents translate those decisions into implementation rules.
 ## Repository Map
 
 - `services/identity-service/`: Java 21/Spring Boot; credentials, profiles,
-  roles, sessions, refresh tokens, and JWT issuance.
+  shipping addresses, locations, RBAC hierarchy/authorization gRPC, sessions,
+  refresh tokens, and JWT issuance.
 - `services/order-service/`: Java 21/Spring Boot; order lifecycle, idempotency,
   and transactional outbox ownership.
 - `services/bff-service/`: Go; client-specific commerce composition and REST
@@ -36,8 +37,8 @@ Detailed steering documents translate those decisions into implementation rules.
 - `services/catalog-service/`: Go; product/catalog data and catalog caching.
 - `services/inventory-service/`: Go; stock, reservations, and inventory event
   consumption.
-- `services/cart-service/`: Go; shopping cart, line items, and cart event
-  consumption.
+- `services/cart-service/`: Go; shopping cart, line items, and catalog/inventory
+  enrichment over private gRPC.
 - `ecommerce-fe/`: React/Vite/TypeScript frontend.
 - `contracts/`: protobuf sources, generated Java/Go modules, and HTTP contract
   material.
@@ -78,9 +79,9 @@ dependent services, but modify them only when a contract change requires it.
 
 ## Instruction Routing
 
-Start with the routing index in
-[`docs/steering/README.md`](docs/steering/README.md), then read only the topics
-relevant to the change:
+Read only the steering documents in `docs/steering/` relevant to the change
+(and read linked ADRs in `docs/adr/` when a change challenges or extends an
+accepted decision):
 
 - [`architecture.md`](docs/steering/architecture.md): ownership, autonomy,
   databases, and shared code.
@@ -102,9 +103,18 @@ addition to this file. Local instructions may specialize these rules but may not
 relax repository-wide boundaries, compatibility, security, or verification
 requirements.
 
-Developer setup, local runtime, build/test, and operations procedures are routed
-through [`docs/instructions/README.md`](docs/instructions/README.md).
-Contribution policy is routed through [`docs/rules/README.md`](docs/rules/README.md).
+Developer procedures and contribution policy live in `docs/instructions/`:
+
+- [`local-development.md`](docs/instructions/local-development.md): prerequisites,
+  first checkout, and local application runtime.
+- [`build-and-test.md`](docs/instructions/build-and-test.md): focused, surface,
+  contract, and repository verification commands.
+- [`operations.md`](docs/instructions/operations.md): local health, routing, and
+  infrastructure diagnostics.
+- [`production-deployment.md`](docs/instructions/production-deployment.md):
+  full-stack Docker Compose deployment and rollout.
+- [`contributing.md`](docs/instructions/contributing.md): pull-request workflow,
+  PR title convention, CI checks, and branch protection.
 
 ## Commands
 
@@ -112,12 +122,18 @@ Contribution policy is routed through [`docs/rules/README.md`](docs/rules/README
   PostgreSQL, Redis, RabbitMQ, and Kong.
 - `make infra-up` starts or refreshes the local foundation; `make infra-down`
   stops it without deleting volumes.
+- `make prod-config`, `make prod-up`, `make prod-down`, and `make prod-logs`
+  validate, start, stop, or inspect the self-contained production Compose stack.
 - `make identity-keys` generates local-only Identity signing keys.
-- `make identity`, `make order`, `make cart`, or `make bff` runs the
-  corresponding service directly from the host.
-- `mvn test` builds and tests all Maven modules.
+- `make identity`, `make order`, `make catalog`, `make inventory`, `make cart`,
+  `make bff`, or `make fe` runs the corresponding surface directly from the
+  host.
+- `mvn test` builds and tests all Maven modules (Docker Desktop must be running
+  for `identity-service` Testcontainers tests).
 - `go test ./scripts/... ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...`
-  runs all Go script and service tests.
+  runs all Go script and service tests on Linux/CI; on Windows PowerShell, use
+  `./services/cart-service/internal/...` for Cart because `cart-service/cmd/server`
+  tests use Unix `syscall.Kill`.
 - `npm --prefix ecommerce-fe run dev` starts the frontend. Replace `dev` with
   `test`, `lint`, or `build` for the corresponding check.
 - `buf lint` validates protobuf sources; `buf generate` regenerates Java and Go
@@ -153,9 +169,10 @@ on Linux/WSL) and verify the listed health endpoint after startup.
 | Redis | `6379` | - | |
 | RabbitMQ | AMQP `5672`; management `15672` | - | |
 
-- The browser calls public APIs only through `http://localhost:8000/api/v1`.
-  The current frontend routes Identity auth, profile, and location requests
-  through Kong;
+- The browser calls public APIs only through `http://localhost:8000/api/v1`
+  (or same-origin `/api/v1` in production Compose), covering Identity auth,
+  profile, shipping addresses, locations, admin user/RBAC management, storefront
+  products, cart CRUD, and admin product soft-delete/restore.
 - Internal service calls use direct private gRPC. BFF calls Catalog at `50051`
   and Cart at `50053`; Catalog calls Identity authorization at `127.0.0.1:50054`
   with a `500ms` timeout; Cart calls Catalog at `50051`, Inventory at `50052`,

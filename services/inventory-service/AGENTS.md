@@ -40,19 +40,25 @@ behavior as domain/contract semantics rather than transport defaults.
 
 ## Current Layout
 
-- `cmd/server/`: process startup and dependency wiring.
-- `internal/config/`: environment-backed configuration.
-- `internal/http/`: health and HTTP transport concerns.
+- `cmd/server/`: process startup, signal handling, and dependency wiring.
+- `internal/config/`: environment-backed configuration (`HTTP_ADDR`,
+  `GRPC_ADDR`, `DATABASE_URL`).
+- `internal/domain/`: stock and availability domain rules (`Quantity - Reserved`).
+- `internal/store/`: embedded SQL migrations (`000001_create_stock.up.sql`),
+  seed data, and PostgreSQL store adapter.
+- `internal/grpc/`: `InventoryServiceServer` (`GetAvailability`) gRPC handler.
+- `internal/http/`: `/healthz` HTTP readiness/liveness handler.
 
-As inventory capabilities are added, keep domain/application rules independent
-of HTTP, gRPC, RabbitMQ, and database adapters. Broker and persistence adapters
-implement service-owned interfaces and translate external failures into stable
-application outcomes.
+As reservation and event capabilities are added, keep domain/application rules
+independent of HTTP, gRPC, RabbitMQ, and database adapters. Broker and
+persistence adapters implement service-owned interfaces and translate external
+failures into stable application outcomes.
 
 ## Contracts and Data
 
 - Use generated types from `contracts/go/`; do not edit generated files.
-- Prefer additive protobuf/event changes and inspect Order or BFF consumers.
+- Prefer additive protobuf/event changes and inspect `cart-service` (current
+  `GetAvailability` consumer) plus future Order or BFF consumers.
 - Keep Inventory persistence/schema/migrations private to this service.
 - A local product reference is a read-model key, not ownership of Catalog data.
 - Preserve event metadata, correlation, and stable error reasons at boundaries.

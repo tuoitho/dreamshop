@@ -10,8 +10,8 @@
 | :--- | :--- | :--- | :--- | :--- |
 | **Kiến Trúc Ingress** | Kong API Gateway + Custom Lua plugin (`caller-context`) + Go BFF. | Cụm Nginx / OpenResty tùy biến cao + cụm Gateway nội bộ (Spike Buster). | AWS CloudFront + Amazon API Gateway / Envoy Proxy. | Kong Enterprise / Tyk Gateway + Go BFF cho Mobile/Web. |
 | **Giao Tiếp Nội Bộ** | Private direct gRPC (HTTP/2) theo contract Protobuf (Buf CLI). | gRPC nội bộ hoặc Thrift RPC, kết hợp Service Mesh nội bộ quy mô lớn. | gRPC / AWS Coral Service Framework, private VPC peering. | gRPC cho synchronous calls, kết hợp RabbitMQ / Kafka. |
-| **Xử Lý Chống Oversell** | PostgreSQL DB Invariant (`CHECK reserved <= quantity`) + row-level lock. | **Redis Cluster + Lua Script (Decrby)** để giữ chỗ cực nhanh, sau đó async ghi DB. | DynamoDB Conditional Writes + Phân bổ kho theo Cell-based Architecture. | Redis Distributed Lock kết hợp MySQL Invariant và Queue phân luồng. |
-| **Giao Dịch Phân Tán** | Saga Orchestration (Order Service làm Coordinator) + Transactional Outbox. | TCC (Try-Confirm-Cancel) hoặc Saga trên Apache Kafka & RocketMQ. | AWS Step Functions (Orchestration) hoặc EventBridge (Choreography). | Transactional Outbox qua Debezium CDC streaming vào Kafka. |
+| **Xử Lý Chống Oversell** | PostgreSQL DB Invariant (`CHECK reserved <= quantity` đã có trong schema; mutation giữ kho theo thiết kế ADR-003). | **Redis Cluster + Lua Script (Decrby)** để giữ chỗ cực nhanh, sau đó async ghi DB. | DynamoDB Conditional Writes + Phân bổ kho theo Cell-based Architecture. | Redis Distributed Lock kết hợp MySQL Invariant và Queue phân luồng. |
+| **Giao Dịch Phân Tán** | Thiết kế ADR (Đang hoàn thiện): Saga Orchestration (`order-service`) + Transactional Outbox (ADR-002, ADR-005). | TCC (Try-Confirm-Cancel) hoặc Saga trên Apache Kafka & RocketMQ. | AWS Step Functions (Orchestration) hoặc EventBridge (Choreography). | Transactional Outbox qua Debezium CDC streaming vào Kafka. |
 | **Quản Lý Phiên (Auth)** | First-Party Identity Java 21, Argon2id, RS256 JWT, RTR theo RFC 6819. | Centralized Passport Service, OAuth2/OIDC, Multi-factor Auth (MFA), Token Sharding. | Amazon Cognito / Internal IAM, Hardware Security Module (HSM) cho signing. | Keycloak hoặc Custom OAuth2 Server, Redis token blacklist. |
 
 ---
@@ -40,12 +40,12 @@ graph TD
     subgraph Critical_Debts["🔴 Nợ Kỹ Thuật Cần Ưu Tiên Xử Lý"]
         D1["1. order-service mới chỉ là Skeleton:\nChưa triển khai logic tạo đơn, Saga Engine,\nhay bảng outbox thật sự trong PostgreSQL."]
         D2["2. Hạ Tầng Bị Bỏ Quên (Unused Provisioned Infra):\nRedis 7 và RabbitMQ 3 đã dựng trong Docker Compose\nnhưng code ứng dụng chưa hề cắm dây sử dụng!"]
-        D3["3. Lộ Cổng Service Ra Mạng Ngoài (Network Exposure):\nCác service internal bind trực tiếp port máy host (8082, 8084, 8085)\ncho phép bypass Kong nếu không có tường lửa chặn."]
+        D3["3. Cổng HTTP Local Chạy Trực Tiếp Trên Host:\nProduction Compose đã đóng kín trong ecommerce-prod-net,\nnhưng khi dev trực tiếp trên host cần firewall tránh gọi tắt qua Kong."]
     end
 
     subgraph Security_Debts["🟠 Lỗ Hổng Bảo Mật Cần Vá"]
-        S1["4. Thiếu Rate Limiting trên Kong:\nEndpoint /auth/login có nguy cơ bị tấn công dò mật khẩu (Brute Force)."]
-        S2["5. Route Admin Chưa Được Bảo Vệ Trong Local Config:\nRoute /api/v1/admin/products chưa gắn plugin caller-context."]
+        S1["4. Thiếu Rate Limiting trên Kong:\nEndpoint /api/v1/auth/login có nguy cơ bị tấn công dò mật khẩu (Brute Force)."]
+        S2["5. Chưa Kiểm Tra Sơ Bộ Role Ở Tầng Edge Cho Route Admin:\nKong đã gắn caller-context trên /api/v1/admin/* nhưng việc chặn role\nhoàn toàn phụ thuộc handler/gRPC phía sau."]
         S3["6. Thiếu mTLS Nội Bộ:\nGiao tiếp gRPC nội bộ chạy plaintext, không mã hóa."]
     end
 
@@ -61,12 +61,10 @@ graph TD
 Để đưa Dreamshop từ một nền tảng thực nghiệm thành một hệ thống thương mại điện tử thực chiến chịu tải hàng chục nghìn người dùng, dự án cần thực hiện lộ trình 4 giai đoạn:
 
 ```mermaid
-timeline
-    title Lộ Trình Nâng Cấp Kiến Trúc Production (Engineering Roadmap)
-    Giai Đoạn 1 (Nghiệp Vụ Lõi) : Hoàn thiện Order Saga : Triển khai Transactional Outbox : Nối dây RabbitMQ Consumers
-    Giai Đoạn 2 (Khả Năng Quan Sát) : Chuẩn hóa W3C TraceContext : Tích hợp OpenTelemetry SDK : Dựng cụm Prometheus & Grafana : Tracing qua Tempo / Jaeger
-    Giai Đoạn 3 (Gia Cố Bảo Mật) : Đóng kín internal ports : Bật Rate Limiting trên Kong : Bật bảo mật route /admin : Triển khai mTLS (Service Mesh)
-    Giai Đoạn 4 (Quy Mô & Hiệu Năng) : Bật Redis Caching cho Catalog : Tối ưu Connection Pooling : Lên kịch bản Zero-Downtime Migration : Đóng gói Kubernetes Helm Charts
+flowchart LR
+    P1["Giai Đoạn 1: Nghiệp Vụ Lõi\n- Hoàn thiện Order Saga\n- Transactional Outbox\n- RabbitMQ Consumers"] --> P2["Giai Đoạn 2: Khả Năng Quan Sát\n- W3C TraceContext\n- OpenTelemetry SDK\n- Prometheus, Grafana & Tempo"]
+    P2 --> P3["Giai Đoạn 3: Gia Cố Bảo Mật\n- Rate Limiting trên Kong\n- Defense-in-depth cho /admin\n- mTLS nội bộ (Service Mesh)"]
+    P3 --> P4["Giai Đoạn 4: Quy Mô & Hiệu Năng\n- Redis Caching cho Catalog\n- Zero-Downtime Migration\n- Kubernetes Helm Charts"]
 ```
 
 ### Chi Tiết Từng Giai Đoạn:
@@ -84,9 +82,9 @@ timeline
 - Thiết lập Alerting Rule khi lỗi 5xx vượt quá 1% hoặc độ trễ p99 vượt quá 500ms.
 
 #### Giai Đoạn 3: Gia Cố Bảo Mật Mép Mạng & Nội Bộ (Weeks 6 - 7)
-- Chuyển toàn bộ các service nội bộ sang chế độ Private Network không map port ra host trong Docker.
+- Duy trì mô hình cô lập mạng nội bộ của `compose.production.yml` (`ecommerce-prod-net`, chỉ publish cổng qua Kong) sang môi trường Kubernetes bằng `NetworkPolicy`.
 - Bật plugin `rate-limiting` trên Kong cho các route `/api/v1/auth/*` (Tối đa 5 req/phút với login, 100 req/phút với các API khác).
-- Bắt buộc kiểm tra quyền `ADMIN` trên route `/api/v1/admin/*`.
+- Bổ sung lớp chặn role sơ bộ tại Gateway bên cạnh `caller-context` và kiểm tra quyền thời gian thực qua Identity gRPC cho toàn bộ nhóm route `/api/v1/admin/*`.
 
 #### Giai Đoạn 4: Scale Lớn & Sẵn Sàng Vận Hành 24/7 (Weeks 8 - 10)
 - Tích hợp Redis làm Cache-Aside cho `catalog-service` với chiến lược TTL ngắn (5 phút) kết hợp vô hiệu hóa cache khi sản phẩm bị sửa hoặc xóa mềm.
@@ -137,12 +135,12 @@ Bảng dưới đây định vị trình độ kỹ sư dựa trên năng lực 
    - **Trả lời**: Redlock có các điểm yếu chết người trong thực tế: Stop-the-world GC Pause làm hết hạn lock lease trong khi tiến trình vẫn nghĩ mình giữ lock, Clock drift nhảy giờ hệ thống, và sự cố mất đồng bộ khi Redis master failover sang replica. Nếu Database không có ràng buộc tự bảo vệ, Redlock sẽ làm âm kho. Ràng buộc `CHECK (reserved <= quantity)` trong PostgreSQL là nguồn chân lý tối hậu, đảm bảo dữ liệu không bao giờ bị sai lệch cho dù tầng phân tán có gặp bất kỳ sự cố nào.
 9. **Hỏi**: *Trong Saga Order, giả sử Order Service đã hủy đơn do Timeout, nhưng sau đó nhận được sự kiện `InventoryReserved` đến muộn. Hệ thống xử lý thế nào để không bị "Rò rỉ tồn kho" (Stock Leak)?*
    - **Trả lời**: Theo ADR-005, Order Service không được lờ đi sự kiện muộn. Khi đang ở trạng thái `CANCELLED` mà nhận được `InventoryReserved`, Order Service sẽ phát sinh ngay một sự kiện bù trừ (Compensating Event) là `ReservationReleaseRequested`. Inventory Service nhận được sự kiện này sẽ nhả lại số lượng hàng đã giữ, đảm bảo trạng thái hủy không bị đảo ngược và kho hàng được hoàn trả chính xác.
-10. **Hỏi**: *Phân tích sự đánh đổi giữa việc nhúng Permissions vào JWT Claims so với việc gọi gRPC CheckPermission thời gian thực từ Cart sang Identity (ADR-007 & Spec 2026-08-25)?*
-    - **Trả lời**: Nhúng quyền vào JWT cho phép Gateway/Service kiểm tra tức thì (0ms latency, không tốn network call), nhưng nhược điểm là không thể thu hồi quyền ngay lập tức (phải đợi token hết hạn 15 phút) và làm token phình to. Gọi gRPC thời gian thực đảm bảo tính cập nhật tức thì (ngay khi Admin xóa quyền là request sau bị chặn ngay), nhưng trả giá bằng thêm độ trễ mạng và tạo ra sự phụ thuộc tính sẵn sàng (Availability Coupling) vào Identity Service.
+10. **Hỏi**: *Phân tích sự đánh đổi giữa việc nhúng Permissions vào JWT Claims so với việc gọi gRPC CheckPermission thời gian thực từ Cart và Catalog sang Identity (ADR-007 & Spec 2026-08-25)?*
+    - **Trả lời**: Nhúng quyền vào JWT cho phép Gateway/Service kiểm tra tức thì (0ms latency, không tốn network call), nhưng nhược điểm là không thể thu hồi quyền ngay lập tức (phải đợi token hết hạn 15 phút) và làm token phình to. Gọi gRPC thời gian thực (như `cart-service` kiểm tra `cart.item.add` và `catalog-service` kiểm tra `product.delete`) đảm bảo tính cập nhật tức thì — ngay khi Admin thu hồi quyền là request sau bị chặn ngay — nhưng trả giá bằng thêm độ trễ mạng và tạo ra sự phụ thuộc tính sẵn sàng (Availability Coupling) vào Identity Service.
 11. **Hỏi**: *Idempotency-Key hoạt động thế nào theo ADR-006? Làm sao phân biệt được giữa việc "Mạng chập chờn gửi lại" và việc "Kẻ xấu cố tình tái sử dụng Key cho giao dịch khác"?*
     - **Trả lời**: Hệ thống tính toán hàm băm (Fingerprint) SHA-256 trên nội dung của Request Body. Nếu cùng `Idempotency-Key` mà Body Fingerprint giống hệt nhau $\rightarrow$ Đây là mạng retry hợp pháp, hệ thống trả lại kết quả cũ (HTTP 200/201) mà không thực thi lại logic. Nếu cùng Key mà Body Fingerprint khác nhau $\rightarrow$ Đây là hành vi tái sử dụng key sai trái, hệ thống lập tức từ chối với HTTP 409 Conflict (`IDEMPOTENCY_KEY_REUSED`).
-12. **Hỏi**: *Giải thích chính sách Fail-Closed vs Fail-Open trong ADR-004? Khi Inventory Service sập, tại sao xem giỏ hàng lại Fail-Open nhưng thêm sản phẩm vào giỏ lại Fail-Closed?*
-    - **Trả lời**: Thao tác Đọc (Xem giỏ hàng) an toàn với dữ liệu suy thoái nên chọn Fail-Open: trả giỏ hàng kèm cờ `degraded=true` để người dùng vẫn xem được đồ, giữ chân trải nghiệm khách hàng. Thao tác Ghi (Thêm giỏ hàng, Đặt đơn) làm thay đổi trạng thái và liên quan đến tiền bạc/tồn kho nên bắt buộc phải Fail-Closed: từ chối giao dịch ngay lập tức (HTTP 503) vì không bao giờ được phép giả định một người có quyền hay một sản phẩm còn hàng khi dịch vụ thẩm định đang ngừng hoạt động.
+12. **Hỏi**: *Giải thích chính sách Fail-Closed vs Fail-Open trong ADR-004? Trong `cart-service`, tại sao khi Identity Service sập thì `AddItem` bị chặn Fail-Closed (`503`), còn khi Inventory Service sập thì giỏ hàng lại trả về `degraded=true` (Fail-Open)?*
+    - **Trả lời**: Bước kiểm tra quyền hạn (`CheckPermission` sang Identity Service) bảo vệ quyền ghi vào `cart_db`, nên bắt buộc phải **Fail-Closed**: nếu Identity không phản hồi trong 500ms, hệ thống từ chối ngay với HTTP 503 vì không bao giờ được giả định người dùng có quyền. Ngược lại, bước đọc tồn kho và thông tin sản phẩm từ Inventory/Catalog chỉ phục vụ làm giàu hiển thị (kể cả khi mở giỏ hàng hay trả lại giỏ sau khi đã lưu dòng hàng hợp lệ), nên áp dụng **Fail-Open có kiểm soát**: vẫn trả giỏ hàng kèm cờ `degraded=true` và đánh dấu dòng hàng bị lỗi là `UNAVAILABLE` để giữ trải nghiệm người dùng mà không cho phép đặt nhầm sản phẩm chưa rõ tồn kho.
 13. **Hỏi**: *Làm thế nào để nâng cấp Schema Database trong kiến trúc Microservices mà không cần dừng hệ thống (Zero-Downtime Migration)?*
     - **Trả lời**: Sử dụng kỹ thuật **Expand and Contract (Parallel Change)** qua 3 bước:
       1. *Expand*: Tạo cột mới trong DB (cho phép NULL hoặc default value) mà không xóa cột cũ. Deploy ứng dụng mới có khả năng ghi vào cả 2 cột và đọc từ cột mới.

@@ -71,7 +71,7 @@ Dưới đây là bảng đánh giá khách quan của kiến trúc Dreamshop hi
 | **Concurrency & Data Integrity** | **8.5 / 10** | **Khá tốt**. Tư duy chống oversell dựa trên PostgreSQL invariant (`CHECK constraint`) chuẩn mực; Cart enrichment worker pool tối ưu. Tuy nhiên chưa có caching layer thực sự trên Redis. |
 | **Distributed Transactions & Events** | **6.5 / 10** | **Đang hoàn thiện (In-Progress)**. Đã có thiết kế ADR-002 (Outbox) và ADR-005 (Saga) rất chuẩn, nhưng code `order-service` hiện tại mới ở mức skeleton; RabbitMQ chưa được cắm dây thực tế vào luồng nghiệp vụ. |
 | **Observability & Telemetry** | **6.0 / 10** | **Trung bình**. Đã có truyền tải thủ công `X-Trace-Id` qua HTTP và gRPC metadata, nhưng chưa tích hợp OpenTelemetry SDK, chưa có centralized tracing (Jaeger/Tempo) hay metrics (Prometheus). |
-| **Production Readiness (Day-2 Ops)** | **6.5 / 10** | **Cần bổ sung**. Cấu hình Docker Compose phù hợp local development; thiếu Kubernetes manifests, CI/CD pipeline phức hợp cho Monorepo, và cơ chế Zero-downtime DB migrations tự động. |
+| **Production Readiness (Day-2 Ops)** | **7.5 / 10** | **Khá tốt**. Đã có Docker Compose tách riêng cho local (`compose.foundation.yml`) và production (`compose.production.yml` với mạng nội bộ `ecommerce-prod-net`, chỉ publish port qua Kong, named volumes) cùng CI pipeline 6 jobs cho Monorepo (gồm `boundaries` và `buf breaking`); chưa có Kubernetes manifests, CD tự động và công cụ điều phối Zero-downtime DB migrations. |
 
 ---
 *Mời bạn bắt đầu nghiên cứu chi tiết từ [Chương 1: Hệ Thống & Ranh Giới Dịch Vụ](./01-he-thong-va-ranh-gioi-dich-vu.md).*

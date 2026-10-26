@@ -46,11 +46,11 @@ lệnh khởi tạo tại [`docs/instructions/local-development.md`](../docs/ins
 |---|---|
 | `/` | Trang chủ và sản phẩm nổi bật |
 | `/tim-kiem` | Tìm kiếm, lọc, sắp xếp và phân trang |
-| `/san-pham/:id` | Chi tiết sản phẩm và thêm/mua ngay |
+| `/san-pham/:id` | Chi tiết sản phẩm, thêm/mua ngay và thao tác ẩn/khôi phục sản phẩm cho admin |
 | `/gio-hang` | Giỏ hàng có xác thực |
-| `/gio-hang/dat-hang` | Xem trước line item đã chọn; chưa submit Order |
+| `/gio-hang/dat-hang` | Xem trước line item đã chọn (yêu cầu đăng nhập); chưa submit Order |
 | `/login`, `/register` | Xác thực |
-| `/profile` | Xem và cập nhật hồ sơ |
+| `/profile` (`/dashboard` redirect) | Xem và cập nhật hồ sơ (yêu cầu đăng nhập) |
 
 ## API được gọi
 
@@ -63,6 +63,7 @@ lệnh khởi tạo tại [`docs/instructions/local-development.md`](../docs/ins
 | Profile | `GET/PATCH /api/v1/users/me` |
 | Locations | `GET /api/v1/locations/provinces` và `/provinces/{code}/wards` |
 | Product search/detail | `GET /api/v1/storefront/products[/{id}]` |
+| Admin product soft-delete/restore | `POST /api/v1/admin/products/{id}/delete` |
 | Cart | `GET/DELETE /api/v1/cart` |
 | Cart items | `POST /api/v1/cart/items`, `PATCH/DELETE /api/v1/cart/items/{itemId}` |
 

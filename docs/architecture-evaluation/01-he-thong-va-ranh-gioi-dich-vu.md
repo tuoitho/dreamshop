@@ -29,8 +29,8 @@ flowchart TB
         end
 
         subgraph Java_Services["☕ Java 21 / Spring Boot Microservices"]
-            Identity["identity-service (HTTP 8080 / gRPC 50054)\nAuth, Tokens, Profile & Private RBAC"]
-            Order["order-service (HTTP 8083)\nOrder Lifecycle, Saga & Outbox (Skeleton)"]
+            Identity["identity-service (HTTP 8080 / mgmt 8090 / gRPC 50054)\nAuth, Tokens, Profile & Private RBAC"]
+            Order["order-service (HTTP 8083 / mgmt 8093)\nOrder Lifecycle, Saga & Outbox (Skeleton)"]
         end
     end
 
@@ -48,14 +48,15 @@ flowchart TB
     Client -->|"HTTP /api/v1/*\nBearer Token / Cookie"| Kong
 
     %% Kong Routing
-    Kong -->|"/api/v1/auth/*, /users/*\n(Direct HTTP Proxy)"| Identity
-    Kong -->|"/api/v1/storefront/*, /cart/*\n(HTTP with Injected Headers)"| BFF
+    Kong -->|"/api/v1/auth, /users, /locations,\n/admin/users, /admin/rbac (strip_path: false)"| Identity
+    Kong -->|"/api/v1/storefront/products, /cart,\n/admin/products (strip_path: false)"| BFF
 
     %% Internal Private gRPC
     BFF -->|"gRPC: CatalogService"| Catalog
     BFF -->|"gRPC: CartService"| Cart
+    Catalog -->|"gRPC 50054: AuthorizationService (product.delete)"| Identity
     Cart -->|"gRPC: CatalogService (Enrichment)"| Catalog
-    Cart -->|"gRPC: InventoryService (Availability)"| Cart
+    Cart -->|"gRPC: InventoryService (Availability)"| Inventory
     Cart -->|"gRPC 50054: AuthorizationService (cart.item.add)"| Identity
 
     %% Storage Connections
@@ -77,7 +78,7 @@ Tại Dreamshop, việc phân định ranh giới được thực thi nghiêm ng
 | Service | Bounded Context | Quyền Sở Hữu Nghiệp Vụ (Ownership) | Điều Nghiêm Cấm (Boundary Constraints) |
 | :--- | :--- | :--- | :--- |
 | **identity-service** | Identity & Access Management (IAM) | Tài khoản, mật khẩu, JWT issuance, Refresh sessions, dữ liệu địa giới, phân cấp quyền RBAC. | Không quản lý giỏ hàng, đơn hàng hay định nghĩa ý nghĩa kinh doanh của quyền hạn thương mại. |
-| **catalog-service** | Product Information Management (PIM) | Thông tin sản phẩm, mô tả, danh mục, phân loại (variants), giá niêm yết, soft-delete. | Không quản lý tồn kho, không suy diễn trạng thái còn hàng (Availability là việc của Inventory). |
+| **catalog-service** | Product Information Management (PIM) | Thông tin sản phẩm, mô tả, danh mục, phân loại (variants), giá niêm yết, soft-delete (thẩm định quyền `product.delete` qua Identity gRPC). | Không quản lý tồn kho, không suy diễn trạng thái còn hàng (Availability là việc của Inventory); không tự lưu bảng RBAC riêng. |
 | **inventory-service** | Stock & Inventory Control | Số lượng hàng tồn kho vật lý (`quantity`), số lượng đã giữ trước (`reserved`), bất biến không bán âm. | Không lưu tên sản phẩm, hình ảnh, hay chi tiết đơn giá tiền tệ. |
 | **cart-service** | Shopping Basket Management | Dòng hàng tạm thời của user (`product_id`, `variant_label`, `quantity`). | Không lưu giá sản phẩm vào DB giỏ hàng; không tự kiểm tra quyền RBAC mà phải gọi Identity. |
 | **order-service** | Order Processing & Fulfillment | Vòng đời đơn hàng (`PENDING_STOCK`, `CONFIRMED`, `CANCELLED`), snapshot giá tại thời điểm mua, idempotency. | Không mutate trực tiếp kho hàng; phải tương tác qua Event/Saga. |
@@ -99,7 +100,7 @@ Nhiều kỹ sư thường nhầm lẫn giữa **Monolith** (nguyên khối về
    - Cả mã nguồn Go (`contracts/go/`) và Java (`contracts/java/`) được cập nhật ngay trong cùng một Git commit.
    - Tránh triệt để tình trạng "version drift" (service A dùng proto v1.2, service B dùng proto v1.1 do pull từ các repo git riêng lẻ).
 2. **Onboarding & Local Orchestration Dễ Dàng**:
-   Nhờ có `Makefile` và `docker-compose.foundation.yml` ở root repo, một kỹ sư mới chỉ cần chạy `make infra-up` là có toàn bộ PostgreSQL, Redis, RabbitMQ và Kong sẵn sàng trong 30 giây.
+   Nhờ có `Makefile` và `deployments/docker/compose.foundation.yml` ở repo, một kỹ sư mới chỉ cần chạy `make infra-up` là có toàn bộ PostgreSQL, Redis, RabbitMQ và Kong sẵn sàng trong vài chục giây.
 
 ### 3.2. Nguy Cơ Lớn Nhất: "The Distributed Monolith Trap"
 Nếu không có kỷ luật, Monorepo sẽ rất nhanh chóng biến thành một **"Distributed Monolith" (Khối đá phân tán)** — tức là mang toàn bộ nhược điểm của Monolith (ràng buộc mã nguồn, deploy đồng loạt) cộng thêm toàn bộ sự phức tạp của Distributed Systems (độ trễ mạng, mất gói tin, partial failure).
@@ -136,7 +137,7 @@ flowchart LR
 
 | Tiêu Chí Kỹ Thuật | Go 1.24 (BFF, Catalog, Inventory, Cart) | Java 21 / Spring Boot (Identity, Order) |
 | :--- | :--- | :--- |
-| **Mô hình Concurrency** | **Goroutines & Channels**: Chi phí bộ nhớ chỉ ~2KB/goroutine. Cực kỳ tối ưu cho việc tạo worker pool gọi đồng thời Catalog và Inventory. | **Virtual Threads (Project Loom)** + Spring MVC thread-per-request. Cho phép viết code đồng bộ truyền thống nhưng đạt thông lượng I/O cao. |
+| **Mô hình Concurrency** | **Goroutines & Channels**: Chi phí bộ nhớ chỉ ~2KB/goroutine. Cực kỳ tối ưu cho việc tạo worker pool gọi đồng thời Catalog và Inventory. | **Spring MVC platform thread-per-request** mặc định (chạy trên Java 21, sẵn sàng bật Virtual Threads qua `spring.threads.virtual.enabled=true` khi cần mở rộng thông lượng I/O). |
 | **Mức tiêu thụ RAM (Footprint)** | **Rất nhẹ** (~15MB - 30MB per container). Khởi động tức thì (< 100ms). Thích hợp scale out thần tốc khi có traffic spike. | **Đáng kể** (~250MB - 500MB per container do JVM overhead, Metaspace, Spring Context). Khởi động từ 2s - 6s. |
 | **Domain Modeling & Ecosystem** | Cấu trúc phẳng, thiên về hướng cấu trúc (structural typing). Đơn giản, tường minh, không có "magic". | Rất mạnh về hướng đối tượng (OOP), DDD Aggregate Roots, ORM/JPA (hoặc JDBI), Spring Security, Hibernate Validator. |
 | **Quản lý Database Schema** | Sử dụng file SQL thuần với `jackc/pgx` hoặc `sqlc` và migration runner gọn nhẹ. | Sử dụng **Flyway** kiểm soát chặt chẽ từng phiên bản migration, tích hợp mạnh mẽ với **Testcontainers**. |

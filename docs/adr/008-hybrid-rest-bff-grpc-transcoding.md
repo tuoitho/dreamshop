@@ -20,9 +20,7 @@ ADR này thay thế riêng phần public routing của ADR-001. Các quyết đ�
 - Endpoint cần composition, client-specific response, custom error mapping hoặc orchestration đi qua BFF; BFF gọi các domain service bằng gRPC trực tiếp.
 - Microservice gọi nhau bằng gRPC trực tiếp trên private network hoặc bằng RabbitMQ cho event flow; không gọi qua Kong, BFF hay transcoder.
 - Kong/transcoder không chứa business workflow hoặc fallback làm thay đổi domain semantics.
-- Route transcoded phải có REST contract và security test. Nếu mapping của Kong không đáp ứng public contract, route chuyển sang BFF hoặc một generated `grpc-gateway` adapter riêng.
-
-Quy tắc lựa chọn chi tiết, route map và yêu cầu vận hành nằm trong `docs/superpowers/specs/2026-07-30-hybrid-rest-grpc-edge-routing-design.md`.
+- Route transcoded phải có REST contract và security test. Nếu mapping của Kong không đáp ứng public contract, route chuyển sang BFF hoặc một generated `grpc-gateway` adapter riêng. (Hiện tại các route storefront, cart và admin products đều đi qua BFF; chưa có `.proto` nào bật `google.api.http` transcoding.)
 
 ## Consequences
 

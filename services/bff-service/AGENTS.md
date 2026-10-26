@@ -16,6 +16,7 @@ This service does not own:
 
 - Catalog product rules or data.
 - Inventory availability or reservation invariants.
+- Cart persistence or enrichment rules.
 - Order lifecycle or state transitions.
 - Identity credentials, profiles, sessions, or token issuance.
 
@@ -40,12 +41,14 @@ to REST may use Kong transcoding under ADR-008 instead.
 ## Current Layout
 
 - `cmd/server/`: process startup and dependency wiring.
-- `internal/config/`: environment-backed configuration.
-- `internal/http/`: HTTP handlers and transport concerns.
+- `internal/config/`: environment-backed configuration and repository gateway/Compose contract tests.
+- `internal/catalog/`: outbound gRPC client for `CatalogService`.
+- `internal/cart/`: outbound gRPC client for `CartService`.
+- `internal/http/`: canonical `/api/v1` HTTP handlers (storefront products, cart, admin product soft-delete/restore), caller context, trace correlation, and response/error mapping.
 
-As the service grows, keep domain-service clients and adapters under internal
-packages. Handlers validate transport input, invoke orchestration/application
-logic, and map results; they do not contain downstream domain implementations.
+Keep domain-service clients and adapters under internal packages. Handlers
+validate transport input, invoke orchestration/application logic, and map
+results; they do not contain downstream domain implementations.
 
 Configuration must be loaded through the config package and environment
 variables. Keep defaults suitable for local development and validate values that

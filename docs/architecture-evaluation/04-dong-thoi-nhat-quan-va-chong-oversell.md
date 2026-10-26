@@ -46,12 +46,14 @@ graph TD
     subgraph Solution["🛡️ Chuẩn Mực Dreamshop: PostgreSQL Invariant (ADR-003)"]
         direction TB
         DB2[("inventory_db (PostgreSQL)")]
-        SQL1["CHECK Constraint:\nCHECK (reserved >= 0 AND reserved <= quantity)"]
-        SQL2["Atomic Row-Level Conditional Update:\nUPDATE stock SET reserved = reserved + :qty\nWHERE product_id = :id AND (quantity - reserved) >= :qty"]
+        SQL1["CHECK Constraint (Đã triển khai trong schema):\nCHECK (reserved >= 0 AND reserved <= quantity)"]
+        SQL2["Atomic Row-Level Conditional Update (Thiết kế mục tiêu ADR-003):\nUPDATE stock SET reserved = reserved + :qty\nWHERE product_id = :id AND (quantity - reserved) >= :qty"]
         DB2 --- SQL1
         DB2 --- SQL2
     end
 ```
+
+> **Hiện trạng trong `inventory-service`**: Ràng buộc `CHECK (reserved >= 0 AND reserved <= quantity)` đã có mặt trong migration `000001_create_stock.up.sql` cùng RPC đọc tồn kho `GetAvailability`; phần mutation giữ chỗ nguyên tử (`UPDATE stock SET reserved = ...`) là thiết kế mục tiêu theo ADR-003 sẽ đi vào hoạt động khi kết nối luồng đặt hàng từ `order-service`.
 
 ### 2.1. Phân Tích Lập Luận Martin Kleppmann vs Salvatore Sanfilippo (antirez)
 Trong bài báo khoa học nổi tiếng *"How to do distributed locking"*, Martin Kleppmann đã chứng minh rằng: **Một distributed lock chỉ an toàn khi nó đi kèm với Fencing Token (một số nguyên tăng dần được kiểm tra tại storage đích)**. Nếu database không tự bảo vệ chính nó bằng ràng buộc dữ liệu, thì bất kỳ sự cố mạng (Network Partition), tạm dừng tiến trình (GC Pause) hay trôi đồng hồ (Clock Drift) nào cũng sẽ khiến Redis Lock bị vô hiệu hóa!
@@ -149,7 +151,7 @@ flowchart TD
 
 #### Lợi Điểm Của Bounded Worker Pool:
 - **Chống cạn kiệt tài nguyên (Resource Exhaustion)**: Không tạo goroutine vô tội vạ (`go doWork()`). Giới hạn ở 8 workers giúp kiểm soát chính xác mức độ tiêu thụ CPU, RAM và số lượng gRPC connections tới Catalog và Inventory.
-- **Tuân thủ Context Cancellation**: Nếu người dùng đóng trình duyệt (Request context bị Cancel), toàn bộ các goroutine con đang chạy sẽ dừng ngay lập tức thông qua việc lắng nghe `ctx.Done()`.
+- **Lan truyền Context Cancellation xuống tầng RPC**: Mỗi worker truyền trực tiếp `ctx` vào `catalog.GetProduct(ctx, ...)` và `inventory.GetAvailability(ctx, ...)`. Khi request context bị hủy hoặc hết deadline, các lời gọi gRPC đang chạy hoặc các index còn lại trong channel sẽ lập tức trả lỗi hủy ngay ở tầng transport thay vì chờ network I/O.
 
 ---
 
@@ -163,13 +165,15 @@ Hệ thống phân tán chắc chắn sẽ có lúc bị lỗi từng phần (Pa
 flowchart TD
     Req["Request Đến Hệ Thống"] --> Type{"Loại Tác Vụ?"}
 
-    Type -- "ĐỌC (Read-Only)\nVí dụ: Xem sản phẩm, mở giỏ hàng" --> FailOpen["🟢 FAIL-OPEN (Chấp nhận dữ liệu suy thoái)\n- Trả về Cache cũ (Stale Data)\n- Trả giỏ hàng với cờ degraded=true\n- Đánh dấu item là UNAVAILABLE tạm thời"]
+    Type -- "ĐỌC / LÀM GIÀU GIỎ HÀNG\nVí dụ: Mở giỏ hàng, làm giàu thông tin sau khi sửa giỏ" --> FailOpen["🟢 FAIL-OPEN / DEGRADED\n- Ghi nhận dòng hàng vào cart_db nếu đã qua bước ủy quyền\n- Trả giỏ hàng với cờ degraded=true khi Catalog/Inventory lỗi\n- Đánh dấu item là UNAVAILABLE tạm thời"]
 
-    Type -- "GHI (State Mutation)\nVí dụ: Thêm giỏ hàng, Đặt đơn, Trừ tiền" --> FailClosed["🔴 FAIL-CLOSED (Chặn đứng an toàn)\n- Từ chối thao tác ngay lập tức\n- Trả lỗi 503 Service Unavailable\n- Tuyệt đối KHÔNG giả định số dư hay tồn kho!"]
+    Type -- "ỦY QUYỀN GHI & GIAO DỊCH LÕI\nVí dụ: CheckPermission (AddItem/SoftDelete), Đặt đơn, Giữ kho" --> FailClosed["🔴 FAIL-CLOSED (Chặn đứng an toàn)\n- Từ chối thao tác ngay lập tức (HTTP 503)\n- Tuyệt đối KHÔNG giả định quyền hạn hay tồn kho khả dụng!"]
 ```
 
 ### 4.2. Minh Chứng Thực Tế Trong Codebase:
-Trong [services/cart-service/internal/grpc/server.go](../../services/cart-service/internal/grpc/server.go#L361-L368), khi `inventory-service` bị sập hoặc quá hạn timeout:
+Trong `cart-service`, hai chính sách này kết hợp rất rõ ràng trong cùng một RPC `AddItem`:
+- **Bước ủy quyền (`Identity CheckPermission`)**: Áp dụng **Fail-Closed** — nếu `identity-service` không phản hồi trong `500ms`, `AddItem` từ chối ngay với `503 AUTHORIZATION_SERVICE_UNAVAILABLE` trước khi ghi vào `cart_db`.
+- **Bước làm giàu hiển thị (`enrichLine` tại [services/cart-service/internal/grpc/server.go](../../services/cart-service/internal/grpc/server.go#L361-L368))**: Sau khi dòng hàng đã được lưu vào `cart_db`, nếu `catalog-service` hoặc `inventory-service` gặp sự cố khi đọc thông tin bổ sung, giỏ hàng vẫn trả `200 OK` kèm cờ suy thoái:
 ```go
 if enrichment.inventoryErr != nil || enrichment.availability == nil {
     // Inventory sập: Vẫn trả giỏ hàng cho user xem, nhưng bật cờ degraded!
@@ -177,8 +181,8 @@ if enrichment.inventoryErr != nil || enrichment.availability == nil {
 }
 ```
 Tại Frontend ([ecommerce-fe/src/pages/cart-page.tsx](../../ecommerce-fe/src/pages/cart-page.tsx)):
-- Người dùng vẫn xem được các sản phẩm trong giỏ và tổng tiền ước tính.
-- Các nút thanh toán đối với dòng hàng bị suy thoái sẽ tạm khóa kèm thông báo: *"Dữ liệu tồn kho đang được cập nhật, vui lòng thử lại sau giây lát"*.
+- Người dùng vẫn xem được giỏ hàng cùng cảnh báo: *"Một số thông tin giỏ hàng chưa được cập nhật. Vui lòng thử lại trước khi đặt hàng."*
+- Những dòng hàng bị đánh dấu `UNAVAILABLE` hiển thị trạng thái *"Không còn kinh doanh"*, bị khóa checkbox chọn mua và nút tăng/giảm số lượng; trong khi các sản phẩm hợp lệ khác đã được chọn vẫn có thể bấm *"Tiếp tục đặt hàng"* bình thường.
 - **Trải nghiệm người dùng không bị sụp đổ thành một trang lỗi trắng (White Screen of Death)**.
 
 ---

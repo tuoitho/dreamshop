@@ -22,7 +22,7 @@ kiểm tra".
 ## Quy trình
 
 1. Đọc root `AGENTS.md` và `AGENTS.md` gần nhất của mỗi surface trong diff, cùng
-   steering docs mà `docs/steering/README.md` chỉ định cho loại thay đổi đó.
+   các file trong `docs/steering/` được mục Instruction Routing của `AGENTS.md` chỉ định cho loại thay đổi đó.
 2. Đọc toàn bộ diff, các file mới chưa track (`git ls-files --others --exclude-standard`)
    và đủ code xung quanh để hiểu từng thay đổi.
 3. Review theo thứ tự:

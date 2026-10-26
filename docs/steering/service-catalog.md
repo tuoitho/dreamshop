@@ -18,7 +18,7 @@ and accepted architecture that is not wired yet.
 
 | Surface | Ownership | Runtime | Local/container ports | Health | Exposure | Datastore/resources | Inbound | Outbound | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| identity-service | Credentials, profiles, roles, sessions, refresh tokens, JWT issuance, and current RBAC authorization evaluation | Java 21 / Spring Boot 4.1 | HTTP `8080`; management `8090`; private gRPC local `127.0.0.1:50054`, container `0.0.0.0:50054` | `:8090/actuator/health` | Canonical `/api/v1/auth`, `/api/v1/users`, `/api/v1/locations`, `/api/v1/admin/users`, and `/api/v1/admin/rbac` through Kong (`strip_path: false`); management `:8090` and authorization gRPC have no Kong route | PostgreSQL `identity_db`, Flyway, RSA signing keys | Frontend through Kong; Catalog and Cart over private gRPC | PostgreSQL | implemented |
+| identity-service | Credentials, profiles, shipping addresses, locations, roles, sessions, refresh tokens, JWT issuance, and current RBAC authorization evaluation | Java 21 / Spring Boot 4.1 | HTTP `8080`; management `8090`; private gRPC local `127.0.0.1:50054`, container `0.0.0.0:50054` | `:8090/actuator/health` | Canonical `/api/v1/auth`, `/api/v1/users`, `/api/v1/locations`, `/api/v1/admin/users`, and `/api/v1/admin/rbac` through Kong (`strip_path: false`); management `:8090` and authorization gRPC have no Kong route | PostgreSQL `identity_db`, Flyway, RSA signing keys | Frontend through Kong; Catalog and Cart over private gRPC | PostgreSQL | implemented |
 | bff-service | Client-specific commerce REST adaptation | Go 1.24 | Local HTTP `8081`; container default `8080` | `/healthz` | Canonical `/api/v1/storefront/products`, `/api/v1/cart`, and `/api/v1/admin/products` through Kong (`strip_path: false`) | Stateless | Frontend through Kong | Catalog gRPC `50051`; Cart gRPC `50053` | implemented |
 | catalog-service | Product detail, search, filtering, pagination, and soft-delete | Go 1.24 | Canonical local HTTP `8085`; default/container HTTP `8081`; gRPC `50051` | `/healthz` | Private/local; no direct Kong route | PostgreSQL `catalog_db`, migrations, seed data | BFF and Cart over gRPC | Identity authorization `50054`; PostgreSQL | implemented |
 | inventory-service | Stock quantities and availability lookup | Go 1.24 | HTTP `8082`; gRPC `50052` | `/healthz` | Private/local; no Kong route | PostgreSQL `inventory_db`, migration, seed data | Cart over gRPC | PostgreSQL | partial: reservations and RabbitMQ workflows are not implemented |
@@ -56,13 +56,13 @@ and accepted architecture that is not wired yet.
 - Internal service calls do not route through Kong or the BFF. They use direct
   private gRPC. RabbitMQ remains provisioned for future asynchronous workflows.
 - Catalog and Cart call Identity directly for authorization at `127.0.0.1:50054`
-  with a `500ms` timeout. Start Identity before Catalog and Cart; an
-  authorization outage returns `503` without mutating state, while permission
-  denial returns `403`.
+  locally (`identity-service:50054` in containers) with a `500ms` timeout. Start
+  Identity before Catalog and Cart; an authorization outage returns `503`
+  without mutating state, while permission denial returns `403`.
 - Container BFF configuration remains on port `8080`; the host-run local
   default is `8081` so it matches Kong without conflicting with Identity.
 - Catalog defaults to HTTP `8081` when run alone. Set `HTTP_ADDR=:8085` in the
   complete local stack so BFF can retain `8081`; Catalog gRPC remains `50051`.
-- Cart persists only cart-owned identifiers and quantities. It resolves product
-  and availability projections from Catalog and Inventory without accessing
-  their databases.
+- Cart persists only cart-owned identifiers (`user_id`, `product_id`,
+  `variant_label`) and quantities. It resolves product and availability
+  projections from Catalog and Inventory without accessing their databases.

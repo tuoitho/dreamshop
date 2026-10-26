@@ -4,14 +4,70 @@ Local development runs infrastructure in Docker Compose and application
 processes directly on the Windows host. Use separate terminals for long-lived
 servers.
 
+## Supported prerequisites
+
+- Java 21 and Maven 3.9 or newer.
+- Go 1.24 or newer within the 1.24 line used by the workspace.
+- Node.js 22.12 or newer for Vite 8, with npm from that Node release.
+- Docker Desktop with Docker Compose v2 or newer.
+- Buf CLI 1.70 or newer.
+- GNU Make when using Makefile shortcuts.
+
+Check the installed tools:
+
+```powershell
+java -version
+mvn -version
+go version
+node --version
+npm --version
+docker compose version
+buf --version
+make --version
+```
+
+## First checkout
+
+From the repository root:
+
+```powershell
+git clone <repository-url>
+Set-Location microservice
+make identity-keys
+npm --prefix ecommerce-fe ci
+buf generate
+```
+
+`make <service>` and `deployments/docker/compose.foundation.yml` provide built-in
+local-only defaults; copying `.env.example` to `.env` is optional when overriding
+foundation container credentials with `docker compose --env-file .env`. Never
+commit `.env` or generated PEM files, and never reuse development keys outside
+local development.
+
+## Narrow smoke checks
+
+Ensure Docker Desktop is running (required by `identity-service` Testcontainers
+tests), then run only the checks needed for the first change:
+
+```powershell
+buf lint
+go test ./scripts/... ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/internal/...
+mvn --batch-mode --no-transfer-progress test
+npm --prefix ecommerce-fe test
+```
+
+Read the [service catalog](../steering/service-catalog.md) before starting a
+service. Do not start every application for a domain-only change.
+
 ## Infrastructure
 
 ```powershell
 make infra-up
 ```
 
-This starts PostgreSQL, Redis, RabbitMQ, and Kong. Stop it without deleting
-volumes when finished:
+This starts PostgreSQL, Redis, RabbitMQ, and Kong with named volumes
+(`postgres_data`, `redis_data`, `rabbitmq_data`). Stop containers without
+deleting persisted volumes when finished:
 
 ```powershell
 make infra-down
@@ -19,23 +75,23 @@ make infra-down
 
 ## Application processes
 
-Start each long-lived process in a separate terminal. For the complete
-storefront/cart flow, start Identity first, then the other gRPC dependencies
-before Cart and BFF:
+Ensure `make identity-keys` has been run at least once, then start each
+long-lived process in a separate terminal. For the complete storefront/cart
+flow, start Identity first, then Catalog and Inventory before Cart and BFF:
 
 ```powershell
 make identity
-$env:HTTP_ADDR=':8085'; $env:GRPC_ADDR='127.0.0.1:50051'; $env:DATABASE_URL='postgres://ecommerce:change-me-local-only@127.0.0.1:5432/catalog_db?sslmode=disable'; go run ./services/catalog-service/cmd/server
-$env:HTTP_ADDR=':8082'; $env:DATABASE_URL='postgres://ecommerce:change-me-local-only@127.0.0.1:5432/inventory_db?sslmode=disable'; go run ./services/inventory-service/cmd/server
+make catalog
+make inventory
 make cart
 make bff
-npm --prefix ecommerce-fe run dev
+make fe
 ```
 
-The provider-first order is Identity, then Catalog and Cart, then BFF. If
-Identity authorization is unavailable, Catalog soft-delete and Cart add-item
-return `503` with `AUTHORIZATION_SERVICE_UNAVAILABLE` without mutating state; a
-permission denial returns `403`.
+The provider-first order is Identity, then Catalog and Inventory, then Cart,
+then BFF. If Identity authorization is unavailable, Catalog soft-delete and Cart
+add-item return `503` with `AUTHORIZATION_SERVICE_UNAVAILABLE` without mutating
+state; a permission denial returns `403`.
 
 Order is independent of the current browser flow and can be started separately
 with `make order`.
@@ -43,7 +99,7 @@ with `make order`.
 Identity uses HTTP `8080` (Actuator management `8090`); BFF `8081`; Inventory
 `8082`; Order `8083` (Actuator management `8093`); Cart HTTP `8084`; Catalog
 HTTP `8085`; and the frontend `5173`. Catalog's standalone HTTP default is
-`8081`, so the complete stack must override it to `8085` as shown above.
+`8081`; `make catalog` overrides `HTTP_ADDR` to `:8085` for the complete stack.
 Internal gRPC listeners are Catalog `50051`, Inventory `50052`, and Cart
 `50053`. Identity authorization is `127.0.0.1:50054`, and both Catalog and Cart
 use a `500ms` timeout. Container BFF remains on HTTP `8080`.

@@ -6,6 +6,9 @@ directly; surface and contract gates also have a single-command wrapper.
 
 ## Focused checks
 
+`identity-service` integration tests use Testcontainers and require a running
+Docker daemon.
+
 ```powershell
 mvn -pl services/identity-service -am test
 mvn -pl services/order-service -am test
@@ -13,17 +16,17 @@ go test ./services/bff-service/internal/...
 go test ./services/catalog-service/internal/...
 go test ./services/inventory-service/internal/...
 go test ./services/cart-service/internal/...
-npm --prefix ecommerce-fe test -- --run src/lib/api.test.ts
+npm --prefix ecommerce-fe test -- src/lib/api.test.ts
 ```
 
 ## Surface checks
 
-`make verify SERVICE=<surface>` runs `scripts/check-boundaries` and then the
+`make verify SERVICE=<surface>` runs the repository boundary check and then the
 gate for one surface. Its exit code is the gate result.
 
 | `SERVICE` | Gate |
 | --- | --- |
-| Java service, e.g. `identity-service` | `mvn -pl services/<name> -am verify` |
+| Java service, e.g. `identity-service` | `mvn --batch-mode --no-transfer-progress -pl services/<name> -am verify` |
 | Go service, e.g. `cart-service` | `go build` and `go test` for `./services/<name>/...` |
 | `ecommerce-fe` | Frontend tests, lint, and build |
 | `contracts` | Contract checks below, plus `buf breaking` against `main` |
@@ -31,14 +34,14 @@ gate for one surface. Its exit code is the gate result.
 On Windows, the `cart-service` gate tests `./services/cart-service/internal/...`
 only, for the reason described at the end of this document.
 
-The equivalent direct commands are:
+The equivalent direct commands on Windows PowerShell are:
 
 ```powershell
 mvn -pl services/identity-service -am verify
 mvn -pl services/order-service -am verify
-go test ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...
+go test ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/internal/...
 go build ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...
-npm --prefix ecommerce-fe test -- --run
+npm --prefix ecommerce-fe test
 npm --prefix ecommerce-fe run lint
 npm --prefix ecommerce-fe run build
 ```
@@ -78,18 +81,24 @@ services.
 
 ## Repository checks
 
-The CI-equivalent direct sequence is:
+The Windows PowerShell sequence matching CI (with the Windows `cart-service`
+test scope noted below) is:
 
 ```powershell
+$gitRoot = Split-Path (Split-Path (Get-Command git).Source -Parent) -Parent
+$env:PATH = "$gitRoot\usr\bin;$env:PATH"
+go run ./scripts/check-boundaries
 buf format --diff --exit-code
 buf lint
+buf breaking --against '.git#branch=main'
 buf generate
 git diff --exit-code -- contracts/go contracts/java/src/main/generated
+git ls-files --others --exclude-standard -- contracts/go contracts/java/src/main/generated
 mvn --batch-mode --no-transfer-progress verify
-go test ./scripts/... ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...
+go test ./scripts/... ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/internal/...
 go build ./scripts/... ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...
 npm --prefix ecommerce-fe ci
-npm --prefix ecommerce-fe test -- --run
+npm --prefix ecommerce-fe test
 npm --prefix ecommerce-fe run lint
 npm --prefix ecommerce-fe run build
 ```
@@ -101,5 +110,5 @@ replacement for the direct build and test commands above.
 The current `cart-service/cmd/server` tests use Unix process signaling. On
 Windows, `go test ./services/cart-service/...` fails to compile that test
 package because `syscall.Kill` is unavailable; the Cart internal-package check
-above remains usable. Run the complete Cart test command on Linux/CI until the
-server lifecycle test is made portable.
+above remains usable. Linux CI runs the full `./services/cart-service/...` test
+command.

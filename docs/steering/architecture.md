@@ -1,7 +1,8 @@
 # Architecture Steering
 
 The repository follows the service ownership and isolation decisions in
-[ADR-001](../adr/001-service-boundaries.md). Public routing follows
+[ADR-001](../adr/001-service-boundaries.md) and
+[ADR-009](../adr/009-cart-service.md). Public routing follows
 [ADR-008](../adr/008-hybrid-rest-bff-grpc-transcoding.md).
 
 ## Capability Ownership
@@ -10,9 +11,12 @@ Each business capability has one owning service:
 
 - **BFF** owns client-specific commerce composition, REST adaptation, custom
   error mapping, and orchestration required by the frontend.
-- **Identity** owns credentials, registration and login, profiles, roles,
-  refresh-token sessions, JWT issuance, and JWKS publication.
-- **Catalog** owns product/catalog data and catalog caching.
+- **Identity** owns credentials, registration and login, profiles, shipping
+  addresses, location reference data, RBAC hierarchy and authorization
+  evaluation, refresh-token sessions, JWT issuance, and JWKS publication.
+- **Catalog** owns product/catalog data, soft-delete state, and catalog caching.
+- **Cart** owns authenticated user shopping carts, persisted line items, and
+  enriched cart projections assembled over private gRPC.
 - **Order** owns the order lifecycle, order state, command idempotency, and
   transactional outbox state.
 - **Inventory** owns stock, reservation lifecycle, availability invariants, and
@@ -71,8 +75,9 @@ Shared code must not contain:
 
 - Order state-transition rules.
 - Inventory reservation or availability rules.
-- Identity credential, session, or profile rules.
+- Identity credential, session, profile, or RBAC rules.
 - Catalog product rules.
+- Cart line-item or enrichment rules.
 - Client-specific workflow composition that belongs in BFF.
 
 Do not create a shared abstraction only to remove a small amount of duplication.

@@ -11,8 +11,8 @@ This service owns:
 - Cart persistence in `cart_db`, migrations, and `sqlc` query bindings.
 - Enriched cart projection assembled by querying Catalog and Inventory over
   private gRPC.
-- Enforcement of `cart.manage` authorization decisions evaluated via Identity's
-  private authorization gRPC boundary.
+- Enforcement of `cart.item.add` authorization decisions on `AddItem` evaluated
+  via Identity's private authorization gRPC boundary.
 
 This service does not own:
 
@@ -24,16 +24,18 @@ This service does not own:
 
 ## Boundaries and Dependencies
 
-- Expose cart operations over private gRPC (`127.0.0.1:50053`); do not expose
-  Cart directly through Kong.
-- Persist only cart-owned identifiers (`user_id`, `product_id`) and quantities
-  in `cart_db`. Never copy or join Catalog or Inventory tables.
+- Expose cart operations over private gRPC (`127.0.0.1:50053` locally;
+  `0.0.0.0:50053` on the internal container network); do not expose Cart
+  directly through Kong.
+- Persist only cart-owned identifiers (`user_id`, `product_id`,
+  `variant_label`) and quantities in `cart_db`. Never copy or join Catalog or
+  Inventory tables.
 - Call Catalog (`127.0.0.1:50051`), Inventory (`127.0.0.1:50052`), and Identity
   authorization (`127.0.0.1:50054`, default `500ms` timeout) over direct
   private gRPC.
-- Start `identity-service` before `cart-service`. If Identity authorization is
-  unavailable, reject mutations with `Unavailable` (mapped to `503` by BFF)
-  without mutating cart state; if permission is denied, return
+- Start `identity-service` before `cart-service`. On `AddItem`, if Identity
+  authorization is unavailable, reject with `Unavailable` (mapped to `503` by
+  BFF) without mutating cart state; if permission is denied, return
   `PermissionDenied` (`403`).
 - Use generated protobuf contracts from `contracts/go/`; do not edit generated
   contract or `sqlc` files by hand.

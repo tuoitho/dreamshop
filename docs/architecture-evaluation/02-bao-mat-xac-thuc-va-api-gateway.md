@@ -11,7 +11,7 @@ Hệ thống Dreamshop triển khai mô hình bảo mật nhiều lớp để đ
 ```mermaid
 flowchart TD
     subgraph Layer1["🛡️ Tầng 1: Public Edge (Kong API Gateway)"]
-        L1_CORS["CORS Plugin (Chỉ cho phép origin localhost:5173)"]
+        L1_CORS["CORS Local (localhost:5173) / Same-Origin SPA ở Production"]
         L1_Lua["Custom Lua: caller-context Plugin\n- Lọc sạch spoofed headers\n- Xác thực chữ ký RS256 bằng JWKS\n- Inject X-User-Id, X-User-Roles"]
     end
 
@@ -21,7 +21,7 @@ flowchart TD
     end
 
     subgraph Layer3["🔒 Tầng 3: Internal Private Network (Domain Services)"]
-        L3_gRPC["Private gRPC Authorization (Identity on 127.0.0.1:50054)\nKiểm tra quyền hạn thời gian thực: cart.item.add"]
+        L3_gRPC["Private gRPC Authorization (Identity on 127.0.0.1:50054)\nKiểm tra quyền hạn thời gian thực: cart.item.add & product.delete"]
         L3_FailClosed["Fail-Closed Policy (Timeout 500ms -> Trả 503 thay vì cho phép)"]
     end
 
@@ -60,12 +60,12 @@ sequenceDiagram
         IdP-->>Kong: Trả về JWKS JSON {keys: [{kty: "RSA", kid: "...", n: "...", e: "..."}]}
         Kong->>Cache: Lưu JWKS vào Shared Memory
     end
-    Note over Kong: 4. Kiểm tra Claims: iss == http://localhost:8080,<br/>aud == ecommerce-api, exp > now() (kèm clock_skew)
+    Note over Kong: 4. Kiểm tra Claims: iss == conf.issuer (localhost:8080 ở local /<br/>identity-service:8080 ở production), aud == ecommerce-api, exp > now() (kèm clock_skew)
     Note over Kong: 5. Dùng pkey.new(JWK):verify() thẩm định chữ ký số SHA256
     alt Xác thực Thất Bại
         Kong-->>Client: Trả về HTTP 401 UNAUTHORIZED (Chặn đứng tại cửa ngõ)
     else Xác thực Thành Công
-        Note over Kong: 6. Inject danh tính thật từ Claims:<br/>X-User-Id = claims.sub<br/>X-User-Roles = customer,admin
+        Note over Kong: 6. Inject danh tính thật từ Claims:<br/>X-User-Id = claims.sub<br/>X-User-Roles = CUSTOMER,ADMIN
         Kong->>Upstream: Forward Request an toàn kèm Headers đã xác thực
     end
 ```
@@ -99,14 +99,14 @@ Theo [ADR-007](../adr/007-first-party-identity-service.md), Dreamshop quyết đ
 ### 3.1. Hashing Mật Khẩu Bằng Argon2id
 Mật khẩu của người dùng được mã hóa bằng thuật toán **Argon2id** (thuật toán chiến thắng cuộc thi Password Hashing Competition):
 - Kết hợp cả khả năng chống tấn công brute-force bằng GPU/ASIC (tận dụng bộ nhớ RAM lớn của Argon2d) và chống tấn công Side-Channel Cache-timing (của Argon2i).
-- Có cơ chế fallback về `BCryptPasswordEncoder` nếu cấu hình hệ thống yêu cầu.
+- Được đăng ký qua `DelegatingPasswordEncoder("argon2id", Map.of("argon2id", argon2id))` để đóng dấu tiền tố `{argon2id}`, sẵn sàng mở rộng thuật toán trong tương lai mà không đăng ký thuật toán yếu làm fallback.
 
 ### 3.2. Refresh Token Rotation (RTR) & Token Family Revocation (RFC 6819)
 Một trong những lỗ hổng lớn nhất của các hệ thống JWT là: **Làm sao thu hồi quyền khi Access Token bị lộ mà không biến nó thành stateful?**
 
 Dreamshop giải quyết bằng cặp đôi:
 - **Access Token**: JWT ký bằng RSA Private Key, **TTL ngắn (15 phút)**, lưu trên bộ nhớ (In-Memory) của ứng dụng client.
-- **Refresh Token**: Chuỗi ngẫu nhiên bí mật (Opaque Token), **TTL dài (30 ngày)**, chỉ lưu trong Cookie an toàn (`HttpOnly`, `SameSite=Lax`, `Path=/api/v1/auth`, `Secure=true`).
+- **Refresh Token**: Chuỗi ngẫu nhiên bí mật (Opaque Token), **TTL dài (30 ngày)**, chỉ lưu trong Cookie an toàn (`HttpOnly`, `SameSite=Lax`, `Path=/api/v1/auth`, `Secure=true` trên môi trường production HTTPS và `false` khi phát triển trên `http://localhost`).
 
 #### Kịch Bản Phát Hiện Đánh Cắp Token (Token Reuse Detection):
 Mã nguồn tại [services/identity-service/.../RefreshTokenService.java](../../services/identity-service/src/main/java/com/ecommerce/identity/auth/application/RefreshTokenService.java#L58-L86):
@@ -184,7 +184,7 @@ flowchart TD
 ## 5. Phân Quyền Phân Cấp (Hierarchical RBAC) & Private gRPC Authorization
 
 Hệ thống triển khai mô hình phân quyền **Hierarchical RBAC (theo phong cách Yii2 RBAC)** trong PostgreSQL:
-- `auth_items`: Chứa Role (ví dụ `CUSTOMER`, `ADMIN`, `SUPER_ADMIN`) và Permission (ví dụ `cart.item.add`, `address.create`).
+- `auth_items`: Chứa Role (ví dụ `CUSTOMER`, `ADMIN`, `SUPER_ADMIN`) và Permission (ví dụ `cart.item.add`, `product.delete`, `address.create`).
 - `auth_item_children`: Quan hệ kế thừa (Role này chứa Role khác hoặc chứa Permissions).
 - `auth_assignments`: Gán Role cho từng `user_id`.
 
@@ -193,7 +193,7 @@ Hệ thống triển khai mô hình phân quyền **Hierarchical RBAC (theo phon
 | Phương Án | Cách Thực Hiện | Ưu Điểm | Nhược Điểm (Trade-offs) | Lựa Chọn Của Dreamshop |
 | :--- | :--- | :--- | :--- | :---: |
 | **A. Nhúng Permissions vào JWT** | Khi login, nhét mảng `permissions: ["cart.item.add", ...]` vào claim của JWT. | - Gateway hoặc Service đọc token là biết quyền ngay, không tốn thêm network call (0ms latency). | - Không thể thu hồi quyền ngay lập tức (phải đợi token hết hạn 15 phút).<br/>- Payload của JWT phình to (vượt quá kích thước header HTTP nếu có hàng trăm permissions). | ❌ Không chọn |
-| **B. Private gRPC Call Tại Thời Điểm Chạy (Dreamshop)** | Cart Service gọi trực tiếp gRPC `CheckPermission` tới Identity Service (`127.0.0.1:50054`) trước khi thêm hàng vào giỏ. | - **Real-time 100%**: Admin vừa xóa quyền trong DB là request tiếp theo bị `403 FORBIDDEN` ngay lập tức.<br/>- Token JWT giữ nguyên sự gọn nhẹ. | - **Thêm độ trễ mạng** cho mỗi lần thêm giỏ hàng.<br/>- Tạo ra sự phụ thuộc đồng bộ (Availability coupling): Identity sập thì Cart cũng không thêm hàng được. | ✅ **Đã chọn** ([Spec 2026-08-25](../superpowers/specs/2026-08-25-private-grpc-authorization-design.md)) |
+| **B. Private gRPC Call Tại Thời Điểm Chạy (Dreamshop)** | `cart-service` (`cart.item.add`) và `catalog-service` (`product.delete`) gọi trực tiếp gRPC `CheckPermission` tới Identity Service (`127.0.0.1:50054`). | - **Real-time 100%**: Admin vừa xóa quyền trong DB là request tiếp theo bị `403 FORBIDDEN` ngay lập tức.<br/>- Token JWT giữ nguyên sự gọn nhẹ. | - **Thêm độ trễ mạng** cho mỗi thao tác ghi cần thẩm định quyền.<br/>- Tạo ra sự phụ thuộc đồng bộ (Availability coupling): Identity sập thì các thao tác ghi này bị chặn (fail-closed). | ✅ **Đã chọn** ([Spec 2026-08-25](../superpowers/specs/2026-08-25-private-grpc-authorization-design.md)) |
 
 ### Cơ Chế Fail-Closed Bảo Vệ Hệ Thống:
 Mã nguồn [services/cart-service/internal/grpc/server.go](../../services/cart-service/internal/grpc/server.go#L101-L114):
@@ -217,10 +217,10 @@ Dưới góc nhìn bảo mật của một Senior Security Architect, hệ thố
 
 | Mối Đe Dọa (Threat) | Mức Độ | Phân Tích Thực Tế Trong Codebase | Khuyến Nghị Khắc Phục |
 | :--- | :---: | :--- | :--- |
-| **Bypass Gateway Gọi Trực Tiếp Cổng Service** | **Nghiêm trọng** (Cao) | Các service như `catalog-service` (8085), `cart-service` (8084) hiện bind port trực tiếp trên máy chủ host. Nếu kẻ tấn công trong cùng mạng LAN hoặc VPC gửi request giả mạo `X-User-Id`, các service này sẽ tin tưởng hoàn toàn. | Các internal services chỉ nên lắng nghe trên Unix Domain Socket hoặc Private Docker Network kín không expose port ra Host. |
-| **Thiếu Rate Limiting Trên Kong** | **Trung bình** | Kong hiện tại chỉ cấu hình CORS và `caller-context`. Route `/api/v1/auth/login` chưa bật plugin `rate-limiting`. Kẻ tấn công có thể brute-force mật khẩu. | Bật Kong `rate-limiting` plugin: Giới hạn tối đa 5 requests/phút trên mỗi IP đối với các endpoint `/auth/login` và `/auth/register`. |
-| **Lộ Route Admin Trong Local Config** | **Trung bình** | Trong [kong.yaml](../../deployments/kong/kong.yaml#L34-L39), route `/api/v1/admin/products` được trỏ thẳng tới `bff-admin-products` mà không gắn plugin `caller-context` để kiểm tra quyền admin. | Tuyệt đối không merge file config dev này lên production; bắt buộc route `/admin/*` phải yêu cầu xác thực và có role `ADMIN`. |
-| **Thiếu Mutual TLS (mTLS) Nội Bộ** | **Thấp - Trung bình** | Giao tiếp gRPC giữa BFF, Cart, Catalog và Identity hiện chạy plaintext trên HTTP/2 không có TLS. | Khi triển khai Production trên Kubernetes, cần tích hợp **Service Mesh (Istio / Linkerd)** hoặc cấu hình SPIFFE/SPIRE để cấp chứng chỉ mTLS cho từng service pod. |
+| **Bypass Gateway Khi Chạy Host-Based Local Dev** | **Trung bình** | Bản production ([compose.production.yml](../../deployments/docker/compose.production.yml)) đã cô lập toàn bộ internal services trên mạng `ecommerce-prod-net` và chỉ publish cổng của Kong. Tuy nhiên khi chạy local trực tiếp trên host, một số cổng HTTP như `bff-service` (`0.0.0.0:8081`) hoặc `catalog-service` (`:8085`) lắng nghe trên tất cả interfaces nên các máy cùng LAN có thể gọi tắt qua Kong nếu firewall máy dev mở. | Giữ `127.0.0.1` cho toàn bộ cổng gRPC nội bộ và bật host firewall khi phát triển trên mạng Wi-Fi dùng chung; ở môi trường Kubernetes tiếp tục áp dụng `NetworkPolicy` chặn ingress ngoài Kong. |
+| **Thiếu Rate Limiting Trên Kong** | **Trung bình** | Kong hiện tại chỉ cấu hình CORS (local), `request-transformer` và `caller-context`. Route `/api/v1/auth/login` chưa bật plugin `rate-limiting`, tạo bề mặt cho tấn công dò mật khẩu (brute-force). | Bật Kong `rate-limiting` plugin: Giới hạn tối đa 5 requests/phút trên mỗi IP đối với các endpoint `/api/v1/auth/login` và `/api/v1/auth/register`. |
+| **Ủy Quyền Ở Cấp Cổng Chỉ Xác Thực Danh Tính** | **Thấp - Trung bình** | Trên cả [kong.yaml](../../deployments/kong/kong.yaml) và [kong-production.yaml](../../deployments/kong/kong-production.yaml), các route `/api/v1/admin/*` đều gắn `caller-context` để bắt buộc JWT hợp lệ, nhưng việc kiểm tra quyền RBAC chi tiết (`product.delete`, quản trị user/RBAC) do service phía sau đảm nhận. Nếu sau này thêm endpoint admin mới ở BFF mà quên gọi `CheckPermission`, user thường có JWT hợp lệ có thể gọi tới handler. | Duy trì test tự động kiểm chứng `401`/`403` cho mọi route `/api/v1/admin/*`, đồng thời có thể bổ sung kiểm tra sơ bộ claim role ở Edge cho nhóm route quản trị. |
+| **Thiếu Mutual TLS (mTLS) Nội Bộ** | **Thấp - Trung bình** | Giao tiếp gRPC giữa BFF, Cart, Catalog, Inventory và Identity hiện chạy plaintext trên HTTP/2 không có TLS. | Khi triển khai Production trên Kubernetes, cần tích hợp **Service Mesh (Istio / Linkerd)** hoặc cấu hình SPIFFE/SPIRE để cấp chứng chỉ mTLS cho từng service pod. |
 
 ---
 

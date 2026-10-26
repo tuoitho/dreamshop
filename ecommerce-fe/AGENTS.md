@@ -13,10 +13,10 @@ The frontend owns:
 - API adaptation into UI-friendly types and stable error handling.
 - Loading, empty, validation, success, and failure feedback.
 
-The frontend does not own Identity, Catalog, Inventory, or Order business truth.
-Client validation improves user experience but never replaces server validation
-or authorization. Do not reproduce server state machines or security decisions
-in components.
+The frontend does not own Identity, Catalog, Inventory, Cart, or Order business
+truth. Client validation improves user experience but never replaces server
+validation or authorization. Do not reproduce server state machines or security
+decisions in components.
 
 ## API Boundaries
 

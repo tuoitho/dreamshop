@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted (public routing updated by [ADR-008](008-hybrid-rest-bff-grpc-transcoding.md); `cart-service` added as the sixth service by [ADR-009](009-cart-service.md))
 
 ## Context
 

@@ -30,7 +30,7 @@ Required settings:
 
 - `POSTGRES_PASSWORD`: strong URL-safe password (`[A-Za-z0-9_-]`, for example `openssl rand -hex 24`) because Go services interpolate it into `DATABASE_URL` URIs.
 - `RABBITMQ_DEFAULT_PASS`: strong broker password (`openssl rand -hex 24`).
-- `IDENTITY_KEYS_DIR`: absolute path to the directory containing `private.pem` and `public.pem` (`/etc/ecommerce/secrets/identity`).
+- `IDENTITY_KEYS_DIR`: absolute path to the directory containing `private.pem` and `public.pem` (`/etc/ecommerce/secrets/identity`). Always set this explicitly in `.env.production` so Compose does not fall back to `deployments/secrets/identity`.
 - `IDENTITY_SESSION_COOKIE_SECURE`: keep `true` when traffic reaches users over HTTPS (through an upstream reverse proxy/CDN such as Nginx, Caddy, or Cloudflare forwarding `Host`, `X-Forwarded-Proto: https`, and `X-Forwarded-For`); set `false` only for plain-HTTP staging verification.
 - `IDENTITY_BOOTSTRAP_SUPER_ADMIN_*`: leave all three blank unless bootstrapping an initial `SUPER_ADMIN` account (password must be 12-128 characters).
 
@@ -50,12 +50,13 @@ Ensure generated protobuf artifacts in `contracts/go` and `contracts/java` are u
 make prod-up
 # Equivalent:
 docker compose --env-file .env.production -f deployments/docker/compose.production.yml up -d --build
+docker compose --env-file .env.production -f deployments/docker/compose.production.yml up -d --force-recreate --no-deps kong
 ```
 
 Startup follows `service_healthy` dependencies automatically:
 
-1. `postgres`, `redis`, `rabbitmq`
-2. `identity-service` (Flyway migrations), `inventory-service` (migrations + seed), `order-service`, `ecommerce-fe`
+1. `postgres`, `redis`, `rabbitmq`, `order-service`, `ecommerce-fe`
+2. `identity-service` (Flyway migrations), `inventory-service` (migrations + seed)
 3. `catalog-service` (migrations + seed + gRPC client to Identity authorization)
 4. `cart-service` (migrations + gRPC clients to Catalog, Inventory, and Identity authorization)
 5. `bff-service`

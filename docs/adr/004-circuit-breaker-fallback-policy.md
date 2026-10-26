@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted (target policy; client-side retry and circuit breakers are not wired in Go gRPC clients yet, while Cart read-side degraded fallback is implemented)
 
 ## Context
 

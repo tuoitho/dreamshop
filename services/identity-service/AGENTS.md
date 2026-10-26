@@ -7,8 +7,12 @@ These instructions apply to `services/identity-service/` in addition to the root
 
 This service owns:
 
-- Credentials, registration, login, and password verification.
-- User identity, profile, role assignment, and profile-location validation data.
+- Credentials, registration, login, password verification, and optional
+  `SUPER_ADMIN` bootstrap.
+- User identity, profile, shipping addresses, administrative user management,
+  and profile-location validation data.
+- RBAC item/hierarchy storage, administrative RBAC APIs, and private gRPC
+  authorization evaluation (`AuthorizationService`).
 - Refresh-token sessions, rotation, revocation, and reuse detection.
 - JWT issuance, signing-key metadata, and JWKS publication.
 
@@ -16,6 +20,7 @@ This service does not own:
 
 - Catalog products or pricing.
 - Inventory stock or reservations.
+- Cart state or line items.
 - Order lifecycle or state.
 - The business meaning or resource rules of commerce permissions. Identity
   evaluates current RBAC assignments and hierarchy decisions for authorization,
@@ -49,9 +54,14 @@ analysis.
 
 - `auth/`: registration, login, refresh, logout, session domain/application/API,
   and persistence.
-- `user/`: profile domain/application/API and persistence.
+- `user/`: profile (`user/profile/`) and administrative user management
+  (`user/admin/`) domain/application/API and persistence.
+- `address/`: user shipping-address CRUD domain/application/API and persistence.
 - `location/`: profile location reference data and API.
-- `security/`: JWT, JWKS, Spring Security, and caller context.
+- `rbac/`: RBAC hierarchy/assignment domain, administrative REST API, and
+  private `AuthorizationService` gRPC server (`GrpcServerLifecycle`).
+- `security/`: JWT, JWKS, Argon2id password encoding, Spring Security, and
+  caller context.
 - `common/`: response/error, configuration, logging, and trace correlation.
 - `src/main/resources/db/migration/`: Identity-owned Flyway migrations.
 
@@ -83,8 +93,9 @@ Use generated protobuf contracts only when Identity participates in an approved
 internal gRPC boundary. Do not duplicate public identity/profile schemas in
 another service for convenience.
 
-Identity's private authorization gRPC listener is local-only at
-`127.0.0.1:50054`; it has no Kong or other public route.
+Identity's private authorization gRPC listener binds `127.0.0.1:50054` locally
+(`0.0.0.0:50054` on the isolated container network) and has no Kong or public
+route. Actuator health is isolated on management port `8090`.
 
 ## Verification
 

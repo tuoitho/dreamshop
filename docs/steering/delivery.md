@@ -6,8 +6,10 @@ rollouts, recoverability, security, and operational visibility.
 ## Database Migrations
 
 - A migration belongs to the service that owns the schema.
-- Use the service's migration mechanism; Identity uses Flyway under
-  `src/main/resources/db/migration/`.
+- Use the service's migration mechanism: Identity uses Flyway under
+  `src/main/resources/db/migration/`, while Go services (`catalog-service`,
+  `inventory-service`, `cart-service`) apply ordered embedded SQL migrations
+  under `internal/store/migrations/`.
 - Never edit an applied migration. Add a new ordered migration.
 - Test schema behavior against the supported PostgreSQL version when semantics
   matter.
@@ -53,6 +55,11 @@ directly; they do not route through Kong or BFF.
 
 Do not use volume-deleting shutdown commands as a routine development step. Data
 removal requires an explicit need and a verified target.
+
+For single-host containerized deployment, `deployments/docker/compose.production.yml`
+and `deployments/kong/kong-production.yaml` run all services on an isolated
+Docker network (`ecommerce-prod-net`) with Kong as the sole published host port
+and `.env.production` (modeled on `.env.production.example`) supplying secrets.
 
 ## Deployment and Routing Impact
 

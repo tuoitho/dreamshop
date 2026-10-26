@@ -38,9 +38,9 @@ container cannot resolve the host gateway.
 
 ## Common failures
 
-- Missing `.env`: copy `.env.example` to `.env`; defaults are local-only.
 - Missing Identity keys: run `make identity-keys`; keep generated PEM files
-  under `deployments/secrets/identity/` untracked.
+  under `deployments/secrets/identity/` untracked. (Local `make <service>`
+  targets inject local-only defaults automatically and do not require `.env`.)
 - Port conflict: inspect the process using `Get-NetTCPConnection -LocalPort
   <port>` and stop the intended local process, or choose an explicit override.
 - PostgreSQL not ready: inspect `docker compose -f deployments/docker/compose.foundation.yml logs postgres` and wait for `pg_isready` health.
@@ -59,8 +59,9 @@ container cannot resolve the host gateway.
   permission denial returns `403`.
 - Cart gRPC unavailable: verify Cart is listening on `127.0.0.1:50053` and that
   BFF uses the same `BFF_CART_GRPC_ADDR`.
-- Storefront route returns an upstream error: verify BFF is bound to
-  `0.0.0.0:8081` so containerized Kong can reach the Windows host process.
+- Storefront route returns an upstream error: verify BFF was started with
+  `make bff` (`BFF_HTTP_ADDR=:8081`, whereas its standalone default is `:8080`)
+  so containerized Kong can reach `host.docker.internal:8081`.
 
 ## Safe shutdown
 

@@ -1,6 +1,8 @@
 # Chuyên Đề 05: Giao Dịch Phân Tán, Mô Hình Saga & Kiến Trúc Hướng Sự Kiện
 
 > **Tập trung phân tích**: Lý do giao thức 2PC (Two-Phase Commit) thất bại trong Microservices, bài toán ghi kép (Dual-Write Problem) và giải pháp **Transactional Outbox / Inbox Pattern** (ADR-002), điều phối giao dịch phân tán bằng **Saga Orchestration** (ADR-005), cơ chế kiểm soát trùng lặp lệnh **Idempotency** (ADR-006), và các tiến trình hòa giải định kỳ (Reconciliation Jobs) giải quyết hiện tượng rò rỉ tài nguyên.
+>
+> **Lưu ý phạm vi triển khai hiện tại**: Toàn bộ chuyên đề này phân tích **kiến trúc mục tiêu đã được phê duyệt** trong [ADR-002](../adr/002-transactional-outbox.md), [ADR-005](../adr/005-saga-compensation-and-reservation-lifecycle.md) và [ADR-006](../adr/006-error-model-and-idempotency.md). Trong codebase hiện hành, `order-service` mới ở mức skeleton khởi chạy Spring Boot và các kết nối RabbitMQ, bảng `outbox`/`processed_events`, cơ chế `Idempotency-Key` cùng các tiến trình Reconciliation chưa được triển khai thành mã nguồn nghiệp vụ; các con số ngưỡng (như chu kỳ quét 5 phút, timeout 15 phút, tối đa 5 lần retry, TTL 24 giờ) là thông số tham chiếu minh họa cho bản cài đặt mục tiêu.
 
 ---
 
@@ -160,11 +162,11 @@ flowchart TD
 
 Trong hệ thống phân tán, không có cơ chế nào đảm bảo 100% không bao giờ xảy ra trục trặc kỳ quái (ví dụ: máy chủ bị crash phần cứng đúng lúc đang commit, broker bị mất dữ liệu chưa kịp đồng bộ đĩa). Vì vậy, các hệ thống thương mại điện tử lớn luôn cần một **Lưới an toàn cuối cùng: Reconciliation Jobs**.
 
-### Cơ Chế Hòa Giải Định Kỳ Trong Dreamshop:
-Một tiến trình nền (Background Cron Job / Scheduler) quét định kỳ mỗi 5 phút:
-1. **Quét các đơn hàng bị treo**: Tìm các đơn hàng ở trạng thái `PENDING_STOCK` quá 15 phút mà chưa nhận được kết quả giữ kho.
+### Cơ Chế Hòa Giải Định Kỳ Theo Thiết Kế Mục Tiêu (ADR-005):
+Một tiến trình nền (Background Cron Job / Scheduler) trong thiết kế mục tiêu có thể quét định kỳ (ví dụ mỗi 5 phút):
+1. **Quét các đơn hàng bị treo**: Tìm các đơn hàng ở trạng thái `PENDING_STOCK` vượt quá ngưỡng chờ (ví dụ 15 phút) mà chưa nhận được kết quả giữ kho.
 2. **Kích hoạt bồi hoàn tự động**: Tiến trình chuyển đơn hàng sang `CANCELLED` và phát lệnh kiểm tra/giải phóng tồn kho tương ứng.
-3. **Dead Letter Queue (DLQ) & Alerting**: Nếu một sự kiện thử lại 5 lần vẫn lỗi do payload sai định dạng, sự kiện sẽ được đẩy vào hàng đợi chết (DLQ) và kích hoạt cảnh báo tới kênh Slack/PagerDuty của đội On-call để kỹ sư vào xử lý thủ công.
+3. **Dead Letter Queue (DLQ) & Alerting**: Nếu một sự kiện thử lại vượt ngưỡng (ví dụ 5 lần) vẫn lỗi do payload sai định dạng, sự kiện sẽ được đẩy vào hàng đợi chết (DLQ) và kích hoạt cảnh báo tới kênh On-call để kỹ sư vào xử lý thủ công.
 
 ---
 
