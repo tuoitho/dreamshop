@@ -107,6 +107,7 @@ func TestProductionKongLocksDownPublicRoutesAndServesSPA(t *testing.T) {
 		"identity-admin-rbac-protected":  {url: "http://identity-service:8080/admin/rbac", path: "/api/v1/admin/rbac", methods: []string{"GET", "POST", "PUT", "PATCH", "DELETE"}},
 		"cart-api":                       {url: "http://bff-service:8080", path: "/api/v1/cart", methods: []string{"GET", "DELETE"}},
 		"cart-items-api":                 {url: "http://bff-service:8080/items", path: "/api/v1/cart/items", methods: []string{"POST", "PATCH", "DELETE"}},
+		"admin-products-api":             {url: "http://bff-service:8080/products", path: "/api/v1/admin/products", methods: []string{"POST"}},
 	}
 	seenProtectedRoutes := make(map[string]bool)
 
@@ -122,8 +123,8 @@ func TestProductionKongLocksDownPublicRoutesAndServesSPA(t *testing.T) {
 			}
 
 			for _, p := range route.Paths {
-				if p == "/api/v1" || p == "/api/v1/auth" || p == "/api/v1/storefront" || p == "/api/v1/admin" || strings.HasPrefix(p, "/api/v1/admin/products") {
-					t.Errorf("unsafe broad or unauthenticated admin route path %q on route %q", p, route.Name)
+				if p == "/api/v1" || p == "/api/v1/auth" || p == "/api/v1/storefront" || p == "/api/v1/admin" {
+					t.Errorf("unsafe broad route path %q on route %q", p, route.Name)
 				}
 			}
 

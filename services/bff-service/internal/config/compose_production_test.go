@@ -140,9 +140,14 @@ func TestProductionComposeEnforcesIsolationSecretsAndStartupOrder(t *testing.T) 
 	}
 	assertHealthyDeps(t, "identity-service", identity.DependsOn, "postgres")
 
-	if compose.Services["catalog-service"].Environment["GRPC_ADDR"] != "0.0.0.0:50051" {
-		t.Errorf("catalog-service GRPC_ADDR = %q, want 0.0.0.0:50051", compose.Services["catalog-service"].Environment["GRPC_ADDR"])
+	catalog := compose.Services["catalog-service"]
+	if catalog.Environment["GRPC_ADDR"] != "0.0.0.0:50051" {
+		t.Errorf("catalog-service GRPC_ADDR = %q, want 0.0.0.0:50051", catalog.Environment["GRPC_ADDR"])
 	}
+	if catalog.Environment["IDENTITY_GRPC_ADDR"] != "identity-service:50054" || catalog.Environment["IDENTITY_GRPC_TIMEOUT"] != "500ms" {
+		t.Errorf("catalog-service Identity gRPC env = addr=%q timeout=%q, want identity-service:50054 / 500ms", catalog.Environment["IDENTITY_GRPC_ADDR"], catalog.Environment["IDENTITY_GRPC_TIMEOUT"])
+	}
+	assertHealthyDeps(t, "catalog-service", catalog.DependsOn, "postgres", "identity-service")
 	if compose.Services["inventory-service"].Environment["GRPC_ADDR"] != "0.0.0.0:50052" {
 		t.Errorf("inventory-service GRPC_ADDR = %q, want 0.0.0.0:50052", compose.Services["inventory-service"].Environment["GRPC_ADDR"])
 	}

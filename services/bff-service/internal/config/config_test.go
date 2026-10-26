@@ -227,8 +227,31 @@ func TestProductionKongProtectsCartWithProductionCallerContext(t *testing.T) {
 	if !cartRouteFound {
 		t.Fatal("production Kong config is missing the protected cart-api route on bff-service")
 	}
-	if strings.Contains(string(content), "name: admin-products-api") {
-		t.Fatal("unauthenticated development admin route must not be present in production")
+
+	var adminProductsRouteFound bool
+	for _, service := range config.Services {
+		if service.Name != "bff-admin-products" || service.URL != "http://bff-service:8080/products" {
+			continue
+		}
+		for _, route := range service.Routes {
+			if route.Name != "admin-products-api" {
+				continue
+			}
+			adminProductsRouteFound = true
+			if len(route.Paths) != 1 || route.Paths[0] != "/api/v1/admin/products" || !route.StripPath {
+				t.Fatalf("production admin-products-api path/strip_path = %#v/%t", route.Paths, route.StripPath)
+			}
+			if len(route.Plugins) != 1 || route.Plugins[0].Name != "caller-context" {
+				t.Fatalf("production admin-products-api plugins = %#v, want caller-context only", route.Plugins)
+			}
+			callerContext := route.Plugins[0].Config
+			if callerContext.JWKSURI != "http://identity-service:8080/.well-known/jwks.json" || callerContext.Issuer != "http://identity-service:8080" || callerContext.Audience != "ecommerce-api" {
+				t.Fatalf("production admin-products-api caller-context config = %#v", callerContext)
+			}
+		}
+	}
+	if !adminProductsRouteFound {
+		t.Fatal("production Kong config is missing the protected admin-products-api route on bff-admin-products")
 	}
 }
 

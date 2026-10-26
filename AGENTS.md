@@ -157,12 +157,13 @@ on Linux/WSL) and verify the listed health endpoint after startup.
   The current frontend routes Identity auth, profile, and location requests
   through Kong;
 - Internal service calls use direct private gRPC. BFF calls Catalog at `50051`
-  and Cart at `50053`; Cart calls Catalog at `50051`, Inventory at `50052`, and
-  Identity authorization at `127.0.0.1:50054` with a `500ms` timeout. Start
-  Identity before Cart. Do not route these calls through Kong or use another
-  service's HTTP port.
-- Roll out the authorization dependency provider-first: Identity, then Cart,
-  then BFF.
+  and Cart at `50053`; Catalog calls Identity authorization at `127.0.0.1:50054`
+  with a `500ms` timeout; Cart calls Catalog at `50051`, Inventory at `50052`,
+  and Identity authorization at `127.0.0.1:50054` with a `500ms` timeout. Start
+  Identity before Catalog and Cart. Do not route these calls through Kong or use
+  another service's HTTP port.
+- Roll out authorization dependencies provider-first: Identity, then Catalog and
+  Cart, then BFF.
 
 ## Naming
 

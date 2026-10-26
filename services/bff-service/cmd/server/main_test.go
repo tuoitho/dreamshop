@@ -38,7 +38,9 @@ func (fakeCatalogClient) GetProduct(context.Context, string) (*catalogv1.GetProd
 func (fakeCatalogClient) SearchProducts(context.Context, *catalogv1.SearchProductsRequest) (*catalogv1.SearchProductsResponse, error) {
 	return &catalogv1.SearchProductsResponse{}, nil
 }
-func (fakeCatalogClient) SoftDeleteProduct(context.Context, string, bool) error { return nil }
+func (fakeCatalogClient) SoftDeleteProduct(context.Context, string, string, bool) error {
+	return nil
+}
 
 var _ cart.Client = fakeCartClient{}
 var _ catalog.Client = fakeCatalogClient{}

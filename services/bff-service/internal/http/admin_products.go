@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"ecommerce.local/bff-service/internal/catalog"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type softDeleteRequest struct {
@@ -25,7 +27,7 @@ func NewAdminProductsHandler(client catalog.Client) *AdminProductsHandler {
 }
 
 func (h *AdminProductsHandler) Register(mux *http.ServeMux) {
-	mux.HandleFunc("POST /products/{id}/delete", h.softDelete)
+	mux.Handle("POST /products/{id}/delete", correlateTrace(RequireCaller(http.HandlerFunc(h.softDelete))))
 }
 
 func (h *AdminProductsHandler) softDelete(w http.ResponseWriter, r *http.Request) {
@@ -36,15 +38,22 @@ func (h *AdminProductsHandler) softDelete(w http.ResponseWriter, r *http.Request
 	}
 
 	deleted := *input.Deleted
-	if err := h.catalog.SoftDeleteProduct(r.Context(), r.PathValue("id"), deleted); err != nil {
+	id := r.PathValue("id")
+	if err := h.catalog.SoftDeleteProduct(r.Context(), callerID(r), id, deleted); err != nil {
 		switch {
+		case errors.Is(err, catalog.ErrPermissionDenied):
+			writeError(w, r, http.StatusForbidden, "FORBIDDEN", "You do not have permission to delete or restore products.", nil)
+		case errors.Is(err, catalog.ErrAuthorizationUnavailable):
+			writeError(w, r, http.StatusServiceUnavailable, "AUTHORIZATION_SERVICE_UNAVAILABLE", "Authorization service is unavailable.", nil)
 		case errors.Is(err, catalog.ErrProductNotFound):
 			writeError(w, r, http.StatusNotFound, "PRODUCT_NOT_FOUND", "Product not found.", nil)
+		case status.Code(err) == codes.InvalidArgument:
+			writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request.", nil)
 		default:
 			writeError(w, r, http.StatusBadGateway, "CATALOG_UNAVAILABLE", "Catalog service is unavailable.", nil)
 		}
 		return
 	}
 
-	writeEnvelope(w, http.StatusOK, softDeleteData{ID: r.PathValue("id"), Deleted: deleted}, "Product availability updated.")
+	writeEnvelope(w, http.StatusOK, softDeleteData{ID: id, Deleted: deleted}, "Product availability updated.")
 }

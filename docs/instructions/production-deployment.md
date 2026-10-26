@@ -55,10 +55,11 @@ docker compose --env-file .env.production -f deployments/docker/compose.producti
 Startup follows `service_healthy` dependencies automatically:
 
 1. `postgres`, `redis`, `rabbitmq`
-2. `identity-service` (Flyway migrations), `catalog-service` (migrations + seed), `inventory-service` (migrations + seed), `order-service`, `ecommerce-fe`
-3. `cart-service` (migrations + gRPC clients to Catalog, Inventory, and Identity authorization)
-4. `bff-service`
-5. `kong`
+2. `identity-service` (Flyway migrations), `inventory-service` (migrations + seed), `order-service`, `ecommerce-fe`
+3. `catalog-service` (migrations + seed + gRPC client to Identity authorization)
+4. `cart-service` (migrations + gRPC clients to Catalog, Inventory, and Identity authorization)
+5. `bff-service`
+6. `kong`
 
 ## 4. Verify Health and Public Routes
 

@@ -53,6 +53,18 @@ func TestDevelopmentKongSeparatesProductAndIdentityAdminRoutes(t *testing.T) {
 	if route["name"] != "admin-products-api" || len(paths) != 1 || paths[0] != "/api/v1/admin/products" || route["strip_path"] != true {
 		t.Fatalf("admin products route = %#v", route)
 	}
+	plugins, ok := route["plugins"].([]any)
+	if !ok || len(plugins) != 1 {
+		t.Fatalf("development admin-products-api plugins = %#v, want caller-context", route["plugins"])
+	}
+	callerPlugin := plugins[0].(map[string]any)
+	callerConfig, _ := callerPlugin["config"].(map[string]any)
+	if callerPlugin["name"] != "caller-context" ||
+		callerConfig["jwks_uri"] != "http://host.docker.internal:8080/.well-known/jwks.json" ||
+		callerConfig["issuer"] != "http://localhost:8080" ||
+		callerConfig["audience"] != "ecommerce-api" {
+		t.Fatalf("development admin-products-api caller-context = %#v", callerPlugin)
+	}
 
 	for _, rawService := range services {
 		service := rawService.(map[string]any)

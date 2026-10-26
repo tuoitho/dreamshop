@@ -160,6 +160,20 @@ services:
               issuer: http://identity-service:8080
               audience: ecommerce-api
 
+  - name: bff-admin-products
+    url: http://bff-service:8080/products
+    routes:
+      - name: admin-products-api
+        paths: ["/api/v1/admin/products"]
+        methods: ["POST"]
+        strip_path: true
+        plugins:
+          - name: caller-context
+            config:
+              jwks_uri: http://identity-service:8080/.well-known/jwks.json
+              issuer: http://identity-service:8080
+              audience: ecommerce-api
+
   - name: bff-storefront
     url: http://bff-service:8080/products
     plugins:

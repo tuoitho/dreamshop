@@ -109,6 +109,14 @@ func TestBackendDockerfilesAndRootDockerignore(t *testing.T) {
 	if !strings.Contains(orderAppYml, "${SERVER_PORT:8083}") {
 		t.Error("order-service application.yml must bind server.port via ${SERVER_PORT:8083}")
 	}
+
+	catalogDockerfile := readRepoFile(t, root, "services", "catalog-service", "Dockerfile")
+	if !strings.Contains(catalogDockerfile, `ENV IDENTITY_GRPC_ADDR="identity-service:50054"`) {
+		t.Error("catalog-service Dockerfile must set ENV IDENTITY_GRPC_ADDR=\"identity-service:50054\"")
+	}
+	if !strings.Contains(catalogDockerfile, `ENV IDENTITY_GRPC_TIMEOUT="500ms"`) {
+		t.Error("catalog-service Dockerfile must set ENV IDENTITY_GRPC_TIMEOUT=\"500ms\"")
+	}
 }
 
 func TestGoServicesBuildStandaloneWithGoWorkOff(t *testing.T) {

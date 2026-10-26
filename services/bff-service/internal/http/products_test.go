@@ -23,7 +23,7 @@ import (
 type fakeCatalogClient struct {
 	searchFn     func(ctx context.Context, req *catalogv1.SearchProductsRequest) (*catalogv1.SearchProductsResponse, error)
 	getProductFn func(ctx context.Context, id string) (*catalogv1.GetProductResponse, error)
-	softDeleteFn func(ctx context.Context, id string, deleted bool) error
+	softDeleteFn func(ctx context.Context, userID, id string, deleted bool) error
 	searchCalls  int
 	lastSearch   *catalogv1.SearchProductsRequest
 }
@@ -44,9 +44,9 @@ func (f *fakeCatalogClient) GetProduct(ctx context.Context, id string) (*catalog
 	return nil, errors.New("unexpected GetProduct call")
 }
 
-func (f *fakeCatalogClient) SoftDeleteProduct(ctx context.Context, id string, deleted bool) error {
+func (f *fakeCatalogClient) SoftDeleteProduct(ctx context.Context, userID, id string, deleted bool) error {
 	if f.softDeleteFn != nil {
-		return f.softDeleteFn(ctx, id, deleted)
+		return f.softDeleteFn(ctx, userID, id, deleted)
 	}
 	return errors.New("unexpected SoftDeleteProduct call")
 }

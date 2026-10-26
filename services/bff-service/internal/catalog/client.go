@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -17,16 +18,20 @@ import (
 	catalogv1 "ecommerce.local/contracts/go/catalog/v1"
 )
 
-// ErrProductNotFound is returned by GetProduct when the catalog service
-// reports that the requested product does not exist.
-var ErrProductNotFound = errors.New("catalog: product not found")
+var (
+	// ErrProductNotFound is returned when the catalog service reports that the
+	// requested product does not exist.
+	ErrProductNotFound          = errors.New("catalog: product not found")
+	ErrPermissionDenied         = errors.New("catalog: permission denied")
+	ErrAuthorizationUnavailable = errors.New("catalog: authorization unavailable")
+)
 
 // Client is the contract the BFF HTTP layer uses to talk to the catalog
 // service. Handlers depend on this interface so they can be tested with fakes.
 type Client interface {
 	GetProduct(ctx context.Context, id string) (*catalogv1.GetProductResponse, error)
 	SearchProducts(ctx context.Context, req *catalogv1.SearchProductsRequest) (*catalogv1.SearchProductsResponse, error)
-	SoftDeleteProduct(ctx context.Context, id string, deleted bool) error
+	SoftDeleteProduct(ctx context.Context, userID, id string, deleted bool) error
 }
 
 type client struct {
@@ -76,18 +81,38 @@ func (c *client) SearchProducts(ctx context.Context, req *catalogv1.SearchProduc
 	return c.svc.SearchProducts(ctx, req)
 }
 
-func (c *client) SoftDeleteProduct(ctx context.Context, id string, deleted bool) error {
+func (c *client) SoftDeleteProduct(ctx context.Context, userID, id string, deleted bool) error {
 	ctx, cancel := c.withTimeout(ctx)
 	defer cancel()
 
-	_, err := c.svc.SoftDeleteProduct(ctx, &catalogv1.SoftDeleteProductRequest{Id: id, Deleted: deleted})
+	_, err := c.svc.SoftDeleteProduct(ctx, &catalogv1.SoftDeleteProductRequest{
+		Id:      id,
+		Deleted: deleted,
+		UserId:  userID,
+	})
 	if err != nil {
+		switch catalogErrorReason(err) {
+		case "PRODUCT_PERMISSION_DENIED":
+			return fmt.Errorf("%w: %v", ErrPermissionDenied, err)
+		case "AUTHORIZATION_UNAVAILABLE":
+			return fmt.Errorf("%w: %v", ErrAuthorizationUnavailable, err)
+		}
 		if status.Code(err) == codes.NotFound {
 			return fmt.Errorf("%w: %s", ErrProductNotFound, id)
 		}
 		return err
 	}
 	return nil
+}
+
+func catalogErrorReason(err error) string {
+	for _, detail := range status.Convert(err).Details() {
+		info, ok := detail.(*errdetails.ErrorInfo)
+		if ok && info.GetDomain() == "ecommerce.catalog.v1" {
+			return info.GetReason()
+		}
+	}
+	return ""
 }
 
 func (c *client) withTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
