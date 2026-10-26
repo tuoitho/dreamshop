@@ -2,13 +2,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
+import { AuthContext, type AuthContextValue } from "@/context/auth-context"
 import { CartContext, type CartContextValue } from "@/context/cart-context"
-import type { CartItem } from "@/lib/types"
+import { fetchProvinces, fetchWards } from "@/lib/locations"
+import type { CartItem, CurrentUser } from "@/lib/types"
 import { toast } from "sonner"
 import { formatVND } from "@/lib/utils"
 import OrderPreviewPage from "./order-preview-page"
 
 vi.mock("sonner", () => ({ toast: { info: vi.fn() } }))
+vi.mock("@/lib/locations", () => ({
+  fetchProvinces: vi.fn().mockResolvedValue([{ code: "79", name: "TP. Hồ Chí Minh" }]),
+  fetchWards: vi.fn().mockResolvedValue([{ code: "26740", name: "Phường Bến Nghé" }]),
+}))
 
 function expectCurrency(value: number) {
   const expected = formatVND(value).replace(/\u00a0/g, " ")
@@ -142,5 +148,61 @@ describe("OrderPreviewPage", () => {
     expect(screen.getByText("Chưa có sản phẩm hợp lệ để đặt hàng")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Quay lại giỏ hàng" })).toHaveAttribute("href", "/gio-hang")
     expect(screen.queryByRole("button", { name: "Đặt hàng" })).not.toBeInTheDocument()
+  })
+
+  it("displays unit price × quantity, low-stock excess warning, and shipping recipient summary", async () => {
+    const overStockLimited: CartItem = {
+      ...LIMITED_ITEM,
+      quantity: 3,
+      availableQuantity: 1,
+      imageUrl: "https://cdn.example.com/lens.jpg",
+    }
+    const incompleteUser: CurrentUser = {
+      userId: "u-1",
+      email: "buyer@example.com",
+      fullName: "Trần Thị B",
+      roles: ["USER"],
+      phone: null,
+      dateOfBirth: null,
+      gender: null,
+      provinceCode: "79",
+      wardCode: "26740",
+      addressLine: "45 Nguyễn Huệ",
+    }
+    const authVal: AuthContextValue = {
+      token: "jwt",
+      user: incompleteUser,
+      ready: true,
+      isAuthenticated: true,
+      login: vi.fn(),
+      register: vi.fn(),
+      updateProfile: vi.fn(),
+      logout: vi.fn(),
+    }
+
+    render(
+      <MemoryRouter>
+        <AuthContext value={authVal}>
+          <CartContext value={cartContextValue([overStockLimited], [overStockLimited])}>
+            <OrderPreviewPage />
+          </CartContext>
+        </AuthContext>
+      </MemoryRouter>
+    )
+
+    expect(screen.getByText(/50\.000.*×\s*3/)).toBeInTheDocument()
+    expect(screen.getByRole("img", { name: overStockLimited.name })).toHaveAttribute(
+      "src",
+      "https://cdn.example.com/lens.jpg"
+    )
+    expect(screen.getByText(/chỉ còn 1 sản phẩm/i)).toBeInTheDocument()
+    expect(screen.getByText("Trần Thị B")).toBeInTheDocument()
+    expect(await screen.findByText(/TP\. Hồ Chí Minh/)).toBeInTheDocument()
+    expect(fetchProvinces).toHaveBeenCalled()
+    expect(fetchWards).toHaveBeenCalledWith("79")
+    expect(screen.getByRole("link", { name: /Cập nhật địa chỉ giao hàng/i })).toHaveAttribute(
+      "href",
+      "/profile"
+    )
   })
 })

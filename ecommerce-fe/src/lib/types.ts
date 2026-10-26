@@ -98,6 +98,13 @@ export interface CartData {
   degraded: boolean
 }
 
+export type ProductAvailabilityStatus =
+  | "AVAILABLE"
+  | "LIMITED"
+  | "OUT_OF_STOCK"
+  | "UNAVAILABLE"
+  | "UNKNOWN"
+
 export interface ProductSummary {
   id: string
   name: string
@@ -115,6 +122,9 @@ export interface ProductSummary {
   isNew?: boolean
   badge?: "sale" | "hot" | "new"
   featured?: boolean
+  status?: ProductAvailabilityStatus
+  availableQuantity?: number
+  inventoryDegraded?: boolean
 }
 
 export interface ProductDetail extends ProductSummary {

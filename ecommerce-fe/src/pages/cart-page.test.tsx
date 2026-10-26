@@ -170,6 +170,27 @@ describe("CartPage availability and selection", () => {
     expect(screen.getByText("Sản phẩm không khả dụng")).toBeInTheDocument()
   })
 
+  it("centers item checkboxes vertically and aligns purchasable and unavailable sections on the same left axis", () => {
+    renderWithCart([ITEM, UNAVAILABLE_ITEM])
+
+    const purchasableCheckbox = screen.getByRole("checkbox", { name: `Chọn ${ITEM.name}` })
+    const unavailableCheckbox = screen.getByRole("checkbox", { name: `Chọn ${UNAVAILABLE_ITEM.name}` })
+    const purchasableLabel = purchasableCheckbox.closest("label")
+    const unavailableLabel = unavailableCheckbox.closest("label")
+
+    expect(purchasableLabel).toHaveClass("items-center")
+    expect(purchasableLabel).not.toHaveClass("items-start", "pt-1")
+    expect(purchasableLabel?.nextElementSibling).toHaveClass("self-center")
+    expect(unavailableLabel).toHaveClass("items-center")
+    expect(unavailableLabel).not.toHaveClass("items-start", "pt-1")
+    expect(unavailableLabel?.nextElementSibling).toHaveClass("self-center")
+
+    const purchasableSection = screen.getByRole("region", { name: "Sản phẩm có thể đặt" })
+    const unavailableSection = screen.getByRole("region", { name: "Sản phẩm không khả dụng" })
+    expect(purchasableLabel?.parentElement?.parentElement?.parentElement).toBe(purchasableSection)
+    expect(unavailableLabel?.parentElement?.parentElement?.parentElement).toBe(unavailableSection)
+  })
+
   it("offers to reduce a limited item to its available quantity", async () => {
     const user = userEvent.setup()
     const { value } = renderWithCart([LIMITED_ITEM])
@@ -248,5 +269,62 @@ describe("CartPage availability and selection", () => {
     )
     expect(screen.getByRole("heading", { name: "Giỏ hàng đang trống" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Tiếp tục mua sắm" })).toHaveAttribute("href", "/")
+  })
+
+  it("renders item.imageUrl when provided and disables 'Xóa đã chọn' when nothing is selected", () => {
+    renderWithCart(
+      [{ ...ITEM, imageUrl: "https://cdn.example.com/nova.jpg" }],
+      []
+    )
+
+    const img = screen.getByRole("img", { name: ITEM.name })
+    expect(img.tagName).toBe("IMG")
+    expect(img).toHaveAttribute("src", "https://cdn.example.com/nova.jpg")
+    expect(screen.getByRole("button", { name: "Xóa đã chọn" })).toBeDisabled()
+  })
+
+  it("renders orphan hard-deleted cart items with graceful fallback copy instead of empty name or 0 ₫", () => {
+    const orphanItem: CartItem = {
+      itemId: "item-orphan",
+      productId: "deleted-forever",
+      variantLabel: "",
+      quantity: 1,
+      name: "",
+      brand: "",
+      categoryName: "",
+      unitPrice: 0,
+      imageEmoji: "",
+      imageHue: [],
+      imageUrl: "",
+      status: "UNAVAILABLE",
+      availableQuantity: 0,
+    }
+    renderWithCart([orphanItem], [])
+
+    expect(screen.getByText("Sản phẩm không còn tồn tại")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Xóa Sản phẩm không còn tồn tại" })).toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: "Sản phẩm không còn tồn tại" })).not.toBeInTheDocument()
+  })
+
+  it("removes all unavailable items via 'Xóa tất cả' button in the unavailable section", async () => {
+    const user = userEvent.setup()
+    const { value } = renderWithCart([ITEM, OUT_OF_STOCK_ITEM, UNAVAILABLE_ITEM])
+
+    await user.click(screen.getByRole("button", { name: /Xóa tất cả \(2\)/ }))
+
+    expect(value.removeItem).toHaveBeenCalledTimes(2)
+    expect(value.removeItem).toHaveBeenCalledWith(OUT_OF_STOCK_ITEM.itemId)
+    expect(value.removeItem).toHaveBeenCalledWith(UNAVAILABLE_ITEM.itemId)
+  })
+
+  it("stops cleanly without unhandled rejection when 'Xóa tất cả' removeItem rejects", async () => {
+    const user = userEvent.setup()
+    const { value } = renderWithCart([ITEM, OUT_OF_STOCK_ITEM, UNAVAILABLE_ITEM])
+    vi.mocked(value.removeItem).mockRejectedValueOnce(new Error("Gateway error"))
+
+    await user.click(screen.getByRole("button", { name: /Xóa tất cả \(2\)/ }))
+
+    expect(value.removeItem).toHaveBeenCalledTimes(1)
+    expect(value.removeItem).toHaveBeenCalledWith(OUT_OF_STOCK_ITEM.itemId)
   })
 })

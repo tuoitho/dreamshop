@@ -21,6 +21,41 @@ function responseMessage(data: unknown): string | undefined {
     : undefined
 }
 
+function shouldSuppressMutationSuccessToast(response: {
+  config?: { method?: string; url?: string; data?: unknown }
+  data?: unknown
+}): boolean {
+  const method = response.config?.method?.toLowerCase()
+  const url = response.config?.url ?? ""
+  if (method !== "post" || !url.endsWith("/cart/items")) {
+    return false
+  }
+  const envelope = response.data as Partial<ApiResponse<CartData>> | undefined
+  const cart = envelope?.data
+  if (!cart || cart.degraded !== false || !Array.isArray(cart.items)) {
+    return false
+  }
+  let reqBody: { productId?: string; variantLabel?: string } | undefined
+  const rawData = response.config?.data
+  if (typeof rawData === "string") {
+    try {
+      reqBody = JSON.parse(rawData) as { productId?: string; variantLabel?: string }
+    } catch {
+      return false
+    }
+  } else if (rawData && typeof rawData === "object") {
+    reqBody = rawData as { productId?: string; variantLabel?: string }
+  }
+  if (!reqBody?.productId) {
+    return false
+  }
+  const variantLabel = reqBody.variantLabel ?? ""
+  const target = cart.items.find(
+    (item) => item.productId === reqBody.productId && item.variantLabel === variantLabel
+  )
+  return target?.status === "OUT_OF_STOCK" || target?.status === "UNAVAILABLE"
+}
+
 const refreshHttp = axios.create({
   baseURL: BASE_URL,
   headers: { "Content-Type": "application/json" },
@@ -44,7 +79,7 @@ http.interceptors.request.use((config) => {
 })
 
 http.interceptors.response.use((response) => {
-  if (isMutation(response.config)) {
+  if (isMutation(response.config) && !shouldSuppressMutationSuccessToast(response)) {
     const message = responseMessage(response.data)
     if (message) toast.success(message)
   }

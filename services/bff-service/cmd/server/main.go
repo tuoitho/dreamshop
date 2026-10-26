@@ -8,6 +8,7 @@ import (
 	"ecommerce.local/bff-service/internal/catalog"
 	"ecommerce.local/bff-service/internal/config"
 	internalhttp "ecommerce.local/bff-service/internal/http"
+	"ecommerce.local/bff-service/internal/inventory"
 )
 
 func main() {
@@ -22,23 +23,36 @@ func main() {
 	}
 	defer catalogClient.Close()
 
+	inventoryClient, err := inventory.NewClient(cfg.InventoryGRPCAddr, cfg.InventoryGRPCTimeout)
+	if err != nil {
+		log.Fatalf("failed to create inventory client: %v", err)
+	}
+	defer inventoryClient.Close()
+
 	cartClient, err := cart.NewClient(cfg.CartGRPCAddr, cfg.CartGRPCTimeout)
 	if err != nil {
 		log.Fatalf("failed to create cart client: %v", err)
 	}
 	defer cartClient.Close()
 
-	mux := buildMux(cartClient, catalogClient)
+	mux := buildMux(cartClient, catalogClient, inventoryClient)
 
-	log.Printf("bff-service listening on %s; catalog gRPC target %s (timeout %s)", cfg.HTTPAddr, cfg.CatalogGRPCAddr, cfg.CatalogGRPCTimeout)
+	log.Printf(
+		"bff-service listening on %s; catalog gRPC %s (%s), inventory gRPC %s (%s)",
+		cfg.HTTPAddr,
+		cfg.CatalogGRPCAddr,
+		cfg.CatalogGRPCTimeout,
+		cfg.InventoryGRPCAddr,
+		cfg.InventoryGRPCTimeout,
+	)
 	if err := http.ListenAndServe(cfg.HTTPAddr, mux); err != nil {
 		log.Fatalf("server failed: %v", err)
 	}
 }
 
-func buildMux(cartClient cart.Client, catalogClient catalog.Client) *http.ServeMux {
+func buildMux(cartClient cart.Client, catalogClient catalog.Client, inventoryClient inventory.Client) *http.ServeMux {
 	healthHandler := internalhttp.NewHealthHandler("bff-service")
-	productsHandler := internalhttp.NewProductsHandler(catalogClient)
+	productsHandler := internalhttp.NewProductsHandler(catalogClient, inventoryClient)
 	cartHandler := internalhttp.NewCartHandler(cartClient)
 	adminHandler := internalhttp.NewAdminProductsHandler(catalogClient)
 

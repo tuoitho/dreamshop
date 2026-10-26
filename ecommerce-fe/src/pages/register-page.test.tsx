@@ -1,16 +1,24 @@
 import { describe, it, expect, vi } from "vitest"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { MemoryRouter } from "react-router-dom"
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom"
 import { AuthContext } from "@/context/auth-context"
 import RegisterPage from "./register-page"
 
-function renderRegister(registerMock = vi.fn().mockResolvedValue(undefined)) {
+function LocationProbe() {
+  const location = useLocation()
+  return <p data-testid="current-location">{location.pathname}</p>
+}
+
+function renderRegister(
+  registerMock = vi.fn().mockResolvedValue(undefined),
+  isAuthenticated = false,
+) {
   const value = {
-    token: null,
+    token: isAuthenticated ? "access-token" : null,
     user: null,
     ready: true,
-    isAuthenticated: false,
+    isAuthenticated,
     login: vi.fn(),
     register: registerMock,
     updateProfile: vi.fn(),
@@ -20,8 +28,11 @@ function renderRegister(registerMock = vi.fn().mockResolvedValue(undefined)) {
     registerMock,
     ...render(
       <AuthContext value={value}>
-        <MemoryRouter>
-          <RegisterPage />
+        <MemoryRouter initialEntries={["/register"]}>
+          <Routes>
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="*" element={<LocationProbe />} />
+          </Routes>
         </MemoryRouter>
       </AuthContext>
     ),
@@ -54,5 +65,10 @@ describe("RegisterPage", () => {
       password: "SecurePassword123!",
       fullName: "Nguyen Van A",
     })
+  })
+
+  it("redirects already-authenticated users away from /register", async () => {
+    renderRegister(vi.fn(), true)
+    expect((await screen.findByTestId("current-location")).textContent).toBe("/")
   })
 })

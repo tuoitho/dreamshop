@@ -3,35 +3,29 @@ package config
 import (
 	"errors"
 	"fmt"
-	"io/fs"
-	"os"
 	"strings"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	HTTPAddr           string
-	CatalogGRPCAddr    string
-	CatalogGRPCTimeout time.Duration
-	CartGRPCAddr       string
-	CartGRPCTimeout    time.Duration
+	HTTPAddr             string
+	CatalogGRPCAddr      string
+	CatalogGRPCTimeout   time.Duration
+	InventoryGRPCAddr    string
+	InventoryGRPCTimeout time.Duration
+	CartGRPCAddr         string
+	CartGRPCTimeout      time.Duration
 }
 
 func Load() (*Config, error) {
-	if err := loadDotenv(); err != nil {
-		return nil, err
-	}
-
 	settings := viper.New()
 	settings.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 	settings.SetDefault("http.addr", ":8080")
 	settings.SetDefault("catalog.grpc.addr", "127.0.0.1:50051")
-	settings.SetDefault("catalog.grpc.timeout", 3*time.Second)
+	settings.SetDefault("inventory.grpc.addr", "127.0.0.1:50052")
 	settings.SetDefault("cart.grpc.addr", "127.0.0.1:50053")
-	settings.SetDefault("cart.grpc.timeout", 3*time.Second)
 
 	if err := settings.BindEnv("http.addr", "BFF_HTTP_ADDR", "HTTP_ADDR"); err != nil {
 		return nil, fmt.Errorf("bind HTTP address: %w", err)
@@ -42,6 +36,12 @@ func Load() (*Config, error) {
 	if err := settings.BindEnv("catalog.grpc.timeout", "BFF_CATALOG_GRPC_TIMEOUT"); err != nil {
 		return nil, fmt.Errorf("bind Catalog gRPC timeout: %w", err)
 	}
+	if err := settings.BindEnv("inventory.grpc.addr", "BFF_INVENTORY_GRPC_ADDR"); err != nil {
+		return nil, fmt.Errorf("bind Inventory gRPC address: %w", err)
+	}
+	if err := settings.BindEnv("inventory.grpc.timeout", "BFF_INVENTORY_GRPC_TIMEOUT"); err != nil {
+		return nil, fmt.Errorf("bind Inventory gRPC timeout: %w", err)
+	}
 	if err := settings.BindEnv("cart.grpc.addr", "BFF_CART_GRPC_ADDR"); err != nil {
 		return nil, fmt.Errorf("bind Cart gRPC address: %w", err)
 	}
@@ -49,12 +49,27 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("bind Cart gRPC timeout: %w", err)
 	}
 
+	catalogTimeout, err := loadDuration(settings, "catalog.grpc.timeout", "BFF_CATALOG_GRPC_TIMEOUT", 3*time.Second)
+	if err != nil {
+		return nil, err
+	}
+	inventoryTimeout, err := loadDuration(settings, "inventory.grpc.timeout", "BFF_INVENTORY_GRPC_TIMEOUT", 3*time.Second)
+	if err != nil {
+		return nil, err
+	}
+	cartTimeout, err := loadDuration(settings, "cart.grpc.timeout", "BFF_CART_GRPC_TIMEOUT", 3*time.Second)
+	if err != nil {
+		return nil, err
+	}
+
 	cfg := &Config{
-		HTTPAddr:           settings.GetString("http.addr"),
-		CatalogGRPCAddr:    settings.GetString("catalog.grpc.addr"),
-		CatalogGRPCTimeout: settings.GetDuration("catalog.grpc.timeout"),
-		CartGRPCAddr:       settings.GetString("cart.grpc.addr"),
-		CartGRPCTimeout:    settings.GetDuration("cart.grpc.timeout"),
+		HTTPAddr:             settings.GetString("http.addr"),
+		CatalogGRPCAddr:      settings.GetString("catalog.grpc.addr"),
+		CatalogGRPCTimeout:   catalogTimeout,
+		InventoryGRPCAddr:    settings.GetString("inventory.grpc.addr"),
+		InventoryGRPCTimeout: inventoryTimeout,
+		CartGRPCAddr:         settings.GetString("cart.grpc.addr"),
+		CartGRPCTimeout:      cartTimeout,
 	}
 
 	if cfg.HTTPAddr == "" {
@@ -63,27 +78,27 @@ func Load() (*Config, error) {
 	if cfg.CatalogGRPCAddr == "" {
 		return nil, errors.New("Catalog gRPC address must not be empty")
 	}
-	if cfg.CatalogGRPCTimeout <= 0 {
-		return nil, errors.New("Catalog gRPC timeout must be positive")
+	if strings.TrimSpace(cfg.InventoryGRPCAddr) == "" {
+		return nil, errors.New("Inventory gRPC address must not be empty")
 	}
 	if strings.TrimSpace(cfg.CartGRPCAddr) == "" {
 		return nil, errors.New("Cart gRPC address must not be empty")
-	}
-	if cfg.CartGRPCTimeout <= 0 {
-		return nil, errors.New("Cart gRPC timeout must be positive")
 	}
 
 	return cfg, nil
 }
 
-func loadDotenv() error {
-	path := os.Getenv("ENV_FILE")
-	if path == "" {
-		path = ".env"
+func loadDuration(settings *viper.Viper, key, envName string, fallback time.Duration) (time.Duration, error) {
+	raw := strings.TrimSpace(settings.GetString(key))
+	if raw == "" {
+		return fallback, nil
 	}
-
-	if err := godotenv.Load(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return fmt.Errorf("load dotenv file %q: %w", path, err)
+	duration, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, fmt.Errorf("%s must be a valid duration: %w", envName, err)
 	}
-	return nil
+	if duration <= 0 {
+		return 0, fmt.Errorf("%s must be positive", envName)
+	}
+	return duration, nil
 }

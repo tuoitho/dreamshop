@@ -418,17 +418,40 @@ describe("ProductDetailPage", () => {
   })
 
   it.each([
-    { label: "an unavailable matching row", item: cartItem({ status: "UNAVAILABLE", availableQuantity: 0 }) },
-    { label: "no matching row", item: OTHER_CART_ITEM },
-  ])("does not navigate for Buy Now when there is $label", async ({ item }) => {
+    {
+      label: "an out-of-stock matching row",
+      cartResponse: { items: [cartItem({ status: "OUT_OF_STOCK", availableQuantity: 0 })], degraded: false },
+      expectedError: "Sản phẩm vừa tạm hết hàng",
+      expectReload: true,
+    },
+    {
+      label: "an unavailable matching row",
+      cartResponse: { items: [cartItem({ status: "UNAVAILABLE", availableQuantity: 0 })], degraded: false },
+      expectedError: "Sản phẩm đã ngừng kinh doanh",
+      expectReload: true,
+    },
+    {
+      label: "degraded inventory during Buy Now",
+      cartResponse: { items: [cartItem({ status: "UNAVAILABLE", availableQuantity: 0 })], degraded: true },
+      expectedError: "Tạm thời chưa kiểm tra được tồn kho, vui lòng kiểm tra giỏ hàng",
+      expectReload: false,
+    },
+    {
+      label: "no matching row",
+      cartResponse: { items: [OTHER_CART_ITEM], degraded: false },
+      expectedError: "Không tìm thấy phân loại có thể mua trong giỏ hàng",
+      expectReload: false,
+    },
+  ])("does not navigate for Buy Now when there is $label", async ({ cartResponse, expectedError, expectReload }) => {
     vi.mocked(getProduct).mockResolvedValue(DETAIL)
-    vi.mocked(addCartItem).mockResolvedValue({ items: [item], degraded: false })
+    vi.mocked(addCartItem).mockResolvedValue(cartResponse)
     renderDetail("dt-1", {}, "checkout")
 
     await userEvent.click(await screen.findByRole("button", { name: "Mua ngay" }))
 
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Không tìm thấy phân loại có thể mua trong giỏ hàng"))
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expectedError))
     expect(screen.queryByTestId("checkout-items")).not.toBeInTheDocument()
+    await waitFor(() => expect(getProduct).toHaveBeenCalledTimes(expectReload ? 2 : 1))
   })
 
   it("keeps Add to Cart pending, prevents duplicates, and reports rejection locally", async () => {
@@ -520,74 +543,150 @@ describe("ProductDetailPage", () => {
     expect(screen.getByRole("button", { name: "Đang xử lý..." })).toBeInTheDocument()
     expect(toast.error).not.toHaveBeenCalled()
     expect(screen.queryByTestId("checkout-items")).not.toBeInTheDocument()
-    resolveB()
+    await act(async () => {
+      resolveB()
+      await Promise.resolve()
+    })
   })
 
-  it("omits the development soft-delete control in production", async () => {
-    vi.stubEnv("DEV", false)
+  it("never renders soft-delete or restore controls on storefront detail even in development", async () => {
+    vi.stubEnv("DEV", true)
     vi.mocked(getProduct).mockResolvedValue(DETAIL)
     renderDetail()
 
     expect(await screen.findByRole("heading", { level: 1, name: DETAIL.name })).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Xóa mềm sản phẩm" })).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Khôi phục sản phẩm" })).not.toBeInTheDocument()
+    expect(softDeleteProduct).not.toHaveBeenCalled()
   })
 
-  it("reloads the changed product and switches the development control to restore", async () => {
-    vi.stubEnv("DEV", true)
-    vi.mocked(getProduct).mockResolvedValueOnce(DETAIL).mockResolvedValueOnce({ ...DETAIL, deleted: true })
+  it("displays discontinued alert and disables purchase controls when product is soft-deleted or UNAVAILABLE", async () => {
+    vi.mocked(getProduct).mockResolvedValue({
+      ...DETAIL,
+      deleted: true,
+      status: "UNAVAILABLE",
+      availableQuantity: 0,
+    })
     renderDetail()
 
-    await userEvent.click(await screen.findByRole("button", { name: "Xóa mềm sản phẩm" }))
-
-    expect(softDeleteProduct).toHaveBeenCalledWith("dt-1", true)
-    expect(await screen.findByRole("button", { name: "Khôi phục sản phẩm" })).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Xóa mềm sản phẩm" })).not.toBeInTheDocument()
-    expect(getProduct).toHaveBeenCalledTimes(2)
+    expect(await screen.findByRole("heading", { level: 1, name: DETAIL.name })).toBeInTheDocument()
+    expect(screen.getByText(/Sản phẩm ngừng kinh doanh/i)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Ngừng kinh doanh" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Mua ngay" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Tăng số lượng" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Giảm số lượng" })).toBeDisabled()
   })
 
-  it("restores a deleted product and switches the development control to soft delete", async () => {
-    vi.stubEnv("DEV", true)
-    const deleted = { ...DETAIL, deleted: true }
-    vi.mocked(getProduct).mockResolvedValueOnce(deleted).mockResolvedValueOnce(DETAIL)
-    vi.mocked(softDeleteProduct).mockResolvedValueOnce({ id: DETAIL.id, deleted: false })
+  it("displays out-of-stock state and disables purchase controls when status is OUT_OF_STOCK", async () => {
+    vi.mocked(getProduct).mockResolvedValue({
+      ...DETAIL,
+      status: "OUT_OF_STOCK",
+      availableQuantity: 0,
+    })
     renderDetail()
 
-    await userEvent.click(await screen.findByRole("button", { name: "Khôi phục sản phẩm" }))
-
-    expect(softDeleteProduct).toHaveBeenCalledWith("dt-1", false)
-    expect(await screen.findByRole("button", { name: "Xóa mềm sản phẩm" })).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Khôi phục sản phẩm" })).not.toBeInTheDocument()
-    expect(getProduct).toHaveBeenCalledTimes(2)
+    expect(await screen.findByRole("heading", { level: 1, name: DETAIL.name })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Tạm hết hàng" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Mua ngay" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Tăng số lượng" })).toBeDisabled()
   })
 
-  it("keeps the development control stable and reports a soft-delete failure", async () => {
-    vi.stubEnv("DEV", true)
-    vi.mocked(getProduct).mockResolvedValue(DETAIL)
-    vi.mocked(softDeleteProduct).mockRejectedValueOnce(new Error("Delete unavailable"))
+  it("caps quantity stepper at availableQuantity and shows low-stock badge when status is LIMITED", async () => {
+    vi.mocked(getProduct).mockResolvedValue({
+      ...DETAIL,
+      status: "LIMITED",
+      availableQuantity: 2,
+    })
     renderDetail()
 
-    const deleteButton = await screen.findByRole("button", { name: "Xóa mềm sản phẩm" })
-    await userEvent.click(deleteButton)
+    expect(await screen.findByText("Sắp hết — Chỉ còn 2 sản phẩm")).toBeInTheDocument()
+    const decrease = screen.getByRole("button", { name: "Giảm số lượng" })
+    const increase = screen.getByRole("button", { name: "Tăng số lượng" })
+    expect(decrease).toBeDisabled()
+    expect(increase).not.toBeDisabled()
 
-    expect(await screen.findByRole("button", { name: "Xóa mềm sản phẩm" })).toBeInTheDocument()
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Delete unavailable"))
+    await userEvent.click(increase)
+
+    expect(screen.getByText("2")).toBeInTheDocument()
+    expect(increase).toBeDisabled()
+    expect(decrease).not.toBeDisabled()
+    expect(screen.getByText("Mua tối đa 2 sản phẩm mỗi lần")).toBeInTheDocument()
+  })
+
+  it("handles mid-action Add to Cart race for OUT_OF_STOCK and UNAVAILABLE vs degraded inventory", async () => {
+    vi.mocked(getProduct)
+      .mockResolvedValueOnce({ ...DETAIL, status: "AVAILABLE", availableQuantity: 8 })
+      .mockResolvedValueOnce({ ...DETAIL, status: "OUT_OF_STOCK", availableQuantity: 0 })
+    vi.mocked(addCartItem).mockResolvedValueOnce({
+      items: [cartItem({ status: "OUT_OF_STOCK", availableQuantity: 0 })],
+      degraded: false,
+    })
+    const { unmount } = renderDetail()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Thêm vào giỏ" }))
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Sản phẩm vừa tạm hết hàng"))
+    expect(screen.queryByRole("button", { name: "Đã thêm vào giỏ" })).not.toBeInTheDocument()
+    await waitFor(() => expect(getProduct).toHaveBeenCalledTimes(2))
+    unmount()
+
+    vi.clearAllMocks()
+    vi.mocked(getCart).mockResolvedValue({ items: [], degraded: false })
+    vi.mocked(searchProducts).mockResolvedValue({ items: [], page: 1, pageSize: 20, totalItems: 0, totalPages: 0 })
+    vi.mocked(getProduct).mockResolvedValue({ ...DETAIL, status: "UNKNOWN", inventoryDegraded: true })
+    vi.mocked(addCartItem).mockResolvedValueOnce({
+      items: [cartItem({ status: "UNAVAILABLE", availableQuantity: 0 })],
+      degraded: true,
+    })
+
+    renderDetail()
+    await userEvent.click(await screen.findByRole("button", { name: "Thêm vào giỏ" }))
+
+    expect(await screen.findByRole("button", { name: "Đã thêm vào giỏ" })).toBeInTheDocument()
+    expect(toast.error).not.toHaveBeenCalled()
     expect(getProduct).toHaveBeenCalledTimes(1)
   })
 
-  it("does not continue a soft-delete result after leaving the product page", async () => {
-    vi.stubEnv("DEV", true)
-    let resolveDelete!: (value: { id: string; deleted: boolean }) => void
+  it("formats float32 rating, renders full description alongside shortDescription, and toggles wishlist", async () => {
+    vi.mocked(getProduct).mockResolvedValue({
+      ...DETAIL,
+      rating: 4.900000095367432,
+    })
+    renderDetail()
+
+    expect(await screen.findByRole("heading", { level: 1, name: DETAIL.name })).toBeInTheDocument()
+    expect(screen.getByText("4.9")).toBeInTheDocument()
+    expect(screen.queryByText("4.900000095367432")).not.toBeInTheDocument()
+    expect(screen.getByText(DETAIL.shortDescription!)).toBeInTheDocument()
+    expect(screen.getByText(DETAIL.description)).toBeInTheDocument()
+
+    const wishlistBtn = screen.getByRole("button", { name: "Thêm vào yêu thích" })
+    expect(wishlistBtn).toHaveAttribute("aria-pressed", "false")
+    await userEvent.click(wishlistBtn)
+    expect(wishlistBtn).toHaveAttribute("aria-pressed", "true")
+    expect(toast.success).toHaveBeenCalled()
+  })
+
+  it("reports an error toast instead of false success when clipboard API is unavailable on share", async () => {
     vi.mocked(getProduct).mockResolvedValue(DETAIL)
-    vi.mocked(softDeleteProduct).mockReturnValueOnce(new Promise((resolve) => { resolveDelete = resolve }))
-    renderDetail("dt-1", {}, "login", "/login")
+    const originalClipboard = navigator.clipboard
+    Object.defineProperty(navigator, "clipboard", {
+      value: undefined,
+      configurable: true,
+    })
 
-    await userEvent.click(await screen.findByRole("button", { name: "Xóa mềm sản phẩm" }))
-    await userEvent.click(screen.getByRole("button", { name: "Chuyển trang" }))
-    expect(await screen.findByTestId("login-from")).toBeInTheDocument()
+    try {
+      renderDetail()
+      const shareBtn = await screen.findByRole("button", { name: "Chia sẻ sản phẩm" })
+      await userEvent.click(shareBtn)
 
-    resolveDelete({ id: "dt-1", deleted: true })
-    await waitFor(() => expect(screen.findByTestId("login-from")).resolves.toBeInTheDocument())
-    expect(getProduct).toHaveBeenCalledTimes(1)
+      expect(toast.error).toHaveBeenCalledWith("Không thể sao chép liên kết sản phẩm")
+      expect(toast.success).not.toHaveBeenCalledWith("Đã sao chép liên kết sản phẩm")
+    } finally {
+      Object.defineProperty(navigator, "clipboard", {
+        value: originalClipboard,
+        configurable: true,
+      })
+    }
   })
 })

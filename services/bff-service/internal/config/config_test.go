@@ -36,6 +36,8 @@ func TestLoadUsesDefaults(t *testing.T) {
 	t.Setenv("HTTP_ADDR", "")
 	t.Setenv("BFF_CATALOG_GRPC_ADDR", "")
 	t.Setenv("BFF_CATALOG_GRPC_TIMEOUT", "")
+	t.Setenv("BFF_INVENTORY_GRPC_ADDR", "")
+	t.Setenv("BFF_INVENTORY_GRPC_TIMEOUT", "")
 	t.Setenv("BFF_CART_GRPC_ADDR", "")
 	t.Setenv("BFF_CART_GRPC_TIMEOUT", "")
 
@@ -52,6 +54,12 @@ func TestLoadUsesDefaults(t *testing.T) {
 	if cfg.CatalogGRPCTimeout != 3*time.Second {
 		t.Fatalf("expected default CatalogGRPCTimeout 3s, got %s", cfg.CatalogGRPCTimeout)
 	}
+	if cfg.InventoryGRPCAddr != "127.0.0.1:50052" {
+		t.Fatalf("expected default InventoryGRPCAddr 127.0.0.1:50052, got %s", cfg.InventoryGRPCAddr)
+	}
+	if cfg.InventoryGRPCTimeout != 3*time.Second {
+		t.Fatalf("expected default InventoryGRPCTimeout 3s, got %s", cfg.InventoryGRPCTimeout)
+	}
 	if cfg.CartGRPCAddr != "127.0.0.1:50053" {
 		t.Fatalf("expected default CartGRPCAddr 127.0.0.1:50053, got %s", cfg.CartGRPCAddr)
 	}
@@ -65,6 +73,8 @@ func TestLoadUsesPrefixedEnvironment(t *testing.T) {
 	t.Setenv("HTTP_ADDR", ":8080")
 	t.Setenv("BFF_CATALOG_GRPC_ADDR", "catalog.local:50051")
 	t.Setenv("BFF_CATALOG_GRPC_TIMEOUT", "5s")
+	t.Setenv("BFF_INVENTORY_GRPC_ADDR", "inventory.local:50052")
+	t.Setenv("BFF_INVENTORY_GRPC_TIMEOUT", "4s")
 	t.Setenv("BFF_CART_GRPC_ADDR", "cart.local:50053")
 	t.Setenv("BFF_CART_GRPC_TIMEOUT", "7s")
 
@@ -80,6 +90,12 @@ func TestLoadUsesPrefixedEnvironment(t *testing.T) {
 	}
 	if cfg.CatalogGRPCTimeout != 5*time.Second {
 		t.Fatalf("expected BFF_CATALOG_GRPC_TIMEOUT 5s, got %s", cfg.CatalogGRPCTimeout)
+	}
+	if cfg.InventoryGRPCAddr != "inventory.local:50052" {
+		t.Fatalf("expected BFF_INVENTORY_GRPC_ADDR inventory.local:50052, got %s", cfg.InventoryGRPCAddr)
+	}
+	if cfg.InventoryGRPCTimeout != 4*time.Second {
+		t.Fatalf("expected BFF_INVENTORY_GRPC_TIMEOUT 4s, got %s", cfg.InventoryGRPCTimeout)
 	}
 	if cfg.CartGRPCAddr != "cart.local:50053" {
 		t.Fatalf("expected BFF_CART_GRPC_ADDR cart.local:50053, got %s", cfg.CartGRPCAddr)
@@ -145,14 +161,160 @@ func TestLoadRejectsNonPositiveCartTimeout(t *testing.T) {
 	}
 }
 
-func TestLoadReadsDotenvFile(t *testing.T) {
+func TestLoadRejectsBlankInventoryAddress(t *testing.T) {
+	t.Setenv("BFF_HTTP_ADDR", "")
+	t.Setenv("HTTP_ADDR", "")
+	t.Setenv("BFF_CATALOG_GRPC_ADDR", "")
+	t.Setenv("BFF_CATALOG_GRPC_TIMEOUT", "")
+	t.Setenv("BFF_INVENTORY_GRPC_ADDR", "   ")
+	t.Setenv("BFF_INVENTORY_GRPC_TIMEOUT", "")
+	t.Setenv("BFF_CART_GRPC_ADDR", "")
+	t.Setenv("BFF_CART_GRPC_TIMEOUT", "")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("expected error for blank Inventory gRPC address, got nil")
+	}
+}
+
+func TestLoadRejectsNonPositiveInventoryTimeout(t *testing.T) {
+	t.Setenv("BFF_HTTP_ADDR", "")
+	t.Setenv("HTTP_ADDR", "")
+	t.Setenv("BFF_CATALOG_GRPC_ADDR", "")
+	t.Setenv("BFF_CATALOG_GRPC_TIMEOUT", "")
+	t.Setenv("BFF_INVENTORY_GRPC_ADDR", "")
+	t.Setenv("BFF_INVENTORY_GRPC_TIMEOUT", "0s")
+	t.Setenv("BFF_CART_GRPC_ADDR", "")
+	t.Setenv("BFF_CART_GRPC_TIMEOUT", "")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("expected error for non-positive Inventory gRPC timeout, got nil")
+	}
+}
+
+func clearBFFConfigEnv(t *testing.T) {
+	t.Helper()
+	for _, key := range []string{
+		"BFF_HTTP_ADDR",
+		"HTTP_ADDR",
+		"BFF_CATALOG_GRPC_ADDR",
+		"BFF_CATALOG_GRPC_TIMEOUT",
+		"BFF_INVENTORY_GRPC_ADDR",
+		"BFF_INVENTORY_GRPC_TIMEOUT",
+		"BFF_CART_GRPC_ADDR",
+		"BFF_CART_GRPC_TIMEOUT",
+	} {
+		t.Setenv(key, "")
+	}
+}
+
+func TestLoadRejectsMalformedTimeouts(t *testing.T) {
+	envKeys := []string{
+		"BFF_CATALOG_GRPC_TIMEOUT",
+		"BFF_INVENTORY_GRPC_TIMEOUT",
+		"BFF_CART_GRPC_TIMEOUT",
+	}
+	malformedValues := []string{"3000", "invalid"}
+
+	for _, envKey := range envKeys {
+		for _, value := range malformedValues {
+			t.Run(envKey+"="+value, func(t *testing.T) {
+				clearBFFConfigEnv(t)
+				t.Setenv(envKey, value)
+
+				_, err := Load()
+				if err == nil {
+					t.Fatalf("expected error for %s=%q, got nil", envKey, value)
+				}
+				if !strings.Contains(err.Error(), envKey) || !strings.Contains(err.Error(), "valid duration") {
+					t.Fatalf("Load() error = %q; want %s valid duration error", err.Error(), envKey)
+				}
+			})
+		}
+	}
+}
+
+func TestLoadRejectsNegativeTimeouts(t *testing.T) {
+	for _, envKey := range []string{
+		"BFF_CATALOG_GRPC_TIMEOUT",
+		"BFF_INVENTORY_GRPC_TIMEOUT",
+		"BFF_CART_GRPC_TIMEOUT",
+	} {
+		t.Run(envKey, func(t *testing.T) {
+			clearBFFConfigEnv(t)
+			t.Setenv(envKey, "-1s")
+
+			_, err := Load()
+			if err == nil {
+				t.Fatalf("expected error for %s=-1s, got nil", envKey)
+			}
+			if !strings.Contains(err.Error(), envKey) || !strings.Contains(err.Error(), "must be positive") {
+				t.Fatalf("Load() error = %q; want %s positive duration error", err.Error(), envKey)
+			}
+		})
+	}
+}
+
+func TestLoadDefaultsWhitespaceOnlyTimeouts(t *testing.T) {
+	clearBFFConfigEnv(t)
+	t.Setenv("BFF_CATALOG_GRPC_TIMEOUT", "   ")
+	t.Setenv("BFF_INVENTORY_GRPC_TIMEOUT", "   ")
+	t.Setenv("BFF_CART_GRPC_TIMEOUT", "   ")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error for whitespace-only timeouts: %v", err)
+	}
+	if cfg.CatalogGRPCTimeout != 3*time.Second {
+		t.Fatalf("CatalogGRPCTimeout = %s, want 3s", cfg.CatalogGRPCTimeout)
+	}
+	if cfg.InventoryGRPCTimeout != 3*time.Second {
+		t.Fatalf("InventoryGRPCTimeout = %s, want 3s", cfg.InventoryGRPCTimeout)
+	}
+	if cfg.CartGRPCTimeout != 3*time.Second {
+		t.Fatalf("CartGRPCTimeout = %s, want 3s", cfg.CartGRPCTimeout)
+	}
+}
+
+func TestLoadTrimsSurroundingWhitespaceOnTimeouts(t *testing.T) {
+	clearBFFConfigEnv(t)
+	t.Setenv("BFF_CATALOG_GRPC_TIMEOUT", " 1500ms ")
+	t.Setenv("BFF_INVENTORY_GRPC_TIMEOUT", " 2500ms ")
+	t.Setenv("BFF_CART_GRPC_TIMEOUT", " 3500ms ")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error for padded timeouts: %v", err)
+	}
+	if cfg.CatalogGRPCTimeout != 1500*time.Millisecond {
+		t.Fatalf("CatalogGRPCTimeout = %s, want 1500ms", cfg.CatalogGRPCTimeout)
+	}
+	if cfg.InventoryGRPCTimeout != 2500*time.Millisecond {
+		t.Fatalf("InventoryGRPCTimeout = %s, want 2500ms", cfg.InventoryGRPCTimeout)
+	}
+	if cfg.CartGRPCTimeout != 3500*time.Millisecond {
+		t.Fatalf("CartGRPCTimeout = %s, want 3500ms", cfg.CartGRPCTimeout)
+	}
+}
+
+func TestLoadIgnoresDotenvFile(t *testing.T) {
 	dir := t.TempDir()
 	envFile := filepath.Join(dir, ".env")
-	if err := os.WriteFile(envFile, []byte("BFF_HTTP_ADDR=:9180\nBFF_CATALOG_GRPC_ADDR=localhost:50051\nBFF_CATALOG_GRPC_TIMEOUT=2s\nBFF_CART_GRPC_ADDR=localhost:50053\nBFF_CART_GRPC_TIMEOUT=4s\n"), 0o600); err != nil {
+	if err := os.WriteFile(envFile, []byte("BFF_HTTP_ADDR=:9180\nBFF_CATALOG_GRPC_ADDR=dotenv.local:50051\nBFF_INVENTORY_GRPC_ADDR=dotenv.local:50052\nBFF_CART_GRPC_ADDR=dotenv.local:50053\n"), 0o600); err != nil {
 		t.Fatalf("write dotenv file: %v", err)
 	}
 
-	for _, key := range []string{"BFF_HTTP_ADDR", "HTTP_ADDR", "BFF_CATALOG_GRPC_ADDR", "BFF_CATALOG_GRPC_TIMEOUT", "BFF_CART_GRPC_ADDR", "BFF_CART_GRPC_TIMEOUT"} {
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("chdir: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chdir(origDir)
+	})
+
+	for _, key := range []string{"BFF_HTTP_ADDR", "HTTP_ADDR", "BFF_CATALOG_GRPC_ADDR", "BFF_CATALOG_GRPC_TIMEOUT", "BFF_INVENTORY_GRPC_ADDR", "BFF_INVENTORY_GRPC_TIMEOUT", "BFF_CART_GRPC_ADDR", "BFF_CART_GRPC_TIMEOUT"} {
 		value, exists := os.LookupEnv(key)
 		_ = os.Unsetenv(key)
 		t.Cleanup(func() {
@@ -169,20 +331,17 @@ func TestLoadReadsDotenvFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cfg.HTTPAddr != ":9180" {
-		t.Fatalf("expected dotenv HTTP address :9180, got %s", cfg.HTTPAddr)
+	if cfg.HTTPAddr != ":8080" {
+		t.Fatalf("expected default HTTP address :8080 when .env present, got %s", cfg.HTTPAddr)
 	}
-	if cfg.CatalogGRPCAddr != "localhost:50051" {
-		t.Fatalf("expected dotenv Catalog gRPC address localhost:50051, got %s", cfg.CatalogGRPCAddr)
+	if cfg.CatalogGRPCAddr != "127.0.0.1:50051" {
+		t.Fatalf("expected default Catalog gRPC address 127.0.0.1:50051, got %s", cfg.CatalogGRPCAddr)
 	}
-	if cfg.CatalogGRPCTimeout != 2*time.Second {
-		t.Fatalf("expected dotenv Catalog gRPC timeout 2s, got %s", cfg.CatalogGRPCTimeout)
+	if cfg.InventoryGRPCAddr != "127.0.0.1:50052" {
+		t.Fatalf("expected default Inventory gRPC address 127.0.0.1:50052, got %s", cfg.InventoryGRPCAddr)
 	}
-	if cfg.CartGRPCAddr != "localhost:50053" {
-		t.Fatalf("expected dotenv Cart gRPC address localhost:50053, got %s", cfg.CartGRPCAddr)
-	}
-	if cfg.CartGRPCTimeout != 4*time.Second {
-		t.Fatalf("expected dotenv Cart gRPC timeout 4s, got %s", cfg.CartGRPCTimeout)
+	if cfg.CartGRPCAddr != "127.0.0.1:50053" {
+		t.Fatalf("expected default Cart gRPC address 127.0.0.1:50053, got %s", cfg.CartGRPCAddr)
 	}
 }
 
@@ -260,5 +419,11 @@ func TestBFFContainerDeclaresProductionCartGRPCTarget(t *testing.T) {
 	}
 	if !strings.Contains(content, `ENV BFF_CART_GRPC_TIMEOUT="3s"`) {
 		t.Fatal("BFF production image does not declare the Cart gRPC timeout")
+	}
+	if !strings.Contains(content, `ENV BFF_INVENTORY_GRPC_ADDR="inventory-service:50052"`) {
+		t.Fatal("BFF production image does not declare the Inventory gRPC service DNS target")
+	}
+	if !strings.Contains(content, `ENV BFF_INVENTORY_GRPC_TIMEOUT="3s"`) {
+		t.Fatal("BFF production image does not declare the Inventory gRPC timeout")
 	}
 }

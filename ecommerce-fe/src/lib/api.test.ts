@@ -384,4 +384,74 @@ describe("cart adapters", () => {
     expect(error.message).toBe("Only 1 item remains")
     expect(error.traceId).toBe("cart-t-1")
   })
+
+  it("suppresses toast.success on POST /cart/items when non-degraded response marks the added item OUT_OF_STOCK or UNAVAILABLE", async () => {
+    http.defaults.adapter = vi.fn(async (config) => ({
+      data: {
+        data: {
+          degraded: false,
+          items: [
+            {
+              itemId: "item-1",
+              productId: "p-1",
+              variantLabel: "Đen",
+              quantity: 1,
+              name: "Nova X",
+              brand: "Nova",
+              categoryName: "Điện thoại",
+              unitPrice: 1000000,
+              imageEmoji: "📱",
+              imageHue: [200, 240],
+              imageUrl: "",
+              status: "OUT_OF_STOCK",
+              availableQuantity: 0,
+            },
+          ],
+        },
+        message: "Item added to cart.",
+      },
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      config,
+    })) as never
+
+    await addCartItem({ productId: "p-1", variantLabel: "Đen", quantity: 1 })
+    expect(toast.success).not.toHaveBeenCalled()
+  })
+
+  it("keeps toast.success on POST /cart/items when cart.degraded is true even if status is UNAVAILABLE", async () => {
+    http.defaults.adapter = vi.fn(async (config) => ({
+      data: {
+        data: {
+          degraded: true,
+          items: [
+            {
+              itemId: "item-1",
+              productId: "p-1",
+              variantLabel: "Đen",
+              quantity: 1,
+              name: "Nova X",
+              brand: "Nova",
+              categoryName: "Điện thoại",
+              unitPrice: 1000000,
+              imageEmoji: "📱",
+              imageHue: [200, 240],
+              imageUrl: "",
+              status: "UNAVAILABLE",
+              availableQuantity: 0,
+            },
+          ],
+        },
+        message: "Item added to cart.",
+      },
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      config,
+    })) as never
+
+    await addCartItem({ productId: "p-1", variantLabel: "Đen", quantity: 1 })
+    expect(toast.success).toHaveBeenCalledWith("Item added to cart.")
+  })
 })

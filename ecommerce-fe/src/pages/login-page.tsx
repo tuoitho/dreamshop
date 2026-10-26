@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react"
-import { Link, useLocation, useNavigate } from "react-router-dom"
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,8 +11,24 @@ const DEV_ACCOUNTS = [
   { label: "Admin", email: "admin@example.com", password: "AdminPassword123!" },
 ] as const
 
+interface LoginLocationState {
+  from?: string | { pathname: string; search?: string; hash?: string }
+  registered?: boolean
+}
+
+function resolveDestination(state: unknown): string {
+  const fromState = (state as LoginLocationState | null)?.from
+  const candidate =
+    typeof fromState === "string"
+      ? fromState
+      : fromState
+        ? `${fromState.pathname}${fromState.search ?? ""}${fromState.hash ?? ""}`
+        : "/"
+  return candidate.startsWith("/") && !candidate.startsWith("//") ? candidate : "/"
+}
+
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, ready, isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const isDevMode = import.meta.env.MODE === "development"
@@ -21,15 +37,20 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
+  const destination = resolveDestination(location.state)
+  const justRegistered = Boolean((location.state as LoginLocationState | null)?.registered)
+
+  if (ready && isAuthenticated && !submitting) {
+    return <Navigate to={destination} replace />
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
     setSubmitting(true)
     try {
       await login({ email, password })
-      const fromState = (location.state as { from?: string | { pathname: string } } | null)?.from
-      const from = typeof fromState === "string" ? fromState : fromState?.pathname ?? "/profile"
-      navigate(from, { replace: true })
+      navigate(destination, { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed")
     } finally {
@@ -38,13 +59,21 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center p-4">
+    <div className="flex min-h-[calc(100svh-12rem)] items-center justify-center px-4 py-12">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-xl">Đăng nhập</CardTitle>
           <CardDescription>Đăng nhập vào tài khoản của bạn</CardDescription>
         </CardHeader>
         <CardContent>
+          {justRegistered ? (
+            <div
+              role="status"
+              className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300"
+            >
+              Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.
+            </div>
+          ) : null}
           {isDevMode ? (
             <div className="mb-4 flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted/40 px-3 py-2">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">DEV</span>

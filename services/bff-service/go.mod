@@ -4,10 +4,10 @@ go 1.24
 
 require (
 	ecommerce.local/contracts/go v0.0.0
-	github.com/joho/godotenv v1.5.1
 	github.com/spf13/viper v1.19.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157
 	google.golang.org/grpc v1.65.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 replace ecommerce.local/contracts/go => ../../contracts/go
@@ -33,5 +33,4 @@ require (
 	golang.org/x/text v0.15.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

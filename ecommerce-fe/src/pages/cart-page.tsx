@@ -1,16 +1,17 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react"
+import { FREE_SHIPPING_THRESHOLD, STANDARD_SHIPPING_FEE } from "@/lib/shipping"
 import { formatVND, cn } from "@/lib/utils"
 import { ProductImage } from "@/components/product-image"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useCart } from "@/hooks/use-cart"
 import type { CartItem } from "@/lib/types"
 
-export const FREE_SHIPPING_THRESHOLD = 299000
-export const STANDARD_SHIPPING_FEE = 25000
+export { FREE_SHIPPING_THRESHOLD, STANDARD_SHIPPING_FEE }
 
 function isPurchasable(item: CartItem): boolean {
   return item.status === "AVAILABLE" || item.status === "LIMITED"
@@ -29,51 +30,89 @@ function CartItemRow({
   onUpdateQuantity: (itemId: string, quantity: number) => void
   onRemove: (itemId: string) => void
 }) {
+  const [imageError, setImageError] = useState(false)
   const unavailable = !isPurchasable(item)
   const limited = item.status === "LIMITED"
   const overAvailableQuantity = limited && item.quantity > item.availableQuantity
+  const isOrphanDeleted = !item.name.trim()
+  const displayName = item.name.trim() || "Sản phẩm không còn tồn tại"
+  const hasImage = Boolean(item.imageUrl) && !imageError
+
+  useEffect(() => {
+    setImageError(false)
+  }, [item.imageUrl])
+
+  const mediaContent = hasImage ? (
+    <img
+      src={item.imageUrl}
+      alt={displayName}
+      loading="lazy"
+      className="h-full w-full object-cover"
+      onError={() => setImageError(true)}
+    />
+  ) : (
+    <ProductImage
+      emoji={item.imageEmoji || "📦"}
+      hue={[item.imageHue[0] ?? 200, item.imageHue[1] ?? 240]}
+      seed={item.productId}
+      label={displayName}
+    />
+  )
 
   return (
     <div
       className={cn(
-        "flex gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-opacity",
+        "flex gap-4 rounded-xl p-4 ring-1 ring-foreground/10 transition-opacity",
+        unavailable ? "bg-muted/30" : "bg-card",
         (!selected || unavailable) && "opacity-70"
       )}
     >
-      <label className="flex cursor-pointer items-start pt-1">
+      <label
+        className={cn(
+          "flex shrink-0 items-center",
+          unavailable ? "cursor-not-allowed" : "cursor-pointer"
+        )}
+      >
         <Checkbox
           checked={selected}
           onCheckedChange={() => onToggle(item.itemId)}
-          aria-label={`Chọn ${item.name}`}
+          aria-label={`Chọn ${displayName}`}
           disabled={unavailable}
         />
       </label>
 
-      <Link
-        to={`/san-pham/${item.productId}`}
-        className="block size-24 shrink-0 overflow-hidden rounded-lg ring-1 ring-foreground/10"
-      >
-        <ProductImage
-          emoji={item.imageEmoji}
-          hue={[item.imageHue[0] ?? 200, item.imageHue[1] ?? 240]}
-          seed={item.productId}
-          label={item.name}
-        />
-      </Link>
+      {isOrphanDeleted ? (
+        <div className="block size-24 shrink-0 self-center overflow-hidden rounded-lg ring-1 ring-foreground/10">
+          {mediaContent}
+        </div>
+      ) : (
+        <Link
+          to={`/san-pham/${item.productId}`}
+          className="block size-24 shrink-0 self-center overflow-hidden rounded-lg ring-1 ring-foreground/10"
+        >
+          {mediaContent}
+        </Link>
+      )}
 
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-start justify-between gap-2">
-          <Link
-            to={`/san-pham/${item.productId}`}
-            className="line-clamp-2 text-sm font-medium hover:text-primary"
-          >
-            {item.name}
-          </Link>
+          {isOrphanDeleted ? (
+            <span className="line-clamp-2 text-sm font-medium text-muted-foreground">
+              {displayName}
+            </span>
+          ) : (
+            <Link
+              to={`/san-pham/${item.productId}`}
+              className="line-clamp-2 text-sm font-medium hover:text-primary"
+            >
+              {displayName}
+            </Link>
+          )}
           <Button
             variant="ghost"
             size="icon"
             className="size-7 shrink-0"
-            aria-label={`Xóa ${item.name}`}
+            aria-label={`Xóa ${displayName}`}
             onClick={() => onRemove(item.itemId)}
           >
             <Trash2 />
@@ -96,7 +135,9 @@ function CartItemRow({
           <p className="mt-2 text-xs font-semibold text-destructive">Hết hàng</p>
         )}
         {item.status === "UNAVAILABLE" && (
-          <p className="mt-2 text-xs font-semibold text-muted-foreground">Không còn kinh doanh</p>
+          <p className="mt-2 text-xs font-semibold text-muted-foreground">
+            {isOrphanDeleted ? "Sản phẩm đã bị gỡ khỏi gian hàng" : "Không còn kinh doanh"}
+          </p>
         )}
         {limited && (
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-amber-700 dark:text-amber-300">
@@ -118,7 +159,7 @@ function CartItemRow({
             <Button
               variant="outline"
               size="icon-sm"
-              aria-label={`Giảm số lượng ${item.name}`}
+              aria-label={`Giảm số lượng ${displayName}`}
               disabled={unavailable || item.quantity <= 1}
               onClick={() => onUpdateQuantity(item.itemId, item.quantity - 1)}
             >
@@ -128,15 +169,22 @@ function CartItemRow({
             <Button
               variant="outline"
               size="icon-sm"
-              aria-label={`Tăng số lượng ${item.name}`}
+              aria-label={`Tăng số lượng ${displayName}`}
               disabled={unavailable || (limited && item.quantity >= item.availableQuantity)}
               onClick={() => onUpdateQuantity(item.itemId, item.quantity + 1)}
             >
               <Plus />
             </Button>
           </div>
-          <span className="text-sm font-bold text-red-600">
-            {formatVND(item.unitPrice * item.quantity)}
+          <span
+            className={cn(
+              "text-sm font-bold",
+              isOrphanDeleted && item.unitPrice <= 0 ? "text-muted-foreground" : "text-red-600"
+            )}
+          >
+            {isOrphanDeleted && item.unitPrice <= 0
+              ? "—"
+              : formatVND(item.unitPrice * item.quantity)}
           </span>
         </div>
       </div>
@@ -175,16 +223,30 @@ export default function CartPage() {
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-center px-4 py-24 text-center">
         <span className="text-5xl">⚠️</span>
         <h1 className="mt-4 text-xl font-bold">Không tải được giỏ hàng</h1>
-        <p role="alert" className="mt-1 max-w-sm text-sm text-muted-foreground">{loadError.message}</p>
-        <Button className="mt-6" onClick={() => void retryLoad()}>Thử lại</Button>
+        <p role="alert" className="mt-1 max-w-sm text-sm text-muted-foreground">
+          {loadError.message}
+        </p>
+        <Button className="mt-6" onClick={() => void retryLoad()}>
+          Thử lại
+        </Button>
       </div>
     )
   }
 
   if (loading && items.length === 0) {
     return (
-      <div className="mx-auto flex max-w-7xl items-center justify-center px-4 py-24">
-        <p className="text-sm text-muted-foreground" role="status">Đang tải giỏ hàng...</p>
+      <div className="mx-auto max-w-7xl px-4 py-8" role="status">
+        <p className="sr-only">Đang tải giỏ hàng...</p>
+        <Skeleton className="h-8 w-40" />
+        <Skeleton className="mt-2 h-4 w-56" />
+        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <Skeleton key={idx} className="h-32 w-full rounded-xl" />
+            ))}
+          </div>
+          <Skeleton className="h-72 w-full rounded-2xl" />
+        </div>
       </div>
     )
   }
@@ -193,7 +255,10 @@ export default function CartPage() {
     return (
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-center px-4 py-24 text-center">
         {degraded && (
-          <div role="alert" className="mb-6 rounded-xl border border-amber-300/70 bg-amber-50 p-4 text-left text-sm text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/30 dark:text-amber-100">
+          <div
+            role="alert"
+            className="mb-6 rounded-xl border border-amber-300/70 bg-amber-50 p-4 text-left text-sm text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/30 dark:text-amber-100"
+          >
             Một số thông tin giỏ hàng chưa được cập nhật. Vui lòng thử lại trước khi đặt hàng.
           </div>
         )}
@@ -202,8 +267,7 @@ export default function CartPage() {
         </span>
         <h1 className="mt-6 text-xl font-bold sm:text-2xl">Giỏ hàng đang trống</h1>
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-          Bạn chưa có sản phẩm nào trong giỏ. Khám phá hàng nghìn sản phẩm hấp dẫn ngay
-          bây giờ nhé!
+          Bạn chưa có sản phẩm nào trong giỏ. Khám phá hàng nghìn sản phẩm hấp dẫn ngay bây giờ nhé!
         </p>
         <Button size="lg" className="mt-6" asChild>
           <Link to="/">Tiếp tục mua sắm</Link>
@@ -214,10 +278,24 @@ export default function CartPage() {
 
   const purchasableItems = items.filter(isPurchasable)
   const unavailableItems = items.filter((item) => !isPurchasable(item))
-  const shippingFee = selectedTotal > 0
-    ? selectedTotal >= FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING_FEE
-    : 0
+  const shippingFee =
+    selectedTotal > 0
+      ? selectedTotal >= FREE_SHIPPING_THRESHOLD
+        ? 0
+        : STANDARD_SHIPPING_FEE
+      : 0
   const grandTotal = selectedTotal + shippingFee
+
+  async function handleRemoveAllUnavailable() {
+    for (const item of unavailableItems) {
+      try {
+        await removeItem(item.itemId)
+      } catch {
+        // Error notification is handled by the Axios response interceptor.
+        break
+      }
+    }
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
@@ -228,12 +306,14 @@ export default function CartPage() {
 
       {buyId && (
         <div className="mt-4 rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">
-          Sản phẩm đã được thêm vào giỏ hàng của bạn. Kiểm tra và hoàn tất đơn hàng bên
-          dưới nhé!
+          Sản phẩm đã được thêm vào giỏ hàng của bạn. Kiểm tra và hoàn tất đơn hàng bên dưới nhé!
         </div>
       )}
       {degraded && (
-        <div role="alert" className="mt-4 rounded-xl border border-amber-300/70 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/30 dark:text-amber-100">
+        <div
+          role="alert"
+          className="mt-4 rounded-xl border border-amber-300/70 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/30 dark:text-amber-100"
+        >
           Một số thông tin giỏ hàng chưa được cập nhật. Vui lòng thử lại trước khi đặt hàng.
         </div>
       )}
@@ -245,7 +325,12 @@ export default function CartPage() {
               <Checkbox checked={allSelected} onCheckedChange={toggleAllSelected} />
               Chọn tất cả ({purchasableItems.length})
             </label>
-            <Button variant="ghost" size="sm" onClick={() => void removeSelected()}>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={selectedItems.length === 0 || loading}
+              onClick={() => void removeSelected()}
+            >
               <Trash2 />
               Xóa đã chọn
             </Button>
@@ -253,7 +338,10 @@ export default function CartPage() {
 
           {purchasableItems.length > 0 && (
             <section className="mt-4" aria-labelledby="purchasable-heading">
-              <h2 id="purchasable-heading" className="mb-3 text-sm font-semibold text-muted-foreground">
+              <h2
+                id="purchasable-heading"
+                className="mb-3 text-sm font-semibold text-muted-foreground"
+              >
                 Sản phẩm có thể đặt
               </h2>
               <div className="grid gap-3">
@@ -272,21 +360,38 @@ export default function CartPage() {
           )}
 
           {unavailableItems.length > 0 && (
-            <section className={cn(purchasableItems.length > 0 && "mt-6")} aria-labelledby="unavailable-heading">
-              <div className="rounded-2xl border border-dashed border-foreground/15 bg-muted/30 p-4">
-                <h2 id="unavailable-heading" className="text-sm font-semibold">Sản phẩm không khả dụng</h2>
-                <div className="mt-3 grid gap-3">
-                  {unavailableItems.map((item) => (
-                    <CartItemRow
-                      key={item.itemId}
-                      item={item}
-                      selected={false}
-                      onToggle={toggleSelected}
-                      onUpdateQuantity={(itemId, quantity) => void updateQuantity(itemId, quantity)}
-                      onRemove={(itemId) => void removeItem(itemId)}
-                    />
-                  ))}
-                </div>
+            <section
+              className={cn(purchasableItems.length > 0 ? "mt-6" : "mt-4")}
+              aria-labelledby="unavailable-heading"
+            >
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h2
+                  id="unavailable-heading"
+                  className="text-sm font-semibold text-muted-foreground"
+                >
+                  Sản phẩm không khả dụng
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  disabled={loading}
+                  onClick={() => void handleRemoveAllUnavailable()}
+                >
+                  <Trash2 />
+                  Xóa tất cả ({unavailableItems.length})
+                </Button>
+              </div>
+              <div className="grid gap-3">
+                {unavailableItems.map((item) => (
+                  <CartItemRow
+                    key={item.itemId}
+                    item={item}
+                    selected={false}
+                    onToggle={toggleSelected}
+                    onUpdateQuantity={(itemId, quantity) => void updateQuantity(itemId, quantity)}
+                    onRemove={(itemId) => void removeItem(itemId)}
+                  />
+                ))}
               </div>
             </section>
           )}

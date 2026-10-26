@@ -40,7 +40,7 @@ func TestStartLocalIdentityOrderCartBff(t *testing.T) {
 	}
 
 	var out, errOut bytes.Buffer
-	code := runWithDeps([]string{"-root", root, "-service", "identity-service"}, strings.NewReader(""), &out, &errOut, nil, launcher)
+	code := runWithDeps([]string{"-root", root, "-service", "identity-service"}, strings.NewReader(""), &out, &errOut, []string{}, launcher)
 	if code != 0 {
 		t.Fatalf("identity-service exit %d: %s", code, errOut.String())
 	}
@@ -67,7 +67,7 @@ func TestStartLocalIdentityOrderCartBff(t *testing.T) {
 	}
 
 	// Cart service
-	code = runWithDeps([]string{"-root", root, "-service", "cart-service"}, strings.NewReader(""), &out, &errOut, nil, launcher)
+	code = runWithDeps([]string{"-root", root, "-service", "cart-service"}, strings.NewReader(""), &out, &errOut, []string{}, launcher)
 	if code != 0 {
 		t.Fatalf("cart-service exit %d", code)
 	}
@@ -81,34 +81,173 @@ func TestStartLocalIdentityOrderCartBff(t *testing.T) {
 		t.Fatalf("unexpected cart env: %v", got.Env)
 	}
 
-	// BFF service warns when .env is missing, then runs go run ./services/bff-service/cmd/server
+	// BFF service sets local defaults directly without reading .env
 	errOut.Reset()
-	code = runWithDeps([]string{"-root", root, "-service", "bff-service"}, strings.NewReader(""), &out, &errOut, nil, launcher)
+	code = runWithDeps([]string{"-root", root, "-service", "bff-service"}, strings.NewReader(""), &out, &errOut, []string{}, launcher)
 	if code != 0 {
-		t.Fatalf("bff-service exit %d", code)
-	}
-	if !strings.Contains(errOut.String(), "Local env file was not found") {
-		t.Fatalf("expected missing .env warning, got %q", errOut.String())
-	}
-	if got.Name != "go" || !reflect.DeepEqual(got.Args, []string{"run", "./services/bff-service/cmd/server"}) {
-		t.Fatalf("unexpected bff command: %s %v", got.Name, got.Args)
-	}
-
-	// BFF service with existing .env sets ENV_FILE without warning
-	envPath := filepath.Join(root, ".env")
-	if err := os.WriteFile(envPath, []byte("BFF_HTTP_ADDR=:8081\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	errOut.Reset()
-	code = runWithDeps([]string{"-root", root, "-service", "bff-service"}, strings.NewReader(""), &out, &errOut, nil, launcher)
-	if code != 0 {
-		t.Fatalf("bff-service with .env exit %d", code)
+		t.Fatalf("bff-service exit %d: %s", code, errOut.String())
 	}
 	if errOut.String() != "" {
-		t.Fatalf("expected no warning when .env exists, got %q", errOut.String())
+		t.Fatalf("expected no stderr output for bff-service, got %q", errOut.String())
 	}
-	if got.Env["ENV_FILE"] != envPath {
-		t.Fatalf("expected ENV_FILE=%s, got %q", envPath, got.Env["ENV_FILE"])
+	if got.Dir != filepath.Join(root, "services", "bff-service") {
+		t.Fatalf("unexpected bff dir: %s", got.Dir)
+	}
+	if got.Name != "go" || !reflect.DeepEqual(got.Args, []string{"run", "./cmd/server"}) {
+		t.Fatalf("unexpected bff command: %s %v", got.Name, got.Args)
+	}
+	if got.Env["BFF_HTTP_ADDR"] != ":8081" ||
+		got.Env["BFF_CATALOG_GRPC_ADDR"] != "127.0.0.1:50051" ||
+		got.Env["BFF_CATALOG_GRPC_TIMEOUT"] != "3s" ||
+		got.Env["BFF_INVENTORY_GRPC_ADDR"] != "127.0.0.1:50052" ||
+		got.Env["BFF_INVENTORY_GRPC_TIMEOUT"] != "3s" ||
+		got.Env["BFF_CART_GRPC_ADDR"] != "127.0.0.1:50053" ||
+		got.Env["BFF_CART_GRPC_TIMEOUT"] != "3s" {
+		t.Fatalf("unexpected bff env: %v", got.Env)
+	}
+	if _, hasEnvFile := got.Env["ENV_FILE"]; hasEnvFile {
+		t.Fatalf("expected BFF launch not to set ENV_FILE, got %q", got.Env["ENV_FILE"])
+	}
+
+	// Frontend (fe / ecommerce-fe) sets default VITE_API_BASE_URL and runs Vite dev server
+	errOut.Reset()
+	code = runWithDeps([]string{"-root", root, "-service", "fe"}, strings.NewReader(""), &out, &errOut, []string{}, launcher)
+	if code != 0 {
+		t.Fatalf("fe exit %d: %s", code, errOut.String())
+	}
+	if got.Dir != root {
+		t.Fatalf("unexpected fe dir: %s", got.Dir)
+	}
+	if got.Name != "npm" || !reflect.DeepEqual(got.Args, []string{"--prefix", "ecommerce-fe", "run", "dev"}) {
+		t.Fatalf("unexpected fe command: %s %v", got.Name, got.Args)
+	}
+	if got.Env["VITE_API_BASE_URL"] != "http://localhost:8000/api/v1" {
+		t.Fatalf("unexpected fe VITE_API_BASE_URL: %q", got.Env["VITE_API_BASE_URL"])
+	}
+}
+
+func TestStartLocalCatalogAndInventoryDefaults(t *testing.T) {
+	root := t.TempDir()
+	var got recordedLaunch
+	launcher := func(dir string, env []string, name string, args ...string) int {
+		got = recordedLaunch{
+			Dir:  dir,
+			Env:  envSliceToMap(env),
+			Name: name,
+			Args: args,
+		}
+		return 0
+	}
+
+	var out, errOut bytes.Buffer
+	code := runWithDeps([]string{"-root", root, "-service", "catalog"}, strings.NewReader(""), &out, &errOut, []string{}, launcher)
+	if code != 0 {
+		t.Fatalf("catalog exit %d: %s", code, errOut.String())
+	}
+	if got.Dir != filepath.Join(root, "services", "catalog-service") {
+		t.Fatalf("unexpected catalog dir: %s", got.Dir)
+	}
+	if got.Name != "go" || !reflect.DeepEqual(got.Args, []string{"run", "./cmd/server"}) {
+		t.Fatalf("unexpected catalog command: %s %v", got.Name, got.Args)
+	}
+	if got.Env["HTTP_ADDR"] != ":8085" ||
+		got.Env["GRPC_ADDR"] != "127.0.0.1:50051" ||
+		got.Env["DATABASE_URL"] != "postgres://ecommerce:change-me-local-only@127.0.0.1:5432/catalog_db?sslmode=disable" ||
+		got.Env["IDENTITY_GRPC_ADDR"] != "127.0.0.1:50054" ||
+		got.Env["IDENTITY_GRPC_TIMEOUT"] != "500ms" {
+		t.Fatalf("unexpected catalog env: %v", got.Env)
+	}
+
+	errOut.Reset()
+	code = runWithDeps([]string{"-root", root, "-service", "inventory"}, strings.NewReader(""), &out, &errOut, []string{}, launcher)
+	if code != 0 {
+		t.Fatalf("inventory exit %d: %s", code, errOut.String())
+	}
+	if got.Dir != filepath.Join(root, "services", "inventory-service") {
+		t.Fatalf("unexpected inventory dir: %s", got.Dir)
+	}
+	if got.Name != "go" || !reflect.DeepEqual(got.Args, []string{"run", "./cmd/server"}) {
+		t.Fatalf("unexpected inventory command: %s %v", got.Name, got.Args)
+	}
+	if got.Env["HTTP_ADDR"] != ":8082" ||
+		got.Env["GRPC_ADDR"] != "127.0.0.1:50052" ||
+		got.Env["DATABASE_URL"] != "postgres://ecommerce:change-me-local-only@127.0.0.1:5432/inventory_db?sslmode=disable" {
+		t.Fatalf("unexpected inventory env: %v", got.Env)
+	}
+}
+
+func TestStartLocalRespectsEnvOverrides(t *testing.T) {
+	root := t.TempDir()
+	var got recordedLaunch
+	launcher := func(dir string, env []string, name string, args ...string) int {
+		got = recordedLaunch{
+			Dir:  dir,
+			Env:  envSliceToMap(env),
+			Name: name,
+			Args: args,
+		}
+		return 0
+	}
+
+	var out, errOut bytes.Buffer
+	idEnv := []string{
+		"SERVER_PORT=18080",
+		"IDENTITY_JWT_ISSUER=http://localhost:18080",
+	}
+	code := runWithDeps([]string{"-root", root, "-service", "identity"}, strings.NewReader(""), &out, &errOut, idEnv, launcher)
+	if code != 0 {
+		t.Fatalf("identity override exit %d: %s", code, errOut.String())
+	}
+	if got.Env["SERVER_PORT"] != "18080" || got.Env["IDENTITY_JWT_ISSUER"] != "http://localhost:18080" {
+		t.Fatalf("expected identity env overrides to be preserved, got %v", got.Env)
+	}
+
+	errOut.Reset()
+	customEnv := []string{
+		"HTTP_ADDR=:9085",
+		"DATABASE_URL=postgres://custom:secret@127.0.0.1:5432/catalog_db?sslmode=disable",
+	}
+	code = runWithDeps([]string{"-root", root, "-service", "catalog-service"}, strings.NewReader(""), &out, &errOut, customEnv, launcher)
+	if code != 0 {
+		t.Fatalf("catalog-service override exit %d: %s", code, errOut.String())
+	}
+	if got.Env["HTTP_ADDR"] != ":9085" || got.Env["DATABASE_URL"] != "postgres://custom:secret@127.0.0.1:5432/catalog_db?sslmode=disable" {
+		t.Fatalf("expected catalog env overrides to be preserved, got %v", got.Env)
+	}
+
+	errOut.Reset()
+	invEnv := []string{
+		"HTTP_ADDR=:9082",
+		"DATABASE_URL=postgres://custom:secret@127.0.0.1:5432/inventory_db?sslmode=disable",
+	}
+	code = runWithDeps([]string{"-root", root, "-service", "inventory-service"}, strings.NewReader(""), &out, &errOut, invEnv, launcher)
+	if code != 0 {
+		t.Fatalf("inventory-service override exit %d: %s", code, errOut.String())
+	}
+	if got.Env["HTTP_ADDR"] != ":9082" || got.Env["DATABASE_URL"] != "postgres://custom:secret@127.0.0.1:5432/inventory_db?sslmode=disable" {
+		t.Fatalf("expected inventory env overrides to be preserved, got %v", got.Env)
+	}
+
+	errOut.Reset()
+	bffEnv := []string{"BFF_HTTP_ADDR=:9081"}
+	code = runWithDeps([]string{"-root", root, "-service", "bff"}, strings.NewReader(""), &out, &errOut, bffEnv, launcher)
+	if code != 0 {
+		t.Fatalf("bff override exit %d: %s", code, errOut.String())
+	}
+	if got.Env["BFF_HTTP_ADDR"] != ":9081" {
+		t.Fatalf("expected BFF_HTTP_ADDR override :9081, got %q", got.Env["BFF_HTTP_ADDR"])
+	}
+
+	errOut.Reset()
+	feEnv := []string{"VITE_API_BASE_URL=http://localhost:9000/api/v1"}
+	for _, svcAlias := range []string{"ecommerce-fe", "frontend"} {
+		code = runWithDeps([]string{"-root", root, "-service", svcAlias}, strings.NewReader(""), &out, &errOut, feEnv, launcher)
+		if code != 0 {
+			t.Fatalf("%s override exit %d: %s", svcAlias, code, errOut.String())
+		}
+		if got.Env["VITE_API_BASE_URL"] != "http://localhost:9000/api/v1" {
+			t.Fatalf("expected %s VITE_API_BASE_URL override, got %q", svcAlias, got.Env["VITE_API_BASE_URL"])
+		}
 	}
 }
 

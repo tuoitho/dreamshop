@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { Menu, Search, ShoppingCart, User, X } from "lucide-react"
+import { Link, useLocation, useNavigate } from "react-router-dom"
+import { DropdownMenu } from "radix-ui"
+import { LogOut, Menu, Search, ShoppingCart, User, UserPlus, X } from "lucide-react"
 import { useCart } from "@/hooks/use-cart"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
@@ -16,17 +17,56 @@ const NAV_LINKS = [
   { label: "Khuyến mãi", to: "/tim-kiem?giam-gia=1" },
 ]
 
+function isNavLinkActive(linkTo: string, pathname: string, search: string): boolean {
+  if (linkTo === "/") {
+    return pathname === "/"
+  }
+  const [targetPath, targetSearch = ""] = linkTo.split("?")
+  if (pathname !== targetPath) {
+    return false
+  }
+  const currentParams = new URLSearchParams(search)
+  const targetParams = new URLSearchParams(targetSearch)
+  const targetCategory = targetParams.get("danh-muc")
+  if (targetCategory) {
+    return currentParams.get("danh-muc") === targetCategory
+  }
+  if (targetParams.get("giam-gia") === "1") {
+    return currentParams.get("giam-gia") === "1" && !currentParams.get("danh-muc")
+  }
+  return false
+}
+
 export function SiteHeader() {
   const { totalQuantity } = useCart()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user, logout } = useAuth()
   const navigate = useNavigate()
-  const [query, setQuery] = useState("")
+  const location = useLocation()
+  const urlQuery =
+    location.pathname === "/tim-kiem"
+      ? new URLSearchParams(location.search).get("q") ?? ""
+      : ""
+  const [query, setQuery] = useState(urlQuery)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const toggleRef = useRef<HTMLButtonElement>(null)
+  const displayName = user?.fullName.trim() || user?.email || "Hồ sơ"
+
+  useEffect(() => {
+    setQuery(urlQuery)
+  }, [urlQuery])
+
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [location.pathname, location.search])
 
   useEffect(() => {
     function onPointerDown(event: PointerEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      if (toggleRef.current?.contains(target)) {
+        return
+      }
+      if (menuRef.current && !menuRef.current.contains(target)) {
         setMenuOpen(false)
       }
     }
@@ -40,15 +80,28 @@ export function SiteHeader() {
     navigate(q ? `/tim-kiem?q=${encodeURIComponent(q)}` : "/tim-kiem")
   }
 
+  async function handleLogout() {
+    try {
+      await logout()
+    } catch {
+      // Mutation error toast is shown by the HTTP interceptor; AuthProvider clears local session state in finally.
+    } finally {
+      setMenuOpen(false)
+      navigate("/", { replace: true })
+    }
+  }
+
   return (
     <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:gap-6">
         <div className="flex items-center gap-1">
           <Button
+            ref={toggleRef}
             variant="ghost"
             size="icon"
             className="lg:hidden"
             aria-label="Mở menu"
+            aria-expanded={menuOpen}
             onClick={() => setMenuOpen((open) => !open)}
           >
             <Menu />
@@ -76,12 +129,57 @@ export function SiteHeader() {
         </form>
 
         <nav className="ml-auto flex items-center gap-1">
-          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" asChild>
-            <Link to={isAuthenticated ? "/dashboard" : "/login"}>
-              <User />
-              <span className="hidden md:inline">{isAuthenticated ? "Tài khoản" : "Đăng nhập"}</span>
-            </Link>
-          </Button>
+          {isAuthenticated ? (
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-label={displayName}
+                >
+                  <User />
+                  <span className="sr-only max-w-40 truncate md:not-sr-only md:inline">
+                    {displayName}
+                  </span>
+                </Button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content
+                  align="end"
+                  sideOffset={6}
+                  className="z-50 min-w-44 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md"
+                >
+                  <DropdownMenu.Item
+                    asChild
+                    className="flex cursor-pointer select-none items-center gap-2 rounded-md px-2.5 py-1.5 text-sm outline-none focus:bg-muted focus:text-foreground data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
+                  >
+                    <Link to="/profile">
+                      <User className="size-4 text-muted-foreground" />
+                      <span>Hồ sơ</span>
+                    </Link>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Separator className="my-1 h-px bg-border" />
+                  <DropdownMenu.Item
+                    onSelect={() => {
+                      void handleLogout()
+                    }}
+                    className="flex cursor-pointer select-none items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-destructive outline-none focus:bg-destructive/10 focus:text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive"
+                  >
+                    <LogOut className="size-4" />
+                    <span>Đăng xuất</span>
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+          ) : (
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/login">
+                <User />
+                <span className="sr-only md:not-sr-only md:inline">Đăng nhập</span>
+              </Link>
+            </Button>
+          )}
           <Button variant="ghost" size="icon" className="relative" asChild aria-label="Giỏ hàng">
             <Link to="/gio-hang">
               <ShoppingCart />
@@ -97,15 +195,22 @@ export function SiteHeader() {
 
       <nav className="hidden border-t lg:block">
         <div className="mx-auto flex max-w-7xl items-center gap-1 px-4">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className="px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-            >
-              {link.label}
-            </Link>
-          ))}
+          {NAV_LINKS.map((link) => {
+            const active = isNavLinkActive(link.to, location.pathname, location.search)
+            return (
+              <Link
+                key={link.to}
+                to={link.to}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "px-3 py-2 text-sm font-medium transition-colors hover:text-primary",
+                  active ? "text-primary font-semibold" : "text-muted-foreground"
+                )}
+              >
+                {link.label}
+              </Link>
+            )
+          })}
         </div>
       </nav>
 
@@ -113,23 +218,74 @@ export function SiteHeader() {
         <div ref={menuRef} className="border-t bg-background lg:hidden">
           <div className="flex items-center justify-between px-4 py-2">
             <span className="text-sm font-semibold">Danh mục</span>
-            <Button variant="ghost" size="icon" aria-label="Đóng menu" onClick={() => setMenuOpen(false)}>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Đóng menu"
+              onClick={() => setMenuOpen(false)}
+            >
               <X />
             </Button>
           </div>
-          <div className="grid gap-1 px-2 pb-3">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                className={cn(
-                  "rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-                onClick={() => setMenuOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
+          <div className="grid gap-1 px-2 pb-2">
+            {NAV_LINKS.map((link) => {
+              const active = isNavLinkActive(link.to, location.pathname, location.search)
+              return (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted hover:text-foreground",
+                    active ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground"
+                  )}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              )
+            })}
+          </div>
+          <div className="grid gap-1 border-t px-2 py-3">
+            {isAuthenticated ? (
+              <>
+                <Link
+                  to="/profile"
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <User className="size-4 text-muted-foreground" />
+                  <span>Hồ sơ cá nhân</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => void handleLogout()}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-destructive hover:bg-destructive/10"
+                >
+                  <LogOut className="size-4" />
+                  <span>Đăng xuất tài khoản</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <User className="size-4 text-muted-foreground" />
+                  <span>Đăng nhập tài khoản</span>
+                </Link>
+                <Link
+                  to="/register"
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <UserPlus className="size-4" />
+                  <span>Tạo tài khoản mới</span>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

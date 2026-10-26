@@ -1,38 +1,89 @@
-import { useMemo, useState } from "react"
+import { Fragment, useContext, useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { ArrowRight, BadgePercent, Flame, Sparkles } from "lucide-react"
-import { categories, products } from "@/data/products"
+import { categories } from "@/data/products"
+import { AuthContext } from "@/context/auth-context"
+import { searchProducts, toErrorInfo } from "@/lib/api"
+import type { ProductSummary } from "@/lib/types"
 import { ProductCard } from "@/components/product-card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ProductImage } from "@/components/product-image"
-import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
+import { cn, formatVND } from "@/lib/utils"
 
 export default function HomePage() {
+  const auth = useContext(AuthContext)
+  const isAuthenticated = auth?.isAuthenticated ?? false
+
   const [activeCategory, setActiveCategory] = useState<string>("all")
+  const [items, setItems] = useState<ProductSummary[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<{ message: string; code?: string } | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
+  const [heroImageError, setHeroImageError] = useState(false)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    let active = true
+    setLoading(true)
+    setError(null)
+    setHeroImageError(false)
+
+    searchProducts({ sort: "pho-bien", pageSize: 20 }, controller.signal)
+      .then((result) => {
+        if (active) {
+          setItems(result.items)
+          setLoading(false)
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          setItems([])
+          setError(toErrorInfo(err))
+          setLoading(false)
+        }
+      })
+
+    return () => {
+      active = false
+      controller.abort()
+    }
+  }, [reloadKey])
 
   const hotProducts = useMemo(
-    () => [...products].sort((a, b) => b.soldCount - a.soldCount).slice(0, 8),
-    []
+    () => [...items].sort((a, b) => b.soldCount - a.soldCount).slice(0, 8),
+    [items]
   )
 
   const saleProducts = useMemo(
     () =>
-      [...products]
+      [...items]
         .filter((p) => p.originalPrice > p.price)
         .sort((a, b) => (b.originalPrice - b.price) - (a.originalPrice - a.price))
         .slice(0, 4),
-    []
+    [items]
   )
 
-  const featured = products.find((p) => p.id === "lt-1") ?? products[0]
+  const featuredHero = useMemo(
+    () => items.find((p) => p.featured) ?? items[0] ?? null,
+    [items]
+  )
+
+  const minPrice = useMemo(
+    () => (items.length > 0 ? Math.min(...items.map((p) => p.price)) : null),
+    [items]
+  )
+
   const featuredProducts = useMemo(
     () =>
       activeCategory === "all"
-        ? products
-        : products.filter((p) => p.categoryId === activeCategory),
-    [activeCategory]
+        ? items
+        : items.filter((p) => p.categoryId === activeCategory),
+    [activeCategory, items]
   )
+
+  const heroImageUrl = featuredHero?.images?.[0]
 
   return (
     <div className="pb-12">
@@ -42,7 +93,7 @@ export default function HomePage() {
         <div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:py-16 lg:grid-cols-[1.1fr_1fr] lg:items-center">
           <div>
             <Badge variant="accent">
-              <Sparkles className="size-3" /> Sự kiện mua sắm mùa hè
+              <Sparkles className="size-3" /> Sự kiện mua sắm chính hãng
             </Badge>
             <h1 className="mt-4 max-w-xl text-3xl leading-tight font-extrabold sm:text-4xl lg:text-5xl">
               Mua sắm thông minh,
@@ -81,29 +132,45 @@ export default function HomePage() {
 
           <div className="relative mx-auto w-full max-w-md">
             <div className="overflow-hidden rounded-3xl shadow-2xl ring-4 ring-white/20">
-              <ProductImage
-                emoji={featured.emoji}
-                hue={featured.imageHue}
-                seed={featured.id}
-                label={featured.name}
-              />
+              {heroImageUrl && !heroImageError ? (
+                <img
+                  src={heroImageUrl}
+                  alt={featuredHero?.name ?? "Sản phẩm nổi bật"}
+                  className="aspect-square w-full object-cover"
+                  onError={() => setHeroImageError(true)}
+                />
+              ) : (
+                <ProductImage
+                  emoji={featuredHero?.emoji ?? "🛍️"}
+                  hue={featuredHero?.imageHue ?? [160, 200]}
+                  seed={featuredHero?.id ?? "sshop-hero"}
+                  label={featuredHero?.name ?? "S-Shop"}
+                />
+              )}
             </div>
-            <div className="absolute -bottom-4 -left-4 hidden rounded-2xl bg-white p-3 shadow-lg sm:block">
-              <p className="text-[0.65rem] text-muted-foreground">Giá chỉ từ</p>
-              <p className="text-lg font-extrabold text-primary">3.450.000đ</p>
-            </div>
+            {minPrice !== null ? (
+              <div className="absolute -bottom-4 -left-4 hidden rounded-2xl bg-white p-3 shadow-lg sm:block">
+                <p className="text-[0.65rem] text-muted-foreground">Giá chỉ từ</p>
+                <p className="text-lg font-extrabold text-primary">{formatVND(minPrice)}</p>
+              </div>
+            ) : null}
           </div>
         </div>
       </section>
 
       {/* Categories */}
       <section className="mx-auto max-w-7xl px-4 pt-12">
-        <div className="flex items-end justify-between">
+        <div className="flex items-end justify-between gap-2">
           <div>
             <h2 className="text-xl font-bold sm:text-2xl">Danh mục nổi bật</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Khám phá hàng trăm sản phẩm mới mỗi ngày</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Khám phá hàng trăm sản phẩm mới mỗi ngày
+            </p>
           </div>
-          <Link to="/tim-kiem" className="hidden items-center gap-1 text-sm font-medium text-primary hover:underline sm:flex">
+          <Link
+            to="/tim-kiem"
+            className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-primary hover:underline"
+          >
             Xem tất cả <ArrowRight className="size-4" />
           </Link>
         </div>
@@ -123,101 +190,188 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Flash sale */}
-      {saleProducts.length > 0 && (
-        <section className="mx-auto max-w-7xl px-4 pt-12">
-          <div className="rounded-3xl bg-gradient-to-r from-red-600 to-rose-500 p-6 sm:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <Flame className="size-6 text-white" />
-                <h2 className="text-xl font-extrabold text-white sm:text-2xl">Flash Sale</h2>
+      {loading ? (
+        <section
+          className="mx-auto max-w-7xl px-4 pt-12"
+          role="status"
+          aria-label="Đang tải sản phẩm trang chủ"
+        >
+          <Skeleton className="h-7 w-48" />
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <div
+                key={index}
+                className="overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10"
+              >
+                <Skeleton className="aspect-square rounded-none" />
+                <div className="space-y-2 p-3">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-4 w-1/3" />
+                </div>
               </div>
-              <div className="flex items-center gap-1 text-sm font-semibold text-white">
-                Kết thúc trong
-                <div className="ml-1 flex items-center gap-1">
-                  {["02", "14", "36"].map((value, i) => (
-                    <span key={i} className="grid size-7 place-items-center rounded-md bg-white/20 backdrop-blur">
-                      {value}
-                    </span>
+            ))}
+          </div>
+        </section>
+      ) : error ? (
+        <section className="mx-auto max-w-7xl px-4 pt-12">
+          <div
+            role="alert"
+            className="flex flex-col items-center justify-center rounded-2xl border bg-card py-16 text-center"
+          >
+            <span className="text-4xl">⚠️</span>
+            <h2 className="mt-3 text-lg font-bold">Không tải được sản phẩm trang chủ</h2>
+            <p className="mt-1 max-w-sm text-sm text-muted-foreground">{error.message}</p>
+            <Button className="mt-5" onClick={() => setReloadKey((k) => k + 1)}>
+              Thử lại
+            </Button>
+          </div>
+        </section>
+      ) : (
+        <>
+          {/* Flash sale */}
+          {saleProducts.length > 0 && (
+            <section className="mx-auto max-w-7xl px-4 pt-12">
+              <div className="rounded-3xl bg-gradient-to-r from-red-600 to-rose-500 p-6 sm:p-8">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Flame className="size-6 text-white" />
+                    <h2 className="text-xl font-extrabold text-white sm:text-2xl">Flash Sale</h2>
+                  </div>
+                  <div className="flex items-center gap-1 text-sm font-semibold text-white">
+                    Kết thúc trong
+                    <div className="ml-1 flex items-center gap-1">
+                      {["02", "14", "36"].map((value, i) => (
+                        <Fragment key={value}>
+                          {i > 0 && <span aria-hidden="true">:</span>}
+                          <span className="grid size-7 place-items-center rounded-md bg-white/20 backdrop-blur">
+                            {value}
+                          </span>
+                        </Fragment>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+                  {saleProducts.map((product) => (
+                    <ProductCard key={product.id} product={product} className="bg-white/95" />
                   ))}
                 </div>
               </div>
+            </section>
+          )}
+
+          {/* Featured by category */}
+          <section className="mx-auto max-w-7xl px-4 pt-12">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-bold sm:text-2xl">Sản phẩm nổi bật</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Lựa chọn hàng đầu theo từng danh mục
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { id: "all", name: "Tất cả" },
+                  ...categories.map((c) => ({ id: c.id, name: c.name })),
+                ].map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    aria-pressed={activeCategory === category.id}
+                    onClick={() => setActiveCategory(category.id)}
+                    className={cn(
+                      "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                      activeCategory === category.id
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    )}
+                  >
+                    {category.name}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-              {saleProducts.map((product) => (
-                <ProductCard key={product.id} product={product} className="bg-white/95" />
-              ))}
-            </div>
-          </div>
-        </section>
+            {featuredProducts.length > 0 ? (
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {featuredProducts.slice(0, 8).map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            ) : (
+              <div className="mt-6 rounded-2xl border bg-card py-12 text-center text-sm text-muted-foreground">
+                Chưa có sản phẩm trong danh mục này.
+              </div>
+            )}
+          </section>
+
+          {/* Best sellers */}
+          {hotProducts.length > 0 && (
+            <section className="mx-auto max-w-7xl px-4 pt-12">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-xl font-bold sm:text-2xl">Bán chạy nhất</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Được mua nhiều nhất trong tuần
+                  </p>
+                </div>
+                <Link
+                  to="/tim-kiem"
+                  className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-primary hover:underline"
+                >
+                  Xem tất cả <ArrowRight className="size-4" />
+                </Link>
+              </div>
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {hotProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            </section>
+          )}
+        </>
       )}
-
-      {/* Featured by category */}
-      <section className="mx-auto max-w-7xl px-4 pt-12">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-bold sm:text-2xl">Sản phẩm nổi bật</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Lựa chọn hàng đầu theo từng danh mục</p>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {[{ id: "all", name: "Tất cả" }, ...categories.map((c) => ({ id: c.id, name: c.name }))].map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setActiveCategory(category.id)}
-                className={cn(
-                  "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                  activeCategory === category.id
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-secondary hover:text-foreground"
-                )}
-              >
-                {category.name}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {featuredProducts.slice(0, 8).map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
-
-      {/* Best sellers */}
-      <section className="mx-auto max-w-7xl px-4 pt-12">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold sm:text-2xl">Bán chạy nhất</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Được mua nhiều nhất trong tuần</p>
-          </div>
-          <Link to="/tim-kiem" className="hidden items-center gap-1 text-sm font-medium text-primary hover:underline sm:flex">
-            Xem tất cả <ArrowRight className="size-4" />
-          </Link>
-        </div>
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {hotProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
 
       {/* CTA banner */}
       <section className="mx-auto max-w-7xl px-4 pt-12">
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary to-teal-600 px-6 py-10 text-center text-primary-foreground sm:px-10">
           <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_80%_20%,white_1px,transparent_1px)] [background-size:36px_36px]" />
           <div className="relative">
-            <h2 className="text-2xl font-extrabold sm:text-3xl">Đăng ký nhận ưu đãi hằng ngày</h2>
-            <p className="mx-auto mt-2 max-w-xl text-sm text-primary-foreground/80">
-              Nhận mã giảm giá lên đến 200.000đ và cập nhật các chương trình khuyến mãi sớm nhất.
-            </p>
-            <Button
-              variant="secondary"
-              size="lg"
-              className="mt-6 bg-white text-primary hover:bg-white/90"
-              asChild
-            >
-              <Link to="/register">Đăng ký miễn phí</Link>
-            </Button>
+            {isAuthenticated ? (
+              <>
+                <h2 className="text-2xl font-extrabold sm:text-3xl">
+                  Ưu đãi dành riêng cho thành viên
+                </h2>
+                <p className="mx-auto mt-2 max-w-xl text-sm text-primary-foreground/80">
+                  Khám phá ngay danh sách sản phẩm đang giảm giá sâu và miễn phí giao hàng từ 299.000đ.
+                </p>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  className="mt-6 bg-white text-primary hover:bg-white/90"
+                  asChild
+                >
+                  <Link to="/tim-kiem?giam-gia=1">Khám phá ưu đãi hôm nay</Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <h2 className="text-2xl font-extrabold sm:text-3xl">
+                  Đăng ký nhận ưu đãi hằng ngày
+                </h2>
+                <p className="mx-auto mt-2 max-w-xl text-sm text-primary-foreground/80">
+                  Nhận mã giảm giá lên đến 200.000đ và cập nhật các chương trình khuyến mãi sớm nhất.
+                </p>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  className="mt-6 bg-white text-primary hover:bg-white/90"
+                  asChild
+                >
+                  <Link to="/register">Đăng ký miễn phí</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </section>

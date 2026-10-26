@@ -1,12 +1,17 @@
 import { beforeAll, beforeEach, expect, it, vi } from "vitest"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { MemoryRouter } from "react-router-dom"
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom"
 import { AuthContext } from "@/context/auth-context"
 import { ApiClientError } from "@/lib/api"
 import { fetchProvinces, fetchWards } from "@/lib/locations"
 import type { CurrentUser, UpdateProfileRequest } from "@/lib/types"
 import ProfilePage from "./profile-page"
+
+function LocationProbe() {
+  const location = useLocation()
+  return <p data-testid="current-location">{location.pathname}</p>
+}
 
 vi.mock("@/lib/locations", () => ({
   fetchProvinces: vi.fn(),
@@ -54,7 +59,11 @@ const baseUser: CurrentUser = {
   addressLine: null,
 }
 
-function renderProfile(updateProfile = vi.fn().mockResolvedValue(undefined), user: CurrentUser = baseUser) {
+function renderProfile(
+  updateProfile = vi.fn().mockResolvedValue(undefined),
+  user: CurrentUser = baseUser,
+  logout = vi.fn().mockResolvedValue(undefined),
+) {
   const value = {
     token: "jwt",
     user,
@@ -63,22 +72,29 @@ function renderProfile(updateProfile = vi.fn().mockResolvedValue(undefined), use
     login: vi.fn(),
     register: vi.fn(),
     updateProfile,
-    logout: vi.fn(),
+    logout,
   }
   const view = render(
     <AuthContext value={value}>
-      <MemoryRouter>
-        <ProfilePage />
+      <MemoryRouter initialEntries={["/profile"]}>
+        <Routes>
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="*" element={<LocationProbe />} />
+        </Routes>
       </MemoryRouter>
     </AuthContext>
   )
   return {
     updateProfile,
+    logout,
     setUser: (next: CurrentUser) => {
       view.rerender(
         <AuthContext value={{ ...value, user: next }}>
-          <MemoryRouter>
-            <ProfilePage />
+          <MemoryRouter initialEntries={["/profile"]}>
+            <Routes>
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="*" element={<LocationProbe />} />
+            </Routes>
           </MemoryRouter>
         </AuthContext>
       )
@@ -334,4 +350,23 @@ it("maps backend validation field errors to the matching form fields", async () 
   expect(await screen.findByText("must be a past date")).toBeInTheDocument()
   expect(screen.getByText("Ward is not in the selected province")).toBeInTheDocument()
   expect(updateProfile).toHaveBeenCalledTimes(1)
+})
+
+it("marks ward SearchableSelect trigger with aria-invalid when wardCode validation fails", async () => {
+  renderProfile()
+
+  await selectProvince("TP. Hồ Chí Minh")
+  await userEvent.click(screen.getByRole("button", { name: "Lưu thay đổi" }))
+
+  expect(screen.getByLabelText("Phường/xã")).toHaveAttribute("aria-invalid", "true")
+})
+
+it("navigates to home page cleanly even when logout rejects on ProfilePage", async () => {
+  const logoutMock = vi.fn().mockRejectedValue(new Error("Network error"))
+  renderProfile(vi.fn(), baseUser, logoutMock)
+
+  await userEvent.click(screen.getByRole("button", { name: "Đăng xuất" }))
+
+  expect(logoutMock).toHaveBeenCalledTimes(1)
+  expect((await screen.findByTestId("current-location")).textContent).toBe("/")
 })

@@ -165,10 +165,15 @@ func TestProductionComposeEnforcesIsolationSecretsAndStartupOrder(t *testing.T) 
 	assertHealthyDeps(t, "cart-service", cart.DependsOn, "postgres", "identity-service", "catalog-service", "inventory-service")
 
 	bff := compose.Services["bff-service"]
-	if bff.Environment["BFF_CATALOG_GRPC_ADDR"] != "catalog-service:50051" || bff.Environment["BFF_CART_GRPC_ADDR"] != "cart-service:50053" {
-		t.Errorf("bff-service gRPC targets = catalog=%q cart=%q", bff.Environment["BFF_CATALOG_GRPC_ADDR"], bff.Environment["BFF_CART_GRPC_ADDR"])
+	if bff.Environment["BFF_CATALOG_GRPC_ADDR"] != "catalog-service:50051" ||
+		bff.Environment["BFF_INVENTORY_GRPC_ADDR"] != "inventory-service:50052" ||
+		bff.Environment["BFF_CART_GRPC_ADDR"] != "cart-service:50053" {
+		t.Errorf("bff-service gRPC targets = catalog=%q inventory=%q cart=%q", bff.Environment["BFF_CATALOG_GRPC_ADDR"], bff.Environment["BFF_INVENTORY_GRPC_ADDR"], bff.Environment["BFF_CART_GRPC_ADDR"])
 	}
-	assertHealthyDeps(t, "bff-service", bff.DependsOn, "catalog-service", "cart-service")
+	if bff.Environment["BFF_INVENTORY_GRPC_TIMEOUT"] != "3s" {
+		t.Errorf("bff-service BFF_INVENTORY_GRPC_TIMEOUT = %q, want 3s", bff.Environment["BFF_INVENTORY_GRPC_TIMEOUT"])
+	}
+	assertHealthyDeps(t, "bff-service", bff.DependsOn, "catalog-service", "inventory-service", "cart-service")
 
 	order := compose.Services["order-service"]
 	if order.Environment["MANAGEMENT_SERVER_PORT"] != "8093" {

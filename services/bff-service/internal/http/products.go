@@ -1,12 +1,15 @@
 package http
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -15,26 +18,41 @@ import (
 	commonv1 "ecommerce.local/contracts/go/common/v1"
 
 	"ecommerce.local/bff-service/internal/catalog"
+	"ecommerce.local/bff-service/internal/inventory"
+)
+
+const (
+	lowStockThreshold       = 5
+	maxInventoryConcurrency = 8
+
+	productStatusAvailable   = "AVAILABLE"
+	productStatusLimited     = "LIMITED"
+	productStatusOutOfStock  = "OUT_OF_STOCK"
+	productStatusUnavailable = "UNAVAILABLE"
+	productStatusUnknown     = "UNKNOWN"
 )
 
 // productSummary is the REST shape for a search result / product card.
 type productSummary struct {
-	ID            string   `json:"id"`
-	Name          string   `json:"name"`
-	Brand         string   `json:"brand"`
-	CategoryID    string   `json:"categoryId"`
-	CategoryName  string   `json:"categoryName"`
-	Price         int64    `json:"price"`
-	OriginalPrice int64    `json:"originalPrice"`
-	Rating        float64  `json:"rating"`
-	ReviewCount   int64    `json:"reviewCount"`
-	SoldCount     int64    `json:"soldCount"`
-	Images        []string `json:"images"`
-	Emoji         string   `json:"emoji"`
-	ImageHue      []uint32 `json:"imageHue"`
-	IsNew         bool     `json:"isNew"`
-	Badge         string   `json:"badge"`
-	Featured      bool     `json:"featured"`
+	ID                string   `json:"id"`
+	Name              string   `json:"name"`
+	Brand             string   `json:"brand"`
+	CategoryID        string   `json:"categoryId"`
+	CategoryName      string   `json:"categoryName"`
+	Price             int64    `json:"price"`
+	OriginalPrice     int64    `json:"originalPrice"`
+	Rating            float64  `json:"rating"`
+	ReviewCount       int64    `json:"reviewCount"`
+	SoldCount         int64    `json:"soldCount"`
+	Images            []string `json:"images"`
+	Emoji             string   `json:"emoji"`
+	ImageHue          []uint32 `json:"imageHue"`
+	IsNew             bool     `json:"isNew"`
+	Badge             string   `json:"badge"`
+	Featured          bool     `json:"featured"`
+	Status            string   `json:"status"`
+	AvailableQuantity *int32   `json:"availableQuantity,omitempty"`
+	InventoryDegraded bool     `json:"inventoryDegraded,omitempty"`
 }
 
 // productDetail is the REST shape for the product detail page: the summary
@@ -64,16 +82,20 @@ type paginatedData struct {
 
 // ProductsHandler serves the storefront product search and detail routes.
 type ProductsHandler struct {
-	catalog catalog.Client
+	catalog   catalog.Client
+	inventory inventory.Client
 }
 
-func NewProductsHandler(client catalog.Client) *ProductsHandler {
-	return &ProductsHandler{catalog: client}
+func NewProductsHandler(catalogClient catalog.Client, inventoryClient inventory.Client) *ProductsHandler {
+	return &ProductsHandler{
+		catalog:   catalogClient,
+		inventory: inventoryClient,
+	}
 }
 
 func (h *ProductsHandler) Register(mux *http.ServeMux) {
-	mux.HandleFunc("GET /api/v1/storefront/products", h.search)
-	mux.HandleFunc("GET /api/v1/storefront/products/{id}", h.detail)
+	mux.Handle("GET /api/v1/storefront/products", correlateTrace(http.HandlerFunc(h.search)))
+	mux.Handle("GET /api/v1/storefront/products/{id}", correlateTrace(http.HandlerFunc(h.detail)))
 }
 
 // search handles GET /api/v1/storefront/products.
@@ -105,9 +127,19 @@ func (h *ProductsHandler) search(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	items := make([]productSummary, 0, len(resp.GetItems()))
-	for _, item := range resp.GetItems() {
-		items = append(items, newProductSummary(item))
+	rawItems := resp.GetItems()
+	availabilityByID := h.fetchBatchAvailability(r.Context(), rawItems)
+	items := make([]productSummary, 0, len(rawItems))
+	for _, item := range rawItems {
+		summary := newProductSummary(item)
+		avail, ok := availabilityByID[summary.ID]
+		if !ok {
+			avail = degradedAvailability()
+		}
+		summary.Status = avail.status
+		summary.AvailableQuantity = avail.quantity
+		summary.InventoryDegraded = avail.degraded
+		items = append(items, summary)
 	}
 	writeEnvelope(w, http.StatusOK, paginatedData{
 		Items:      items,
@@ -125,7 +157,116 @@ func (h *ProductsHandler) detail(w http.ResponseWriter, r *http.Request) {
 		h.writeCatalogError(w, r, err)
 		return
 	}
-	writeEnvelope(w, http.StatusOK, newProductDetail(resp), "Product retrieved.")
+	detail := newProductDetail(resp)
+	if resp.GetDeleted() || len(resp.GetVariants()) == 0 {
+		detail.Status = productStatusUnavailable
+		detail.AvailableQuantity = int32Ptr(0)
+	} else {
+		avail := h.fetchOneAvailability(r.Context(), resp.GetId())
+		detail.Status = avail.status
+		detail.AvailableQuantity = avail.quantity
+		detail.InventoryDegraded = avail.degraded
+	}
+	writeEnvelope(w, http.StatusOK, detail, "Product retrieved.")
+}
+
+type availabilityInfo struct {
+	status   string
+	quantity *int32
+	degraded bool
+}
+
+func degradedAvailability() availabilityInfo {
+	return availabilityInfo{
+		status:   productStatusUnknown,
+		degraded: true,
+	}
+}
+
+func classifyStock(available int32) availabilityInfo {
+	if available <= 0 {
+		return availabilityInfo{
+			status:   productStatusOutOfStock,
+			quantity: int32Ptr(0),
+		}
+	}
+	if available <= lowStockThreshold {
+		return availabilityInfo{
+			status:   productStatusLimited,
+			quantity: int32Ptr(available),
+		}
+	}
+	return availabilityInfo{
+		status:   productStatusAvailable,
+		quantity: int32Ptr(available),
+	}
+}
+
+func (h *ProductsHandler) fetchOneAvailability(ctx context.Context, productID string) availabilityInfo {
+	if h.inventory == nil || productID == "" {
+		return degradedAvailability()
+	}
+	resp, err := h.inventory.GetAvailability(ctx, productID)
+	if err != nil || resp == nil {
+		traceID, _ := ctx.Value(traceIDKey{}).(string)
+		log.Printf("bff: inventory availability lookup failed for product %s (traceId=%s): %v", productID, traceID, err)
+		return degradedAvailability()
+	}
+	return classifyStock(resp.GetAvailableQuantity())
+}
+
+func (h *ProductsHandler) fetchBatchAvailability(ctx context.Context, items []*catalogv1.ProductSummary) map[string]availabilityInfo {
+	if len(items) == 0 {
+		return nil
+	}
+	uniqueIDs := make([]string, 0, len(items))
+	seen := make(map[string]struct{}, len(items))
+	for _, item := range items {
+		id := item.GetId()
+		if id == "" {
+			continue
+		}
+		if _, exists := seen[id]; !exists {
+			seen[id] = struct{}{}
+			uniqueIDs = append(uniqueIDs, id)
+		}
+	}
+
+	out := make(map[string]availabilityInfo, len(uniqueIDs))
+	if h.inventory == nil {
+		for _, id := range uniqueIDs {
+			out[id] = degradedAvailability()
+		}
+		return out
+	}
+
+	results := make([]availabilityInfo, len(uniqueIDs))
+	sem := make(chan struct{}, maxInventoryConcurrency)
+	var wg sync.WaitGroup
+	for idx, productID := range uniqueIDs {
+		wg.Add(1)
+		go func(i int, id string) {
+			defer wg.Done()
+			select {
+			case sem <- struct{}{}:
+				defer func() { <-sem }()
+			case <-ctx.Done():
+				results[i] = degradedAvailability()
+				return
+			}
+			results[i] = h.fetchOneAvailability(ctx, id)
+		}(idx, productID)
+	}
+	wg.Wait()
+
+	for idx, id := range uniqueIDs {
+		out[id] = results[idx]
+	}
+	return out
+}
+
+func int32Ptr(v int32) *int32 {
+	return &v
 }
 
 // writeCatalogError maps catalog outcomes to the public REST error contract.

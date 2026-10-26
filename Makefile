@@ -1,4 +1,4 @@
-.PHONY: infra-up infra-down infra-logs prod-config prod-up prod-down prod-logs identity order cart bff identity-keys proto lint verify check-boundaries up down help
+.PHONY: infra-up infra-down infra-logs prod-config prod-up prod-down prod-logs identity order catalog inventory cart bff fe identity-keys proto lint verify check-boundaries up down help
 
 PROD_ENV_FILE ?= .env.production
 
@@ -31,11 +31,20 @@ identity:
 order:
 	go run ./scripts/start-local -service order-service
 
+catalog:
+	go run ./scripts/start-local -service catalog-service
+
+inventory:
+	go run ./scripts/start-local -service inventory-service
+
 cart:
 	go run ./scripts/start-local -service cart-service
 
 bff:
 	go run ./scripts/start-local -service bff-service
+
+fe:
+	go run ./scripts/start-local -service ecommerce-fe
 
 identity-keys:
 	go run ./scripts/generate-identity-dev-keys
@@ -71,8 +80,11 @@ help:
 	@echo "  make prod-logs         - Follow production Docker Compose logs"
 	@echo "  make identity          - Start identity-service locally"
 	@echo "  make order             - Start order-service locally"
+	@echo "  make catalog           - Start catalog-service locally"
+	@echo "  make inventory         - Start inventory-service locally"
 	@echo "  make cart              - Start cart-service locally"
 	@echo "  make bff               - Start bff-service locally"
+	@echo "  make fe                - Start ecommerce-fe locally"
 	@echo "  make identity-keys     - Generate local Identity RSA keys"
 	@echo "  make verify            - Check foundation files, Buf lint, and running Kong routes"
 	@echo "  make verify SERVICE=<name> - Gate one surface: <name>-service, ecommerce-fe, or contracts"

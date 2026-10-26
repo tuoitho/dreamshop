@@ -57,7 +57,8 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(true)
   const [reloadKey, setReloadKey] = useState(0)
 
-  const q = searchParams.get("q")?.toLowerCase() ?? ""
+  const rawQuery = searchParams.get("q")?.trim() ?? ""
+  const q = rawQuery.toLowerCase()
   const selectedCategory = searchParams.get("danh-muc") ?? "all"
   const giamGia = searchParams.get("giam-gia") === "1"
   const priceRangeParam = searchParams.get("gia")
@@ -68,6 +69,22 @@ export default function SearchPage() {
   const priceRange = priceRangeParam ? parsePriceRange(priceRangeParam) : null
   const priceMin = priceRange?.min
   const priceMax = priceRange && priceRange.max > 0 ? priceRange.max : undefined
+
+  useEffect(() => {
+    if (!priceRangeParam) {
+      setSliderValue([0, 10000000])
+      return
+    }
+    const parsed = parsePriceRange(priceRangeParam)
+    if (!parsed) {
+      setSliderValue([0, 10000000])
+      return
+    }
+    const min = Math.min(10000000, Math.max(0, parsed.min))
+    const max =
+      parsed.max > 0 ? Math.min(10000000, Math.max(min, parsed.max)) : 10000000
+    setSliderValue([min, max])
+  }, [priceRangeParam])
 
   const apiParams = useMemo<SearchProductsParams>(() => {
     const params: SearchProductsParams = {}
@@ -122,23 +139,38 @@ export default function SearchPage() {
     setSearchParams(next, { replace: true })
   }
 
-  const hasActiveFilters = q || selectedCategory !== "all" || giamGia || priceRange || ratingParam > 0
+  const hasActiveFilters = Boolean(
+    rawQuery || selectedCategory !== "all" || giamGia || priceRange || ratingParam > 0
+  )
+  const activeFilterCount =
+    (selectedCategory !== "all" ? 1 : 0) +
+    (giamGia ? 1 : 0) +
+    (priceRange ? 1 : 0) +
+    (ratingParam > 0 ? 1 : 0)
 
-  const categoryName = selectedCategory !== "all"
-    ? categories.find((c) => c.id === selectedCategory)?.name
-    : null
+  const categoryName =
+    selectedCategory !== "all"
+      ? categories.find((c) => c.id === selectedCategory)?.name
+      : null
+
+  const headingTitle = rawQuery
+    ? `Kết quả cho "${rawQuery}"`
+    : categoryName
+      ? categoryName
+      : giamGia
+        ? "Sản phẩm khuyến mãi"
+        : "Tất cả sản phẩm"
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">
-            {q ? `Kết quả cho "${q}"` : categoryName ? categoryName : "Tất cả sản phẩm"}
-          </h1>
+          <h1 className="text-2xl font-bold">{headingTitle}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {result ? `${result.totalItems} sản phẩm` : "\u00A0"}
-            {q && (
+            {rawQuery && (
               <button
+                type="button"
                 onClick={() => updateParams({ q: null })}
                 className="ml-2 text-primary hover:underline"
               >
@@ -152,10 +184,11 @@ export default function SearchPage() {
             variant="outline"
             size="sm"
             className="lg:hidden"
+            aria-expanded={showFilters}
             onClick={() => setShowFilters((open) => !open)}
           >
             <SlidersHorizontal />
-            Bộ lọc
+            {activeFilterCount > 0 ? `Bộ lọc (${activeFilterCount})` : "Bộ lọc"}
           </Button>
           <Select
             value={sort}

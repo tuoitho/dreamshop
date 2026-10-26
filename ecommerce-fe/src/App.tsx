@@ -20,17 +20,17 @@ function App() {
           <Route path="/san-pham/:id" element={<ProductDetailPage />} />
           <Route path="/gio-hang" element={<RequireAuth><CartPage /></RequireAuth>} />
           <Route path="/gio-hang/dat-hang" element={<RequireAuth><OrderPreviewPage /></RequireAuth>} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/profile"
+            element={
+              <RequireAuth>
+                <ProfilePage />
+              </RequireAuth>
+            }
+          />
         </Route>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route
-          path="/profile"
-          element={
-            <RequireAuth>
-              <ProfilePage />
-            </RequireAuth>
-          }
-        />
         <Route path="/dashboard" element={<Navigate to="/profile" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

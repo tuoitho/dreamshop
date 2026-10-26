@@ -100,12 +100,12 @@ func runWithDeps(args []string, in io.Reader, out, errOut io.Writer, baseEnv []s
 
 	switch normalizeService(service) {
 	case "identity-service":
-		setEnv(env, "IDENTITY_JWT_PRIVATE_KEY_PATH", filepath.Join(root, "deployments", "secrets", "identity", "private.pem"))
-		setEnv(env, "IDENTITY_JWT_PUBLIC_KEY_PATH", filepath.Join(root, "deployments", "secrets", "identity", "public.pem"))
-		setEnv(env, "SERVER_PORT", "8080")
+		setDefaultEnv(env, "IDENTITY_JWT_PRIVATE_KEY_PATH", filepath.Join(root, "deployments", "secrets", "identity", "private.pem"))
+		setDefaultEnv(env, "IDENTITY_JWT_PUBLIC_KEY_PATH", filepath.Join(root, "deployments", "secrets", "identity", "public.pem"))
+		setDefaultEnv(env, "SERVER_PORT", "8080")
 		setDefaultEnv(env, "MANAGEMENT_SERVER_PORT", "8090")
-		setEnv(env, "IDENTITY_JWT_ISSUER", "http://localhost:8080")
-		setEnv(env, "IDENTITY_SESSION_COOKIE_SECURE", "false")
+		setDefaultEnv(env, "IDENTITY_JWT_ISSUER", "http://localhost:8080")
+		setDefaultEnv(env, "IDENTITY_SESSION_COOKIE_SECURE", "false")
 		setDefaultEnv(env, "IDENTITY_GRPC_HOST", "127.0.0.1")
 		setDefaultEnv(env, "IDENTITY_GRPC_PORT", "50054")
 		setDefaultEnv(env, "IDENTITY_GRPC_SHUTDOWN_GRACE", "5s")
@@ -156,6 +156,22 @@ func runWithDeps(args []string, in io.Reader, out, errOut io.Writer, baseEnv []s
 		setDefaultEnv(env, "MANAGEMENT_SERVER_PORT", "8093")
 		return launch(root, formatEnv(env), "mvn", "-f", "services/order-service/pom.xml", "spring-boot:run")
 
+	case "catalog-service":
+		setDefaultEnv(env, "DATABASE_URL", "postgres://ecommerce:change-me-local-only@127.0.0.1:5432/catalog_db?sslmode=disable")
+		setDefaultEnv(env, "HTTP_ADDR", ":8085")
+		setDefaultEnv(env, "GRPC_ADDR", "127.0.0.1:50051")
+		setDefaultEnv(env, "IDENTITY_GRPC_ADDR", "127.0.0.1:50054")
+		setDefaultEnv(env, "IDENTITY_GRPC_TIMEOUT", "500ms")
+
+		return launch(filepath.Join(root, "services", "catalog-service"), formatEnv(env), "go", "run", "./cmd/server")
+
+	case "inventory-service":
+		setDefaultEnv(env, "DATABASE_URL", "postgres://ecommerce:change-me-local-only@127.0.0.1:5432/inventory_db?sslmode=disable")
+		setDefaultEnv(env, "HTTP_ADDR", ":8082")
+		setDefaultEnv(env, "GRPC_ADDR", "127.0.0.1:50052")
+
+		return launch(filepath.Join(root, "services", "inventory-service"), formatEnv(env), "go", "run", "./cmd/server")
+
 	case "cart-service":
 		setDefaultEnv(env, "DATABASE_URL", "postgres://ecommerce:change-me-local-only@127.0.0.1:5432/cart_db?sslmode=disable")
 		setDefaultEnv(env, "HTTP_ADDR", ":8084")
@@ -170,15 +186,23 @@ func runWithDeps(args []string, in io.Reader, out, errOut io.Writer, baseEnv []s
 		return launch(filepath.Join(root, "services", "cart-service"), formatEnv(env), "go", "run", "./cmd/server")
 
 	case "bff-service":
-		envFile := filepath.Join(root, ".env")
-		setEnv(env, "ENV_FILE", envFile)
-		if _, err := os.Stat(envFile); err != nil {
-			fmt.Fprintf(errOut, "WARNING: Local env file was not found at %s. Defaults will be used.\n", envFile)
-		}
-		return launch(root, formatEnv(env), "go", "run", "./services/bff-service/cmd/server")
+		setDefaultEnv(env, "BFF_HTTP_ADDR", ":8081")
+		setDefaultEnv(env, "BFF_CATALOG_GRPC_ADDR", "127.0.0.1:50051")
+		setDefaultEnv(env, "BFF_CATALOG_GRPC_TIMEOUT", "3s")
+		setDefaultEnv(env, "BFF_INVENTORY_GRPC_ADDR", "127.0.0.1:50052")
+		setDefaultEnv(env, "BFF_INVENTORY_GRPC_TIMEOUT", "3s")
+		setDefaultEnv(env, "BFF_CART_GRPC_ADDR", "127.0.0.1:50053")
+		setDefaultEnv(env, "BFF_CART_GRPC_TIMEOUT", "3s")
+
+		return launch(filepath.Join(root, "services", "bff-service"), formatEnv(env), "go", "run", "./cmd/server")
+
+	case "ecommerce-fe":
+		setDefaultEnv(env, "VITE_API_BASE_URL", "http://localhost:8000/api/v1")
+
+		return launch(root, formatEnv(env), "npm", "--prefix", "ecommerce-fe", "run", "dev")
 
 	default:
-		fmt.Fprintf(errOut, "Unknown local service %q. Expected one of: identity-service, order-service, cart-service, bff-service\n", service)
+		fmt.Fprintf(errOut, "Unknown local service %q. Expected one of: identity-service, order-service, catalog-service, inventory-service, cart-service, bff-service, ecommerce-fe\n", service)
 		return 2
 	}
 }
@@ -190,10 +214,16 @@ func normalizeService(s string) string {
 		return "identity-service"
 	case "order", "order-service":
 		return "order-service"
+	case "catalog", "catalog-service":
+		return "catalog-service"
+	case "inventory", "inventory-service":
+		return "inventory-service"
 	case "cart", "cart-service":
 		return "cart-service"
 	case "bff", "bff-service":
 		return "bff-service"
+	case "fe", "frontend", "ecommerce-fe":
+		return "ecommerce-fe"
 	default:
 		return s
 	}

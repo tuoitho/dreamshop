@@ -146,4 +146,35 @@ describe("SearchPage", () => {
     expect(screen.getByRole("button", { name: "Trang trước" })).toBeDisabled()
     expect(screen.getByRole("button", { name: "Trang sau" })).toBeEnabled()
   })
+
+  it("preserves original user casing in heading while sending lowercase q to searchProducts", async () => {
+    renderSearch("/tim-kiem?q=iPhone%2015%20Pro")
+
+    await screen.findByText("Không tìm thấy sản phẩm")
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: 'Kết quả cho "iPhone 15 Pro"' })
+    ).toBeInTheDocument()
+    expect(vi.mocked(searchProducts).mock.calls[0][0].q).toBe("iphone 15 pro")
+  })
+
+  it("renders 'Sản phẩm khuyến mãi' heading when filtering on-sale items without q or category", async () => {
+    renderSearch("/tim-kiem?giam-gia=1")
+
+    await screen.findByText("Không tìm thấy sản phẩm")
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Sản phẩm khuyến mãi" })
+    ).toBeInTheDocument()
+  })
+
+  it("synchronizes price slider display with URL gia param and resets when clearing filters", async () => {
+    renderSearch("/tim-kiem?gia=2000000-8000000")
+
+    await screen.findByText("Không tìm thấy sản phẩm")
+    expect(screen.getByText("2.0tr - 8.0tr")).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole("button", { name: "Xóa toàn bộ bộ lọc" }))
+    expect(await screen.findByText("0.0tr - 10.0tr")).toBeInTheDocument()
+  })
 })

@@ -43,6 +43,7 @@ to REST may use Kong transcoding under ADR-008 instead.
 - `cmd/server/`: process startup and dependency wiring.
 - `internal/config/`: environment-backed configuration and repository gateway/Compose contract tests.
 - `internal/catalog/`: outbound gRPC client for `CatalogService`.
+- `internal/inventory/`: outbound gRPC client for `InventoryService`.
 - `internal/cart/`: outbound gRPC client for `CartService`.
 - `internal/http/`: canonical `/api/v1` HTTP handlers (storefront products, cart, admin product soft-delete/restore), caller context, trace correlation, and response/error mapping.
 

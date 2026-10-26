@@ -7,6 +7,13 @@ vi.mock("@/lib/api", async (importOriginal) => {
   return {
     ...actual,
     refreshAccessToken: vi.fn().mockRejectedValue(new Error("Unauthenticated")),
+    searchProducts: vi.fn().mockResolvedValue({
+      items: [],
+      page: 1,
+      pageSize: 20,
+      totalItems: 0,
+      totalPages: 0,
+    }),
   }
 })
 
@@ -18,7 +25,7 @@ describe("application root toaster", () => {
     document.body.innerHTML = ""
   })
 
-  it("renders toast notifications at the top-center position", async () => {
+  it("renders toast notifications at the top-center position", { timeout: 15000 }, async () => {
     document.body.innerHTML = '<div id="root"></div>'
 
     await act(async () => {

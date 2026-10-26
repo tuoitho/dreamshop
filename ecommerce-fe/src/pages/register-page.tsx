@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, Navigate, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { useAuth } from "@/hooks/use-auth"
 
 export default function RegisterPage() {
-  const { register } = useAuth()
+  const { register, ready, isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
@@ -15,6 +15,10 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  if (ready && isAuthenticated && !submitting) {
+    return <Navigate to="/" replace />
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -41,7 +45,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center p-4">
+    <div className="flex min-h-[calc(100svh-12rem)] items-center justify-center px-4 py-12">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-xl">Đăng ký</CardTitle>

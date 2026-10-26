@@ -168,8 +168,13 @@ export default function ProfilePage() {
   }
 
   async function signOut() {
-    await logout()
-    navigate("/login", { replace: true })
+    try {
+      await logout()
+    } catch {
+      // Mutation error toast is surfaced by the HTTP interceptor; AuthProvider clears local session state in finally.
+    } finally {
+      navigate("/", { replace: true })
+    }
   }
 
   if (!user) return null
@@ -208,7 +213,12 @@ export default function ProfilePage() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" value={user.email} readOnly />
+              <Input
+                id="email"
+                value={user.email}
+                readOnly
+                className="cursor-default bg-muted/60 text-muted-foreground"
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="phone">Số điện thoại</Label>
@@ -272,7 +282,7 @@ export default function ProfilePage() {
                   clearFieldError("gender")
                 }}
               >
-                <SelectTrigger id="gender">
+                <SelectTrigger id="gender" aria-invalid={fieldErrors.gender ? true : undefined}>
                   <SelectValue placeholder="Chọn giới tính" />
                 </SelectTrigger>
                 <SelectContent>
@@ -324,6 +334,7 @@ export default function ProfilePage() {
                 onRetry={() => setProvinceReload((count) => count + 1)}
                 searchPlaceholder="Tìm tỉnh/thành phố"
                 searchLabel="Tìm tỉnh/thành phố"
+                aria-invalid={fieldErrors.provinceCode ? true : undefined}
               />
               {fieldErrors.provinceCode ? (
                 <p role="alert" className="text-sm text-destructive">
@@ -348,6 +359,7 @@ export default function ProfilePage() {
                 onRetry={() => setWardReload((count) => count + 1)}
                 searchPlaceholder="Tìm phường/xã"
                 searchLabel="Tìm phường/xã"
+                aria-invalid={fieldErrors.wardCode ? true : undefined}
               />
               {fieldErrors.wardCode ? (
                 <p role="alert" className="text-sm text-destructive">

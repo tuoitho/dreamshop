@@ -60,10 +60,26 @@ export function SiteFooter() {
           <div>
             <p className="text-sm font-semibold">Hỗ trợ khách hàng</p>
             <ul className="mt-3 grid gap-2 text-xs text-muted-foreground">
-              <li><span className="cursor-pointer hover:text-primary">Trung tâm trợ giúp</span></li>
-              <li><span className="cursor-pointer hover:text-primary">Chính sách đổi trả</span></li>
-              <li><span className="cursor-pointer hover:text-primary">Hướng dẫn mua hàng</span></li>
-              <li><span className="cursor-pointer hover:text-primary">Phương thức thanh toán</span></li>
+              <li>
+                <Link to="/tim-kiem" className="hover:text-primary">
+                  Trung tâm trợ giúp
+                </Link>
+              </li>
+              <li>
+                <Link to="/tim-kiem?giam-gia=1" className="hover:text-primary">
+                  Chương trình khuyến mãi
+                </Link>
+              </li>
+              <li>
+                <Link to="/gio-hang" className="hover:text-primary">
+                  Kiểm tra giỏ hàng
+                </Link>
+              </li>
+              <li>
+                <Link to="/profile" className="hover:text-primary">
+                  Quản lý tài khoản
+                </Link>
+              </li>
             </ul>
           </div>
 

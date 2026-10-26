@@ -1,7 +1,7 @@
 import { afterEach, describe, it, expect, vi } from "vitest"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { MemoryRouter } from "react-router-dom"
+import { MemoryRouter, Route, Routes, useLocation, type InitialEntry } from "react-router-dom"
 import { AuthContext } from "@/context/auth-context"
 import LoginPage from "./login-page"
 
@@ -9,12 +9,21 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-function renderLogin(loginMock = vi.fn().mockResolvedValue(undefined)) {
+function LocationDisplay() {
+  const location = useLocation()
+  return <p data-testid="current-location">{`${location.pathname}${location.search}${location.hash}`}</p>
+}
+
+function renderLogin(
+  loginMock = vi.fn().mockResolvedValue(undefined),
+  initialEntries: InitialEntry[] = ["/login"],
+  authOverrides: { ready?: boolean; isAuthenticated?: boolean } = {},
+) {
   const value = {
-    token: null,
+    token: authOverrides.isAuthenticated ? "access-token" : null,
     user: null,
-    ready: true,
-    isAuthenticated: false,
+    ready: authOverrides.ready ?? true,
+    isAuthenticated: authOverrides.isAuthenticated ?? false,
     login: loginMock,
     register: vi.fn(),
     updateProfile: vi.fn(),
@@ -24,8 +33,11 @@ function renderLogin(loginMock = vi.fn().mockResolvedValue(undefined)) {
     loginMock,
     ...render(
       <AuthContext value={value}>
-        <MemoryRouter>
-          <LoginPage />
+        <MemoryRouter initialEntries={initialEntries}>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="*" element={<LocationDisplay />} />
+          </Routes>
         </MemoryRouter>
       </AuthContext>
     ),
@@ -99,5 +111,65 @@ describe("LoginPage", () => {
     expect(screen.getByLabelText("Mật khẩu")).toHaveValue("")
     expect(screen.queryByRole("button", { name: "Customer" })).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Admin" })).not.toBeInTheDocument()
+  })
+
+  it("navigates to the home page after login when no redirect target is provided", async () => {
+    renderLogin()
+    await userEvent.type(screen.getByLabelText("Email"), "customer@example.com")
+    await userEvent.type(screen.getByLabelText("Mật khẩu"), "SecurePassword123!")
+    await userEvent.click(screen.getByRole("button", { name: /đăng nhập/i }))
+
+    expect((await screen.findByTestId("current-location")).textContent).toBe("/")
+  })
+
+  it("navigates back to the guarded route location after login", async () => {
+    renderLogin(vi.fn().mockResolvedValue(undefined), [
+      { pathname: "/login", state: { from: { pathname: "/gio-hang", search: "?chon=1", hash: "#tom-tat" } } },
+    ])
+    await userEvent.type(screen.getByLabelText("Email"), "customer@example.com")
+    await userEvent.type(screen.getByLabelText("Mật khẩu"), "SecurePassword123!")
+    await userEvent.click(screen.getByRole("button", { name: /đăng nhập/i }))
+
+    expect((await screen.findByTestId("current-location")).textContent).toBe("/gio-hang?chon=1#tom-tat")
+  })
+
+  it("navigates back to a string redirect path after login", async () => {
+    renderLogin(vi.fn().mockResolvedValue(undefined), [
+      { pathname: "/login", state: { from: "/san-pham/dt-1" } },
+    ])
+    await userEvent.type(screen.getByLabelText("Email"), "customer@example.com")
+    await userEvent.type(screen.getByLabelText("Mật khẩu"), "SecurePassword123!")
+    await userEvent.click(screen.getByRole("button", { name: /đăng nhập/i }))
+
+    expect((await screen.findByTestId("current-location")).textContent).toBe("/san-pham/dt-1")
+  })
+
+  it("falls back to the home page when redirect target is an external or protocol-relative URL", async () => {
+    renderLogin(vi.fn().mockResolvedValue(undefined), [
+      { pathname: "/login", state: { from: "//evil.example/phish" } },
+    ])
+    await userEvent.type(screen.getByLabelText("Email"), "customer@example.com")
+    await userEvent.type(screen.getByLabelText("Mật khẩu"), "SecurePassword123!")
+    await userEvent.click(screen.getByRole("button", { name: /đăng nhập/i }))
+
+    expect((await screen.findByTestId("current-location")).textContent).toBe("/")
+  })
+
+  it("displays registration confirmation banner when redirected from /register", () => {
+    renderLogin(vi.fn(), [{ pathname: "/login", state: { registered: true } }])
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Đăng ký thành công! Vui lòng đăng nhập để tiếp tục."
+    )
+  })
+
+  it("redirects already-authenticated users away from /login", async () => {
+    renderLogin(
+      vi.fn(),
+      [{ pathname: "/login", state: { from: "/profile" } }],
+      { ready: true, isAuthenticated: true },
+    )
+
+    expect((await screen.findByTestId("current-location")).textContent).toBe("/profile")
   })
 })

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import {
+  AlertTriangle,
   ChevronRight,
   Heart,
   Minus,
@@ -12,9 +13,10 @@ import {
   Star,
   Truck,
 } from "lucide-react"
-import { getProduct, searchProducts, softDeleteProduct, toErrorInfo } from "@/lib/api"
+import { getProduct, searchProducts, toErrorInfo } from "@/lib/api"
+import { formatRating, resolveProductAvailability } from "@/lib/product-availability"
 import type { ProductDetail, ProductSummary } from "@/lib/types"
-import { formatVND } from "@/lib/utils"
+import { cn, formatVND } from "@/lib/utils"
 import { ProductCard } from "@/components/product-card"
 import { ProductImage } from "@/components/product-image"
 import { Badge } from "@/components/ui/badge"
@@ -23,12 +25,9 @@ import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCart } from "@/hooks/use-cart"
 import { useAuth } from "@/hooks/use-auth"
-import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
-const MAX_QUANTITY = 10
-
-interface BuyNowRequest {
+interface PendingCartMutation {
   productId: string
   variantLabel: string
   quantity: number
@@ -39,7 +38,7 @@ export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
-  const { addItem, items, selectOnly } = useCart()
+  const { addItem, degraded, items, selectOnly } = useCart()
 
   const [product, setProduct] = useState<ProductDetail | null>(null)
   const [error, setError] = useState<{ message: string; code?: string } | null>(null)
@@ -49,13 +48,15 @@ export default function ProductDetailPage() {
   const [variantIndex, setVariantIndex] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
+  const [wishlisted, setWishlisted] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const [galleryError, setGalleryError] = useState(false)
-  const [buyNowRequest, setBuyNowRequest] = useState<BuyNowRequest | null>(null)
+  const [addRequest, setAddRequest] = useState<PendingCartMutation | null>(null)
+  const [addResponseReady, setAddResponseReady] = useState(false)
+  const [buyNowRequest, setBuyNowRequest] = useState<PendingCartMutation | null>(null)
   const [buyNowResponseReady, setBuyNowResponseReady] = useState(false)
   const [addPending, setAddPending] = useState(false)
   const [buyNowPending, setBuyNowPending] = useState(false)
-  const [softDeletePending, setSoftDeletePending] = useState(false)
 
   const [related, setRelated] = useState<ProductSummary[] | null>(null)
   const mountedRef = useRef(false)
@@ -78,16 +79,17 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     setVariantIndex(0)
-    setVariantIndex(0)
     setQuantity(1)
     setAdded(false)
+    setWishlisted(false)
     setActiveIndex(0)
     setGalleryError(false)
+    setAddRequest(null)
+    setAddResponseReady(false)
     setBuyNowRequest(null)
     setBuyNowResponseReady(false)
     setAddPending(false)
     setBuyNowPending(false)
-    setSoftDeletePending(false)
     setProduct(null)
     setError(null)
     setLoading(true)
@@ -110,6 +112,12 @@ export default function ProductDetailPage() {
     getProduct(id, controller.signal)
       .then((data) => {
         if (active && mountedRef.current && productGenerationRef.current === generation) {
+          const nextAvailability = resolveProductAvailability(data)
+          if (nextAvailability.purchasable) {
+            setQuantity((current) =>
+              Math.max(1, Math.min(current, nextAvailability.maxQuantity))
+            )
+          }
           setProduct(data)
           setLoading(false)
         }
@@ -130,6 +138,46 @@ export default function ProductDetailPage() {
   }, [id, reloadKey])
 
   useEffect(() => {
+    if (!addRequest || !addResponseReady) return
+    if (
+      !mountedRef.current ||
+      productGenerationRef.current !== addRequest.generation ||
+      id !== addRequest.productId
+    ) {
+      return
+    }
+    const { generation, productId, variantLabel: targetVariant } = addRequest
+    setAddRequest(null)
+    setAddResponseReady(false)
+    setAddPending(false)
+
+    if (!degraded) {
+      const matching = items.find(
+        (entry) => entry.productId === productId && entry.variantLabel === targetVariant
+      )
+      if (matching?.status === "OUT_OF_STOCK") {
+        toast.error("Sản phẩm vừa tạm hết hàng")
+        setReloadKey((key) => key + 1)
+        return
+      }
+      if (matching?.status === "UNAVAILABLE") {
+        toast.error("Sản phẩm đã ngừng kinh doanh")
+        setReloadKey((key) => key + 1)
+        return
+      }
+    }
+
+    setAdded(true)
+    if (addedTimerRef.current !== null) window.clearTimeout(addedTimerRef.current)
+    addedTimerRef.current = window.setTimeout(() => {
+      if (mountedRef.current && productGenerationRef.current === generation && id === productId) {
+        setAdded(false)
+      }
+      addedTimerRef.current = null
+    }, 1600)
+  }, [addRequest, addResponseReady, degraded, id, items])
+
+  useEffect(() => {
     if (!buyNowRequest || !buyNowResponseReady) return
     if (
       !mountedRef.current ||
@@ -138,21 +186,36 @@ export default function ProductDetailPage() {
     ) {
       return
     }
-    const item = items.find((entry) =>
-      entry.productId === buyNowRequest.productId &&
-      entry.variantLabel === buyNowRequest.variantLabel &&
-      (entry.status === "AVAILABLE" || entry.status === "LIMITED")
-    )
+    const { productId, variantLabel: targetVariant } = buyNowRequest
     setBuyNowRequest(null)
     setBuyNowResponseReady(false)
     setBuyNowPending(false)
-    if (!item) {
+
+    if (degraded) {
+      toast.error("Tạm thời chưa kiểm tra được tồn kho, vui lòng kiểm tra giỏ hàng")
+      return
+    }
+
+    const matching = items.find(
+      (entry) => entry.productId === productId && entry.variantLabel === targetVariant
+    )
+    if (matching?.status === "OUT_OF_STOCK") {
+      toast.error("Sản phẩm vừa tạm hết hàng")
+      setReloadKey((key) => key + 1)
+      return
+    }
+    if (matching?.status === "UNAVAILABLE") {
+      toast.error("Sản phẩm đã ngừng kinh doanh")
+      setReloadKey((key) => key + 1)
+      return
+    }
+    if (!matching) {
       toast.error("Không tìm thấy phân loại có thể mua trong giỏ hàng")
       return
     }
-    selectOnly(item.itemId)
+    selectOnly(matching.itemId)
     navigate("/gio-hang/dat-hang")
-  }, [buyNowRequest, buyNowResponseReady, id, items, navigate, selectOnly])
+  }, [buyNowRequest, buyNowResponseReady, degraded, id, items, navigate, selectOnly])
 
   const productCategoryId = product?.categoryId
   const productId = product?.id
@@ -202,9 +265,14 @@ export default function ProductDetailPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             Sản phẩm không tồn tại hoặc đã bị gỡ khỏi gian hàng.
           </p>
-          <Button className="mt-6" asChild>
-            <Link to="/">Về trang chủ</Link>
-          </Button>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <Button asChild>
+              <Link to="/">Về trang chủ</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/tim-kiem">Xem tất cả sản phẩm</Link>
+            </Button>
+          </div>
         </div>
       )
     }
@@ -225,14 +293,21 @@ export default function ProductDetailPage() {
 
   if (!product) return null
 
-  const discount = product.originalPrice > product.price
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-    : 0
+  const availability = resolveProductAvailability(product)
+  const effectiveQuantity = availability.purchasable
+    ? Math.max(1, Math.min(quantity, availability.maxQuantity))
+    : 1
+
+  const discount =
+    product.originalPrice > product.price
+      ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+      : 0
 
   const images = product.images ?? []
-  const activeImage = images.length > 0 && !galleryError
-    ? images[Math.min(activeIndex, images.length - 1)]
-    : undefined
+  const activeImage =
+    images.length > 0 && !galleryError
+      ? images[Math.min(activeIndex, images.length - 1)]
+      : undefined
 
   const requireAuthentication = () => {
     if (isAuthenticated) return true
@@ -241,46 +316,74 @@ export default function ProductDetailPage() {
   }
 
   const handleAddToCart = async () => {
+    if (!availability.purchasable) return
     if (!requireAuthentication()) return
-    if (addPending || buyNowPending || softDeletePending) return
-    const generation = productGenerationRef.current
-    const productId = product.id
+    if (addPending || buyNowPending) return
+    const request: PendingCartMutation = {
+      productId: product.id,
+      variantLabel,
+      quantity: effectiveQuantity,
+      generation: productGenerationRef.current,
+    }
+    setAddRequest(request)
+    setAddResponseReady(false)
     setAddPending(true)
     try {
-      await addItem(productId, variantLabel, quantity)
-      if (!mountedRef.current || productGenerationRef.current !== generation || id !== productId) return
-      setAdded(true)
-      if (addedTimerRef.current !== null) window.clearTimeout(addedTimerRef.current)
-      addedTimerRef.current = window.setTimeout(() => {
-        if (mountedRef.current && productGenerationRef.current === generation && id === productId) {
-          setAdded(false)
-        }
-        addedTimerRef.current = null
-      }, 1600)
+      await addItem(request.productId, request.variantLabel, request.quantity)
+      if (
+        !mountedRef.current ||
+        productGenerationRef.current !== request.generation ||
+        id !== request.productId
+      ) {
+        return
+      }
+      setAddResponseReady(true)
     } catch (err) {
-      if (mountedRef.current && productGenerationRef.current === generation && id === productId) {
-        toast.error(toErrorInfo(err).message)
+      if (
+        !mountedRef.current ||
+        productGenerationRef.current !== request.generation ||
+        id !== request.productId
+      ) {
+        return
       }
-    } finally {
-      if (mountedRef.current && productGenerationRef.current === generation && id === productId) {
-        setAddPending(false)
-      }
+      setAddRequest(null)
+      setAddResponseReady(false)
+      setAddPending(false)
+      toast.error(toErrorInfo(err).message)
     }
   }
 
   const handleBuyNow = async () => {
+    if (!availability.purchasable) return
     if (!requireAuthentication()) return
-    if (addPending || buyNowPending || softDeletePending) return
-    const request = { productId: product.id, variantLabel, quantity, generation: productGenerationRef.current }
+    if (addPending || buyNowPending) return
+    const request: PendingCartMutation = {
+      productId: product.id,
+      variantLabel,
+      quantity: effectiveQuantity,
+      generation: productGenerationRef.current,
+    }
     setBuyNowRequest(request)
     setBuyNowResponseReady(false)
     setBuyNowPending(true)
     try {
       await addItem(request.productId, request.variantLabel, request.quantity)
-      if (!mountedRef.current || productGenerationRef.current !== request.generation || id !== request.productId) return
+      if (
+        !mountedRef.current ||
+        productGenerationRef.current !== request.generation ||
+        id !== request.productId
+      ) {
+        return
+      }
       setBuyNowResponseReady(true)
     } catch (err) {
-      if (!mountedRef.current || productGenerationRef.current !== request.generation || id !== request.productId) return
+      if (
+        !mountedRef.current ||
+        productGenerationRef.current !== request.generation ||
+        id !== request.productId
+      ) {
+        return
+      }
       setBuyNowRequest(null)
       setBuyNowResponseReady(false)
       setBuyNowPending(false)
@@ -288,51 +391,73 @@ export default function ProductDetailPage() {
     }
   }
 
-  const handleSoftDelete = async () => {
-    if (addPending || buyNowPending || softDeletePending) return
-    const generation = productGenerationRef.current
-    const productId = product.id
-    setSoftDeletePending(true)
+  const handleToggleWishlist = () => {
+    setWishlisted((prev) => {
+      const next = !prev
+      toast.success(next ? "Đã thêm vào danh sách yêu thích" : "Đã bỏ khỏi danh sách yêu thích")
+      return next
+    })
+  }
+
+  const handleShare = async () => {
     try {
-      await softDeleteProduct(productId, !product.deleted)
-      if (!mountedRef.current || productGenerationRef.current !== generation || id !== productId) return
-      setReloadKey((key) => key + 1)
-    } catch (err) {
-      if (mountedRef.current && productGenerationRef.current === generation && id === productId) {
-        toast.error(toErrorInfo(err).message)
+      if (!navigator.clipboard?.writeText) {
+        toast.error("Không thể sao chép liên kết sản phẩm")
+        return
       }
-    } finally {
-      if (mountedRef.current && productGenerationRef.current === generation && id === productId) {
-        setSoftDeletePending(false)
-      }
+      await navigator.clipboard.writeText(window.location.href)
+      toast.success("Đã sao chép liên kết sản phẩm")
+    } catch {
+      toast.error("Không thể sao chép liên kết sản phẩm")
     }
   }
 
+  const hasSeparateFullDescription = Boolean(
+    product.shortDescription &&
+      product.description &&
+      product.shortDescription !== product.description
+  )
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-6">
-      {/* Breadcrumb */}
       <nav className="flex items-center gap-1 text-xs text-muted-foreground">
-        <Link to="/" className="hover:text-primary">Trang chủ</Link>
+        <Link to="/" className="hover:text-primary">
+          Trang chủ
+        </Link>
         <ChevronRight className="size-3.5" />
-        <Link
-          to={`/tim-kiem?danh-muc=${product.categoryId}`}
-          className="hover:text-primary"
-        >
+        <Link to={`/tim-kiem?danh-muc=${product.categoryId}`} className="hover:text-primary">
           {product.categoryName}
         </Link>
         <ChevronRight className="size-3.5" />
         <span className="line-clamp-1 max-w-60">{product.name}</span>
       </nav>
 
+      {availability.status === "UNAVAILABLE" ? (
+        <div
+          role="status"
+          className="mt-4 flex items-start gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-950 dark:text-amber-200"
+        >
+          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+          <div>
+            <p className="font-semibold">Sản phẩm ngừng kinh doanh</p>
+            <p className="mt-0.5 text-xs text-amber-900/80 dark:text-amber-200/80">
+              Sản phẩm này hiện không còn mở bán. Bạn có thể tham khảo các sản phẩm tương tự bên dưới.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
       <div className="mt-6 grid gap-8 lg:grid-cols-2">
-        {/* Gallery */}
         <div className="relative overflow-hidden rounded-3xl ring-1 ring-foreground/10">
           {activeImage ? (
             <>
               <img
                 src={activeImage}
                 alt={product.name}
-                className="aspect-square w-full object-cover"
+                className={cn(
+                  "aspect-square w-full object-cover",
+                  !availability.purchasable && "opacity-75 grayscale-[25%]"
+                )}
                 onError={() => setGalleryError(true)}
               />
               {images.length > 1 && (
@@ -363,22 +488,45 @@ export default function ProductDetailPage() {
               hue={product.imageHue ?? [200, 240]}
               seed={product.id}
               label={product.name}
-              className="aspect-square"
+              className={cn("aspect-square", !availability.purchasable && "opacity-75 grayscale-[25%]")}
             />
           )}
-          {discount > 0 && (
+          {discount > 0 && availability.purchasable && (
             <span className="absolute top-4 left-4 rounded-lg bg-red-600 px-2 py-1 text-xs font-bold text-white">
               -{discount}%
             </span>
           )}
         </div>
 
-        {/* Info */}
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{product.brand}</Badge>
-            {product.badge === "new" && <Badge variant="success">Mới về</Badge>}
-            {product.badge === "hot" && <Badge variant="sale">🔥 Bán chạy</Badge>}
+            {availability.purchasable && product.badge === "new" && (
+              <Badge variant="success">Mới về</Badge>
+            )}
+            {availability.purchasable && product.badge === "hot" && (
+              <Badge variant="sale">🔥 Bán chạy</Badge>
+            )}
+            {availability.status === "LIMITED" && (
+              <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                {availability.detailLabel}
+              </span>
+            )}
+            {availability.status === "AVAILABLE" && (
+              <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                {availability.detailLabel}
+              </span>
+            )}
+            {availability.status === "OUT_OF_STOCK" && (
+              <span className="rounded-md bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
+                Tạm hết hàng
+              </span>
+            )}
+            {availability.status === "UNKNOWN" && availability.inventoryDegraded && (
+              <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                {availability.detailLabel}
+              </span>
+            )}
           </div>
 
           <h1 className="mt-3 text-2xl leading-snug font-bold sm:text-3xl">{product.name}</h1>
@@ -397,7 +545,7 @@ export default function ProductDetailPage() {
                 />
               ))}
             </div>
-            <span className="font-semibold">{product.rating}</span>
+            <span className="font-semibold">{formatRating(product.rating)}</span>
             <span className="text-muted-foreground">
               ({product.reviewCount.toLocaleString("vi-VN")} đánh giá)
             </span>
@@ -409,7 +557,14 @@ export default function ProductDetailPage() {
 
           <div className="mt-5 rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
             <div className="flex items-end gap-3">
-              <span className="text-3xl font-extrabold text-red-600">{formatVND(product.price)}</span>
+              <span
+                className={cn(
+                  "text-3xl font-extrabold",
+                  availability.purchasable ? "text-red-600" : "text-muted-foreground"
+                )}
+              >
+                {formatVND(product.price)}
+              </span>
               {product.originalPrice > product.price && (
                 <span className="mb-1 text-sm text-muted-foreground line-through">
                   {formatVND(product.originalPrice)}
@@ -431,15 +586,18 @@ export default function ProductDetailPage() {
           {product.variants.length > 0 && (
             <div className="mt-5 rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
               <p className="text-sm font-semibold">
-                <span>Phân loại</span>: <span className="font-normal text-muted-foreground">{variantLabel}</span>
+                <span>Phân loại</span>:{" "}
+                <span className="font-normal text-muted-foreground">{variantLabel}</span>
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {product.variants.map((variant, index) => (
                   <button
                     key={variant.label}
+                    type="button"
+                    disabled={!availability.purchasable}
                     onClick={() => setVariantIndex(index)}
                     className={cn(
-                      "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors",
+                      "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50",
                       variantIndex === index
                         ? "border-primary bg-primary/5 text-primary"
                         : "border-border hover:border-primary/40"
@@ -464,25 +622,41 @@ export default function ProductDetailPage() {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => setQuantity((value) => Math.max(1, value - 1))}
+                disabled={!availability.purchasable || effectiveQuantity <= 1}
+                onClick={() =>
+                  setQuantity((value) =>
+                    Math.max(1, Math.min(availability.maxQuantity, value) - 1)
+                  )
+                }
                 aria-label="Giảm số lượng"
               >
                 <Minus />
               </Button>
               <span className="w-12 text-center text-sm font-semibold" aria-live="polite">
-                {quantity}
+                {effectiveQuantity}
               </span>
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => setQuantity((value) => Math.min(MAX_QUANTITY, value + 1))}
+                disabled={!availability.purchasable || effectiveQuantity >= availability.maxQuantity}
+                onClick={() =>
+                  setQuantity((value) =>
+                    Math.min(availability.maxQuantity, Math.max(1, value) + 1)
+                  )
+                }
                 aria-label="Tăng số lượng"
               >
                 <Plus />
               </Button>
-              <span className="text-xs text-muted-foreground">
-                Mua tối đa {MAX_QUANTITY} sản phẩm mỗi lần
-              </span>
+              {availability.purchasable ? (
+                <span className="text-xs text-muted-foreground">
+                  Mua tối đa {availability.maxQuantity} sản phẩm mỗi lần
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  {availability.detailLabel}
+                </span>
+              )}
             </div>
           </div>
 
@@ -490,42 +664,45 @@ export default function ProductDetailPage() {
             <Button
               size="lg"
               className="flex-1 min-w-44"
-              disabled={addPending || buyNowPending || softDeletePending}
+              disabled={!availability.purchasable || addPending || buyNowPending}
               onClick={() => void handleAddToCart()}
             >
               <ShoppingCart />
-              {addPending ? "Đang thêm..." : added ? "Đã thêm vào giỏ" : "Thêm vào giỏ"}
+              {!availability.purchasable
+                ? availability.ctaLabel
+                : addPending
+                  ? "Đang thêm..."
+                  : added
+                    ? "Đã thêm vào giỏ"
+                    : "Thêm vào giỏ"}
             </Button>
             <Button
               size="lg"
               variant="outline"
               className="flex-1 min-w-36"
-              disabled={addPending || buyNowPending || softDeletePending}
+              disabled={!availability.purchasable || addPending || buyNowPending}
               onClick={() => void handleBuyNow()}
             >
               {buyNowPending ? "Đang xử lý..." : "Mua ngay"}
             </Button>
-            <Button size="icon" variant="outline" aria-label="Thêm vào yêu thích">
-              <Heart />
+            <Button
+              size="icon"
+              variant="outline"
+              aria-label="Thêm vào yêu thích"
+              aria-pressed={wishlisted}
+              onClick={handleToggleWishlist}
+            >
+              <Heart className={cn(wishlisted && "fill-red-500 text-red-500")} />
             </Button>
-            <Button size="icon" variant="outline" aria-label="Chia sẻ sản phẩm">
+            <Button
+              size="icon"
+              variant="outline"
+              aria-label="Chia sẻ sản phẩm"
+              onClick={() => void handleShare()}
+            >
               <Share2 />
             </Button>
           </div>
-
-          {import.meta.env.DEV && (
-            <div className="mt-4 flex items-center gap-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">DEV</span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={addPending || buyNowPending || softDeletePending}
-                onClick={() => void handleSoftDelete()}
-              >
-                {softDeletePending ? "Đang cập nhật..." : product.deleted ? "Khôi phục sản phẩm" : "Xóa mềm sản phẩm"}
-              </Button>
-            </div>
-          )}
 
           <div className="mt-6 grid gap-3 rounded-2xl bg-card p-5 ring-1 ring-foreground/10 sm:grid-cols-3">
             {[
@@ -545,11 +722,15 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* Details */}
       <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="rounded-3xl bg-card p-6 ring-1 ring-foreground/10">
           <h2 className="text-lg font-bold">Chi tiết sản phẩm</h2>
           <Separator className="my-4" />
+          {hasSeparateFullDescription ? (
+            <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
+              {product.description}
+            </p>
+          ) : null}
           <ul className="grid gap-3 sm:grid-cols-2">
             {product.details.map((detail) => (
               <li key={detail} className="flex items-start gap-2 text-sm">
@@ -573,13 +754,12 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* Related */}
       {related !== null && related.length > 0 ? (
         <section className="mt-12">
           <h2 className="text-xl font-bold">Sản phẩm tương tự</h2>
           <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {related.map((product) => (
-              <ProductCard key={product.id} product={product} />
+            {related.map((item) => (
+              <ProductCard key={item.id} product={item} />
             ))}
           </div>
         </section>
