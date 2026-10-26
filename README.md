@@ -181,8 +181,5 @@ make verify SERVICE=bff-service
   TTL, RabbitMQ consumer hoặc event publication.
 - Redis và RabbitMQ được provision cho kiến trúc mục tiêu nhưng chưa được
   application code sử dụng.
-- `contracts/openapi.yaml` hiện chỉ là file placeholder chưa đồng bộ với REST
-  surface hiện hành; Protobuf là contract được sinh mã cho các gRPC service, còn
-  REST contract được kiểm chứng qua controller/handler tests.
 - Không sử dụng `docker compose down -v` trong luồng thông thường vì cờ `-v`
   sẽ xóa toàn bộ dữ liệu trong named volumes.

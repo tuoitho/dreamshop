@@ -22,12 +22,11 @@ Các file dưới `proto/` là source of truth cho gRPC:
 contract công khai phải giữ tương thích; ưu tiên thêm field/RPC và không tái sử
 dụng field number đã phát hành.
 
-## REST và OpenAPI
+## REST
 
-`openapi.yaml` hiện chỉ là file placeholder khung ban đầu và chưa phản ánh REST
-surface hay envelope thực tế của Identity/BFF. REST behavior hiện được kiểm
-chứng bởi controller/handler tests và frontend API adapter. Khi cập nhật hoặc mở
-rộng OpenAPI, phải đồng bộ theo đúng envelope chuẩn của repository:
+Public REST surface do controller của Identity, handler của BFF và route trong
+Kong định nghĩa; behavior được kiểm chứng bởi controller/handler tests và
+frontend API adapter theo đúng envelope chuẩn của repository:
 
 - Success: `{ "data": <payload>, "message": "..." }`.
 - Error: `{ "code": "STABLE_ERROR_CODE", "message": "...", "errors": {}, "traceId": "..." }`.

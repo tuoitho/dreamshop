@@ -16,11 +16,8 @@ chung. Luật chi tiết nằm ở `docs/steering/api-contracts.md` và
 | gRPC/protobuf | `contracts/proto/<domain>/v1/*.proto` | `services/<domain>-service` |
 | Kiểu dùng chung | `contracts/proto/common/v1/common.proto` | Mọi service import nó; xem như contract của tất cả |
 | Generated code | `contracts/go/`, `contracts/java/src/main/generated/` | Sinh bằng `buf generate`; không sửa tay |
-| Public REST | Controller của Identity, handler của BFF, `deployments/kong/kong.yaml` | Service phục vụ route |
+| Public REST | Controller của Identity, handler của BFF, `deployments/kong/*.yaml` | Service phục vụ route |
 | Event | Chưa có producer/consumer RabbitMQ; khi thêm, theo mục Events của `api-contracts.md` và ADR-002 | Service phát event |
-
-`contracts/openapi.yaml` chỉ là contract khi title, servers, paths và envelope của
-nó mô tả đúng surface đang đổi.
 
 ## 2. Phân loại compatibility
 

@@ -8,18 +8,14 @@ designed explicitly.
 
 - `contracts/proto/` contains protobuf source definitions.
 - `contracts/java/` and `contracts/go/` contain generated language modules.
-- `contracts/openapi.yaml` is the conventional shared HTTP contract location
-  when its content represents the e-commerce API being changed.
+- Public HTTP contracts are defined by Identity controllers, BFF handlers, and
+  `deployments/kong/*.yaml`.
 
 Generated Java and Go contract source is tracked. Do not edit generated files by
 hand. Change the protobuf source definition, run `buf format --diff --exit-code`,
 `buf lint`, and `buf generate`, then commit the resulting generated output with
 the source-contract change. Do not manually normalize generator-produced
 whitespace in generated Java source; generation synchronization is authoritative.
-
-Before treating an OpenAPI document as authoritative, verify its title, servers,
-paths, schemas, and envelopes describe the current e-commerce surface. A scaffold
-or unrelated API description is not a contract for the services in this repo.
 
 ## Compatibility
 

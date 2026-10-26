@@ -40,8 +40,7 @@ Detailed steering documents translate those decisions into implementation rules.
 - `services/cart-service/`: Go; shopping cart, line items, and catalog/inventory
   enrichment over private gRPC.
 - `ecommerce-fe/`: React/Vite/TypeScript frontend.
-- `contracts/`: protobuf sources, generated Java/Go modules, and HTTP contract
-  material.
+- `contracts/`: protobuf sources and generated Java/Go modules.
 - `deployments/`: Docker Compose, Kong, PostgreSQL, and local secret setup.
 
 Keep production code and tests within the owning application surface. Java tests
