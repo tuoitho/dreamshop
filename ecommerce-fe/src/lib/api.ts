@@ -1,7 +1,7 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios"
 import { toast } from "sonner"
 import type { ApiError, ApiResponse, CartData, CurrentUser, LoginRequest, LoginResponse, ProductDetail, RegisterRequest, RegisterResponse, SearchProductsParams, SearchProductsResult, UpdateProfileRequest } from "./types"
-import { clearAccessToken, getAccessToken, runSingleFlightRefresh, setAccessToken } from "./auth-session"
+import { clearAccessToken, getAccessToken, getSessionEpoch, runSingleFlightRefresh, setAccessToken } from "./auth-session"
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1"
 
@@ -56,7 +56,7 @@ function shouldSuppressMutationSuccessToast(response: {
   return target?.status === "OUT_OF_STOCK" || target?.status === "UNAVAILABLE"
 }
 
-const refreshHttp = axios.create({
+export const refreshHttp = axios.create({
   baseURL: BASE_URL,
   headers: { "Content-Type": "application/json" },
   withCredentials: true,
@@ -64,13 +64,23 @@ const refreshHttp = axios.create({
 
 export async function refreshAccessToken(): Promise<string> {
   return runSingleFlightRefresh(async () => {
+    const startEpoch = getSessionEpoch()
     const { data } = await refreshHttp.post<ApiResponse<LoginResponse>>("/auth/refresh")
+    if (getSessionEpoch() !== startEpoch) {
+      throw new Error("Session changed during token refresh")
+    }
     setAccessToken(data.data.accessToken)
     return data.data.accessToken
   })
 }
 
+type SessionAwareRequestConfig = InternalAxiosRequestConfig & {
+  _retried?: boolean
+  _sessionEpoch?: number
+}
+
 http.interceptors.request.use((config) => {
+  ;(config as SessionAwareRequestConfig)._sessionEpoch = getSessionEpoch()
   const token = getAccessToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
@@ -85,9 +95,16 @@ http.interceptors.response.use((response) => {
   }
   return response
 }, async (error: AxiosError) => {
-  const config = error.config as (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined
+  const config = error.config as SessionAwareRequestConfig | undefined
   const url = config?.url ?? ""
-  if (error.response?.status !== 401 || url.startsWith("/auth/") || !config || config._retried) {
+  const requestEpoch = config?._sessionEpoch ?? getSessionEpoch()
+  if (
+    error.response?.status !== 401 ||
+    url.startsWith("/auth/") ||
+    !config ||
+    config._retried ||
+    requestEpoch !== getSessionEpoch()
+  ) {
     if (isMutation(config)) {
       toast.error(responseMessage(error.response?.data) ?? error.message)
     }
@@ -96,10 +113,15 @@ http.interceptors.response.use((response) => {
   config._retried = true
   try {
     const token = await refreshAccessToken()
+    if (getSessionEpoch() !== requestEpoch) {
+      return Promise.reject(error)
+    }
     config.headers.Authorization = `Bearer ${token}`
     return http(config)
   } catch {
-    clearAccessToken()
+    if (getSessionEpoch() === requestEpoch) {
+      clearAccessToken()
+    }
     if (isMutation(config)) {
       toast.error(responseMessage(error.response?.data) ?? error.message)
     }

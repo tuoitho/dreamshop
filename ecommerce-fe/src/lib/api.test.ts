@@ -12,13 +12,14 @@ import {
   http,
   login,
   logoutRequest,
+  refreshHttp,
   removeCartItem,
   searchProducts,
   softDeleteProduct,
   updateCartItemQuantity,
   updateCurrentUser,
 } from "./api"
-import { setAccessToken, clearAccessToken } from "./auth-session"
+import { advanceSessionEpoch, clearAccessToken, getAccessToken, setAccessToken } from "./auth-session"
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
@@ -43,6 +44,7 @@ describe("api client", () => {
     clearAccessToken()
     vi.clearAllMocks()
     delete http.defaults.adapter
+    delete refreshHttp.defaults.adapter
   })
 
   it("attaches the Bearer token when one is stored", async () => {
@@ -157,6 +159,80 @@ describe("api client", () => {
     expect(toast.success).not.toHaveBeenCalled()
     expect(toast.error).not.toHaveBeenCalled()
   })
+
+  it("clears the stored token when a 401 refresh attempt fails", async () => {
+    setAccessToken("jwt-expired")
+    http.defaults.adapter = vi.fn(async (config) => {
+      throw new AxiosError("Unauthorized", "ERR_BAD_REQUEST", config, undefined, {
+        status: 401,
+        data: { code: "TOKEN_EXPIRED", message: "Access token expired" },
+        statusText: "Unauthorized",
+        headers: new AxiosHeaders(),
+        config,
+      })
+    }) as never
+    refreshHttp.defaults.adapter = vi.fn(async (config) => {
+      throw new AxiosError("Unauthorized", "ERR_BAD_REQUEST", config, undefined, {
+        status: 401,
+        data: { code: "REFRESH_TOKEN_EXPIRED", message: "Refresh token expired" },
+        statusText: "Unauthorized",
+        headers: new AxiosHeaders(),
+        config,
+      })
+    }) as never
+
+    await expect(fetchCurrentUser()).rejects.toBeInstanceOf(ApiClientError)
+    expect(getAccessToken()).toBeNull()
+  })
+
+  it("does not refresh or clear a newer session when a pre-logout or pre-login request returns 401", async () => {
+    setAccessToken("jwt-old")
+    let sentConfig!: never
+    let rejectOldRequest!: (err: AxiosError) => void
+    let notifyAdapterCalled!: () => void
+    const adapterCalled = new Promise<void>((resolve) => {
+      notifyAdapterCalled = resolve
+    })
+    http.defaults.adapter = vi.fn(
+      (config) =>
+        new Promise((_resolve, reject) => {
+          sentConfig = config as never
+          rejectOldRequest = reject
+          notifyAdapterCalled()
+        })
+    ) as never
+    const refreshAdapter = vi.fn(async (config) => {
+      throw new AxiosError("Unauthorized", "ERR_BAD_REQUEST", config, undefined, {
+        status: 401,
+        data: { code: "REFRESH_TOKEN_EXPIRED", message: "Refresh token expired" },
+        statusText: "Unauthorized",
+        headers: new AxiosHeaders(),
+        config,
+      })
+    })
+    refreshHttp.defaults.adapter = refreshAdapter as never
+
+    const pendingRequest = fetchCurrentUser()
+    await adapterCalled
+
+    // Session changes (e.g. login or logout) while the old request is still in flight
+    advanceSessionEpoch()
+    setAccessToken("jwt-new")
+
+    rejectOldRequest(
+      new AxiosError("Unauthorized", "ERR_BAD_REQUEST", sentConfig, undefined, {
+        status: 401,
+        data: { code: "TOKEN_EXPIRED", message: "Old token expired" },
+        statusText: "Unauthorized",
+        headers: new AxiosHeaders(),
+        config: sentConfig,
+      })
+    )
+
+    await expect(pendingRequest).rejects.toBeInstanceOf(ApiClientError)
+    expect(refreshAdapter).not.toHaveBeenCalled()
+    expect(getAccessToken()).toBe("jwt-new")
+  })
 })
 
 describe("storefront product adapters", () => {
@@ -164,6 +240,7 @@ describe("storefront product adapters", () => {
     clearAccessToken()
     vi.clearAllMocks()
     delete http.defaults.adapter
+    delete refreshHttp.defaults.adapter
   })
 
   it("builds storefront query params and parses the paginated envelope", async () => {
@@ -304,6 +381,7 @@ describe("cart adapters", () => {
     clearAccessToken()
     vi.clearAllMocks()
     delete http.defaults.adapter
+    delete refreshHttp.defaults.adapter
   })
 
   it("extracts the cart envelope for GET", async () => {
