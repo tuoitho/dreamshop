@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"os"
+	"sync"
 	"testing"
 
 	"ecommerce.local/catalog-service/internal/domain"
@@ -156,5 +157,83 @@ func TestStoreIntegration(t *testing.T) {
 func TestSeedDataCount(t *testing.T) {
 	if got := len(seedProducts()); got != 16 {
 		t.Fatalf("expected 16 seed products, got %d", got)
+	}
+}
+
+func TestSeedConcurrentOnEmptyCatalog(t *testing.T) {
+	adminPool := testPool(t)
+	ctx := context.Background()
+
+	const schemaName = "catalog_seed_concurrent_test"
+	if _, err := adminPool.Exec(ctx, "DROP SCHEMA IF EXISTS "+schemaName+" CASCADE"); err != nil {
+		t.Fatalf("drop test schema: %v", err)
+	}
+	if _, err := adminPool.Exec(ctx, "CREATE SCHEMA "+schemaName); err != nil {
+		t.Fatalf("create test schema: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = adminPool.Exec(context.Background(), "DROP SCHEMA IF EXISTS "+schemaName+" CASCADE")
+	})
+
+	poolCfg, err := pgxpool.ParseConfig(os.Getenv("DATABASE_URL"))
+	if err != nil {
+		t.Fatalf("parse DATABASE_URL: %v", err)
+	}
+	if poolCfg.ConnConfig.RuntimeParams == nil {
+		poolCfg.ConnConfig.RuntimeParams = map[string]string{}
+	}
+	poolCfg.ConnConfig.RuntimeParams["search_path"] = schemaName
+
+	pool, err := pgxpool.NewWithConfig(ctx, poolCfg)
+	if err != nil {
+		t.Fatalf("connect isolated schema pool: %v", err)
+	}
+	t.Cleanup(pool.Close)
+
+	if err := Migrate(ctx, pool); err != nil {
+		t.Fatalf("migrate isolated schema: %v", err)
+	}
+
+	const replicas = 8
+	start := make(chan struct{})
+	errs := make(chan error, replicas)
+	var wg sync.WaitGroup
+	wg.Add(replicas)
+	for range replicas {
+		go func() {
+			defer wg.Done()
+			<-start
+			errs <- Seed(ctx, pool)
+		}()
+	}
+	close(start)
+	wg.Wait()
+	close(errs)
+
+	for err := range errs {
+		if err != nil {
+			t.Fatalf("concurrent Seed() failed: %v", err)
+		}
+	}
+
+	var count int64
+	if err := pool.QueryRow(ctx, "SELECT COUNT(*) FROM products").Scan(&count); err != nil {
+		t.Fatalf("count seeded products: %v", err)
+	}
+	if count != 16 {
+		t.Fatalf("expected 16 seeded products after concurrent Seed(), got %d", count)
+	}
+
+	if _, err := pool.Exec(ctx, "DELETE FROM products WHERE id <> 'dt-1'"); err != nil {
+		t.Fatalf("delete subset of products: %v", err)
+	}
+	if err := Seed(ctx, pool); err != nil {
+		t.Fatalf("re-seed non-empty catalog: %v", err)
+	}
+	if err := pool.QueryRow(ctx, "SELECT COUNT(*) FROM products").Scan(&count); err != nil {
+		t.Fatalf("re-count products: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected non-empty catalog to remain untouched at 1 product, got %d", count)
 	}
 }

@@ -154,7 +154,8 @@ func TestStartLocalCatalogAndInventoryDefaults(t *testing.T) {
 		got.Env["GRPC_ADDR"] != "127.0.0.1:50051" ||
 		got.Env["DATABASE_URL"] != "postgres://ecommerce:change-me-local-only@127.0.0.1:5432/catalog_db?sslmode=disable" ||
 		got.Env["IDENTITY_GRPC_ADDR"] != "127.0.0.1:50054" ||
-		got.Env["IDENTITY_GRPC_TIMEOUT"] != "500ms" {
+		got.Env["IDENTITY_GRPC_TIMEOUT"] != "500ms" ||
+		got.Env["SEED_DEMO_DATA"] != "true" {
 		t.Fatalf("unexpected catalog env: %v", got.Env)
 	}
 
@@ -171,7 +172,8 @@ func TestStartLocalCatalogAndInventoryDefaults(t *testing.T) {
 	}
 	if got.Env["HTTP_ADDR"] != ":8082" ||
 		got.Env["GRPC_ADDR"] != "127.0.0.1:50052" ||
-		got.Env["DATABASE_URL"] != "postgres://ecommerce:change-me-local-only@127.0.0.1:5432/inventory_db?sslmode=disable" {
+		got.Env["DATABASE_URL"] != "postgres://ecommerce:change-me-local-only@127.0.0.1:5432/inventory_db?sslmode=disable" ||
+		got.Env["SEED_DEMO_DATA"] != "true" {
 		t.Fatalf("unexpected inventory env: %v", got.Env)
 	}
 }

@@ -1,12 +1,14 @@
 package config
 
 import (
+	"strings"
 	"testing"
 )
 
 func TestLoadDefaults(t *testing.T) {
 	t.Setenv("HTTP_ADDR", "")
 	t.Setenv("GRPC_ADDR", "")
+	t.Setenv("SEED_DEMO_DATA", "")
 	t.Setenv("DATABASE_URL", "postgres://ecommerce:secret@localhost:5432/inventory_db?sslmode=disable")
 	cfg, err := Load()
 	if err != nil {
@@ -21,12 +23,16 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.DatabaseURL == "" {
 		t.Fatal("expected DatabaseURL to be read from the environment")
 	}
+	if cfg.SeedDemoData {
+		t.Fatal("expected SeedDemoData to default to false")
+	}
 }
 
 func TestLoadReadsEnvironment(t *testing.T) {
 	t.Setenv("HTTP_ADDR", ":9999")
 	t.Setenv("GRPC_ADDR", "0.0.0.0:60000")
 	t.Setenv("DATABASE_URL", "postgres://user:pass@db:5432/inventory_db")
+	t.Setenv("SEED_DEMO_DATA", "true")
 
 	cfg, err := Load()
 	if err != nil {
@@ -37,6 +43,19 @@ func TestLoadReadsEnvironment(t *testing.T) {
 	}
 	if cfg.DatabaseURL != "postgres://user:pass@db:5432/inventory_db" {
 		t.Fatalf("unexpected DatabaseURL: %s", cfg.DatabaseURL)
+	}
+	if !cfg.SeedDemoData {
+		t.Fatal("expected SeedDemoData to be true when SEED_DEMO_DATA=true")
+	}
+}
+
+func TestLoadRejectsInvalidSeedDemoData(t *testing.T) {
+	t.Setenv("DATABASE_URL", "postgres://user:pass@db:5432/inventory_db")
+	t.Setenv("SEED_DEMO_DATA", "not-a-bool")
+
+	_, err := Load()
+	if err == nil || !strings.Contains(err.Error(), "SEED_DEMO_DATA") {
+		t.Fatalf("Load() error = %v; want SEED_DEMO_DATA validation error", err)
 	}
 }
 

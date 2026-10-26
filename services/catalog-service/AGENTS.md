@@ -41,7 +41,8 @@ semantics.
 
 - `cmd/server/`: process startup and dependency wiring.
 - `internal/config/`: environment-backed configuration (`HTTP_ADDR`,
-  `GRPC_ADDR`, `DATABASE_URL`, `IDENTITY_GRPC_ADDR`, `IDENTITY_GRPC_TIMEOUT`).
+  `GRPC_ADDR`, `DATABASE_URL`, `IDENTITY_GRPC_ADDR`, `IDENTITY_GRPC_TIMEOUT`,
+  `SEED_DEMO_DATA`).
 - `internal/authorization/`: private gRPC client to Identity authorization.
 - `internal/domain/`: catalog search, filtering, and product rules.
 - `internal/store/`: PostgreSQL migrations, seed data, and repository adapter.

@@ -42,7 +42,9 @@ func main() {
 	if err := store.Migrate(ctx, pool); err != nil {
 		log.Fatalf("failed to run migrations: %v", err)
 	}
-	if err := store.Seed(ctx, pool); err != nil {
+	if err := seedIfEnabled(ctx, cfg.SeedDemoData, func(ctx context.Context) error {
+		return store.Seed(ctx, pool)
+	}); err != nil {
 		log.Fatalf("failed to seed inventory: %v", err)
 	}
 
@@ -81,4 +83,11 @@ func main() {
 			log.Fatalf("server failed: %v", err)
 		}
 	}
+}
+
+func seedIfEnabled(ctx context.Context, enabled bool, seed func(context.Context) error) error {
+	if !enabled {
+		return nil
+	}
+	return seed(ctx)
 }

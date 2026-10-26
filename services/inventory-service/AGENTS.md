@@ -42,7 +42,7 @@ behavior as domain/contract semantics rather than transport defaults.
 
 - `cmd/server/`: process startup, signal handling, and dependency wiring.
 - `internal/config/`: environment-backed configuration (`HTTP_ADDR`,
-  `GRPC_ADDR`, `DATABASE_URL`).
+  `GRPC_ADDR`, `DATABASE_URL`, `SEED_DEMO_DATA`).
 - `internal/domain/`: stock and availability domain rules (`Quantity - Reserved`).
 - `internal/store/`: embedded SQL migrations (`000001_create_stock.up.sql`),
   seed data, and PostgreSQL store adapter.

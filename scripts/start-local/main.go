@@ -162,6 +162,7 @@ func runWithDeps(args []string, in io.Reader, out, errOut io.Writer, baseEnv []s
 		setDefaultEnv(env, "GRPC_ADDR", "127.0.0.1:50051")
 		setDefaultEnv(env, "IDENTITY_GRPC_ADDR", "127.0.0.1:50054")
 		setDefaultEnv(env, "IDENTITY_GRPC_TIMEOUT", "500ms")
+		setDefaultEnv(env, "SEED_DEMO_DATA", "true")
 
 		return launch(filepath.Join(root, "services", "catalog-service"), formatEnv(env), "go", "run", "./cmd/server")
 
@@ -169,6 +170,7 @@ func runWithDeps(args []string, in io.Reader, out, errOut io.Writer, baseEnv []s
 		setDefaultEnv(env, "DATABASE_URL", "postgres://ecommerce:change-me-local-only@127.0.0.1:5432/inventory_db?sslmode=disable")
 		setDefaultEnv(env, "HTTP_ADDR", ":8082")
 		setDefaultEnv(env, "GRPC_ADDR", "127.0.0.1:50052")
+		setDefaultEnv(env, "SEED_DEMO_DATA", "true")
 
 		return launch(filepath.Join(root, "services", "inventory-service"), formatEnv(env), "go", "run", "./cmd/server")
 

@@ -14,6 +14,7 @@ func clearCatalogConfigEnv(t *testing.T) {
 		"DATABASE_URL",
 		"IDENTITY_GRPC_ADDR",
 		"IDENTITY_GRPC_TIMEOUT",
+		"SEED_DEMO_DATA",
 	} {
 		t.Setenv(key, "")
 	}
@@ -42,6 +43,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.IdentityGRPCTimeout != 500*time.Millisecond {
 		t.Fatalf("expected IdentityGRPCTimeout 500ms, got %s", cfg.IdentityGRPCTimeout)
 	}
+	if cfg.SeedDemoData {
+		t.Fatal("expected SeedDemoData to default to false")
+	}
 }
 
 func TestLoadReadsEnvironment(t *testing.T) {
@@ -51,6 +55,7 @@ func TestLoadReadsEnvironment(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://user:pass@db:5432/catalog_db")
 	t.Setenv("IDENTITY_GRPC_ADDR", "identity-service:50054")
 	t.Setenv("IDENTITY_GRPC_TIMEOUT", "750ms")
+	t.Setenv("SEED_DEMO_DATA", "true")
 
 	cfg, err := Load()
 	if err != nil {
@@ -70,6 +75,20 @@ func TestLoadReadsEnvironment(t *testing.T) {
 	}
 	if cfg.IdentityGRPCTimeout != 750*time.Millisecond {
 		t.Fatalf("expected IdentityGRPCTimeout 750ms, got %s", cfg.IdentityGRPCTimeout)
+	}
+	if !cfg.SeedDemoData {
+		t.Fatal("expected SeedDemoData to be true when SEED_DEMO_DATA=true")
+	}
+}
+
+func TestLoadRejectsInvalidSeedDemoData(t *testing.T) {
+	clearCatalogConfigEnv(t)
+	t.Setenv("DATABASE_URL", "postgres://user:pass@db:5432/catalog_db")
+	t.Setenv("SEED_DEMO_DATA", "not-a-bool")
+
+	_, err := Load()
+	if err == nil || !strings.Contains(err.Error(), "SEED_DEMO_DATA") {
+		t.Fatalf("Load() error = %v; want SEED_DEMO_DATA validation error", err)
 	}
 }
 

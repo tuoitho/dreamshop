@@ -2,13 +2,17 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"os"
+	"strconv"
+	"strings"
 )
 
 type Config struct {
-	HTTPAddr    string
-	GRPCAddr    string
-	DatabaseURL string
+	HTTPAddr     string
+	GRPCAddr     string
+	DatabaseURL  string
+	SeedDemoData bool
 }
 
 func Load() (*Config, error) {
@@ -27,9 +31,27 @@ func Load() (*Config, error) {
 		return nil, errors.New("DATABASE_URL environment variable is required")
 	}
 
+	seedDemoData, err := loadBool("SEED_DEMO_DATA", false)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Config{
-		HTTPAddr:    httpAddr,
-		GRPCAddr:    grpcAddr,
-		DatabaseURL: databaseURL,
+		HTTPAddr:     httpAddr,
+		GRPCAddr:     grpcAddr,
+		DatabaseURL:  databaseURL,
+		SeedDemoData: seedDemoData,
 	}, nil
+}
+
+func loadBool(name string, fallback bool) (bool, error) {
+	raw := strings.TrimSpace(os.Getenv(name))
+	if raw == "" {
+		return fallback, nil
+	}
+	parsed, err := strconv.ParseBool(raw)
+	if err != nil {
+		return false, fmt.Errorf("%s must be a valid boolean: %w", name, err)
+	}
+	return parsed, nil
 }
