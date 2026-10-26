@@ -162,6 +162,26 @@ func TestAdminSoftDeleteProductNotFoundMapsToStableError(t *testing.T) {
 	}
 }
 
+func TestAdminSoftDeleteProductCatalogInvalidArgumentMapsToBadRequest(t *testing.T) {
+	client := &fakeCatalogClient{
+		softDeleteFn: func(context.Context, string, string, bool) error {
+			return status.Error(codes.InvalidArgument, "id is required")
+		},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/products/dt-1/delete", strings.NewReader(`{"deleted":true}`))
+	req.Header.Set("X-User-Id", "admin-1")
+	rec := httptest.NewRecorder()
+
+	newAdminProductsTestMux(t, client).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if body := decodeBody(t, rec); body["code"] != "INVALID_REQUEST" {
+		t.Fatalf("expected code INVALID_REQUEST, got %v", body["code"])
+	}
+}
+
 func TestAdminSoftDeleteProductCatalogUnavailableMapsToBadGateway(t *testing.T) {
 	client := &fakeCatalogClient{
 		softDeleteFn: func(context.Context, string, string, bool) error {
