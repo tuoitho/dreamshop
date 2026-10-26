@@ -98,14 +98,20 @@ func SearchProducts(products []*Product, filter SearchFilter) *SearchResult {
 		totalPages = int32((totalItems + int64(filter.PageSize) - 1) / int64(filter.PageSize))
 	}
 
-	start := int((filter.Page - 1) * filter.PageSize)
-	if start > len(matched) {
-		start = len(matched)
+	matchedLen := int64(len(matched))
+	offset := int64(filter.Page-1) * int64(filter.PageSize)
+	if offset < 0 {
+		offset = 0
 	}
-	end := start + int(filter.PageSize)
-	if end > len(matched) {
-		end = len(matched)
+	if offset > matchedLen {
+		offset = matchedLen
 	}
+	limit := offset + int64(filter.PageSize)
+	if limit > matchedLen {
+		limit = matchedLen
+	}
+	start := int(offset)
+	end := int(limit)
 
 	items := make([]*Summary, 0, end-start)
 	for _, p := range matched[start:end] {

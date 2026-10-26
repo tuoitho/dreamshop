@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"math"
 	"testing"
 )
 
@@ -284,6 +285,20 @@ func TestSearchProductsPagination(t *testing.T) {
 	}
 	if result.TotalItems != 5 || result.TotalPages != 3 {
 		t.Fatalf("page 99 must keep totals, got %+v", result)
+	}
+}
+
+func TestSearchProductsPaginationOverflowDoesNotPanic(t *testing.T) {
+	products := testProducts()
+
+	for _, page := range []int32{50_000_000, math.MaxInt32} {
+		result := SearchProducts(products, SearchFilter{Page: page, PageSize: 50})
+		if len(result.Items) != 0 {
+			t.Fatalf("page %d: expected empty items, got %v", page, ids(result.Items))
+		}
+		if result.Page != page || result.PageSize != 50 || result.TotalItems != 5 || result.TotalPages != 1 {
+			t.Fatalf("page %d: unexpected metadata: %+v", page, result)
+		}
 	}
 }
 
