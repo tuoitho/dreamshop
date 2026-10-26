@@ -1,4 +1,6 @@
-.PHONY: infra-up infra-down infra-logs identity order cart bff identity-keys proto lint verify check-boundaries up down help
+.PHONY: infra-up infra-down infra-logs prod-config prod-up prod-down prod-logs identity order cart bff identity-keys proto lint verify check-boundaries up down help
+
+PROD_ENV_FILE ?= .env.production
 
 infra-up:
 	docker compose -f deployments/docker/compose.foundation.yml up -d --build
@@ -9,6 +11,19 @@ infra-down:
 
 infra-logs:
 	docker compose -f deployments/docker/compose.foundation.yml logs -f
+
+prod-config:
+	docker compose --env-file $(PROD_ENV_FILE) -f deployments/docker/compose.production.yml config --quiet
+
+prod-up:
+	docker compose --env-file $(PROD_ENV_FILE) -f deployments/docker/compose.production.yml up -d --build
+	docker compose --env-file $(PROD_ENV_FILE) -f deployments/docker/compose.production.yml up -d --force-recreate --no-deps kong
+
+prod-down:
+	docker compose --env-file $(PROD_ENV_FILE) -f deployments/docker/compose.production.yml down
+
+prod-logs:
+	docker compose --env-file $(PROD_ENV_FILE) -f deployments/docker/compose.production.yml logs -f
 
 identity:
 	go run ./scripts/start-local -service identity-service
@@ -50,6 +65,10 @@ help:
 	@echo "  make infra-up          - Start PostgreSQL, Redis, RabbitMQ, and Kong"
 	@echo "  make infra-down        - Stop local infrastructure"
 	@echo "  make infra-logs        - Follow infrastructure logs"
+	@echo "  make prod-config       - Validate production Docker Compose configuration"
+	@echo "  make prod-up           - Build and start the full production Docker Compose stack"
+	@echo "  make prod-down         - Stop the production Docker Compose stack"
+	@echo "  make prod-logs         - Follow production Docker Compose logs"
 	@echo "  make identity          - Start identity-service locally"
 	@echo "  make order             - Start order-service locally"
 	@echo "  make cart              - Start cart-service locally"

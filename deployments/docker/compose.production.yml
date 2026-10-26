@@ -1,0 +1,274 @@
+name: ecommerce-prod
+
+networks:
+  ecommerce-prod-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ecommerce}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../postgres/init/01-create-databases.sql:/docker-entrypoint-initdb.d/01-create-databases.sql:ro
+    networks:
+      - ecommerce-prod-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ecommerce}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - ecommerce-prod-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-ecommerce}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS is required}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - ecommerce-prod-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  identity-service:
+    image: ecommerce/identity-service:${IMAGE_TAG:-latest}
+    build:
+      context: ../..
+      dockerfile: services/identity-service/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: "8080"
+      JDK_JAVA_OPTIONS: "-Djava.net.preferIPv4Stack=true"
+      IDENTITY_DB_URL: jdbc:postgresql://postgres:5432/identity_db
+      IDENTITY_DB_USERNAME: ${POSTGRES_USER:-ecommerce}
+      IDENTITY_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      IDENTITY_GRPC_HOST: "0.0.0.0"
+      IDENTITY_GRPC_PORT: "50054"
+      IDENTITY_GRPC_SHUTDOWN_GRACE: "5s"
+      IDENTITY_JWT_ISSUER: "http://identity-service:8080"
+      IDENTITY_JWT_AUDIENCE: "ecommerce-api"
+      IDENTITY_JWT_PRIVATE_KEY_PATH: "/run/secrets/identity/private.pem"
+      IDENTITY_JWT_PUBLIC_KEY_PATH: "/run/secrets/identity/public.pem"
+      IDENTITY_JWT_KEY_ID: ${IDENTITY_JWT_KEY_ID:-identity-prod-key-1}
+      IDENTITY_JWT_ACCESS_TTL: ${IDENTITY_JWT_ACCESS_TTL:-15m}
+      IDENTITY_SESSION_REFRESH_TTL: ${IDENTITY_SESSION_REFRESH_TTL:-30d}
+      IDENTITY_SESSION_COOKIE_NAME: ${IDENTITY_SESSION_COOKIE_NAME:-refresh_token}
+      IDENTITY_SESSION_COOKIE_PATH: ${IDENTITY_SESSION_COOKIE_PATH:-/api/v1/auth}
+      IDENTITY_SESSION_COOKIE_SECURE: ${IDENTITY_SESSION_COOKIE_SECURE:-true}
+      IDENTITY_BOOTSTRAP_SUPER_ADMIN_EMAIL: ${IDENTITY_BOOTSTRAP_SUPER_ADMIN_EMAIL:-}
+      IDENTITY_BOOTSTRAP_SUPER_ADMIN_PASSWORD: ${IDENTITY_BOOTSTRAP_SUPER_ADMIN_PASSWORD:-}
+      IDENTITY_BOOTSTRAP_SUPER_ADMIN_FULL_NAME: ${IDENTITY_BOOTSTRAP_SUPER_ADMIN_FULL_NAME:-}
+    volumes:
+      - ${IDENTITY_KEYS_DIR:-../secrets/identity}:/run/secrets/identity:ro
+    networks:
+      - ecommerce-prod-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health/readiness > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
+
+  catalog-service:
+    image: ecommerce/catalog-service:${IMAGE_TAG:-latest}
+    build:
+      context: ../..
+      dockerfile: services/catalog-service/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      HTTP_ADDR: ":8081"
+      GRPC_ADDR: "0.0.0.0:50051"
+      DATABASE_URL: postgres://${POSTGRES_USER:-ecommerce}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/catalog_db?sslmode=disable
+    networks:
+      - ecommerce-prod-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8081/healthz > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  inventory-service:
+    image: ecommerce/inventory-service:${IMAGE_TAG:-latest}
+    build:
+      context: ../..
+      dockerfile: services/inventory-service/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      HTTP_ADDR: ":8082"
+      GRPC_ADDR: "0.0.0.0:50052"
+      DATABASE_URL: postgres://${POSTGRES_USER:-ecommerce}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/inventory_db?sslmode=disable
+    networks:
+      - ecommerce-prod-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8082/healthz > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  cart-service:
+    image: ecommerce/cart-service:${IMAGE_TAG:-latest}
+    build:
+      context: ../..
+      dockerfile: services/cart-service/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      identity-service:
+        condition: service_healthy
+      catalog-service:
+        condition: service_healthy
+      inventory-service:
+        condition: service_healthy
+    environment:
+      HTTP_ADDR: ":8084"
+      GRPC_ADDR: "0.0.0.0:50053"
+      DATABASE_URL: postgres://${POSTGRES_USER:-ecommerce}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/cart_db?sslmode=disable
+      CATALOG_GRPC_ADDR: "catalog-service:50051"
+      CATALOG_GRPC_TIMEOUT: "3s"
+      INVENTORY_GRPC_ADDR: "inventory-service:50052"
+      INVENTORY_GRPC_TIMEOUT: "3s"
+      IDENTITY_GRPC_ADDR: "identity-service:50054"
+      IDENTITY_GRPC_TIMEOUT: "500ms"
+    networks:
+      - ecommerce-prod-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8084/healthz > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  bff-service:
+    image: ecommerce/bff-service:${IMAGE_TAG:-latest}
+    build:
+      context: ../..
+      dockerfile: services/bff-service/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      catalog-service:
+        condition: service_healthy
+      cart-service:
+        condition: service_healthy
+    environment:
+      BFF_HTTP_ADDR: ":8080"
+      BFF_CATALOG_GRPC_ADDR: "catalog-service:50051"
+      BFF_CATALOG_GRPC_TIMEOUT: "3s"
+      BFF_CART_GRPC_ADDR: "cart-service:50053"
+      BFF_CART_GRPC_TIMEOUT: "3s"
+    networks:
+      - ecommerce-prod-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  order-service:
+    image: ecommerce/order-service:${IMAGE_TAG:-latest}
+    build:
+      context: ../..
+      dockerfile: services/order-service/Dockerfile
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: "8083"
+      JDK_JAVA_OPTIONS: "-Djava.net.preferIPv4Stack=true"
+    networks:
+      - ecommerce-prod-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8083/actuator/health/readiness > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
+
+  ecommerce-fe:
+    image: ecommerce/ecommerce-fe:${IMAGE_TAG:-latest}
+    build:
+      context: ../../ecommerce-fe
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
+    restart: unless-stopped
+    networks:
+      - ecommerce-prod-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  kong:
+    image: ecommerce/kong:${IMAGE_TAG:-latest}
+    build:
+      context: ../kong
+    restart: unless-stopped
+    depends_on:
+      identity-service:
+        condition: service_healthy
+      bff-service:
+        condition: service_healthy
+      ecommerce-fe:
+        condition: service_healthy
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: "/usr/local/kong/declarative/kong.yml"
+      KONG_PROXY_ACCESS_LOG: "/dev/stdout"
+      KONG_ADMIN_ACCESS_LOG: "/dev/stdout"
+      KONG_PROXY_ERROR_LOG: "/dev/stderr"
+      KONG_ADMIN_ERROR_LOG: "/dev/stderr"
+      KONG_ADMIN_LISTEN: "127.0.0.1:8001"
+    volumes:
+      - ../kong/kong-production.yaml:/usr/local/kong/declarative/kong.yml:ro
+    ports:
+      - "${PUBLIC_HTTP_PORT:-80}:8000"
+    networks:
+      - ecommerce-prod-net
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s

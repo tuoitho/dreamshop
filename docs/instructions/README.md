@@ -10,6 +10,7 @@ contribution policy is in [`docs/rules/README.md`](../rules/README.md).
 | Start and stop local applications | [`local-development.md`](local-development.md) |
 | Choose focused, surface, or repository checks | [`build-and-test.md`](build-and-test.md) |
 | Diagnose local health, routing, or infrastructure | [`operations.md`](operations.md) |
+| Build and deploy the full stack with Docker Compose | [`production-deployment.md`](production-deployment.md) |
 
 For ports, ownership, exposure, and current wiring status, use the
 [service catalog](../steering/service-catalog.md).
