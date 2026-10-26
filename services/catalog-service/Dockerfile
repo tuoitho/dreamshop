@@ -19,6 +19,8 @@ COPY --from=builder /catalog-server /app/catalog-server
 
 ENV HTTP_ADDR=":8081"
 ENV GRPC_ADDR="0.0.0.0:50051"
+ENV IDENTITY_GRPC_ADDR="identity-service:50054"
+ENV IDENTITY_GRPC_TIMEOUT="500ms"
 EXPOSE 8081 50051
 
 CMD ["/app/catalog-server"]

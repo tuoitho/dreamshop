@@ -5,6 +5,7 @@ package grpc
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"strings"
 
 	"ecommerce.local/catalog-service/internal/domain"
@@ -12,24 +13,35 @@ import (
 	commonv1 "ecommerce.local/contracts/go/common/v1"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
 const (
-	moneyCurrency  = "VND"
-	errorDomain    = "ecommerce.catalog.v1"
-	reasonNotFound = "PRODUCT_NOT_FOUND"
+	moneyCurrency                  = "VND"
+	errorDomain                    = "ecommerce.catalog.v1"
+	productDeletePermission        = "product.delete"
+	reasonNotFound                 = "PRODUCT_NOT_FOUND"
+	reasonProductPermissionDenied  = "PRODUCT_PERMISSION_DENIED"
+	reasonAuthorizationUnavailable = "AUTHORIZATION_UNAVAILABLE"
+	traceMetadataKey               = "x-trace-id"
+	maxTraceIDLength               = 64
 )
+
+type authorizationClient interface {
+	CheckPermission(context.Context, string, string) (bool, error)
+}
 
 // Server implements catalogv1.CatalogServiceServer over a domain.Repository.
 type Server struct {
 	catalogv1.UnimplementedCatalogServiceServer
-	repo domain.Repository
+	repo          domain.Repository
+	authorization authorizationClient
 }
 
-// NewServer creates a CatalogService gRPC server backed by repo.
-func NewServer(repo domain.Repository) *Server {
-	return &Server{repo: repo}
+// NewServer creates a CatalogService gRPC server backed by repo and authorization.
+func NewServer(repo domain.Repository, authorization authorizationClient) *Server {
+	return &Server{repo: repo, authorization: authorization}
 }
 
 // GetProduct returns the full product detail.
@@ -78,12 +90,36 @@ func (s *Server) SearchProducts(ctx context.Context, req *catalogv1.SearchProduc
 	return searchResultToProto(result), nil
 }
 
-// SoftDeleteProduct marks a product as deleted or restores it.
+// SoftDeleteProduct marks a product as deleted or restores it after verifying product.delete permission.
 func (s *Server) SoftDeleteProduct(ctx context.Context, req *catalogv1.SoftDeleteProductRequest) (*catalogv1.SoftDeleteProductResponse, error) {
 	id := strings.TrimSpace(req.GetId())
 	if id == "" {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
+	userID := strings.TrimSpace(req.GetUserId())
+	if userID == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+	if s.authorization == nil {
+		return nil, statusWithReason(codes.Unavailable, "authorization service is unavailable", reasonAuthorizationUnavailable)
+	}
+
+	authorizationCtx, traceID := withAuthorizationTrace(ctx)
+	allowed, err := s.authorization.CheckPermission(authorizationCtx, userID, productDeletePermission)
+	if err != nil {
+		if ctx.Err() != nil {
+			return nil, status.FromContextError(ctx.Err()).Err()
+		}
+		slog.WarnContext(ctx, "product delete authorization unavailable", "user_id", userID,
+			"permission", productDeletePermission, "trace_id", traceID)
+		return nil, statusWithReason(codes.Unavailable, "authorization service is unavailable", reasonAuthorizationUnavailable)
+	}
+	if !allowed {
+		slog.DebugContext(ctx, "product delete authorization denied", "user_id", userID,
+			"permission", productDeletePermission, "trace_id", traceID)
+		return nil, statusWithReason(codes.PermissionDenied, "product permission denied", reasonProductPermissionDenied)
+	}
+
 	if err := s.repo.SoftDelete(ctx, id, req.GetDeleted()); err != nil {
 		if errors.Is(err, domain.ErrProductNotFound) {
 			return nil, notFoundError(id)
@@ -91,6 +127,33 @@ func (s *Server) SoftDeleteProduct(ctx context.Context, req *catalogv1.SoftDelet
 		return nil, status.Errorf(codes.Internal, "set product deleted %q: %v", id, err)
 	}
 	return &catalogv1.SoftDeleteProductResponse{Id: id, Deleted: req.GetDeleted()}, nil
+}
+
+func withAuthorizationTrace(ctx context.Context) (context.Context, string) {
+	incoming, _ := metadata.FromIncomingContext(ctx)
+	values := incoming.Get(traceMetadataKey)
+	if len(values) != 1 || !validTraceID(values[0]) {
+		return ctx, ""
+	}
+	outgoing, _ := metadata.FromOutgoingContext(ctx)
+	outgoing = outgoing.Copy()
+	outgoing.Set(traceMetadataKey, values[0])
+	return metadata.NewOutgoingContext(ctx, outgoing), values[0]
+}
+
+func validTraceID(candidate string) bool {
+	if len(candidate) == 0 || len(candidate) > maxTraceIDLength {
+		return false
+	}
+	for i := range len(candidate) {
+		value := candidate[i]
+		if (value >= 'a' && value <= 'z') || (value >= 'A' && value <= 'Z') ||
+			(value >= '0' && value <= '9') || value == '-' || value == '_' || value == '.' {
+			continue
+		}
+		return false
+	}
+	return true
 }
 
 func productToProto(p *domain.Product) *catalogv1.GetProductResponse {
@@ -167,6 +230,15 @@ func moneyToProto(amountMinor int64) *commonv1.Money {
 	}
 }
 
+func statusWithReason(code codes.Code, message, reason string) error {
+	base := status.New(code, message)
+	withDetails, err := base.WithDetails(&errdetails.ErrorInfo{Reason: reason, Domain: errorDomain})
+	if err != nil {
+		return base.Err()
+	}
+	return withDetails.Err()
+}
+
 // notFoundError builds a codes.NotFound status carrying a stable
 // google.rpc.ErrorInfo reason so clients can branch on PRODUCT_NOT_FOUND
 // instead of human-readable text.
@@ -180,8 +252,6 @@ func notFoundError(id string) error {
 		},
 	})
 	if err != nil {
-		// Without detail support there is nothing to annotate; keep the
-		// original NotFound status rather than degrading the code.
 		return status.New(codes.NotFound, "product not found").Err()
 	}
 	return st.Err()

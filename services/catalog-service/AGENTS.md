@@ -25,7 +25,9 @@ Catalog implementation code or read its persistence/cache directly.
 
 - Keep product identity and descriptive catalog truth inside this service.
 - Do not infer stock availability from catalog data; Inventory owns that fact.
-- Do not embed order workflow or identity authorization rules in catalog logic.
+- Do not embed order workflow or role hierarchy storage in catalog logic;
+  evaluate `product.delete` authorization via Identity's private gRPC boundary
+  (`127.0.0.1:50054`, default `500ms` timeout) before mutating catalog state.
 - Cache entries are derived data. Define their source, key, TTL/invalidation,
   stale-read tolerance, and recovery behavior.
 - Catalog persistence, cache namespaces, and migrations are owned here and are
@@ -38,7 +40,12 @@ semantics.
 ## Current Layout
 
 - `cmd/server/`: process startup and dependency wiring.
-- `internal/config/`: environment-backed configuration.
+- `internal/config/`: environment-backed configuration (`HTTP_ADDR`,
+  `GRPC_ADDR`, `DATABASE_URL`, `IDENTITY_GRPC_ADDR`, `IDENTITY_GRPC_TIMEOUT`).
+- `internal/authorization/`: private gRPC client to Identity authorization.
+- `internal/domain/`: catalog search, filtering, and product rules.
+- `internal/store/`: PostgreSQL migrations, seed data, and repository adapter.
+- `internal/grpc/`: `CatalogServiceServer` gRPC handler implementation.
 - `internal/http/`: health and HTTP transport concerns.
 
 As product capabilities are added, keep domain/application logic independent of

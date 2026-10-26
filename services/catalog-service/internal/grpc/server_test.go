@@ -1,16 +1,23 @@
 package grpc
 
 import (
+	"bytes"
 	"context"
+	"log/slog"
 	"net"
+	"strings"
 	"testing"
+	"time"
 
+	"ecommerce.local/catalog-service/internal/authorization"
 	"ecommerce.local/catalog-service/internal/domain"
 	catalogv1 "ecommerce.local/contracts/go/catalog/v1"
+	identityv1 "ecommerce.local/contracts/go/identity/v1"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 )
@@ -18,7 +25,8 @@ import (
 // memoryRepo is a domain.Repository backed by the pure in-memory search so
 // handler tests stay free of infrastructure.
 type memoryRepo struct {
-	products []*domain.Product
+	products        []*domain.Product
+	softDeleteCalls int
 }
 
 func (m *memoryRepo) GetByID(_ context.Context, id string) (*domain.Product, error) {
@@ -35,6 +43,7 @@ func (m *memoryRepo) Search(_ context.Context, filter domain.SearchFilter) (*dom
 }
 
 func (m *memoryRepo) SoftDelete(_ context.Context, id string, deleted bool) error {
+	m.softDeleteCalls++
 	for _, p := range m.products {
 		if p.ID == id {
 			p.Deleted = deleted
@@ -42,6 +51,21 @@ func (m *memoryRepo) SoftDelete(_ context.Context, id string, deleted bool) erro
 		}
 	}
 	return domain.ErrProductNotFound
+}
+
+type fakeAuthorization struct {
+	allowed    bool
+	err        error
+	userID     string
+	permission string
+	calls      int
+}
+
+func (f *fakeAuthorization) CheckPermission(_ context.Context, userID, permission string) (bool, error) {
+	f.calls++
+	f.userID = userID
+	f.permission = permission
+	return f.allowed, f.err
 }
 
 func demoProducts() []*domain.Product {
@@ -90,10 +114,15 @@ func demoProducts() []*domain.Product {
 
 func newTestClient(t *testing.T, repo domain.Repository) catalogv1.CatalogServiceClient {
 	t.Helper()
+	return newTestClientWithAuth(t, repo, &fakeAuthorization{allowed: true})
+}
+
+func newTestClientWithAuth(t *testing.T, repo domain.Repository, auth authorizationClient) catalogv1.CatalogServiceClient {
+	t.Helper()
 
 	lis := bufconn.Listen(1024 * 1024)
 	srv := grpc.NewServer()
-	catalogv1.RegisterCatalogServiceServer(srv, NewServer(repo))
+	catalogv1.RegisterCatalogServiceServer(srv, NewServer(repo, auth))
 	go func() {
 		if err := srv.Serve(lis); err != nil {
 			t.Errorf("grpc serve: %v", err)
@@ -161,17 +190,180 @@ func TestGetProductHappy(t *testing.T) {
 	}
 }
 
-func TestSoftDeleteProductChangesDeletedFlag(t *testing.T) {
-	client := newTestClient(t, &memoryRepo{products: demoProducts()})
+func assertErrorReason(t *testing.T, err error, wantCode codes.Code, wantReason string) {
+	t.Helper()
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected gRPC status error, got %v", err)
+	}
+	if st.Code() != wantCode {
+		t.Fatalf("status code = %v, want %v", st.Code(), wantCode)
+	}
+	for _, detail := range st.Proto().GetDetails() {
+		if detail.MessageIs(&errdetails.ErrorInfo{}) {
+			info := &errdetails.ErrorInfo{}
+			if err := detail.UnmarshalTo(info); err != nil {
+				t.Fatalf("unmarshal ErrorInfo: %v", err)
+			}
+			if info.GetDomain() != "ecommerce.catalog.v1" || info.GetReason() != wantReason {
+				t.Fatalf("ErrorInfo = domain=%q reason=%q, want ecommerce.catalog.v1 / %q", info.GetDomain(), info.GetReason(), wantReason)
+			}
+			return
+		}
+	}
+	t.Fatalf("expected google.rpc.ErrorInfo detail %q on %v", wantReason, err)
+}
 
-	_, err := client.SoftDeleteProduct(context.Background(), &catalogv1.SoftDeleteProductRequest{Id: "dt-1", Deleted: true})
+func TestSoftDeleteProductChangesDeletedFlag(t *testing.T) {
+	repo := &memoryRepo{products: demoProducts()}
+	auth := &fakeAuthorization{allowed: true}
+	client := newTestClientWithAuth(t, repo, auth)
+
+	_, err := client.SoftDeleteProduct(context.Background(), &catalogv1.SoftDeleteProductRequest{
+		Id:      "dt-1",
+		Deleted: true,
+		UserId:  "admin-1",
+	})
 	if err != nil {
 		t.Fatalf("SoftDeleteProduct: %v", err)
+	}
+	if auth.calls != 1 || auth.userID != "admin-1" || auth.permission != "product.delete" {
+		t.Fatalf("authorization = calls=%d user=%q permission=%q, want 1/admin-1/product.delete", auth.calls, auth.userID, auth.permission)
 	}
 
 	product, err := client.GetProduct(context.Background(), &catalogv1.GetProductRequest{Id: "dt-1"})
 	if err != nil || !product.GetDeleted() {
 		t.Fatalf("expected deleted product, response=%+v err=%v", product, err)
+	}
+}
+
+func TestSoftDeleteProductValidationSkipsAuthorizationAndRepo(t *testing.T) {
+	cases := []struct {
+		name string
+		req  *catalogv1.SoftDeleteProductRequest
+	}{
+		{name: "blank id", req: &catalogv1.SoftDeleteProductRequest{Id: " ", Deleted: true, UserId: "admin-1"}},
+		{name: "blank user_id", req: &catalogv1.SoftDeleteProductRequest{Id: "dt-1", Deleted: true, UserId: " "}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := &memoryRepo{products: demoProducts()}
+			auth := &fakeAuthorization{allowed: true}
+			client := newTestClientWithAuth(t, repo, auth)
+
+			_, err := client.SoftDeleteProduct(context.Background(), tc.req)
+			if status.Code(err) != codes.InvalidArgument {
+				t.Fatalf("SoftDeleteProduct() code = %v, want InvalidArgument", status.Code(err))
+			}
+			if auth.calls != 0 || repo.softDeleteCalls != 0 {
+				t.Fatalf("side effects on invalid input: auth=%d repo=%d, want 0/0", auth.calls, repo.softDeleteCalls)
+			}
+		})
+	}
+}
+
+func TestSoftDeleteProductDeniedLeavesProductUntouched(t *testing.T) {
+	repo := &memoryRepo{products: demoProducts()}
+	auth := &fakeAuthorization{allowed: false}
+	client := newTestClientWithAuth(t, repo, auth)
+
+	_, err := client.SoftDeleteProduct(context.Background(), &catalogv1.SoftDeleteProductRequest{
+		Id:      "dt-1",
+		Deleted: true,
+		UserId:  "customer-1",
+	})
+	assertErrorReason(t, err, codes.PermissionDenied, "PRODUCT_PERMISSION_DENIED")
+	if auth.calls != 1 || auth.userID != "customer-1" || auth.permission != "product.delete" {
+		t.Fatalf("authorization = calls=%d user=%q permission=%q, want 1/customer-1/product.delete", auth.calls, auth.userID, auth.permission)
+	}
+	if repo.softDeleteCalls != 0 || repo.products[0].Deleted {
+		t.Fatalf("denied SoftDeleteProduct mutated repository: calls=%d deleted=%t", repo.softDeleteCalls, repo.products[0].Deleted)
+	}
+}
+
+func TestSoftDeleteProductAuthorizationOutageLeavesProductUntouched(t *testing.T) {
+	repo := &memoryRepo{products: demoProducts()}
+	auth := &fakeAuthorization{err: status.Error(codes.Unavailable, "identity unavailable")}
+	client := newTestClientWithAuth(t, repo, auth)
+
+	_, err := client.SoftDeleteProduct(context.Background(), &catalogv1.SoftDeleteProductRequest{
+		Id:      "dt-1",
+		Deleted: true,
+		UserId:  "admin-1",
+	})
+	assertErrorReason(t, err, codes.Unavailable, "AUTHORIZATION_UNAVAILABLE")
+	if repo.softDeleteCalls != 0 || repo.products[0].Deleted {
+		t.Fatalf("unavailable SoftDeleteProduct mutated repository: calls=%d deleted=%t", repo.softDeleteCalls, repo.products[0].Deleted)
+	}
+}
+
+func TestSoftDeleteProductNilAuthorizationFailsClosed(t *testing.T) {
+	repo := &memoryRepo{products: demoProducts()}
+	client := newTestClientWithAuth(t, repo, nil)
+
+	_, err := client.SoftDeleteProduct(context.Background(), &catalogv1.SoftDeleteProductRequest{
+		Id:      "dt-1",
+		Deleted: true,
+		UserId:  "admin-1",
+	})
+	assertErrorReason(t, err, codes.Unavailable, "AUTHORIZATION_UNAVAILABLE")
+	if repo.softDeleteCalls != 0 {
+		t.Fatalf("nil authorization mutated repository: calls=%d", repo.softDeleteCalls)
+	}
+}
+
+type traceRecordingAuthorizationServer struct {
+	identityv1.UnimplementedAuthorizationServiceServer
+	traceID string
+}
+
+func (s *traceRecordingAuthorizationServer) CheckPermission(ctx context.Context, _ *identityv1.CheckPermissionRequest) (*identityv1.CheckPermissionResponse, error) {
+	if values := metadata.ValueFromIncomingContext(ctx, "x-trace-id"); len(values) == 1 {
+		s.traceID = values[0]
+	}
+	return nil, status.Error(codes.Unavailable, "identity unavailable")
+}
+
+func TestSoftDeleteProductForwardsIncomingTraceToIdentityAndLogsIt(t *testing.T) {
+	previousLogger := slog.Default()
+	var logs bytes.Buffer
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&logs, nil)))
+	t.Cleanup(func() { slog.SetDefault(previousLogger) })
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen for Identity authorization: %v", err)
+	}
+	identityServer := &traceRecordingAuthorizationServer{}
+	grpcServer := grpc.NewServer()
+	identityv1.RegisterAuthorizationServiceServer(grpcServer, identityServer)
+	go func() { _ = grpcServer.Serve(listener) }()
+	t.Cleanup(func() {
+		grpcServer.Stop()
+		_ = listener.Close()
+	})
+
+	authClient, err := authorization.NewClient(listener.Addr().String(), time.Second)
+	if err != nil {
+		t.Fatalf("create authorization client: %v", err)
+	}
+	t.Cleanup(func() { _ = authClient.Close() })
+
+	repo := &memoryRepo{products: demoProducts()}
+	client := newTestClientWithAuth(t, repo, authClient)
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "x-trace-id", "trace-abc-123")
+
+	_, err = client.SoftDeleteProduct(ctx, &catalogv1.SoftDeleteProductRequest{
+		Id:      "dt-1",
+		Deleted: true,
+		UserId:  "admin-1",
+	})
+	assertErrorReason(t, err, codes.Unavailable, "AUTHORIZATION_UNAVAILABLE")
+	if identityServer.traceID != "trace-abc-123" {
+		t.Fatalf("Identity metadata trace = %q, want trace-abc-123", identityServer.traceID)
+	}
+	if !strings.Contains(logs.String(), `"trace_id":"trace-abc-123"`) {
+		t.Fatalf("authorization log = %s, want propagated trace_id", logs.String())
 	}
 }
 

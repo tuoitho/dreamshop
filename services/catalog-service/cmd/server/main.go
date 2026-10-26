@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"ecommerce.local/catalog-service/internal/authorization"
 	"ecommerce.local/catalog-service/internal/config"
 	cataloggrpc "ecommerce.local/catalog-service/internal/grpc"
 	internalhttp "ecommerce.local/catalog-service/internal/http"
@@ -48,8 +49,14 @@ func main() {
 
 	repo := store.New(pool)
 
+	authClient, err := authorization.NewClient(cfg.IdentityGRPCAddr, cfg.IdentityGRPCTimeout)
+	if err != nil {
+		log.Fatalf("failed to create identity authorization client: %v", err)
+	}
+	defer func() { _ = authClient.Close() }()
+
 	grpcServer := grpc.NewServer()
-	catalogv1.RegisterCatalogServiceServer(grpcServer, cataloggrpc.NewServer(repo))
+	catalogv1.RegisterCatalogServiceServer(grpcServer, cataloggrpc.NewServer(repo, authClient))
 
 	healthMux := http.NewServeMux()
 	healthMux.Handle("/healthz", internalhttp.NewHealthHandler("catalog-service"))

@@ -1,12 +1,26 @@
 package config
 
 import (
+	"strings"
 	"testing"
+	"time"
 )
 
+func clearCatalogConfigEnv(t *testing.T) {
+	t.Helper()
+	for _, key := range []string{
+		"HTTP_ADDR",
+		"GRPC_ADDR",
+		"DATABASE_URL",
+		"IDENTITY_GRPC_ADDR",
+		"IDENTITY_GRPC_TIMEOUT",
+	} {
+		t.Setenv(key, "")
+	}
+}
+
 func TestLoadDefaults(t *testing.T) {
-	t.Setenv("HTTP_ADDR", "")
-	t.Setenv("GRPC_ADDR", "")
+	clearCatalogConfigEnv(t)
 	t.Setenv("DATABASE_URL", "postgres://ecommerce:secret@localhost:5432/catalog_db?sslmode=disable")
 
 	cfg, err := Load()
@@ -22,12 +36,21 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.DatabaseURL == "" {
 		t.Fatalf("expected DatabaseURL to be read from the environment")
 	}
+	if cfg.IdentityGRPCAddr != "127.0.0.1:50054" {
+		t.Fatalf("expected IdentityGRPCAddr 127.0.0.1:50054, got %s", cfg.IdentityGRPCAddr)
+	}
+	if cfg.IdentityGRPCTimeout != 500*time.Millisecond {
+		t.Fatalf("expected IdentityGRPCTimeout 500ms, got %s", cfg.IdentityGRPCTimeout)
+	}
 }
 
 func TestLoadReadsEnvironment(t *testing.T) {
+	clearCatalogConfigEnv(t)
 	t.Setenv("HTTP_ADDR", ":9999")
 	t.Setenv("GRPC_ADDR", "0.0.0.0:60000")
 	t.Setenv("DATABASE_URL", "postgres://user:pass@db:5432/catalog_db")
+	t.Setenv("IDENTITY_GRPC_ADDR", "identity-service:50054")
+	t.Setenv("IDENTITY_GRPC_TIMEOUT", "750ms")
 
 	cfg, err := Load()
 	if err != nil {
@@ -42,15 +65,36 @@ func TestLoadReadsEnvironment(t *testing.T) {
 	if cfg.DatabaseURL != "postgres://user:pass@db:5432/catalog_db" {
 		t.Fatalf("unexpected DatabaseURL: %s", cfg.DatabaseURL)
 	}
+	if cfg.IdentityGRPCAddr != "identity-service:50054" {
+		t.Fatalf("expected IdentityGRPCAddr identity-service:50054, got %s", cfg.IdentityGRPCAddr)
+	}
+	if cfg.IdentityGRPCTimeout != 750*time.Millisecond {
+		t.Fatalf("expected IdentityGRPCTimeout 750ms, got %s", cfg.IdentityGRPCTimeout)
+	}
 }
 
 func TestLoadRequiresDatabaseURL(t *testing.T) {
+	clearCatalogConfigEnv(t)
 	t.Setenv("HTTP_ADDR", ":8081")
 	t.Setenv("GRPC_ADDR", "127.0.0.1:50051")
-	t.Setenv("DATABASE_URL", "")
 
 	_, err := Load()
 	if err == nil {
 		t.Fatal("expected DATABASE_URL validation error")
+	}
+}
+
+func TestLoadRejectsInvalidIdentityDuration(t *testing.T) {
+	for _, value := range []string{"invalid", "0s", "-1s"} {
+		t.Run(value, func(t *testing.T) {
+			clearCatalogConfigEnv(t)
+			t.Setenv("DATABASE_URL", "postgres://user:pass@db:5432/catalog_db")
+			t.Setenv("IDENTITY_GRPC_TIMEOUT", value)
+
+			_, err := Load()
+			if err == nil || !strings.Contains(err.Error(), "IDENTITY_GRPC_TIMEOUT") {
+				t.Fatalf("Load() error = %v; want IDENTITY_GRPC_TIMEOUT validation", err)
+			}
+		})
 	}
 }
