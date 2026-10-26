@@ -52,7 +52,9 @@ jobs:
       - name: Lint protobuf contracts
         run: buf lint
       - name: Check protobuf breaking changes against main
-        run: buf breaking --against '.git#branch=main'
+        run: buf breaking --against ".git#ref=refs/remotes/origin/$BASE_REF"
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
       - name: Generate contract modules
         run: buf generate
       - name: Verify generated contract modules are synchronized
@@ -80,6 +82,20 @@ jobs:
   go:
     name: Go
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ecommerce
+          POSTGRES_PASSWORD: ci-test-only-password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U ecommerce -d postgres"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v7
@@ -96,8 +112,14 @@ jobs:
       - uses: bufbuild/buf-setup-action@v1
       - name: Generate contract modules
         run: buf generate
+      - name: Initialize Go test databases
+        run: docker exec -i "${{ job.services.postgres.id }}" psql -U ecommerce -d postgres -v ON_ERROR_STOP=1 < deployments/postgres/init/01-create-databases.sql
       - name: Test Go services and scripts
-        run: go test ./scripts/... ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...
+        run: |
+          go test ./scripts/... ./services/bff-service/...
+          DATABASE_URL="postgres://ecommerce:ci-test-only-password@127.0.0.1:5432/catalog_db?sslmode=disable" go test -count=1 ./services/catalog-service/...
+          DATABASE_URL="postgres://ecommerce:ci-test-only-password@127.0.0.1:5432/inventory_db?sslmode=disable" go test -count=1 ./services/inventory-service/...
+          DATABASE_URL="postgres://ecommerce:ci-test-only-password@127.0.0.1:5432/cart_db?sslmode=disable" go test -count=1 ./services/cart-service/...
       - name: Build Go services and scripts
         run: go build ./scripts/... ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...
 
