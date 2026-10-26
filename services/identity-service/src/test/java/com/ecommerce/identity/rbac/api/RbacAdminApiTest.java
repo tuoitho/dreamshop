@@ -10,7 +10,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.ecommerce.identity.rbac.support.RbacTestData;
 import com.ecommerce.identity.support.PostgresIntegrationTestSupport;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +36,9 @@ class RbacAdminApiTest extends PostgresIntegrationTestSupport {
 
     @Autowired
     JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    DataSource dataSource;
 
     @BeforeEach
     void resetDatabase() {
@@ -111,6 +121,58 @@ class RbacAdminApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("RBAC_SYSTEM_ITEM_PROTECTED"))
                 .andExpect(jsonPath("$.message").value(containsString("protected")));
+    }
+
+    @Test
+    void concurrentRenameCollisionReturns409RbacItemExistsInsteadOf500() throws Exception {
+        createItem("SOURCE_ROLE", "ROLE");
+
+        try (Connection competitor = dataSource.getConnection()) {
+            competitor.setAutoCommit(false);
+            try (PreparedStatement insertTarget = competitor.prepareStatement("""
+                    insert into auth_items (name, type, description, system_item, created_at, updated_at)
+                    values ('TARGET_ROLE', 'ROLE', 'Concurrent role', false, now(), now())
+                    """)) {
+                insertTarget.executeUpdate();
+            }
+
+            CompletableFuture<Void> renameRequest = CompletableFuture.runAsync(() -> {
+                try {
+                    mockMvc.perform(patch("/api/v1/admin/rbac/items/SOURCE_ROLE")
+                                    .header("X-User-Id", SUPER_ADMIN_ID.toString())
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content("""
+                                            {"name":"TARGET_ROLE","description":"renamed"}
+                                            """))
+                            .andExpect(status().isConflict())
+                            .andExpect(jsonPath("$.code").value("RBAC_ITEM_EXISTS"));
+                } catch (Exception exception) {
+                    throw new RuntimeException(exception);
+                }
+            });
+
+            waitForBlockedUpdate();
+            competitor.commit();
+
+            renameRequest.get(10, TimeUnit.SECONDS);
+        }
+    }
+
+    private void waitForBlockedUpdate() throws InterruptedException {
+        Instant deadline = Instant.now().plus(Duration.ofSeconds(10));
+        while (Instant.now().isBefore(deadline)) {
+            Integer waiting = jdbcTemplate.queryForObject("""
+                    select count(*)
+                    from pg_stat_activity
+                    where wait_event_type = 'Lock'
+                      and state = 'active'
+                    """, Integer.class);
+            if (waiting != null && waiting > 0) {
+                return;
+            }
+            Thread.sleep(20);
+        }
+        throw new AssertionError("Concurrent RBAC rename did not block on unique constraint lock before timeout");
     }
 
     private void createItem(String name, String type) throws Exception {

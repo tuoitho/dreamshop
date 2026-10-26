@@ -12,9 +12,11 @@ import com.ecommerce.identity.rbac.persistence.RbacRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,7 +31,15 @@ public class RbacAdminService {
 
     @Transactional(readOnly = true)
     public List<RbacItemView> list(AuthItemType type) {
-        return repository.findItems(type).stream().map(this::view).toList();
+        List<RbacItem> items = repository.findItems(type);
+        if (items.isEmpty()) {
+            return List.of();
+        }
+        Map<String, Set<String>> childrenByParent = repository.findDirectChildrenByParentNames(
+                items.stream().map(RbacItem::name).toList());
+        return items.stream()
+                .map(item -> toView(item, childrenByParent.getOrDefault(item.name(), Set.of())))
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -41,6 +51,7 @@ public class RbacAdminService {
     public RbacItemView create(String rawName, AuthItemType type, String rawDescription) {
         String name = normalizeName(rawName);
         validateName(name, type);
+        repository.lockHierarchy();
         if (repository.findItem(name).isPresent()) {
             throw new RbacItemExistsException();
         }
@@ -59,10 +70,20 @@ public class RbacAdminService {
         if (current.systemItem() && !current.name().equals(newName)) {
             throw new RbacSystemItemProtectedException();
         }
-        if (!current.name().equals(newName) && repository.findItem(newName).isPresent()) {
+        if (!current.name().equals(newName)) {
+            repository.lockHierarchy();
+            if (repository.findItem(newName).isPresent()) {
+                throw new RbacItemExistsException();
+            }
+        }
+        boolean updated;
+        try {
+            updated = repository.updateItem(
+                    current.name(), newName, normalizeDescription(rawDescription), clock.instant());
+        } catch (DataIntegrityViolationException exception) {
             throw new RbacItemExistsException();
         }
-        if (!repository.updateItem(current.name(), newName, normalizeDescription(rawDescription), clock.instant())) {
+        if (!updated) {
             throw new RbacItemNotFoundException();
         }
         return get(newName);
@@ -140,7 +161,11 @@ public class RbacAdminService {
     }
 
     private RbacItemView view(RbacItem item) {
+        return toView(item, repository.findDirectChildren(item.name()));
+    }
+
+    private static RbacItemView toView(RbacItem item, Set<String> directChildren) {
         return new RbacItemView(item.name(), item.type(), item.description(), item.systemItem(),
-                repository.findDirectChildren(item.name()), item.createdAt(), item.updatedAt());
+                directChildren, item.createdAt(), item.updatedAt());
     }
 }

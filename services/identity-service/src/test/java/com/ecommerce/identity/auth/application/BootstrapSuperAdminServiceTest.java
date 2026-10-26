@@ -6,6 +6,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.ecommerce.identity.auth.domain.EmailAlreadyRegisteredException;
 import com.ecommerce.identity.common.config.IdentityBootstrapSuperAdminProperties;
 import com.ecommerce.identity.rbac.persistence.RbacRepository;
 import com.ecommerce.identity.user.persistence.IdentityUserRepository;
@@ -77,6 +78,17 @@ class BootstrapSuperAdminServiceTest {
         assertThatThrownBy(() -> service.ensureSuperAdmin(properties()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("SUPER_ADMIN");
+    }
+
+    @Test
+    void concurrentRegistrationCollisionIsTreatedAsIdempotentNoOp() {
+        when(users.existsByNormalizedEmail("root@example.test")).thenReturn(false);
+        when(registration.register(any(RegisterCommand.class)))
+                .thenThrow(new EmailAlreadyRegisteredException());
+
+        service.ensureSuperAdmin(properties());
+
+        verify(rbac, never()).assignRole(any(UUID.class), any(String.class), any(Instant.class));
     }
 
     private IdentityBootstrapSuperAdminProperties properties() {

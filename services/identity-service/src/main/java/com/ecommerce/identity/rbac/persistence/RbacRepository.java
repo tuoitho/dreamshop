@@ -5,8 +5,10 @@ import com.ecommerce.identity.rbac.domain.RbacItem;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -34,6 +36,21 @@ public interface RbacRepository extends JpaRepository<AuthItemEntity, String> {
             order by i.name
             """, nativeQuery = true)
     List<String> findAssignedRoleNames(@Param("userId") UUID userId);
+
+    interface UserRoleAssignmentRow {
+        UUID getUserId();
+
+        String getRoleName();
+    }
+
+    @Query(value = """
+            select a.user_id as userId, i.name as roleName
+            from auth_assignments a
+            join auth_items i on i.name = a.item_name and i.type = 'ROLE'
+            where a.user_id in (:userIds)
+            order by a.user_id, i.name
+            """, nativeQuery = true)
+    List<UserRoleAssignmentRow> findAssignedRoleRows(@Param("userIds") Collection<UUID> userIds);
 
     @Query(value = """
             with recursive reachable(name) as (
@@ -112,6 +129,20 @@ public interface RbacRepository extends JpaRepository<AuthItemEntity, String> {
             """, nativeQuery = true)
     List<String> findDirectChildNames(@Param("parentName") String parentName);
 
+    interface ItemChildEdgeRow {
+        String getParentName();
+
+        String getChildName();
+    }
+
+    @Query(value = """
+            select parent_name as parentName, child_name as childName
+            from auth_item_children
+            where parent_name in (:parentNames)
+            order by parent_name, child_name
+            """, nativeQuery = true)
+    List<ItemChildEdgeRow> findDirectChildEdges(@Param("parentNames") Collection<String> parentNames);
+
     @Modifying
     @Transactional
     @Query(value = """
@@ -189,6 +220,20 @@ public interface RbacRepository extends JpaRepository<AuthItemEntity, String> {
         return Set.copyOf(findAssignedRoleNames(userId));
     }
 
+    default Map<UUID, Set<String>> assignedRolesByUserIds(Collection<UUID> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, LinkedHashSet<String>> grouped = new LinkedHashMap<>();
+        for (UserRoleAssignmentRow row : findAssignedRoleRows(userIds)) {
+            grouped.computeIfAbsent(row.getUserId(), ignored -> new LinkedHashSet<>())
+                    .add(row.getRoleName());
+        }
+        Map<UUID, Set<String>> result = new LinkedHashMap<>(grouped.size());
+        grouped.forEach((userId, roles) -> result.put(userId, Collections.unmodifiableSet(roles)));
+        return Collections.unmodifiableMap(result);
+    }
+
     default boolean hasPermission(UUID userId, String permission) {
         return findAllowedPermissions(userId, List.of(permission)).contains(permission);
     }
@@ -234,6 +279,20 @@ public interface RbacRepository extends JpaRepository<AuthItemEntity, String> {
 
     default Set<String> findDirectChildren(String parentName) {
         return Set.copyOf(findDirectChildNames(parentName));
+    }
+
+    default Map<String, Set<String>> findDirectChildrenByParentNames(Collection<String> parentNames) {
+        if (parentNames == null || parentNames.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, LinkedHashSet<String>> grouped = new LinkedHashMap<>();
+        for (ItemChildEdgeRow edge : findDirectChildEdges(parentNames)) {
+            grouped.computeIfAbsent(edge.getParentName(), ignored -> new LinkedHashSet<>())
+                    .add(edge.getChildName());
+        }
+        Map<String, Set<String>> result = new LinkedHashMap<>(grouped.size());
+        grouped.forEach((parent, children) -> result.put(parent, Collections.unmodifiableSet(children)));
+        return Collections.unmodifiableMap(result);
     }
 
     default boolean createItem(String name, AuthItemType type, String description, Instant now) {

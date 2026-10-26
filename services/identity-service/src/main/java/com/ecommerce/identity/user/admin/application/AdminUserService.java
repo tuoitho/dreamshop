@@ -14,6 +14,8 @@ import com.ecommerce.identity.user.domain.UserNotFoundException;
 import com.ecommerce.identity.user.persistence.IdentityUserEntity;
 import com.ecommerce.identity.user.persistence.IdentityUserRepository;
 import java.time.Clock;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -36,8 +38,14 @@ public class AdminUserService {
         PageRequest pageable = PageRequest.of(page - 1, pageSize,
                 Sort.by(Sort.Order.desc("createdAt"), Sort.Order.asc("id")));
         Page<IdentityUserEntity> result = users.searchAdminUsers(query, pageable);
-        return new AdminUserPage(result.getContent().stream().map(this::view).toList(), page, pageSize,
-                result.getTotalElements(), result.getTotalPages());
+        List<IdentityUserEntity> pageUsers = result.getContent();
+        Map<UUID, Set<String>> rolesByUserId = pageUsers.isEmpty()
+                ? Map.of()
+                : rbac.assignedRolesByUserIds(pageUsers.stream().map(IdentityUserEntity::id).toList());
+        List<AdminUserView> items = pageUsers.stream()
+                .map(user -> toView(user, rolesByUserId.getOrDefault(user.id(), Set.of())))
+                .toList();
+        return new AdminUserPage(items, page, pageSize, result.getTotalElements(), result.getTotalPages());
     }
 
     @Transactional(readOnly = true)
@@ -100,7 +108,10 @@ public class AdminUserService {
     }
 
     private AdminUserView view(IdentityUserEntity user) {
-        Set<String> roles = rbac.assignedRoles(user.id());
+        return toView(user, rbac.assignedRoles(user.id()));
+    }
+
+    private static AdminUserView toView(IdentityUserEntity user, Set<String> roles) {
         return new AdminUserView(user.id(), user.email(), user.fullName(), user.status(), roles,
                 user.createdAt(), user.updatedAt());
     }

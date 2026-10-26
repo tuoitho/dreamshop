@@ -3,6 +3,7 @@ package com.ecommerce.identity.user.admin.api;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -104,6 +105,44 @@ class AdminUserApiTest extends PostgresIntegrationTestSupport {
                         .header("X-User-Id", SUPER_ADMIN_ID.toString()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("LAST_SUPER_ADMIN_REQUIRED"));
+    }
+
+    @Test
+    void mapsClientQueryPathMethodMediaTypeAndUnknownSubpathErrorsTo4xxEnvelope() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/users")
+                        .header("X-User-Id", SUPER_ADMIN_ID.toString())
+                        .param("page", "0"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.errors.page").exists())
+                .andExpect(jsonPath("$.traceId").isNotEmpty());
+
+        mockMvc.perform(get("/api/v1/admin/users/not-a-uuid")
+                        .header("X-User-Id", SUPER_ADMIN_ID.toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.errors.userId").value("Invalid value"))
+                .andExpect(jsonPath("$.traceId").isNotEmpty());
+
+        mockMvc.perform(post("/api/v1/admin/users")
+                        .header("X-User-Id", SUPER_ADMIN_ID.toString()))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.code").value("METHOD_NOT_ALLOWED"))
+                .andExpect(jsonPath("$.traceId").isNotEmpty());
+
+        mockMvc.perform(patch("/api/v1/admin/users/%s/status".formatted(CUSTOMER_ID))
+                        .header("X-User-Id", ADMIN_ID.toString())
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content("status=DISABLED"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.code").value("UNSUPPORTED_MEDIA_TYPE"))
+                .andExpect(jsonPath("$.traceId").isNotEmpty());
+
+        mockMvc.perform(get("/api/v1/admin/users/%s/unknown".formatted(CUSTOMER_ID))
+                        .header("X-User-Id", SUPER_ADMIN_ID.toString()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
 
     private void insertUser(UUID id, String email, String fullName) {

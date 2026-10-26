@@ -7,6 +7,8 @@ import com.ecommerce.identity.rbac.domain.RbacItem;
 import com.ecommerce.identity.support.PostgresIntegrationTestSupport;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -94,5 +96,49 @@ class RbacRepositoryTest extends PostgresIntegrationTestSupport {
         repository.lockSuperAdminMutation();
 
         assertThat(repository.countActiveSuperAdmins()).isZero();
+    }
+
+    @Test
+    void loadsAssignedRolesAndDirectChildrenInBatchQueries() {
+        UUID otherUserId = UUID.fromString("00000000-0000-0000-0000-000000000089");
+        UUID userWithoutRolesId = UUID.fromString("00000000-0000-0000-0000-000000000090");
+        jdbc.update("""
+                insert into identity_users
+                    (id, email, normalized_email, password_hash, status, created_at, updated_at)
+                values
+                    (?, 'other-rbac@example.test', 'other-rbac@example.test', 'hash', 'ACTIVE', now(), now()),
+                    (?, 'none-rbac@example.test', 'none-rbac@example.test', 'hash', 'ACTIVE', now(), now())
+                """, otherUserId, userWithoutRolesId);
+        repository.assignRole(USER_ID, "CUSTOMER", NOW);
+        repository.assignRole(USER_ID, "ADMIN", NOW);
+        repository.assignRole(otherUserId, "CUSTOMER", NOW);
+
+        Map<UUID, Set<String>> rolesByUser = repository.assignedRolesByUserIds(
+                List.of(USER_ID, otherUserId, userWithoutRolesId));
+        assertThat(rolesByUser.get(USER_ID)).containsExactly("ADMIN", "CUSTOMER");
+        assertThat(rolesByUser.get(otherUserId)).containsExactly("CUSTOMER");
+        assertThat(rolesByUser).doesNotContainKey(userWithoutRolesId);
+        assertThat(repository.assignedRolesByUserIds(List.of())).isEmpty();
+
+        Map<String, Set<String>> childrenByParent = repository.findDirectChildrenByParentNames(
+                List.of("CUSTOMER", "address.create"));
+        assertThat(childrenByParent.get("CUSTOMER"))
+                .contains("address.view", "address.create", "cart.item.add");
+        assertThat(childrenByParent).doesNotContainKey("address.create");
+        assertThat(repository.findDirectChildrenByParentNames(List.of())).isEmpty();
+    }
+
+    @Test
+    void createsForeignKeyIndexesForAuthAssignmentsAndItemChildren() {
+        List<String> indexNames = jdbc.queryForList("""
+                select indexname
+                from pg_indexes
+                where schemaname = 'public'
+                  and tablename in ('auth_assignments', 'auth_item_children')
+                """, String.class);
+
+        assertThat(indexNames).contains(
+                "ix_auth_assignments_item_name",
+                "ix_auth_item_children_child_name");
     }
 }
