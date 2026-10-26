@@ -86,45 +86,46 @@ public final class Catalog {
       "\022\030\n\007details\030\024 \003(\tR\007details\022\030\n\007deleted\030\025 " +
       "\001(\010R\007deleted\"C\n\016ProductVariant\022\024\n\005label\030" +
       "\001 \001(\tR\005label\022\033\n\tcolor_hex\030\002 \001(\tR\010colorHe" +
-      "x\"D\n\030SoftDeleteProductRequest\022\016\n\002id\030\001 \001(" +
-      "\tR\002id\022\030\n\007deleted\030\002 \001(\010R\007deleted\"E\n\031SoftD" +
-      "eleteProductResponse\022\016\n\002id\030\001 \001(\tR\002id\022\030\n\007" +
-      "deleted\030\002 \001(\010R\007deleted\"\363\003\n\016ProductSummar" +
-      "y\022\016\n\002id\030\001 \001(\tR\002id\022\022\n\004name\030\002 \001(\tR\004name\022\024\n" +
-      "\005brand\030\003 \001(\tR\005brand\022\037\n\013category_id\030\004 \001(\t" +
-      "R\ncategoryId\022#\n\rcategory_name\030\005 \001(\tR\014cat" +
-      "egoryName\0220\n\005price\030\006 \001(\0132\032.ecommerce.com" +
-      "mon.v1.MoneyR\005price\022A\n\016original_price\030\007 " +
-      "\001(\0132\032.ecommerce.common.v1.MoneyR\rorigina" +
-      "lPrice\022\026\n\006images\030\010 \003(\tR\006images\022\026\n\006rating" +
-      "\030\t \001(\001R\006rating\022!\n\014review_count\030\n \001(\003R\013re" +
-      "viewCount\022\035\n\nsold_count\030\013 \001(\003R\tsoldCount" +
-      "\022\025\n\006is_new\030\014 \001(\010R\005isNew\022\024\n\005badge\030\r \001(\tR\005" +
-      "badge\022\032\n\010featured\030\016 \001(\010R\010featured\022\024\n\005emo" +
-      "ji\030\017 \001(\tR\005emoji\022\033\n\timage_hue\030\020 \003(\rR\010imag" +
-      "eHue\"\205\002\n\025SearchProductsRequest\022\024\n\005query\030" +
-      "\001 \001(\tR\005query\022\037\n\013category_id\030\002 \001(\tR\ncateg" +
-      "oryId\022\022\n\004sort\030\003 \001(\tR\004sort\022\033\n\tprice_min\030\004" +
-      " \001(\003R\010priceMin\022\033\n\tprice_max\030\005 \001(\003R\010price" +
-      "Max\022\027\n\007on_sale\030\006 \001(\010R\006onSale\022\035\n\nrating_m" +
-      "in\030\007 \001(\005R\tratingMin\022\022\n\004page\030\010 \001(\005R\004page\022" +
-      "\033\n\tpage_size\030\t \001(\005R\010pageSize\"\307\001\n\026SearchP" +
-      "roductsResponse\022:\n\005items\030\001 \003(\0132$.ecommer" +
-      "ce.catalog.v1.ProductSummaryR\005items\022\022\n\004p" +
-      "age\030\002 \001(\005R\004page\022\033\n\tpage_size\030\003 \001(\005R\010page" +
-      "Size\022\037\n\013total_items\030\004 \001(\003R\ntotalItems\022\037\n" +
-      "\013total_pages\030\005 \001(\005R\ntotalPages2\324\002\n\016Catal" +
-      "ogService\022_\n\nGetProduct\022\'.ecommerce.cata" +
-      "log.v1.GetProductRequest\032(.ecommerce.cat" +
-      "alog.v1.GetProductResponse\022k\n\016SearchProd" +
-      "ucts\022+.ecommerce.catalog.v1.SearchProduc" +
-      "tsRequest\032,.ecommerce.catalog.v1.SearchP" +
-      "roductsResponse\022t\n\021SoftDeleteProduct\022..e" +
-      "commerce.catalog.v1.SoftDeleteProductReq" +
-      "uest\032/.ecommerce.catalog.v1.SoftDeletePr" +
-      "oductResponseBY\n\"com.ecommerce.contracts" +
-      ".catalog.v1P\001Z1ecommerce.local/contracts" +
-      "/go/catalog/v1;catalogv1b\006proto3"
+      "x\"]\n\030SoftDeleteProductRequest\022\016\n\002id\030\001 \001(" +
+      "\tR\002id\022\030\n\007deleted\030\002 \001(\010R\007deleted\022\027\n\007user_" +
+      "id\030\003 \001(\tR\006userId\"E\n\031SoftDeleteProductRes" +
+      "ponse\022\016\n\002id\030\001 \001(\tR\002id\022\030\n\007deleted\030\002 \001(\010R\007" +
+      "deleted\"\363\003\n\016ProductSummary\022\016\n\002id\030\001 \001(\tR\002" +
+      "id\022\022\n\004name\030\002 \001(\tR\004name\022\024\n\005brand\030\003 \001(\tR\005b" +
+      "rand\022\037\n\013category_id\030\004 \001(\tR\ncategoryId\022#\n" +
+      "\rcategory_name\030\005 \001(\tR\014categoryName\0220\n\005pr" +
+      "ice\030\006 \001(\0132\032.ecommerce.common.v1.MoneyR\005p" +
+      "rice\022A\n\016original_price\030\007 \001(\0132\032.ecommerce" +
+      ".common.v1.MoneyR\roriginalPrice\022\026\n\006image" +
+      "s\030\010 \003(\tR\006images\022\026\n\006rating\030\t \001(\001R\006rating\022" +
+      "!\n\014review_count\030\n \001(\003R\013reviewCount\022\035\n\nso" +
+      "ld_count\030\013 \001(\003R\tsoldCount\022\025\n\006is_new\030\014 \001(" +
+      "\010R\005isNew\022\024\n\005badge\030\r \001(\tR\005badge\022\032\n\010featur" +
+      "ed\030\016 \001(\010R\010featured\022\024\n\005emoji\030\017 \001(\tR\005emoji" +
+      "\022\033\n\timage_hue\030\020 \003(\rR\010imageHue\"\205\002\n\025Search" +
+      "ProductsRequest\022\024\n\005query\030\001 \001(\tR\005query\022\037\n" +
+      "\013category_id\030\002 \001(\tR\ncategoryId\022\022\n\004sort\030\003" +
+      " \001(\tR\004sort\022\033\n\tprice_min\030\004 \001(\003R\010priceMin\022" +
+      "\033\n\tprice_max\030\005 \001(\003R\010priceMax\022\027\n\007on_sale\030" +
+      "\006 \001(\010R\006onSale\022\035\n\nrating_min\030\007 \001(\005R\tratin" +
+      "gMin\022\022\n\004page\030\010 \001(\005R\004page\022\033\n\tpage_size\030\t " +
+      "\001(\005R\010pageSize\"\307\001\n\026SearchProductsResponse" +
+      "\022:\n\005items\030\001 \003(\0132$.ecommerce.catalog.v1.P" +
+      "roductSummaryR\005items\022\022\n\004page\030\002 \001(\005R\004page" +
+      "\022\033\n\tpage_size\030\003 \001(\005R\010pageSize\022\037\n\013total_i" +
+      "tems\030\004 \001(\003R\ntotalItems\022\037\n\013total_pages\030\005 " +
+      "\001(\005R\ntotalPages2\324\002\n\016CatalogService\022_\n\nGe" +
+      "tProduct\022\'.ecommerce.catalog.v1.GetProdu" +
+      "ctRequest\032(.ecommerce.catalog.v1.GetProd" +
+      "uctResponse\022k\n\016SearchProducts\022+.ecommerc" +
+      "e.catalog.v1.SearchProductsRequest\032,.eco" +
+      "mmerce.catalog.v1.SearchProductsResponse" +
+      "\022t\n\021SoftDeleteProduct\022..ecommerce.catalo" +
+      "g.v1.SoftDeleteProductRequest\032/.ecommerc" +
+      "e.catalog.v1.SoftDeleteProductResponseBY" +
+      "\n\"com.ecommerce.contracts.catalog.v1P\001Z1" +
+      "ecommerce.local/contracts/go/catalog/v1;" +
+      "catalogv1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -154,7 +155,7 @@ public final class Catalog {
     internal_static_ecommerce_catalog_v1_SoftDeleteProductRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_catalog_v1_SoftDeleteProductRequest_descriptor,
-        new java.lang.String[] { "Id", "Deleted", });
+        new java.lang.String[] { "Id", "Deleted", "UserId", });
     internal_static_ecommerce_catalog_v1_SoftDeleteProductResponse_descriptor =
       getDescriptor().getMessageTypes().get(4);
     internal_static_ecommerce_catalog_v1_SoftDeleteProductResponse_fieldAccessorTable = new

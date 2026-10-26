@@ -52,6 +52,7 @@ message ProductVariant {
 message SoftDeleteProductRequest {
   string id = 1;
   bool deleted = 2;
+  string user_id = 3;
 }
 
 message SoftDeleteProductResponse {

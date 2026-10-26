@@ -25,4 +25,16 @@ public interface SoftDeleteProductRequestOrBuilder extends
    * @return The deleted.
    */
   boolean getDeleted();
+
+  /**
+   * <code>string user_id = 3 [json_name = "userId"];</code>
+   * @return The userId.
+   */
+  java.lang.String getUserId();
+  /**
+   * <code>string user_id = 3 [json_name = "userId"];</code>
+   * @return The bytes for userId.
+   */
+  com.google.protobuf.ByteString
+      getUserIdBytes();
 }
