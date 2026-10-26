@@ -106,8 +106,23 @@ func TestBackendDockerfilesAndRootDockerignore(t *testing.T) {
 	}
 
 	orderAppYml := readRepoFile(t, root, "services", "order-service", "src", "main", "resources", "application.yml")
-	if !strings.Contains(orderAppYml, "${SERVER_PORT:8083}") {
-		t.Error("order-service application.yml must bind server.port via ${SERVER_PORT:8083}")
+	if !strings.Contains(orderAppYml, "${SERVER_PORT:8083}") || !strings.Contains(orderAppYml, "${MANAGEMENT_SERVER_PORT:8093}") {
+		t.Error("order-service application.yml must bind server.port via ${SERVER_PORT:8083} and management.server.port via ${MANAGEMENT_SERVER_PORT:8093}")
+	}
+
+	identityAppYml := readRepoFile(t, root, "services", "identity-service", "src", "main", "resources", "application.yml")
+	if !strings.Contains(identityAppYml, "${MANAGEMENT_SERVER_PORT:8090}") {
+		t.Error("identity-service application.yml must bind management.server.port via ${MANAGEMENT_SERVER_PORT:8090}")
+	}
+
+	identityDockerfile := readRepoFile(t, root, "services", "identity-service", "Dockerfile")
+	if !strings.Contains(identityDockerfile, "EXPOSE 8080 8090 50054") {
+		t.Error("identity-service Dockerfile must EXPOSE 8080 8090 50054")
+	}
+
+	orderDockerfile := readRepoFile(t, root, "services", "order-service", "Dockerfile")
+	if !strings.Contains(orderDockerfile, "EXPOSE 8083 8093") {
+		t.Error("order-service Dockerfile must EXPOSE 8083 8093")
 	}
 
 	catalogDockerfile := readRepoFile(t, root, "services", "catalog-service", "Dockerfile")

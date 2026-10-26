@@ -6,37 +6,53 @@ services:
     routes:
       - name: identity-auth-public
         paths: ["/api/v1/auth"]
-        strip_path: true
-      - name: identity-users-protected
-        paths: ["/api/v1"]
-        strip_path: true
+        strip_path: false
+        plugins:
+          - name: request-transformer
+            config:
+              remove:
+                headers:
+                  - X-User-Id
+                  - X-User-Roles
+      - name: identity-protected
+        paths:
+          - "/api/v1/users"
+          - "/api/v1/locations"
+          - "/api/v1/admin/users"
+          - "/api/v1/admin/rbac"
+        strip_path: false
         plugins:
           - name: caller-context
             config:
               jwks_uri: http://host.docker.internal:8080/.well-known/jwks.json
               issuer: http://localhost:8080
               audience: ecommerce-api
+
   - name: bff-service
     url: http://host.docker.internal:8081
     routes:
+      - name: storefront-api
+        paths: ["/api/v1/storefront/products"]
+        strip_path: false
+        plugins:
+          - name: request-transformer
+            config:
+              remove:
+                headers:
+                  - X-User-Id
+                  - X-User-Roles
       - name: cart-api
         paths: ["/api/v1/cart"]
-        strip_path: true
+        strip_path: false
         plugins:
           - name: caller-context
             config:
               jwks_uri: http://host.docker.internal:8080/.well-known/jwks.json
               issuer: http://localhost:8080
               audience: ecommerce-api
-      - name: storefront-api
-        paths: ["/api/v1/storefront"]
-        strip_path: true
-  - name: bff-admin-products
-    url: http://host.docker.internal:8081/products
-    routes:
       - name: admin-products-api
         paths: ["/api/v1/admin/products"]
-        strip_path: true
+        strip_path: false
         plugins:
           - name: caller-context
             config:

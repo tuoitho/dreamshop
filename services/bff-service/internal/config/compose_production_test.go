@@ -119,6 +119,12 @@ func TestProductionComposeEnforcesIsolationSecretsAndStartupOrder(t *testing.T) 
 	}
 
 	identity := compose.Services["identity-service"]
+	if identity.Environment["MANAGEMENT_SERVER_PORT"] != "8090" {
+		t.Errorf("identity-service MANAGEMENT_SERVER_PORT = %q, want 8090", identity.Environment["MANAGEMENT_SERVER_PORT"])
+	}
+	if identityTest, _ := identity.Healthcheck["test"].([]any); len(identityTest) < 2 || !strings.Contains(identityTest[1].(string), "127.0.0.1:8090/actuator/health/readiness") {
+		t.Errorf("identity-service healthcheck = %v, want 127.0.0.1:8090/actuator/health/readiness", identity.Healthcheck["test"])
+	}
 	if identity.Environment["IDENTITY_GRPC_HOST"] != "0.0.0.0" {
 		t.Errorf("identity-service IDENTITY_GRPC_HOST = %q, want 0.0.0.0", identity.Environment["IDENTITY_GRPC_HOST"])
 	}
@@ -163,6 +169,14 @@ func TestProductionComposeEnforcesIsolationSecretsAndStartupOrder(t *testing.T) 
 		t.Errorf("bff-service gRPC targets = catalog=%q cart=%q", bff.Environment["BFF_CATALOG_GRPC_ADDR"], bff.Environment["BFF_CART_GRPC_ADDR"])
 	}
 	assertHealthyDeps(t, "bff-service", bff.DependsOn, "catalog-service", "cart-service")
+
+	order := compose.Services["order-service"]
+	if order.Environment["MANAGEMENT_SERVER_PORT"] != "8093" {
+		t.Errorf("order-service MANAGEMENT_SERVER_PORT = %q, want 8093", order.Environment["MANAGEMENT_SERVER_PORT"])
+	}
+	if orderTest, _ := order.Healthcheck["test"].([]any); len(orderTest) < 2 || !strings.Contains(orderTest[1].(string), "127.0.0.1:8093/actuator/health/readiness") {
+		t.Errorf("order-service healthcheck = %v, want 127.0.0.1:8093/actuator/health/readiness", order.Healthcheck["test"])
+	}
 
 	envExample := readRepoFile(t, root, ".env.production.example")
 	for _, key := range []string{
