@@ -26,7 +26,8 @@ does not become a second implementation of their domain rules.
 ## Boundaries and Routing
 
 - Call domain services directly over private gRPC.
-- Do not call internal services through Kong or a public transcoding route.
+- Do not call internal services through Kong or another service's
+  HTTP/`grpc-gateway` route.
 - Do not access another service's database, repository, or implementation code.
 - Use generated contracts from `contracts/go/`; do not copy protobuf-generated
   types into this service.
@@ -34,9 +35,13 @@ does not become a second implementation of their domain rules.
   [`api-contracts.md`](../../docs/steering/api-contracts.md).
 - Preserve correlation and stable error codes when mapping gRPC failures.
 
-Use BFF only when a route needs composition, client-specific response shaping,
-custom error mapping, or orchestration. A reviewed unary RPC that maps directly
-to REST may use Kong transcoding under ADR-008 instead.
+First-party frontend commerce workflows and any route needing composition,
+client-specific response shaping, custom error mapping, or orchestration belong
+in BFF; do not mix BFF calls and direct domain-service calls within the same
+frontend feature. When a standalone or external REST endpoint is approved to
+bypass BFF, the owning Go service exposes it via service-side Go `grpc-gateway`
+behind standard Kong HTTP proxying under [ADR-011](../../docs/adr/011-service-side-grpc-gateway-transcoding.md)
+(never Kong's `grpc-gateway` plugin).
 
 ## Current Layout
 

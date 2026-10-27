@@ -16,7 +16,7 @@ chung. Luật chi tiết nằm ở `docs/steering/api-contracts.md` và
 | gRPC/protobuf | `contracts/proto/<domain>/v1/*.proto` | `services/<domain>-service` |
 | Kiểu dùng chung | `contracts/proto/common/v1/common.proto` | Mọi service import nó; xem như contract của tất cả |
 | Generated code | `contracts/go/`, `contracts/java/src/main/generated/` | Sinh bằng `buf generate`; không sửa tay |
-| Public REST | Controller của Identity, handler của BFF, `deployments/kong/*.yaml` | Service phục vụ route |
+| Public REST | Controller của Identity, handler của BFF, adapter Go `grpc-gateway` ở service (khi được duyệt), `deployments/kong/*.yaml` | Service phục vụ route |
 | Event | Chưa có producer/consumer RabbitMQ; khi thêm, theo mục Events của `api-contracts.md` và ADR-002 | Service phát event |
 
 ## 2. Phân loại compatibility
@@ -61,8 +61,11 @@ DEPENDENT chỉ inspect rồi giữ nguyên (kèm lý do).
   enum value, thêm `reserved` cho cả số và tên.
 - Consumer phải chịu được field không biết, field optional vắng mặt và enum value
   không biết.
-- Không thêm `google.api.http` hoặc Kong route cho RPC nội bộ nếu chưa được duyệt
-  (ADR-008). Internal caller gọi gRPC trực tiếp, không qua Kong hoặc BFF.
+- Không thêm `google.api.http`, service-side Go `grpc-gateway` hoặc Kong route cho RPC
+  nội bộ nếu chưa được duyệt (ADR-011); không dùng plugin `grpc-gateway` của Kong. Khi
+  expose direct domain REST bằng Go `grpc-gateway`, phải giữ chuẩn `camelCase`,
+  envelope `{ "data", "message" }` và error envelope của repo. Internal caller gọi
+  gRPC trực tiếp, không qua Kong, BFF hay cổng HTTP của service khác.
 - Error dùng gRPC status chuẩn cộng domain reason ổn định; REST dùng error envelope
   trong `AGENTS.md`.
 

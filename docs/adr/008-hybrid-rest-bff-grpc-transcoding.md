@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-011](011-service-side-grpc-gateway-transcoding.md) — 2026-10-27
 
 ## Context
 

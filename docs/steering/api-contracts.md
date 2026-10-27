@@ -8,8 +8,8 @@ designed explicitly.
 
 - `contracts/proto/` contains protobuf source definitions.
 - `contracts/java/` and `contracts/go/` contain generated language modules.
-- Public HTTP contracts are defined by Identity controllers, BFF handlers, and
-  `deployments/kong/*.yaml`.
+- Public HTTP contracts are defined by Identity controllers, BFF handlers,
+  approved service-side Go `grpc-gateway` adapters, and `deployments/kong/*.yaml`.
 
 Generated Java and Go contract source is tracked. Do not edit generated files by
 hand. Change the protobuf source definition, run `buf format --diff --exit-code`,
@@ -51,10 +51,11 @@ all services deploying simultaneously.
 - Protobuf fields use `lower_snake_case` and packages remain versioned.
 - Never renumber existing fields. Reserve removed field numbers and names.
 - Prefer new fields/RPCs over changing established semantics.
-- Keep domain RPCs private unless a reviewed `google.api.http` annotation and
-  Kong route intentionally expose them.
-- Internal callers use direct private gRPC, not Kong, BFF, or a public
-  transcoding route.
+- Keep domain RPCs private unless a reviewed `google.api.http` annotation,
+  service-side Go `grpc-gateway` adapter, and Kong HTTP route intentionally
+  expose them (do not use Kong's `grpc-gateway` plugin).
+- Internal callers use direct private gRPC, not Kong, BFF, or another service's
+  HTTP/`grpc-gateway` port.
 - Use standard gRPC status codes plus a stable, versioned domain reason, such as
   metadata represented by `google.rpc.ErrorInfo`.
 
@@ -119,10 +120,20 @@ messages. Business errors use the same envelope and an appropriate non-2xx HTTP
 status. Keep `code` stable for client behavior; changing prose in `message` must
 not break consumers.
 
-Kong is the public ingress. Identity REST routes may go directly through Kong;
-simple approved unary RPCs may use reviewed transcoding; client-specific
-composition and custom mapping go through BFF. Public routing must remain aligned
-with [ADR-008](../adr/008-hybrid-rest-bff-grpc-transcoding.md).
+Kong is the public HTTP ingress (never use Kong's `grpc-gateway` transcoding
+plugin). Identity REST routes go directly through Kong; first-party frontend
+commerce workflows and any endpoint requiring composition or UI-specific shaping
+go through BFF (do not mix BFF and direct domain-service calls within the same
+frontend feature). When a Go domain service is approved to expose REST directly
+(such as partner/external APIs or standalone unary operations), it uses
+service-side Go `grpc-gateway` generated from reviewed `google.api.http`
+annotations with `protojson` (`camelCase`), custom marshaling for the
+`{ "data", "message" }` envelope, and `runtime.WithErrorHandler` producing the
+standard error envelope while Kong proxies HTTP normally (`strip_path: false`,
+stripping/overwriting `X-User-Id` and `X-User-Roles`). Any intentionally
+distinct external contract shape requires a separate route prefix and a new ADR.
+Public routing must remain aligned with
+[ADR-011](../adr/011-service-side-grpc-gateway-transcoding.md).
 
 ## Events
 

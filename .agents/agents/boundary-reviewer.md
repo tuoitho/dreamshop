@@ -53,7 +53,9 @@ format, không commit, không chạy lệnh ghi file ngoài output tạm của g
      sửa tay hoặc không đồng bộ với proto.
    - **Contract:** field bị đánh số lại hoặc xóa mà không có `reserved`; thay đổi
      semantic không có version; consumer chưa được inspect; RPC nội bộ bị lộ qua
-     `google.api.http` hoặc Kong route mà chưa duyệt (ADR-008).
+     `google.api.http`/service-side `grpc-gateway` hoặc Kong route mà chưa duyệt,
+     dùng plugin `grpc-gateway` của Kong, hoặc route direct REST thiếu chuẩn
+     envelope/caller-context header protection (ADR-011).
    - **Invariant:** business rule của service A bị quyết định ở service B hoặc ở
      BFF.
    - **Cross-service workflow:** sync call thiếu timeout hoặc failure mapping; retry

@@ -4,7 +4,7 @@ The repository follows the service ownership and isolation decisions in
 [ADR-001](../adr/001-service-boundaries.md),
 [ADR-009](../adr/009-cart-service.md), and
 [ADR-010](../adr/010-product-favorites-in-cart-service.md). Public routing follows
-[ADR-008](../adr/008-hybrid-rest-bff-grpc-transcoding.md).
+[ADR-011](../adr/011-service-side-grpc-gateway-transcoding.md).
 
 ## Capability Ownership
 

@@ -13,8 +13,14 @@ React frontend, shared contracts, and deployment configuration.
   source, database, schema, tables, or migrations.
 - Services communicate through approved contracts: direct private gRPC for
   synchronous calls and RabbitMQ events for asynchronous workflows.
-- Kong is the public ingress. Internal service-to-service calls do not route
-  through Kong or the BFF.
+- Kong is the public HTTP ingress (do not use Kong's `grpc-gateway` transcoding
+  plugin). First-party frontend commerce routes through BFF, Identity REST
+  routes directly, and any approved direct domain REST exposure uses in-service
+  Go `grpc-gateway` preserving the repository REST contract. Internal
+  service-to-service calls do not route through Kong, BFF, or another service's
+  HTTP port.
+- Read [`docs/adr/`](docs/adr/) before proposing or making architectural or
+  dependency changes, and respect all accepted ADR constraints.
 - Shared modules contain generated contracts or cross-cutting infrastructure,
   not service-owned domain logic.
 - Scope changes to the smallest owning service, package, or application surface.

@@ -37,9 +37,9 @@ Choose communication by consistency and response requirements:
   or batch exchange.
 
 Internal services call each other directly on the private network. They do not
-call through Kong, BFF, or a public transcoding route. Kong remains the public
-ingress, and BFF remains an edge composition surface rather than an internal
-message bus.
+call through Kong, BFF, or another service's HTTP/`grpc-gateway` route. Kong
+remains the public ingress, and BFF remains an edge composition surface rather
+than an internal message bus.
 
 ## Cross-service Workflows
 

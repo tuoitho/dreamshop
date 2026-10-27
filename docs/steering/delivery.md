@@ -72,11 +72,13 @@ For each delivery change, identify:
 - Kong routes/plugins and public security policy.
 - Health/readiness checks, dashboards, alerts, and rollback steps.
 
-Kong is the public ingress. Public route changes must preserve the selection
-rules in [ADR-008](../adr/008-hybrid-rest-bff-grpc-transcoding.md): Identity REST
-may route directly, approved simple RPCs may be transcoded, and client-specific
-composition/custom mapping belongs in BFF. Internal traffic does not use edge
-routing.
+Kong is the public HTTP ingress. Public route changes must preserve the
+selection rules in
+[ADR-011](../adr/011-service-side-grpc-gateway-transcoding.md): Identity REST
+routes directly, first-party frontend commerce and composition/custom mapping
+belong in BFF, and approved direct domain REST routes use service-side Go
+`grpc-gateway` behind standard Kong HTTP proxying (never Kong's `grpc-gateway`
+plugin). Internal traffic does not use edge routing.
 
 ## Rollout Safety
 
