@@ -55,13 +55,21 @@ class IdentityDatabaseMigrationTest extends PostgresIntegrationTestSupport {
         assertThat(jdbc.sql("select name from auth_items where type = 'PERMISSION' order by name")
                 .query(String.class).list())
                 .containsExactly("address.create", "address.delete", "address.set-default",
-                        "address.update", "address.view", "cart.item.add", "product.delete",
-                        "rbac.manage", "rbac.view", "user.role.assign", "user.status.update",
-                        "user.view");
+                        "address.update", "address.view", "cart.item.add", "favorite.manage",
+                        "product.delete", "rbac.manage", "rbac.view", "user.role.assign",
+                        "user.status.update", "user.view");
         assertThat(jdbc.sql("""
                 select count(*) from auth_item_children
                 where parent_name = 'CUSTOMER' and child_name = 'cart.item.add'
                 """).query(Long.class).single()).isEqualTo(1L);
+        assertThat(jdbc.sql("""
+                select count(*) from auth_item_children
+                where parent_name = 'CUSTOMER' and child_name = 'favorite.manage'
+                """).query(Long.class).single()).isEqualTo(1L);
+        assertThat(jdbc.sql("""
+                select count(*) from auth_item_children
+                where parent_name = 'ADMIN' and child_name = 'favorite.manage'
+                """).query(Long.class).single()).isZero();
         assertThat(jdbc.sql("""
                 select count(*) from auth_item_children
                 where parent_name = 'ADMIN' and child_name = 'product.delete'
@@ -219,6 +227,58 @@ class IdentityDatabaseMigrationTest extends PostgresIntegrationTestSupport {
     }
 
     @Test
+    @Transactional
+    void upgradesV8SchemaWithProtectedFavoriteManagePermission() throws Exception {
+        jdbcTemplate.execute("create schema migration_target");
+        jdbcTemplate.execute("""
+                create table migration_target.identity_users (
+                    id uuid primary key,
+                    email varchar(254) not null,
+                    normalized_email varchar(254) not null,
+                    password_hash varchar(255) not null,
+                    status varchar(32) not null,
+                    created_at timestamptz not null,
+                    updated_at timestamptz not null
+                )
+                """);
+        jdbcTemplate.execute("""
+                create table migration_target.roles (
+                    id smallint primary key,
+                    code varchar(32) not null unique
+                )
+                """);
+        jdbcTemplate.execute("""
+                create table migration_target.user_roles (
+                    user_id uuid not null,
+                    role_id smallint not null,
+                    primary key (user_id, role_id)
+                )
+                """);
+        jdbcTemplate.execute("insert into migration_target.roles (id, code) values (1, 'CUSTOMER')");
+
+        jdbcTemplate.execute("set local search_path to migration_target");
+        jdbcTemplate.execute(v5MigrationSql());
+        jdbcTemplate.execute(v6MigrationSql());
+        jdbcTemplate.execute(v7MigrationSql());
+        jdbcTemplate.execute(v8MigrationSql());
+        jdbcTemplate.execute(v9MigrationSql());
+
+        assertThat(jdbc.sql("""
+                select name || ':' || type || ':' || system_item
+                from migration_target.auth_items
+                where name = 'favorite.manage'
+                """).query(String.class).single()).isEqualTo("favorite.manage:PERMISSION:true");
+        assertThat(jdbc.sql("""
+                select count(*) from migration_target.auth_item_children
+                where parent_name = 'CUSTOMER' and child_name = 'favorite.manage'
+                """).query(Long.class).single()).isEqualTo(1L);
+        assertThat(jdbc.sql("""
+                select count(*) from migration_target.auth_item_children
+                where parent_name = 'ADMIN' and child_name = 'favorite.manage'
+                """).query(Long.class).single()).isZero();
+    }
+
+    @Test
     void createsNullableProfileContactColumns() {
         assertThat(jdbc.sql("""
                 select column_name || ':' || data_type
@@ -304,6 +364,16 @@ class IdentityDatabaseMigrationTest extends PostgresIntegrationTestSupport {
 
     private String v7MigrationSql() throws Exception {
         return new ClassPathResource("db/migration/V7__add_product_delete_permission.sql")
+                .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private String v8MigrationSql() throws Exception {
+        return new ClassPathResource("db/migration/V8__add_rbac_foreign_key_indexes.sql")
+                .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private String v9MigrationSql() throws Exception {
+        return new ClassPathResource("db/migration/V9__add_favorite_manage_permission.sql")
                 .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
     }
 

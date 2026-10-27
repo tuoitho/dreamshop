@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { DropdownMenu } from "radix-ui"
-import { LogOut, Menu, Search, ShoppingCart, User, UserPlus, X } from "lucide-react"
+import { Heart, LogOut, Menu, Search, ShoppingCart, User, UserPlus, X } from "lucide-react"
 import { useCart } from "@/hooks/use-cart"
+import { useFavorites } from "@/hooks/use-favorites"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -39,6 +40,7 @@ function isNavLinkActive(linkTo: string, pathname: string, search: string): bool
 
 export function SiteHeader() {
   const { totalQuantity } = useCart()
+  const { totalCount: favoriteCount, forbidden: favoritesForbidden } = useFavorites()
   const { isAuthenticated, user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -159,6 +161,17 @@ export function SiteHeader() {
                       <span>Hồ sơ</span>
                     </Link>
                   </DropdownMenu.Item>
+                  {!favoritesForbidden && (
+                    <DropdownMenu.Item
+                      asChild
+                      className="flex cursor-pointer select-none items-center gap-2 rounded-md px-2.5 py-1.5 text-sm outline-none focus:bg-muted focus:text-foreground data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
+                    >
+                      <Link to="/yeu-thich">
+                        <Heart className="size-4 text-muted-foreground" />
+                        <span>Sản phẩm yêu thích</span>
+                      </Link>
+                    </DropdownMenu.Item>
+                  )}
                   <DropdownMenu.Separator className="my-1 h-px bg-border" />
                   <DropdownMenu.Item
                     onSelect={() => {
@@ -177,6 +190,18 @@ export function SiteHeader() {
               <Link to="/login">
                 <User />
                 <span className="sr-only md:not-sr-only md:inline">Đăng nhập</span>
+              </Link>
+            </Button>
+          )}
+          {!favoritesForbidden && (
+            <Button variant="ghost" size="icon" className="relative" asChild aria-label="Sản phẩm yêu thích">
+              <Link to="/yeu-thich">
+                <Heart />
+                {favoriteCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 grid min-w-4 place-items-center rounded-full bg-red-600 px-1 text-[0.6rem] font-bold text-white">
+                    {favoriteCount > 99 ? "99+" : favoriteCount}
+                  </span>
+                )}
               </Link>
             </Button>
           )}
@@ -257,6 +282,16 @@ export function SiteHeader() {
                   <User className="size-4 text-muted-foreground" />
                   <span>Hồ sơ cá nhân</span>
                 </Link>
+                {!favoritesForbidden && (
+                  <Link
+                    to="/yeu-thich"
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <Heart className="size-4 text-muted-foreground" />
+                    <span>Sản phẩm yêu thích</span>
+                  </Link>
+                )}
                 <button
                   type="button"
                   onClick={() => void handleLogout()}

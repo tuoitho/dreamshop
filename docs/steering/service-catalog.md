@@ -19,12 +19,12 @@ and accepted architecture that is not wired yet.
 | Surface | Ownership | Runtime | Local/container ports | Health | Exposure | Datastore/resources | Inbound | Outbound | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | identity-service | Credentials, profiles, shipping addresses, locations, roles, sessions, refresh tokens, JWT issuance, and current RBAC authorization evaluation | Java 21 / Spring Boot 4.1 | HTTP `8080`; management `8090`; private gRPC local `127.0.0.1:50054`, container `0.0.0.0:50054` | `:8090/actuator/health` | Canonical `/api/v1/auth`, `/api/v1/users`, `/api/v1/locations`, `/api/v1/admin/users`, and `/api/v1/admin/rbac` through Kong (`strip_path: false`); management `:8090` and authorization gRPC have no Kong route | PostgreSQL `identity_db`, Flyway, RSA signing keys | Frontend through Kong; Catalog and Cart over private gRPC | PostgreSQL | implemented |
-| bff-service | Client-specific commerce REST adaptation | Go 1.24 | Local HTTP `8081`; container default `8080` | `/healthz` | Canonical `/api/v1/storefront/products`, `/api/v1/cart`, and `/api/v1/admin/products` through Kong (`strip_path: false`) | Stateless | Frontend through Kong | Catalog gRPC `50051`; Inventory gRPC `50052`; Cart gRPC `50053` | implemented |
+| bff-service | Client-specific commerce REST adaptation | Go 1.24 | Local HTTP `8081`; container default `8080` | `/healthz` | Canonical `/api/v1/storefront/products`, `/api/v1/cart`, `/api/v1/favorites`, and `/api/v1/admin/products` through Kong (`strip_path: false`) | Stateless | Frontend through Kong | Catalog gRPC `50051`; Inventory gRPC `50052`; Cart gRPC `50053` | implemented |
 | catalog-service | Product detail, search, filtering, pagination, and soft-delete | Go 1.24 | Canonical local HTTP `8085`; default/container HTTP `8081`; gRPC `50051` | `/healthz` | Private/local; no direct Kong route | PostgreSQL `catalog_db`, migrations, seed data | BFF and Cart over gRPC | Identity authorization `50054`; PostgreSQL | implemented |
 | inventory-service | Stock quantities and availability lookup | Go 1.24 | HTTP `8082`; gRPC `50052` | `/healthz` | Private/local; no Kong route | PostgreSQL `inventory_db`, migration, seed data | BFF and Cart over gRPC | PostgreSQL | partial: reservations and RabbitMQ workflows are not implemented |
 | order-service | Planned order lifecycle, idempotency, and transactional outbox ownership | Java 21 / Spring Boot 4.1 | HTTP `8083`; management `8093` | `:8093/actuator/health` | Private/local; no Kong route | `order_db` is provisioned but unused | None | None | skeleton |
-| cart-service | Authenticated user cart lines and enriched cart projection | Go 1.24 | HTTP `8084`; gRPC `50053` | `/healthz` | Private service; REST is adapted by BFF | PostgreSQL `cart_db`, migration, sqlc queries | BFF over gRPC | Catalog gRPC `50051`; Inventory gRPC `50052`; Identity authorization `50054`; PostgreSQL | implemented |
-| ecommerce-fe | Browser storefront and authenticated cart experience | React 19 / Vite 8 / TypeScript 6 | Local Vite `5173`; container Nginx `8080` (`/healthz`) | Vite dev server / `/healthz` | Local developer UI on `5173`; production SPA through Kong `/` | Browser state only | Browser users | Local Kong `http://localhost:8000/api/v1`; container relative `/api/v1` | implemented; order submission is not available |
+| cart-service | Authenticated user cart lines, product favorites, and enriched projections | Go 1.24 | HTTP `8084`; gRPC `50053` | `/healthz` | Private service; REST is adapted by BFF | PostgreSQL `cart_db`, migration, sqlc queries | BFF over gRPC | Catalog gRPC `50051`; Inventory gRPC `50052`; Identity authorization `50054`; PostgreSQL | implemented |
+| ecommerce-fe | Browser storefront, product favorites, and authenticated cart experience | React 19 / Vite 8 / TypeScript 6 | Local Vite `5173`; container Nginx `8080` (`/healthz`) | Vite dev server / `/healthz` | Local developer UI on `5173`; production SPA through Kong `/` | Browser state only | Browser users | Local Kong `http://localhost:8000/api/v1`; container relative `/api/v1` | implemented; order submission is not available |
 
 ## Platform Infrastructure
 
@@ -45,11 +45,12 @@ and accepted architecture that is not wired yet.
   and protected `/api/v1/users`, `/api/v1/locations`, `/api/v1/admin/users`, and
   `/api/v1/admin/rbac` routes to `identity-service`.
 - Local Kong exposes `/api/v1/storefront/products`, protected `/api/v1/cart`,
-  and protected `/api/v1/admin/products` routes to the host-run BFF at
-  `host.docker.internal:8081`. Production Kong
+  protected `/api/v1/favorites`, and protected `/api/v1/admin/products` routes
+  to the host-run BFF at `host.docker.internal:8081`. Production Kong
   (`deployments/kong/kong-production.yaml`) exposes `/` (`ecommerce-fe`),
-  `GET /api/v1/storefront/products`, protected `/api/v1/cart`, and protected
-  `POST /api/v1/admin/products` to container `bff-service:8080`.
+  `GET /api/v1/storefront/products`, protected `/api/v1/cart`, protected
+  `/api/v1/favorites`, and protected `POST /api/v1/admin/products` to container
+  `bff-service:8080`.
 - Spring Boot Actuator endpoints run on dedicated internal management ports
   (`8090` on `identity-service`, `8093` on `order-service`) and are not exposed
   on application HTTP ports or through Kong.

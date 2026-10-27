@@ -170,6 +170,130 @@ public final class CartServiceGrpc {
     return getClearCartMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.cart.v1.GetFavoritesRequest,
+      com.ecommerce.contracts.cart.v1.GetFavoritesResponse> getGetFavoritesMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "GetFavorites",
+      requestType = com.ecommerce.contracts.cart.v1.GetFavoritesRequest.class,
+      responseType = com.ecommerce.contracts.cart.v1.GetFavoritesResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.cart.v1.GetFavoritesRequest,
+      com.ecommerce.contracts.cart.v1.GetFavoritesResponse> getGetFavoritesMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.cart.v1.GetFavoritesRequest, com.ecommerce.contracts.cart.v1.GetFavoritesResponse> getGetFavoritesMethod;
+    if ((getGetFavoritesMethod = CartServiceGrpc.getGetFavoritesMethod) == null) {
+      synchronized (CartServiceGrpc.class) {
+        if ((getGetFavoritesMethod = CartServiceGrpc.getGetFavoritesMethod) == null) {
+          CartServiceGrpc.getGetFavoritesMethod = getGetFavoritesMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.cart.v1.GetFavoritesRequest, com.ecommerce.contracts.cart.v1.GetFavoritesResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "GetFavorites"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.cart.v1.GetFavoritesRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.cart.v1.GetFavoritesResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new CartServiceMethodDescriptorSupplier("GetFavorites"))
+              .build();
+        }
+      }
+    }
+    return getGetFavoritesMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.cart.v1.AddFavoriteRequest,
+      com.ecommerce.contracts.cart.v1.AddFavoriteResponse> getAddFavoriteMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "AddFavorite",
+      requestType = com.ecommerce.contracts.cart.v1.AddFavoriteRequest.class,
+      responseType = com.ecommerce.contracts.cart.v1.AddFavoriteResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.cart.v1.AddFavoriteRequest,
+      com.ecommerce.contracts.cart.v1.AddFavoriteResponse> getAddFavoriteMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.cart.v1.AddFavoriteRequest, com.ecommerce.contracts.cart.v1.AddFavoriteResponse> getAddFavoriteMethod;
+    if ((getAddFavoriteMethod = CartServiceGrpc.getAddFavoriteMethod) == null) {
+      synchronized (CartServiceGrpc.class) {
+        if ((getAddFavoriteMethod = CartServiceGrpc.getAddFavoriteMethod) == null) {
+          CartServiceGrpc.getAddFavoriteMethod = getAddFavoriteMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.cart.v1.AddFavoriteRequest, com.ecommerce.contracts.cart.v1.AddFavoriteResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "AddFavorite"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.cart.v1.AddFavoriteRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.cart.v1.AddFavoriteResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new CartServiceMethodDescriptorSupplier("AddFavorite"))
+              .build();
+        }
+      }
+    }
+    return getAddFavoriteMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.cart.v1.RemoveFavoriteRequest,
+      com.ecommerce.contracts.cart.v1.RemoveFavoriteResponse> getRemoveFavoriteMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "RemoveFavorite",
+      requestType = com.ecommerce.contracts.cart.v1.RemoveFavoriteRequest.class,
+      responseType = com.ecommerce.contracts.cart.v1.RemoveFavoriteResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.cart.v1.RemoveFavoriteRequest,
+      com.ecommerce.contracts.cart.v1.RemoveFavoriteResponse> getRemoveFavoriteMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.cart.v1.RemoveFavoriteRequest, com.ecommerce.contracts.cart.v1.RemoveFavoriteResponse> getRemoveFavoriteMethod;
+    if ((getRemoveFavoriteMethod = CartServiceGrpc.getRemoveFavoriteMethod) == null) {
+      synchronized (CartServiceGrpc.class) {
+        if ((getRemoveFavoriteMethod = CartServiceGrpc.getRemoveFavoriteMethod) == null) {
+          CartServiceGrpc.getRemoveFavoriteMethod = getRemoveFavoriteMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.cart.v1.RemoveFavoriteRequest, com.ecommerce.contracts.cart.v1.RemoveFavoriteResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "RemoveFavorite"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.cart.v1.RemoveFavoriteRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.cart.v1.RemoveFavoriteResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new CartServiceMethodDescriptorSupplier("RemoveFavorite"))
+              .build();
+        }
+      }
+    }
+    return getRemoveFavoriteMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.cart.v1.ClearFavoritesRequest,
+      com.ecommerce.contracts.cart.v1.ClearFavoritesResponse> getClearFavoritesMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "ClearFavorites",
+      requestType = com.ecommerce.contracts.cart.v1.ClearFavoritesRequest.class,
+      responseType = com.ecommerce.contracts.cart.v1.ClearFavoritesResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.cart.v1.ClearFavoritesRequest,
+      com.ecommerce.contracts.cart.v1.ClearFavoritesResponse> getClearFavoritesMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.cart.v1.ClearFavoritesRequest, com.ecommerce.contracts.cart.v1.ClearFavoritesResponse> getClearFavoritesMethod;
+    if ((getClearFavoritesMethod = CartServiceGrpc.getClearFavoritesMethod) == null) {
+      synchronized (CartServiceGrpc.class) {
+        if ((getClearFavoritesMethod = CartServiceGrpc.getClearFavoritesMethod) == null) {
+          CartServiceGrpc.getClearFavoritesMethod = getClearFavoritesMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.cart.v1.ClearFavoritesRequest, com.ecommerce.contracts.cart.v1.ClearFavoritesResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "ClearFavorites"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.cart.v1.ClearFavoritesRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.cart.v1.ClearFavoritesResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new CartServiceMethodDescriptorSupplier("ClearFavorites"))
+              .build();
+        }
+      }
+    }
+    return getClearFavoritesMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -252,6 +376,34 @@ public final class CartServiceGrpc {
         io.grpc.stub.StreamObserver<com.ecommerce.contracts.cart.v1.ClearCartResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getClearCartMethod(), responseObserver);
     }
+
+    /**
+     */
+    default void getFavorites(com.ecommerce.contracts.cart.v1.GetFavoritesRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.cart.v1.GetFavoritesResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetFavoritesMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void addFavorite(com.ecommerce.contracts.cart.v1.AddFavoriteRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.cart.v1.AddFavoriteResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getAddFavoriteMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void removeFavorite(com.ecommerce.contracts.cart.v1.RemoveFavoriteRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.cart.v1.RemoveFavoriteResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRemoveFavoriteMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void clearFavorites(com.ecommerce.contracts.cart.v1.ClearFavoritesRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.cart.v1.ClearFavoritesResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getClearFavoritesMethod(), responseObserver);
+    }
   }
 
   /**
@@ -320,6 +472,38 @@ public final class CartServiceGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getClearCartMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     */
+    public void getFavorites(com.ecommerce.contracts.cart.v1.GetFavoritesRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.cart.v1.GetFavoritesResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetFavoritesMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void addFavorite(com.ecommerce.contracts.cart.v1.AddFavoriteRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.cart.v1.AddFavoriteResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getAddFavoriteMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void removeFavorite(com.ecommerce.contracts.cart.v1.RemoveFavoriteRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.cart.v1.RemoveFavoriteResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getRemoveFavoriteMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void clearFavorites(com.ecommerce.contracts.cart.v1.ClearFavoritesRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.cart.v1.ClearFavoritesResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getClearFavoritesMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -371,6 +555,34 @@ public final class CartServiceGrpc {
     public com.ecommerce.contracts.cart.v1.ClearCartResponse clearCart(com.ecommerce.contracts.cart.v1.ClearCartRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getClearCartMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.cart.v1.GetFavoritesResponse getFavorites(com.ecommerce.contracts.cart.v1.GetFavoritesRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetFavoritesMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.cart.v1.AddFavoriteResponse addFavorite(com.ecommerce.contracts.cart.v1.AddFavoriteRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getAddFavoriteMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.cart.v1.RemoveFavoriteResponse removeFavorite(com.ecommerce.contracts.cart.v1.RemoveFavoriteRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getRemoveFavoriteMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.cart.v1.ClearFavoritesResponse clearFavorites(com.ecommerce.contracts.cart.v1.ClearFavoritesRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getClearFavoritesMethod(), getCallOptions(), request);
     }
   }
 
@@ -429,6 +641,38 @@ public final class CartServiceGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getClearCartMethod(), getCallOptions()), request);
     }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.cart.v1.GetFavoritesResponse> getFavorites(
+        com.ecommerce.contracts.cart.v1.GetFavoritesRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetFavoritesMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.cart.v1.AddFavoriteResponse> addFavorite(
+        com.ecommerce.contracts.cart.v1.AddFavoriteRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getAddFavoriteMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.cart.v1.RemoveFavoriteResponse> removeFavorite(
+        com.ecommerce.contracts.cart.v1.RemoveFavoriteRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getRemoveFavoriteMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.cart.v1.ClearFavoritesResponse> clearFavorites(
+        com.ecommerce.contracts.cart.v1.ClearFavoritesRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getClearFavoritesMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET_CART = 0;
@@ -436,6 +680,10 @@ public final class CartServiceGrpc {
   private static final int METHODID_UPDATE_ITEM_QUANTITY = 2;
   private static final int METHODID_REMOVE_ITEM = 3;
   private static final int METHODID_CLEAR_CART = 4;
+  private static final int METHODID_GET_FAVORITES = 5;
+  private static final int METHODID_ADD_FAVORITE = 6;
+  private static final int METHODID_REMOVE_FAVORITE = 7;
+  private static final int METHODID_CLEAR_FAVORITES = 8;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -473,6 +721,22 @@ public final class CartServiceGrpc {
         case METHODID_CLEAR_CART:
           serviceImpl.clearCart((com.ecommerce.contracts.cart.v1.ClearCartRequest) request,
               (io.grpc.stub.StreamObserver<com.ecommerce.contracts.cart.v1.ClearCartResponse>) responseObserver);
+          break;
+        case METHODID_GET_FAVORITES:
+          serviceImpl.getFavorites((com.ecommerce.contracts.cart.v1.GetFavoritesRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.cart.v1.GetFavoritesResponse>) responseObserver);
+          break;
+        case METHODID_ADD_FAVORITE:
+          serviceImpl.addFavorite((com.ecommerce.contracts.cart.v1.AddFavoriteRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.cart.v1.AddFavoriteResponse>) responseObserver);
+          break;
+        case METHODID_REMOVE_FAVORITE:
+          serviceImpl.removeFavorite((com.ecommerce.contracts.cart.v1.RemoveFavoriteRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.cart.v1.RemoveFavoriteResponse>) responseObserver);
+          break;
+        case METHODID_CLEAR_FAVORITES:
+          serviceImpl.clearFavorites((com.ecommerce.contracts.cart.v1.ClearFavoritesRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.cart.v1.ClearFavoritesResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -527,6 +791,34 @@ public final class CartServiceGrpc {
               com.ecommerce.contracts.cart.v1.ClearCartRequest,
               com.ecommerce.contracts.cart.v1.ClearCartResponse>(
                 service, METHODID_CLEAR_CART)))
+        .addMethod(
+          getGetFavoritesMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.cart.v1.GetFavoritesRequest,
+              com.ecommerce.contracts.cart.v1.GetFavoritesResponse>(
+                service, METHODID_GET_FAVORITES)))
+        .addMethod(
+          getAddFavoriteMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.cart.v1.AddFavoriteRequest,
+              com.ecommerce.contracts.cart.v1.AddFavoriteResponse>(
+                service, METHODID_ADD_FAVORITE)))
+        .addMethod(
+          getRemoveFavoriteMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.cart.v1.RemoveFavoriteRequest,
+              com.ecommerce.contracts.cart.v1.RemoveFavoriteResponse>(
+                service, METHODID_REMOVE_FAVORITE)))
+        .addMethod(
+          getClearFavoritesMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.cart.v1.ClearFavoritesRequest,
+              com.ecommerce.contracts.cart.v1.ClearFavoritesResponse>(
+                service, METHODID_CLEAR_FAVORITES)))
         .build();
   }
 
@@ -580,6 +872,10 @@ public final class CartServiceGrpc {
               .addMethod(getUpdateItemQuantityMethod())
               .addMethod(getRemoveItemMethod())
               .addMethod(getClearCartMethod())
+              .addMethod(getGetFavoritesMethod())
+              .addMethod(getAddFavoriteMethod())
+              .addMethod(getRemoveFavoriteMethod())
+              .addMethod(getClearFavoritesMethod())
               .build();
         }
       }

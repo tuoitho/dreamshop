@@ -7,12 +7,14 @@ These instructions apply to `services/cart-service/` in addition to the root
 
 This service owns:
 
-- Authenticated user shopping cart state and line-item quantities.
-- Cart persistence in `cart_db`, migrations, and `sqlc` query bindings.
-- Enriched cart projection assembled by querying Catalog and Inventory over
-  private gRPC.
-- Enforcement of `cart.item.add` authorization decisions on `AddItem` evaluated
-  via Identity's private authorization gRPC boundary.
+- Authenticated user shopping cart state, line-item quantities, and saved
+  product favorites (`favorite_items`).
+- Cart and favorites persistence in `cart_db`, migrations, and `sqlc` query
+  bindings.
+- Enriched cart and favorite projections assembled by querying Catalog and
+  Inventory over private gRPC.
+- Enforcement of `cart.item.add` on `AddItem` and `favorite.manage` on favorite
+  RPCs evaluated via Identity's private authorization gRPC boundary.
 
 This service does not own:
 

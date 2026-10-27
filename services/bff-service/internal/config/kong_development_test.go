@@ -63,6 +63,11 @@ func TestDevelopmentKongConsolidatesTwoServicesWithStripPathFalseAndPreservesCOR
 			paths:     []string{"/api/v1/cart"},
 			protected: true,
 		},
+		"favorites-api": {
+			service:   "bff-service",
+			paths:     []string{"/api/v1/favorites"},
+			protected: true,
+		},
 		"admin-products-api": {
 			service:   "bff-service",
 			paths:     []string{"/api/v1/admin/products"},

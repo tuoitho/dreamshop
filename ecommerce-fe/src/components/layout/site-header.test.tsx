@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event"
 import { MemoryRouter, Route, Routes, useLocation, type InitialEntry } from "react-router-dom"
 import { AuthContext, type AuthContextValue } from "@/context/auth-context"
 import { CartContext, type CartContextValue } from "@/context/cart-context"
+import { FavoritesContext, type FavoritesContextValue } from "@/context/favorites-context"
 import type { CurrentUser } from "@/lib/types"
 import { SiteHeader } from "./site-header"
 
@@ -52,6 +53,7 @@ function LocationProbe() {
 function renderHeader(
   authOverrides: Partial<AuthContextValue> = {},
   initialEntries: InitialEntry[] = ["/"],
+  favoritesOverrides: Partial<FavoritesContextValue> = {},
 ) {
   const authValue: AuthContextValue = {
     token: null,
@@ -65,17 +67,37 @@ function renderHeader(
     ...authOverrides,
   }
 
+  const favoritesValue: FavoritesContextValue = {
+    items: [],
+    totalCount: 0,
+    isFavorite: () => false,
+    isPending: () => false,
+    addFavorite: vi.fn().mockResolvedValue(undefined),
+    removeFavorite: vi.fn().mockResolvedValue(undefined),
+    toggleFavorite: vi.fn().mockResolvedValue(undefined),
+    clearFavorites: vi.fn().mockResolvedValue(undefined),
+    loading: false,
+    degraded: false,
+    forbidden: false,
+    loadError: null,
+    retryLoad: vi.fn().mockResolvedValue(undefined),
+    ...favoritesOverrides,
+  }
+
   return {
     authValue,
+    favoritesValue,
     ...render(
       <AuthContext value={authValue}>
         <CartContext value={makeCartValue()}>
-          <MemoryRouter initialEntries={initialEntries}>
-            <SiteHeader />
-            <Routes>
-              <Route path="*" element={<LocationProbe />} />
-            </Routes>
-          </MemoryRouter>
+          <FavoritesContext value={favoritesValue}>
+            <MemoryRouter initialEntries={initialEntries}>
+              <SiteHeader />
+              <Routes>
+                <Route path="*" element={<LocationProbe />} />
+              </Routes>
+            </MemoryRouter>
+          </FavoritesContext>
         </CartContext>
       </AuthContext>
     ),
@@ -199,5 +221,35 @@ describe("SiteHeader", () => {
     expect(screen.getByRole("searchbox", { name: "Tìm kiếm sản phẩm" })).toHaveValue("iPhone 15")
     expect(screen.getByRole("link", { name: "Điện thoại" })).toHaveAttribute("aria-current", "page")
     expect(screen.getByRole("link", { name: "Laptop" })).not.toHaveAttribute("aria-current")
+  })
+
+  it("renders favorites icon badge and menu links for customers and hides them when forbidden", async () => {
+    const { unmount } = renderHeader(
+      { token: "access-token", isAuthenticated: true, user: USER },
+      ["/"],
+      { totalCount: 120, forbidden: false },
+    )
+
+    const headerFavLink = screen.getByRole("link", { name: "Sản phẩm yêu thích" })
+    expect(headerFavLink).toHaveAttribute("href", "/yeu-thich")
+    expect(headerFavLink).toHaveTextContent("99+")
+
+    await userEvent.click(screen.getByRole("button", { name: "Nguyễn Văn A" }))
+    expect(await screen.findByRole("menuitem", { name: "Sản phẩm yêu thích" })).toHaveAttribute("href", "/yeu-thich")
+    await userEvent.keyboard("{Escape}")
+
+    await userEvent.click(screen.getByRole("button", { name: "Mở menu" }))
+    const favLinks = screen.getAllByRole("link", { name: /Sản phẩm yêu thích/ })
+    expect(favLinks.length).toBeGreaterThanOrEqual(2)
+    unmount()
+
+    renderHeader(
+      { token: "admin-token", isAuthenticated: true, user: { ...USER, roles: ["ADMIN"] } },
+      ["/"],
+      { totalCount: 0, forbidden: true },
+    )
+    expect(screen.queryByRole("link", { name: "Sản phẩm yêu thích" })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Nguyễn Văn A" }))
+    expect(screen.queryByRole("menuitem", { name: "Sản phẩm yêu thích" })).not.toBeInTheDocument()
   })
 })

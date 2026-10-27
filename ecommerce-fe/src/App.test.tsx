@@ -118,4 +118,17 @@ describe("App StoreLayout shell", () => {
     expect(screen.getByText("Đang khôi phục phiên...")).toBeInTheDocument()
     expect(screen.getByText("Hỗ trợ khách hàng")).toBeInTheDocument()
   })
+
+  it("protects /yeu-thich with RequireAuth for guests and renders FavoritesPage for authenticated users", async () => {
+    const { unmount } = renderAppAt("/yeu-thich", { ready: true, isAuthenticated: false })
+    expect(await screen.findByText("Đăng nhập vào tài khoản của bạn")).toBeInTheDocument()
+    unmount()
+
+    renderAppAt("/yeu-thich", {
+      token: "access-token",
+      isAuthenticated: true,
+      user: USER,
+    })
+    expect(await screen.findByRole("heading", { name: "Sản phẩm yêu thích" })).toBeInTheDocument()
+  })
 })

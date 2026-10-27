@@ -105,3 +105,45 @@ func (s *Store) Clear(ctx context.Context, cartID string) error {
 	}
 	return nil
 }
+
+func (s *Store) ListFavorites(ctx context.Context, userID string) ([]domain.FavoriteRecord, error) {
+	rows, err := s.queries.ListFavorites(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list favorites: %w", err)
+	}
+	records := make([]domain.FavoriteRecord, 0, len(rows))
+	for _, row := range rows {
+		records = append(records, domain.FavoriteRecord{
+			ID:        row.ID,
+			ProductID: row.ProductID,
+		})
+	}
+	return records, nil
+}
+
+func (s *Store) AddFavorite(ctx context.Context, userID, productID string) error {
+	if err := s.queries.AddFavorite(ctx, db.AddFavoriteParams{
+		UserID:    userID,
+		ProductID: productID,
+	}); err != nil {
+		return fmt.Errorf("add favorite: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) RemoveFavorite(ctx context.Context, userID, productID string) error {
+	if err := s.queries.RemoveFavorite(ctx, db.RemoveFavoriteParams{
+		UserID:    userID,
+		ProductID: productID,
+	}); err != nil {
+		return fmt.Errorf("remove favorite: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) ClearFavorites(ctx context.Context, userID string) error {
+	if err := s.queries.ClearFavorites(ctx, userID); err != nil {
+		return fmt.Errorf("clear favorites: %w", err)
+	}
+	return nil
+}

@@ -141,6 +141,12 @@ func TestProductionKongConsolidatesServicesWithStripPathFalseAndServesSPA(t *tes
 			methods:   []string{"GET", "POST", "PATCH", "DELETE"},
 			protected: true,
 		},
+		"favorites-api": {
+			service:   "bff-service",
+			paths:     []string{"/api/v1/favorites"},
+			methods:   []string{"GET", "POST", "DELETE"},
+			protected: true,
+		},
 		"admin-products-api": {
 			service:   "bff-service",
 			paths:     []string{"/api/v1/admin/products"},

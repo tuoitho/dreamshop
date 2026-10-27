@@ -189,3 +189,80 @@ func TestStoreMutationMapsMissingItemToSentinel(t *testing.T) {
 		t.Fatalf("RemoveItem() = %v, want ErrItemNotFound", err)
 	}
 }
+
+func TestStoreFavoritesIntegration(t *testing.T) {
+	pool := testPool(t)
+	ctx := context.Background()
+	if err := Migrate(ctx, pool); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+
+	store := New(pool)
+	userID := "00000000-0000-0000-0000-000000000101"
+	otherUserID := "00000000-0000-0000-0000-000000000102"
+	t.Cleanup(func() {
+		_ = store.ClearFavorites(ctx, userID)
+		_ = store.ClearFavorites(ctx, otherUserID)
+	})
+	_ = store.ClearFavorites(ctx, userID)
+	_ = store.ClearFavorites(ctx, otherUserID)
+
+	if err := store.AddFavorite(ctx, userID, "dt-1"); err != nil {
+		t.Fatalf("add first favorite: %v", err)
+	}
+	time.Sleep(5 * time.Millisecond)
+	if err := store.AddFavorite(ctx, userID, "lt-1"); err != nil {
+		t.Fatalf("add second favorite: %v", err)
+	}
+	time.Sleep(5 * time.Millisecond)
+	if err := store.AddFavorite(ctx, userID, "dt-1"); err != nil {
+		t.Fatalf("duplicate add favorite should be idempotent: %v", err)
+	}
+	if err := store.AddFavorite(ctx, otherUserID, "tn-1"); err != nil {
+		t.Fatalf("add other user favorite: %v", err)
+	}
+
+	favorites, err := store.ListFavorites(ctx, userID)
+	if err != nil {
+		t.Fatalf("list favorites: %v", err)
+	}
+	if len(favorites) != 2 {
+		t.Fatalf("expected 2 favorites, got %+v", favorites)
+	}
+	if favorites[0].ProductID != "lt-1" || favorites[1].ProductID != "dt-1" {
+		t.Fatalf("favorites order = [%s, %s], want [lt-1, dt-1] (newest first, duplicate add keeps original created_at)", favorites[0].ProductID, favorites[1].ProductID)
+	}
+
+	if err := store.RemoveFavorite(ctx, userID, "absent-product"); err != nil {
+		t.Fatalf("removing absent favorite should succeed idempotently: %v", err)
+	}
+	if err := store.RemoveFavorite(ctx, userID, "lt-1"); err != nil {
+		t.Fatalf("remove favorite: %v", err)
+	}
+	afterRemove, err := store.ListFavorites(ctx, userID)
+	if err != nil {
+		t.Fatalf("list after remove: %v", err)
+	}
+	if len(afterRemove) != 1 || afterRemove[0].ProductID != "dt-1" {
+		t.Fatalf("after remove = %+v, want only dt-1", afterRemove)
+	}
+
+	otherFavorites, err := store.ListFavorites(ctx, otherUserID)
+	if err != nil {
+		t.Fatalf("list other user favorites: %v", err)
+	}
+	if len(otherFavorites) != 1 || otherFavorites[0].ProductID != "tn-1" {
+		t.Fatalf("other user favorites = %+v, want only tn-1", otherFavorites)
+	}
+
+	if err := store.ClearFavorites(ctx, userID); err != nil {
+		t.Fatalf("clear favorites: %v", err)
+	}
+	cleared, err := store.ListFavorites(ctx, userID)
+	if err != nil {
+		t.Fatalf("list after clear: %v", err)
+	}
+	if len(cleared) != 0 {
+		t.Fatalf("expected empty favorites after clear, got %+v", cleared)
+	}
+}

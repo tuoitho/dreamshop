@@ -98,6 +98,39 @@ export interface CartData {
   degraded: boolean
 }
 
+export type FavoriteItemStatus =
+  | "AVAILABLE"
+  | "LIMITED"
+  | "OUT_OF_STOCK"
+  | "UNAVAILABLE"
+  | "UNKNOWN"
+
+export interface FavoriteItem {
+  itemId: string
+  productId: string
+  name: string
+  brand: string
+  categoryId: string
+  categoryName: string
+  price: number
+  originalPrice: number
+  rating: number
+  reviewCount: number
+  soldCount: number
+  imageUrl: string
+  imageEmoji: string
+  imageHue: [number, number] | number[]
+  badge: string
+  variants: ProductVariant[]
+  status: FavoriteItemStatus
+  availableQuantity: number
+}
+
+export interface FavoriteData {
+  items: FavoriteItem[]
+  degraded: boolean
+}
+
 export type ProductAvailabilityStatus =
   | "AVAILABLE"
   | "LIMITED"

@@ -2,10 +2,21 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { act, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom"
-import { ApiClientError, addCartItem, getCart, getProduct, searchProducts, softDeleteProduct } from "@/lib/api"
+import {
+  ApiClientError,
+  addCartItem,
+  addFavoriteItem,
+  getCart,
+  getFavorites,
+  getProduct,
+  removeFavoriteItem,
+  searchProducts,
+  softDeleteProduct,
+} from "@/lib/api"
 import { AuthContext, type AuthContextValue } from "@/context/auth-context"
 import { CartContext, type CartContextValue } from "@/context/cart-context"
-import type { CartItem, ProductDetail, ProductSummary } from "@/lib/types"
+import { FavoritesProvider } from "@/context/favorites-provider"
+import type { CartItem, FavoriteItem, ProductDetail, ProductSummary } from "@/lib/types"
 import { CartProvider } from "@/context/cart-provider"
 import { useCart } from "@/hooks/use-cart"
 import { toast } from "sonner"
@@ -21,6 +32,9 @@ vi.mock("@/lib/api", async (importOriginal) => {
     searchProducts: vi.fn(),
     addCartItem: vi.fn(),
     getCart: vi.fn(),
+    getFavorites: vi.fn(),
+    addFavoriteItem: vi.fn(),
+    removeFavoriteItem: vi.fn(),
     softDeleteProduct: vi.fn(),
   }
 })
@@ -195,10 +209,33 @@ function renderDetail(
   return render(
     <MemoryRouter initialEntries={[`/san-pham/${id}`]}>
       <AuthContext value={authValue(auth)}>
-        {controlledCart ? <CartContext value={controlledCart}>{routes}</CartContext> : <CartProvider>{routes}</CartProvider>}
+        <FavoritesProvider>
+          {controlledCart ? <CartContext value={controlledCart}>{routes}</CartContext> : <CartProvider>{routes}</CartProvider>}
+        </FavoritesProvider>
       </AuthContext>
     </MemoryRouter>
   )
+}
+
+const FAVORITE_ITEM: FavoriteItem = {
+  itemId: "fav-1",
+  productId: DETAIL.id,
+  name: DETAIL.name,
+  brand: DETAIL.brand,
+  categoryId: DETAIL.categoryId,
+  categoryName: DETAIL.categoryName,
+  price: DETAIL.price,
+  originalPrice: DETAIL.originalPrice,
+  rating: DETAIL.rating,
+  reviewCount: DETAIL.reviewCount,
+  soldCount: DETAIL.soldCount,
+  imageUrl: DETAIL.images![0],
+  imageEmoji: DETAIL.emoji!,
+  imageHue: DETAIL.imageHue!,
+  badge: DETAIL.badge ?? "",
+  variants: DETAIL.variants,
+  status: "AVAILABLE",
+  availableQuantity: 10,
 }
 
 describe("ProductDetailPage", () => {
@@ -215,6 +252,9 @@ describe("ProductDetailPage", () => {
     })
     vi.mocked(getCart).mockResolvedValue({ items: [], degraded: false })
     vi.mocked(addCartItem).mockResolvedValue({ items: [CART_ITEM], degraded: false })
+    vi.mocked(getFavorites).mockResolvedValue({ items: [], degraded: false })
+    vi.mocked(addFavoriteItem).mockResolvedValue({ items: [FAVORITE_ITEM], degraded: false })
+    vi.mocked(removeFavoriteItem).mockResolvedValue({ items: [], degraded: false })
     vi.mocked(softDeleteProduct).mockResolvedValue({ id: DETAIL.id, deleted: true })
   })
 
@@ -647,7 +687,7 @@ describe("ProductDetailPage", () => {
     expect(getProduct).toHaveBeenCalledTimes(1)
   })
 
-  it("formats float32 rating, renders full description alongside shortDescription, and toggles wishlist", async () => {
+  it("formats float32 rating, renders full description alongside shortDescription, and syncs favorites with backend without duplicate component toast", async () => {
     vi.mocked(getProduct).mockResolvedValue({
       ...DETAIL,
       rating: 4.900000095367432,
@@ -660,11 +700,55 @@ describe("ProductDetailPage", () => {
     expect(screen.getByText(DETAIL.shortDescription!)).toBeInTheDocument()
     expect(screen.getByText(DETAIL.description)).toBeInTheDocument()
 
-    const wishlistBtn = screen.getByRole("button", { name: "Thêm vào yêu thích" })
-    expect(wishlistBtn).toHaveAttribute("aria-pressed", "false")
-    await userEvent.click(wishlistBtn)
-    expect(wishlistBtn).toHaveAttribute("aria-pressed", "true")
-    expect(toast.success).toHaveBeenCalled()
+    const addFavBtn = screen.getByRole("button", { name: "Thêm vào yêu thích" })
+    expect(addFavBtn).toHaveAttribute("aria-pressed", "false")
+    await userEvent.click(addFavBtn)
+
+    await waitFor(() => expect(addFavoriteItem).toHaveBeenCalledWith(DETAIL.id))
+    const removeFavBtn = await screen.findByRole("button", { name: "Bỏ khỏi yêu thích" })
+    expect(removeFavBtn).toHaveAttribute("aria-pressed", "true")
+    expect(toast.success).not.toHaveBeenCalled()
+  })
+
+  it("redirects guests on favorite click, hides button when forbidden, allows OOS favoriting, and blocks only new UNAVAILABLE additions", async () => {
+    vi.mocked(getProduct).mockResolvedValue(DETAIL)
+    const { unmount: unmountGuest } = renderDetail("dt-1", { isAuthenticated: false, token: null, user: null }, "login")
+    await userEvent.click(await screen.findByRole("button", { name: "Thêm vào yêu thích" }))
+    await waitFor(() => expect(screen.getByTestId("login-from")).toHaveTextContent("/san-pham/dt-1"))
+    unmountGuest()
+
+    vi.mocked(getFavorites).mockRejectedValueOnce(new ApiClientError(403, "Forbidden", "FORBIDDEN"))
+    vi.mocked(getProduct).mockResolvedValue(DETAIL)
+    const { unmount: unmountForbidden } = renderDetail()
+    expect(await screen.findByRole("heading", { level: 1, name: DETAIL.name })).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole("button", { name: /yêu thích/i })).not.toBeInTheDocument())
+    unmountForbidden()
+
+    vi.mocked(getFavorites).mockResolvedValueOnce({ items: [], degraded: false })
+    vi.mocked(getProduct).mockResolvedValue({ ...DETAIL, status: "OUT_OF_STOCK", availableQuantity: 0 })
+    const { unmount: unmountOos } = renderDetail()
+    const oosFavBtn = await screen.findByRole("button", { name: "Thêm vào yêu thích" })
+    expect(oosFavBtn).not.toBeDisabled()
+    await userEvent.click(oosFavBtn)
+    await waitFor(() => expect(addFavoriteItem).toHaveBeenCalledWith(DETAIL.id))
+    unmountOos()
+
+    vi.mocked(getFavorites).mockResolvedValueOnce({ items: [], degraded: false })
+    vi.mocked(getProduct).mockResolvedValue({ ...DETAIL, deleted: true, status: "UNAVAILABLE", availableQuantity: 0 })
+    const { unmount: unmountDiscontinued } = renderDetail()
+    expect(await screen.findByRole("button", { name: "Thêm vào yêu thích" })).toBeDisabled()
+    unmountDiscontinued()
+
+    vi.mocked(getFavorites).mockResolvedValueOnce({
+      items: [{ ...FAVORITE_ITEM, status: "UNAVAILABLE", availableQuantity: 0 }],
+      degraded: false,
+    })
+    vi.mocked(getProduct).mockResolvedValue({ ...DETAIL, deleted: true, status: "UNAVAILABLE", availableQuantity: 0 })
+    renderDetail()
+    const removeDiscontinuedBtn = await screen.findByRole("button", { name: "Bỏ khỏi yêu thích" })
+    expect(removeDiscontinuedBtn).not.toBeDisabled()
+    await userEvent.click(removeDiscontinuedBtn)
+    await waitFor(() => expect(removeFavoriteItem).toHaveBeenCalledWith(DETAIL.id))
   })
 
   it("reports an error toast instead of false success when clipboard API is unavailable on share", async () => {

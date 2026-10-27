@@ -1,6 +1,8 @@
-import { useState } from "react"
-import { Link } from "react-router-dom"
-import { ShoppingCart, Star } from "lucide-react"
+import { useContext, useState } from "react"
+import { Link, useLocation, useNavigate } from "react-router-dom"
+import { Heart, ShoppingCart, Star } from "lucide-react"
+import { AuthContext } from "@/context/auth-context"
+import { useFavorites } from "@/hooks/use-favorites"
 import type { ProductSummary } from "@/lib/types"
 import { formatRating, resolveProductAvailability } from "@/lib/product-availability"
 import { cn, formatVND } from "@/lib/utils"
@@ -15,10 +17,31 @@ interface ProductCardProps {
 
 export function ProductCard({ product, className }: ProductCardProps) {
   const [imageError, setImageError] = useState(false)
+  const auth = useContext(AuthContext)
+  const isAuthenticated = auth?.isAuthenticated ?? false
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { isFavorite, isPending, toggleFavorite, forbidden: favoritesForbidden } = useFavorites()
 
   const image = product.images?.[0]
   const hasImage = Boolean(image) && !imageError
   const availability = resolveProductAvailability(product)
+  const favorited = isFavorite(product.id)
+  const favoritePending = isPending(product.id)
+  const favoriteDisabled = favoritePending || (!favorited && availability.status === "UNAVAILABLE")
+
+  async function handleToggleFavorite() {
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: `${location.pathname}${location.search}` } })
+      return
+    }
+    if (favoriteDisabled) return
+    try {
+      await toggleFavorite(product.id)
+    } catch {
+      // Mutation error notification is displayed by the HTTP response interceptor.
+    }
+  }
 
   const discount =
     product.originalPrice > product.price
@@ -115,17 +138,37 @@ export function ProductCard({ product, className }: ProductCardProps) {
               {formatVND(product.price)}
             </span>
           </div>
-          <Button
-            size="icon"
-            variant="secondary"
-            className="shrink-0"
-            aria-label={`Chọn phân loại của ${product.name}`}
-            asChild
-          >
-            <Link to={`/san-pham/${product.id}`} aria-label={`Chọn phân loại của ${product.name}`}>
-              <ShoppingCart />
-            </Link>
-          </Button>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {!favoritesForbidden && (
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="shrink-0"
+                aria-label={
+                  favorited
+                    ? `Bỏ ${product.name} khỏi yêu thích`
+                    : `Thêm ${product.name} vào yêu thích`
+                }
+                aria-pressed={favorited}
+                disabled={favoriteDisabled}
+                onClick={() => void handleToggleFavorite()}
+              >
+                <Heart className={cn(favorited && "fill-red-500 text-red-500")} />
+              </Button>
+            )}
+            <Button
+              size="icon"
+              variant="secondary"
+              className="shrink-0"
+              aria-label={`Chọn phân loại của ${product.name}`}
+              asChild
+            >
+              <Link to={`/san-pham/${product.id}`} aria-label={`Chọn phân loại của ${product.name}`}>
+                <ShoppingCart />
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
     </div>

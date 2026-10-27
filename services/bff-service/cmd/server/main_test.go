@@ -31,6 +31,18 @@ func (fakeCartClient) RemoveItem(context.Context, string, string) (*cartv1.Remov
 func (fakeCartClient) ClearCart(context.Context, string) (*cartv1.ClearCartResponse, error) {
 	return &cartv1.ClearCartResponse{Cart: &cartv1.Cart{}}, nil
 }
+func (fakeCartClient) GetFavorites(context.Context, string) (*cartv1.GetFavoritesResponse, error) {
+	return &cartv1.GetFavoritesResponse{Favorites: &cartv1.FavoriteList{}}, nil
+}
+func (fakeCartClient) AddFavorite(context.Context, string, string) (*cartv1.AddFavoriteResponse, error) {
+	return &cartv1.AddFavoriteResponse{Favorites: &cartv1.FavoriteList{}}, nil
+}
+func (fakeCartClient) RemoveFavorite(context.Context, string, string) (*cartv1.RemoveFavoriteResponse, error) {
+	return &cartv1.RemoveFavoriteResponse{Favorites: &cartv1.FavoriteList{}}, nil
+}
+func (fakeCartClient) ClearFavorites(context.Context, string) (*cartv1.ClearFavoritesResponse, error) {
+	return &cartv1.ClearFavoritesResponse{Favorites: &cartv1.FavoriteList{}}, nil
+}
 
 type fakeCatalogClient struct{}
 
@@ -66,9 +78,12 @@ func TestBuildMuxMakesCanonicalRoutesReachableAndRejectsLegacyPaths(t *testing.T
 		{method: http.MethodGet, path: "/healthz", status: http.StatusOK},
 		{method: http.MethodGet, path: "/api/v1/storefront/products", status: http.StatusOK},
 		{method: http.MethodGet, path: "/api/v1/cart", caller: "user-1", status: http.StatusOK},
+		{method: http.MethodGet, path: "/api/v1/favorites", caller: "user-1", status: http.StatusOK},
+		{method: http.MethodGet, path: "/api/v1/favorites", status: http.StatusUnauthorized},
 		{method: http.MethodGet, path: "/", caller: "user-1", status: http.StatusNotFound},
 		{method: http.MethodGet, path: "/products", status: http.StatusNotFound},
 		{method: http.MethodGet, path: "/api/v1/cart/unknown", caller: "user-1", status: http.StatusNotFound},
+		{method: http.MethodGet, path: "/api/v1/favorites/unknown", caller: "user-1", status: http.StatusNotFound},
 	} {
 		req := httptest.NewRequest(tc.method, tc.path, nil)
 		if tc.caller != "" {

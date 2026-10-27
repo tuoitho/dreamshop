@@ -35,23 +35,31 @@ const (
 )
 
 type fakeStore struct {
-	cartID       string
-	found        bool
-	lines        []domain.Line
-	ensureErr    error
-	findErr      error
-	listErr      error
-	addErr       error
-	updateErr    error
-	removeErr    error
-	clearErr     error
-	ensureUserID string
-	findUserID   string
-	addArgs      []any
-	updateArgs   []any
-	removeArgs   []any
-	clearCartID  string
-	events       *[]string
+	cartID            string
+	found             bool
+	lines             []domain.Line
+	favorites         []domain.FavoriteRecord
+	ensureErr         error
+	findErr           error
+	listErr           error
+	addErr            error
+	updateErr         error
+	removeErr         error
+	clearErr          error
+	listFavoritesErr  error
+	addFavoriteErr    error
+	removeFavoriteErr error
+	clearFavoritesErr error
+	ensureUserID      string
+	findUserID        string
+	addArgs           []any
+	updateArgs        []any
+	removeArgs        []any
+	clearCartID       string
+	addFavoriteArgs   []string
+	removeFavArgs     []string
+	clearFavUserID    string
+	events            *[]string
 }
 
 func (f *fakeStore) EnsureCart(_ context.Context, userID string) (string, error) {
@@ -92,6 +100,45 @@ func (f *fakeStore) RemoveItem(_ context.Context, cartID, itemID string) error {
 func (f *fakeStore) Clear(_ context.Context, cartID string) error {
 	f.clearCartID = cartID
 	return f.clearErr
+}
+
+func (f *fakeStore) ListFavorites(_ context.Context, _ string) ([]domain.FavoriteRecord, error) {
+	return f.favorites, f.listFavoritesErr
+}
+
+func (f *fakeStore) AddFavorite(_ context.Context, userID, productID string) error {
+	f.addFavoriteArgs = []string{userID, productID}
+	if f.addFavoriteErr == nil {
+		for _, rec := range f.favorites {
+			if rec.ProductID == productID {
+				return nil
+			}
+		}
+		f.favorites = append([]domain.FavoriteRecord{{ID: testItemID, ProductID: productID}}, f.favorites...)
+	}
+	return f.addFavoriteErr
+}
+
+func (f *fakeStore) RemoveFavorite(_ context.Context, userID, productID string) error {
+	f.removeFavArgs = []string{userID, productID}
+	if f.removeFavoriteErr == nil {
+		filtered := make([]domain.FavoriteRecord, 0, len(f.favorites))
+		for _, rec := range f.favorites {
+			if rec.ProductID != productID {
+				filtered = append(filtered, rec)
+			}
+		}
+		f.favorites = filtered
+	}
+	return f.removeFavoriteErr
+}
+
+func (f *fakeStore) ClearFavorites(_ context.Context, userID string) error {
+	f.clearFavUserID = userID
+	if f.clearFavoritesErr == nil {
+		f.favorites = nil
+	}
+	return f.clearFavoritesErr
 }
 
 type fakeCatalog struct {

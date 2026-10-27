@@ -1,6 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios"
 import { toast } from "sonner"
-import type { ApiError, ApiResponse, CartData, CurrentUser, LoginRequest, LoginResponse, ProductDetail, RegisterRequest, RegisterResponse, SearchProductsParams, SearchProductsResult, UpdateProfileRequest } from "./types"
+import type { ApiError, ApiResponse, CartData, CurrentUser, FavoriteData, LoginRequest, LoginResponse, ProductDetail, RegisterRequest, RegisterResponse, SearchProductsParams, SearchProductsResult, UpdateProfileRequest } from "./types"
 import { clearAccessToken, getAccessToken, getSessionEpoch, runSingleFlightRefresh, setAccessToken } from "./auth-session"
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1"
@@ -284,6 +284,44 @@ export async function removeCartItem(itemId: string): Promise<CartData> {
 export async function clearCart(): Promise<CartData> {
   try {
     const { data } = await http.delete<ApiResponse<CartData>>("/cart")
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function getFavorites(): Promise<FavoriteData> {
+  try {
+    const { data } = await http.get<ApiResponse<FavoriteData>>("/favorites")
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function addFavoriteItem(productId: string): Promise<FavoriteData> {
+  try {
+    const { data } = await http.post<ApiResponse<FavoriteData>>("/favorites/items", { productId })
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function removeFavoriteItem(productId: string): Promise<FavoriteData> {
+  try {
+    const { data } = await http.delete<ApiResponse<FavoriteData>>(
+      `/favorites/items/${encodeURIComponent(productId)}`
+    )
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function clearFavorites(): Promise<FavoriteData> {
+  try {
+    const { data } = await http.delete<ApiResponse<FavoriteData>>("/favorites")
     return data.data
   } catch (error) {
     throw toClientError(error)

@@ -24,6 +24,10 @@ const (
 	CartService_UpdateItemQuantity_FullMethodName = "/ecommerce.cart.v1.CartService/UpdateItemQuantity"
 	CartService_RemoveItem_FullMethodName         = "/ecommerce.cart.v1.CartService/RemoveItem"
 	CartService_ClearCart_FullMethodName          = "/ecommerce.cart.v1.CartService/ClearCart"
+	CartService_GetFavorites_FullMethodName       = "/ecommerce.cart.v1.CartService/GetFavorites"
+	CartService_AddFavorite_FullMethodName        = "/ecommerce.cart.v1.CartService/AddFavorite"
+	CartService_RemoveFavorite_FullMethodName     = "/ecommerce.cart.v1.CartService/RemoveFavorite"
+	CartService_ClearFavorites_FullMethodName     = "/ecommerce.cart.v1.CartService/ClearFavorites"
 )
 
 // CartServiceClient is the client API for CartService service.
@@ -35,6 +39,10 @@ type CartServiceClient interface {
 	UpdateItemQuantity(ctx context.Context, in *UpdateItemQuantityRequest, opts ...grpc.CallOption) (*UpdateItemQuantityResponse, error)
 	RemoveItem(ctx context.Context, in *RemoveItemRequest, opts ...grpc.CallOption) (*RemoveItemResponse, error)
 	ClearCart(ctx context.Context, in *ClearCartRequest, opts ...grpc.CallOption) (*ClearCartResponse, error)
+	GetFavorites(ctx context.Context, in *GetFavoritesRequest, opts ...grpc.CallOption) (*GetFavoritesResponse, error)
+	AddFavorite(ctx context.Context, in *AddFavoriteRequest, opts ...grpc.CallOption) (*AddFavoriteResponse, error)
+	RemoveFavorite(ctx context.Context, in *RemoveFavoriteRequest, opts ...grpc.CallOption) (*RemoveFavoriteResponse, error)
+	ClearFavorites(ctx context.Context, in *ClearFavoritesRequest, opts ...grpc.CallOption) (*ClearFavoritesResponse, error)
 }
 
 type cartServiceClient struct {
@@ -95,6 +103,46 @@ func (c *cartServiceClient) ClearCart(ctx context.Context, in *ClearCartRequest,
 	return out, nil
 }
 
+func (c *cartServiceClient) GetFavorites(ctx context.Context, in *GetFavoritesRequest, opts ...grpc.CallOption) (*GetFavoritesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetFavoritesResponse)
+	err := c.cc.Invoke(ctx, CartService_GetFavorites_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cartServiceClient) AddFavorite(ctx context.Context, in *AddFavoriteRequest, opts ...grpc.CallOption) (*AddFavoriteResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddFavoriteResponse)
+	err := c.cc.Invoke(ctx, CartService_AddFavorite_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cartServiceClient) RemoveFavorite(ctx context.Context, in *RemoveFavoriteRequest, opts ...grpc.CallOption) (*RemoveFavoriteResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveFavoriteResponse)
+	err := c.cc.Invoke(ctx, CartService_RemoveFavorite_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cartServiceClient) ClearFavorites(ctx context.Context, in *ClearFavoritesRequest, opts ...grpc.CallOption) (*ClearFavoritesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ClearFavoritesResponse)
+	err := c.cc.Invoke(ctx, CartService_ClearFavorites_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CartServiceServer is the server API for CartService service.
 // All implementations must embed UnimplementedCartServiceServer
 // for forward compatibility.
@@ -104,6 +152,10 @@ type CartServiceServer interface {
 	UpdateItemQuantity(context.Context, *UpdateItemQuantityRequest) (*UpdateItemQuantityResponse, error)
 	RemoveItem(context.Context, *RemoveItemRequest) (*RemoveItemResponse, error)
 	ClearCart(context.Context, *ClearCartRequest) (*ClearCartResponse, error)
+	GetFavorites(context.Context, *GetFavoritesRequest) (*GetFavoritesResponse, error)
+	AddFavorite(context.Context, *AddFavoriteRequest) (*AddFavoriteResponse, error)
+	RemoveFavorite(context.Context, *RemoveFavoriteRequest) (*RemoveFavoriteResponse, error)
+	ClearFavorites(context.Context, *ClearFavoritesRequest) (*ClearFavoritesResponse, error)
 	mustEmbedUnimplementedCartServiceServer()
 }
 
@@ -128,6 +180,18 @@ func (UnimplementedCartServiceServer) RemoveItem(context.Context, *RemoveItemReq
 }
 func (UnimplementedCartServiceServer) ClearCart(context.Context, *ClearCartRequest) (*ClearCartResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ClearCart not implemented")
+}
+func (UnimplementedCartServiceServer) GetFavorites(context.Context, *GetFavoritesRequest) (*GetFavoritesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetFavorites not implemented")
+}
+func (UnimplementedCartServiceServer) AddFavorite(context.Context, *AddFavoriteRequest) (*AddFavoriteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddFavorite not implemented")
+}
+func (UnimplementedCartServiceServer) RemoveFavorite(context.Context, *RemoveFavoriteRequest) (*RemoveFavoriteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveFavorite not implemented")
+}
+func (UnimplementedCartServiceServer) ClearFavorites(context.Context, *ClearFavoritesRequest) (*ClearFavoritesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ClearFavorites not implemented")
 }
 func (UnimplementedCartServiceServer) mustEmbedUnimplementedCartServiceServer() {}
 func (UnimplementedCartServiceServer) testEmbeddedByValue()                     {}
@@ -240,6 +304,78 @@ func _CartService_ClearCart_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CartService_GetFavorites_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetFavoritesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CartServiceServer).GetFavorites(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CartService_GetFavorites_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CartServiceServer).GetFavorites(ctx, req.(*GetFavoritesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CartService_AddFavorite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddFavoriteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CartServiceServer).AddFavorite(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CartService_AddFavorite_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CartServiceServer).AddFavorite(ctx, req.(*AddFavoriteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CartService_RemoveFavorite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveFavoriteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CartServiceServer).RemoveFavorite(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CartService_RemoveFavorite_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CartServiceServer).RemoveFavorite(ctx, req.(*RemoveFavoriteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CartService_ClearFavorites_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClearFavoritesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CartServiceServer).ClearFavorites(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CartService_ClearFavorites_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CartServiceServer).ClearFavorites(ctx, req.(*ClearFavoritesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CartService_ServiceDesc is the grpc.ServiceDesc for CartService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -266,6 +402,22 @@ var CartService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ClearCart",
 			Handler:    _CartService_ClearCart_Handler,
+		},
+		{
+			MethodName: "GetFavorites",
+			Handler:    _CartService_GetFavorites_Handler,
+		},
+		{
+			MethodName: "AddFavorite",
+			Handler:    _CartService_AddFavorite_Handler,
+		},
+		{
+			MethodName: "RemoveFavorite",
+			Handler:    _CartService_RemoveFavorite_Handler,
+		},
+		{
+			MethodName: "ClearFavorites",
+			Handler:    _CartService_ClearFavorites_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

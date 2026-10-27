@@ -20,11 +20,15 @@ import (
 )
 
 type fakeCartClient struct {
-	getFn    func(context.Context, string) (*cartv1.GetCartResponse, error)
-	addFn    func(context.Context, string, string, string, int32) (*cartv1.AddItemResponse, error)
-	updateFn func(context.Context, string, string, int32) (*cartv1.UpdateItemQuantityResponse, error)
-	removeFn func(context.Context, string, string) (*cartv1.RemoveItemResponse, error)
-	clearFn  func(context.Context, string) (*cartv1.ClearCartResponse, error)
+	getFn             func(context.Context, string) (*cartv1.GetCartResponse, error)
+	addFn             func(context.Context, string, string, string, int32) (*cartv1.AddItemResponse, error)
+	updateFn          func(context.Context, string, string, int32) (*cartv1.UpdateItemQuantityResponse, error)
+	removeFn          func(context.Context, string, string) (*cartv1.RemoveItemResponse, error)
+	clearFn           func(context.Context, string) (*cartv1.ClearCartResponse, error)
+	getFavoritesFn    func(context.Context, string) (*cartv1.GetFavoritesResponse, error)
+	addFavoriteFn     func(context.Context, string, string) (*cartv1.AddFavoriteResponse, error)
+	removeFavoriteFn  func(context.Context, string, string) (*cartv1.RemoveFavoriteResponse, error)
+	clearFavoritesFn  func(context.Context, string) (*cartv1.ClearFavoritesResponse, error)
 }
 
 func (f *fakeCartClient) GetCart(ctx context.Context, userID string) (*cartv1.GetCartResponse, error) {
@@ -45,6 +49,22 @@ func (f *fakeCartClient) RemoveItem(ctx context.Context, userID, itemID string) 
 
 func (f *fakeCartClient) ClearCart(ctx context.Context, userID string) (*cartv1.ClearCartResponse, error) {
 	return f.clearFn(ctx, userID)
+}
+
+func (f *fakeCartClient) GetFavorites(ctx context.Context, userID string) (*cartv1.GetFavoritesResponse, error) {
+	return f.getFavoritesFn(ctx, userID)
+}
+
+func (f *fakeCartClient) AddFavorite(ctx context.Context, userID, productID string) (*cartv1.AddFavoriteResponse, error) {
+	return f.addFavoriteFn(ctx, userID, productID)
+}
+
+func (f *fakeCartClient) RemoveFavorite(ctx context.Context, userID, productID string) (*cartv1.RemoveFavoriteResponse, error) {
+	return f.removeFavoriteFn(ctx, userID, productID)
+}
+
+func (f *fakeCartClient) ClearFavorites(ctx context.Context, userID string) (*cartv1.ClearFavoritesResponse, error) {
+	return f.clearFavoritesFn(ctx, userID)
 }
 
 func newCartTestMux(t *testing.T, client cartclient.Client) http.Handler {
@@ -163,6 +183,11 @@ func (s *traceRecordingCartServer) AddItem(ctx context.Context, _ *cartv1.AddIte
 }
 
 func newTraceRecordingCartClient(t *testing.T, server *traceRecordingCartServer) cartclient.Client {
+	t.Helper()
+	return newTraceRecordingCartServerClient(t, server)
+}
+
+func newTraceRecordingCartServerClient(t *testing.T, server cartv1.CartServiceServer) cartclient.Client {
 	t.Helper()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {

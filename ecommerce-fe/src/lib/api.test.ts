@@ -4,16 +4,20 @@ import { toast } from "sonner"
 import * as apiModule from "./api"
 import {
   addCartItem,
+  addFavoriteItem,
   ApiClientError,
   clearCart,
+  clearFavorites,
   fetchCurrentUser,
   getCart,
+  getFavorites,
   getProduct,
   http,
   login,
   logoutRequest,
   refreshHttp,
   removeCartItem,
+  removeFavoriteItem,
   searchProducts,
   softDeleteProduct,
   updateCartItemQuantity,
@@ -531,5 +535,61 @@ describe("cart adapters", () => {
 
     await addCartItem({ productId: "p-1", variantLabel: "Đen", quantity: 1 })
     expect(toast.success).toHaveBeenCalledWith("Item added to cart.")
+  })
+})
+
+describe("favorites adapters", () => {
+  const favorites = { items: [], degraded: false }
+
+  beforeEach(() => {
+    clearAccessToken()
+    vi.clearAllMocks()
+    delete http.defaults.adapter
+    delete refreshHttp.defaults.adapter
+  })
+
+  it("fetches GET /favorites without triggering mutation toasts", async () => {
+    const adapter = vi.fn(async (config) => ({
+      data: { data: favorites, message: "Favorites retrieved." },
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      config,
+    }))
+    http.defaults.adapter = adapter as never
+
+    await expect(getFavorites()).resolves.toEqual(favorites)
+    expect((adapter.mock.calls[0][0] as { url: string; method: string }).url).toBe("/favorites")
+    expect((adapter.mock.calls[0][0] as { method: string }).method).toBe("get")
+    expect(toast.success).not.toHaveBeenCalled()
+  })
+
+  it("sends favorite mutations with URL-encoded productId and triggers single interceptor toast per mutation", async () => {
+    const adapter = vi.fn(async (config) => ({
+      data: { data: favorites, message: "Product added to favorites." },
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      config,
+    }))
+    http.defaults.adapter = adapter as never
+
+    await addFavoriteItem("dt-1")
+    await removeFavoriteItem("dt/1 special")
+    await clearFavorites()
+
+    expect(adapter.mock.calls.map(([config]) => {
+      const request = config as { url: string; method: string; data?: unknown }
+      return {
+        url: request.url,
+        method: request.method,
+        data: typeof request.data === "string" ? JSON.parse(request.data) : request.data,
+      }
+    })).toEqual([
+      { url: "/favorites/items", method: "post", data: { productId: "dt-1" } },
+      { url: "/favorites/items/dt%2F1%20special", method: "delete", data: undefined },
+      { url: "/favorites", method: "delete", data: undefined },
+    ])
+    expect(toast.success).toHaveBeenCalledTimes(3)
   })
 })

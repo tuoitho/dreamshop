@@ -17,6 +17,8 @@ import (
 
 var (
 	ErrCartItemNotFound         = errors.New("cart: item not found")
+	ErrProductNotFound          = errors.New("cart: product not found")
+	ErrProductUnavailable       = errors.New("cart: product unavailable")
 	ErrPermissionDenied         = errors.New("cart: permission denied")
 	ErrAuthorizationUnavailable = errors.New("cart: authorization unavailable")
 )
@@ -27,6 +29,10 @@ type Client interface {
 	UpdateItemQuantity(ctx context.Context, userID, itemID string, quantity int32) (*cartv1.UpdateItemQuantityResponse, error)
 	RemoveItem(ctx context.Context, userID, itemID string) (*cartv1.RemoveItemResponse, error)
 	ClearCart(ctx context.Context, userID string) (*cartv1.ClearCartResponse, error)
+	GetFavorites(ctx context.Context, userID string) (*cartv1.GetFavoritesResponse, error)
+	AddFavorite(ctx context.Context, userID, productID string) (*cartv1.AddFavoriteResponse, error)
+	RemoveFavorite(ctx context.Context, userID, productID string) (*cartv1.RemoveFavoriteResponse, error)
+	ClearFavorites(ctx context.Context, userID string) (*cartv1.ClearFavoritesResponse, error)
 }
 
 type client struct {
@@ -82,6 +88,34 @@ func (c *client) ClearCart(ctx context.Context, userID string) (*cartv1.ClearCar
 	return resp, c.mapError(err)
 }
 
+func (c *client) GetFavorites(ctx context.Context, userID string) (*cartv1.GetFavoritesResponse, error) {
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+	resp, err := c.svc.GetFavorites(ctx, &cartv1.GetFavoritesRequest{UserId: userID})
+	return resp, c.mapFavoriteError(err)
+}
+
+func (c *client) AddFavorite(ctx context.Context, userID, productID string) (*cartv1.AddFavoriteResponse, error) {
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+	resp, err := c.svc.AddFavorite(ctx, &cartv1.AddFavoriteRequest{UserId: userID, ProductId: productID})
+	return resp, c.mapFavoriteError(err)
+}
+
+func (c *client) RemoveFavorite(ctx context.Context, userID, productID string) (*cartv1.RemoveFavoriteResponse, error) {
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+	resp, err := c.svc.RemoveFavorite(ctx, &cartv1.RemoveFavoriteRequest{UserId: userID, ProductId: productID})
+	return resp, c.mapFavoriteError(err)
+}
+
+func (c *client) ClearFavorites(ctx context.Context, userID string) (*cartv1.ClearFavoritesResponse, error) {
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+	resp, err := c.svc.ClearFavorites(ctx, &cartv1.ClearFavoritesRequest{UserId: userID})
+	return resp, c.mapFavoriteError(err)
+}
+
 func (c *client) mapError(err error) error {
 	if err == nil {
 		return nil
@@ -93,6 +127,24 @@ func (c *client) mapError(err error) error {
 	}
 	if status.Code(err) == codes.NotFound {
 		return fmt.Errorf("%w: %v", ErrCartItemNotFound, err)
+	}
+	return err
+}
+
+func (c *client) mapFavoriteError(err error) error {
+	if err == nil {
+		return nil
+	}
+	switch cartErrorReason(err) {
+	case "FAVORITE_PERMISSION_DENIED":
+		return fmt.Errorf("%w: %v", ErrPermissionDenied, err)
+	case "AUTHORIZATION_UNAVAILABLE":
+		return fmt.Errorf("%w: %v", ErrAuthorizationUnavailable, err)
+	case "FAVORITE_PRODUCT_UNAVAILABLE":
+		return fmt.Errorf("%w: %v", ErrProductUnavailable, err)
+	}
+	if status.Code(err) == codes.NotFound {
+		return fmt.Errorf("%w: %v", ErrProductNotFound, err)
 	}
 	return err
 }

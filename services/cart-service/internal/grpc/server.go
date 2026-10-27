@@ -36,6 +36,10 @@ type cartStore interface {
 	UpdateQuantity(context.Context, string, string, int32) error
 	RemoveItem(context.Context, string, string) error
 	Clear(context.Context, string) error
+	ListFavorites(context.Context, string) ([]domain.FavoriteRecord, error)
+	AddFavorite(context.Context, string, string) error
+	RemoveFavorite(context.Context, string, string) error
+	ClearFavorites(context.Context, string) error
 }
 
 type catalogClient interface {

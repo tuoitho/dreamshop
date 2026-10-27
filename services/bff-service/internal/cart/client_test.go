@@ -16,14 +16,19 @@ import (
 
 type recordingCartServer struct {
 	cartv1.UnimplementedCartServiceServer
-	getRequest    *cartv1.GetCartRequest
-	addRequest    *cartv1.AddItemRequest
-	updateRequest *cartv1.UpdateItemQuantityRequest
-	removeRequest *cartv1.RemoveItemRequest
-	clearRequest  *cartv1.ClearCartRequest
-	getBlock      bool
-	getErr        error
-	addErr        error
+	getRequest            *cartv1.GetCartRequest
+	addRequest            *cartv1.AddItemRequest
+	updateRequest         *cartv1.UpdateItemQuantityRequest
+	removeRequest         *cartv1.RemoveItemRequest
+	clearRequest          *cartv1.ClearCartRequest
+	getFavoritesRequest   *cartv1.GetFavoritesRequest
+	addFavoriteRequest    *cartv1.AddFavoriteRequest
+	removeFavoriteRequest *cartv1.RemoveFavoriteRequest
+	clearFavoritesRequest *cartv1.ClearFavoritesRequest
+	getBlock              bool
+	getErr                error
+	addErr                error
+	favErr                error
 }
 
 func (s *recordingCartServer) GetCart(ctx context.Context, req *cartv1.GetCartRequest) (*cartv1.GetCartResponse, error) {
@@ -59,6 +64,38 @@ func (s *recordingCartServer) RemoveItem(_ context.Context, req *cartv1.RemoveIt
 func (s *recordingCartServer) ClearCart(_ context.Context, req *cartv1.ClearCartRequest) (*cartv1.ClearCartResponse, error) {
 	s.clearRequest = req
 	return &cartv1.ClearCartResponse{Cart: &cartv1.Cart{}}, nil
+}
+
+func (s *recordingCartServer) GetFavorites(_ context.Context, req *cartv1.GetFavoritesRequest) (*cartv1.GetFavoritesResponse, error) {
+	s.getFavoritesRequest = req
+	if s.favErr != nil {
+		return nil, s.favErr
+	}
+	return &cartv1.GetFavoritesResponse{Favorites: &cartv1.FavoriteList{}}, nil
+}
+
+func (s *recordingCartServer) AddFavorite(_ context.Context, req *cartv1.AddFavoriteRequest) (*cartv1.AddFavoriteResponse, error) {
+	s.addFavoriteRequest = req
+	if s.favErr != nil {
+		return nil, s.favErr
+	}
+	return &cartv1.AddFavoriteResponse{Favorites: &cartv1.FavoriteList{}}, nil
+}
+
+func (s *recordingCartServer) RemoveFavorite(_ context.Context, req *cartv1.RemoveFavoriteRequest) (*cartv1.RemoveFavoriteResponse, error) {
+	s.removeFavoriteRequest = req
+	if s.favErr != nil {
+		return nil, s.favErr
+	}
+	return &cartv1.RemoveFavoriteResponse{Favorites: &cartv1.FavoriteList{}}, nil
+}
+
+func (s *recordingCartServer) ClearFavorites(_ context.Context, req *cartv1.ClearFavoritesRequest) (*cartv1.ClearFavoritesResponse, error) {
+	s.clearFavoritesRequest = req
+	if s.favErr != nil {
+		return nil, s.favErr
+	}
+	return &cartv1.ClearFavoritesResponse{Favorites: &cartv1.FavoriteList{}}, nil
 }
 
 func newRecordingCartClient(t *testing.T, server cartv1.CartServiceServer, timeout time.Duration) *client {
@@ -195,5 +232,68 @@ func TestClientPreservesBareCartUnavailableError(t *testing.T) {
 	}
 	if errors.Is(err, ErrPermissionDenied) || errors.Is(err, ErrAuthorizationUnavailable) {
 		t.Fatalf("bare Cart outage unexpectedly matched authorization sentinel: %v", err)
+	}
+}
+
+func TestClientForwardsFavoriteRequestsAndMapsFavoriteErrors(t *testing.T) {
+	server := &recordingCartServer{}
+	client := newRecordingCartClient(t, server, time.Second)
+
+	if _, err := client.GetFavorites(context.Background(), "user-1"); err != nil {
+		t.Fatalf("GetFavorites() error = %v", err)
+	}
+	if _, err := client.AddFavorite(context.Background(), "user-1", "dt-1"); err != nil {
+		t.Fatalf("AddFavorite() error = %v", err)
+	}
+	if _, err := client.RemoveFavorite(context.Background(), "user-1", "dt-1"); err != nil {
+		t.Fatalf("RemoveFavorite() error = %v", err)
+	}
+	if _, err := client.ClearFavorites(context.Background(), "user-1"); err != nil {
+		t.Fatalf("ClearFavorites() error = %v", err)
+	}
+
+	if server.getFavoritesRequest.GetUserId() != "user-1" {
+		t.Fatalf("GetFavorites user_id = %q, want user-1", server.getFavoritesRequest.GetUserId())
+	}
+	if server.addFavoriteRequest.GetUserId() != "user-1" || server.addFavoriteRequest.GetProductId() != "dt-1" {
+		t.Fatalf("AddFavorite request = %+v", server.addFavoriteRequest)
+	}
+	if server.removeFavoriteRequest.GetUserId() != "user-1" || server.removeFavoriteRequest.GetProductId() != "dt-1" {
+		t.Fatalf("RemoveFavorite request = %+v", server.removeFavoriteRequest)
+	}
+	if server.clearFavoritesRequest.GetUserId() != "user-1" {
+		t.Fatalf("ClearFavorites user_id = %q, want user-1", server.clearFavoritesRequest.GetUserId())
+	}
+
+	withReason := func(code codes.Code, reason string) error {
+		st, err := status.New(code, reason).WithDetails(&errdetails.ErrorInfo{
+			Domain: "ecommerce.cart.v1",
+			Reason: reason,
+		})
+		if err != nil {
+			t.Fatalf("with details: %v", err)
+		}
+		return st.Err()
+	}
+
+	cases := []struct {
+		name string
+		err  error
+		want error
+	}{
+		{"permission denied", withReason(codes.PermissionDenied, "FAVORITE_PERMISSION_DENIED"), ErrPermissionDenied},
+		{"authorization unavailable", withReason(codes.Unavailable, "AUTHORIZATION_UNAVAILABLE"), ErrAuthorizationUnavailable},
+		{"product unavailable", withReason(codes.FailedPrecondition, "FAVORITE_PRODUCT_UNAVAILABLE"), ErrProductUnavailable},
+		{"product not found", status.Error(codes.NotFound, "product not found"), ErrProductNotFound},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			errClient := newRecordingCartClient(t, &recordingCartServer{favErr: tc.err}, time.Second)
+			_, got := errClient.AddFavorite(context.Background(), "user-1", "dt-1")
+			if !errors.Is(got, tc.want) {
+				t.Fatalf("AddFavorite() error = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }

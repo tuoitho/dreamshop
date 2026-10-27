@@ -14,6 +14,10 @@ service CartService {
   rpc UpdateItemQuantity(UpdateItemQuantityRequest) returns (UpdateItemQuantityResponse);
   rpc RemoveItem(RemoveItemRequest) returns (RemoveItemResponse);
   rpc ClearCart(ClearCartRequest) returns (ClearCartResponse);
+  rpc GetFavorites(GetFavoritesRequest) returns (GetFavoritesResponse);
+  rpc AddFavorite(AddFavoriteRequest) returns (AddFavoriteResponse);
+  rpc RemoveFavorite(RemoveFavoriteRequest) returns (RemoveFavoriteResponse);
+  rpc ClearFavorites(ClearFavoritesRequest) returns (ClearFavoritesResponse);
 }
 
 message GetCartRequest {
@@ -90,4 +94,78 @@ enum CartItemStatus {
   CART_ITEM_STATUS_LIMITED = 2;
   CART_ITEM_STATUS_OUT_OF_STOCK = 3;
   CART_ITEM_STATUS_UNAVAILABLE = 4;
+}
+
+message GetFavoritesRequest {
+  string user_id = 1;
+}
+
+message GetFavoritesResponse {
+  FavoriteList favorites = 1;
+}
+
+message AddFavoriteRequest {
+  string user_id = 1;
+  string product_id = 2;
+}
+
+message AddFavoriteResponse {
+  FavoriteList favorites = 1;
+}
+
+message RemoveFavoriteRequest {
+  string user_id = 1;
+  string product_id = 2;
+}
+
+message RemoveFavoriteResponse {
+  FavoriteList favorites = 1;
+}
+
+message ClearFavoritesRequest {
+  string user_id = 1;
+}
+
+message ClearFavoritesResponse {
+  FavoriteList favorites = 1;
+}
+
+message FavoriteList {
+  repeated FavoriteItem items = 1;
+  bool degraded = 2;
+}
+
+message FavoriteVariant {
+  string label = 1;
+  string color_hex = 2;
+}
+
+message FavoriteItem {
+  string item_id = 1;
+  string product_id = 2;
+  string name = 3;
+  string brand = 4;
+  string category_id = 5;
+  string category_name = 6;
+  ecommerce.common.v1.Money price = 7;
+  ecommerce.common.v1.Money original_price = 8;
+  double rating = 9;
+  int64 review_count = 10;
+  int64 sold_count = 11;
+  string image_url = 12;
+  string image_emoji = 13;
+  repeated uint32 image_hue = 14;
+  string badge = 15;
+  repeated FavoriteVariant variants = 16;
+  FavoriteItemStatus status = 17;
+  int32 available_quantity = 18;
+}
+
+enum FavoriteItemStatus {
+  FAVORITE_ITEM_STATUS_UNSPECIFIED = 0;
+  FAVORITE_ITEM_STATUS_AVAILABLE = 1;
+  FAVORITE_ITEM_STATUS_LIMITED = 2;
+  FAVORITE_ITEM_STATUS_OUT_OF_STOCK = 3;
+  FAVORITE_ITEM_STATUS_UNAVAILABLE = 4;
+  FAVORITE_ITEM_STATUS_UNKNOWN = 5;
 }

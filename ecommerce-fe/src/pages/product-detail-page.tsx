@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCart } from "@/hooks/use-cart"
+import { useFavorites } from "@/hooks/use-favorites"
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
 
@@ -39,6 +40,12 @@ export default function ProductDetailPage() {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
   const { addItem, degraded, items, selectOnly } = useCart()
+  const {
+    isFavorite,
+    isPending: isFavoritePending,
+    toggleFavorite,
+    forbidden: favoritesForbidden,
+  } = useFavorites()
 
   const [product, setProduct] = useState<ProductDetail | null>(null)
   const [error, setError] = useState<{ message: string; code?: string } | null>(null)
@@ -48,7 +55,6 @@ export default function ProductDetailPage() {
   const [variantIndex, setVariantIndex] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
-  const [wishlisted, setWishlisted] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const [galleryError, setGalleryError] = useState(false)
   const [addRequest, setAddRequest] = useState<PendingCartMutation | null>(null)
@@ -81,7 +87,6 @@ export default function ProductDetailPage() {
     setVariantIndex(0)
     setQuantity(1)
     setAdded(false)
-    setWishlisted(false)
     setActiveIndex(0)
     setGalleryError(false)
     setAddRequest(null)
@@ -391,12 +396,18 @@ export default function ProductDetailPage() {
     }
   }
 
-  const handleToggleWishlist = () => {
-    setWishlisted((prev) => {
-      const next = !prev
-      toast.success(next ? "Đã thêm vào danh sách yêu thích" : "Đã bỏ khỏi danh sách yêu thích")
-      return next
-    })
+  const favorited = isFavorite(product.id)
+  const favoritePending = isFavoritePending(product.id)
+  const favoriteDisabled = favoritePending || (!favorited && availability.status === "UNAVAILABLE")
+
+  const handleToggleFavorite = async () => {
+    if (!requireAuthentication()) return
+    if (favoriteDisabled) return
+    try {
+      await toggleFavorite(product.id)
+    } catch {
+      // Mutation error notification is displayed by the HTTP response interceptor.
+    }
   }
 
   const handleShare = async () => {
@@ -685,15 +696,19 @@ export default function ProductDetailPage() {
             >
               {buyNowPending ? "Đang xử lý..." : "Mua ngay"}
             </Button>
-            <Button
-              size="icon"
-              variant="outline"
-              aria-label="Thêm vào yêu thích"
-              aria-pressed={wishlisted}
-              onClick={handleToggleWishlist}
-            >
-              <Heart className={cn(wishlisted && "fill-red-500 text-red-500")} />
-            </Button>
+            {!favoritesForbidden && (
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                aria-label={favorited ? "Bỏ khỏi yêu thích" : "Thêm vào yêu thích"}
+                aria-pressed={favorited}
+                disabled={favoriteDisabled}
+                onClick={() => void handleToggleFavorite()}
+              >
+                <Heart className={cn(favorited && "fill-red-500 text-red-500")} />
+              </Button>
+            )}
             <Button
               size="icon"
               variant="outline"
