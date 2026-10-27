@@ -25,7 +25,7 @@ describe("LoginPage & RequireAdminAuth", () => {
     vi.spyOn(api, "fetchCurrentUser").mockResolvedValue({
       userId: "u-1",
       email: "admin@sshop.vn",
-      fullName: "Admin S-Shop",
+      fullName: "Admin TechShop",
       roles: ["ADMIN"],
     })
     vi.spyOn(api, "fetchMyPermissions").mockResolvedValue(["product.view", "inventory.view"])
@@ -36,7 +36,7 @@ describe("LoginPage & RequireAdminAuth", () => {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route element={<RequireAdminAuth />}>
-              <Route path="/" element={<div>Bảng điều khiển S-Shop</div>} />
+              <Route path="/" element={<div>Bảng điều khiển TechShop</div>} />
             </Route>
           </Routes>
         </AuthProvider>
@@ -49,7 +49,7 @@ describe("LoginPage & RequireAdminAuth", () => {
     await userEvent.type(passwordInput, "AdminPassword123!")
     await userEvent.click(screen.getByRole("button", { name: /đăng nhập/i }))
 
-    await waitFor(() => expect(screen.getByText("Bảng điều khiển S-Shop")).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText("Bảng điều khiển TechShop")).toBeInTheDocument())
   })
 
   it("renders access-denied screen with switch-account action when signed-in account lacks admin permissions", async () => {
@@ -69,7 +69,7 @@ describe("LoginPage & RequireAdminAuth", () => {
           <Routes>
             <Route path="/login" element={<div>Trang đăng nhập</div>} />
             <Route element={<RequireAdminAuth />}>
-              <Route path="/" element={<div>Bảng điều khiển S-Shop</div>} />
+              <Route path="/" element={<div>Bảng điều khiển TechShop</div>} />
             </Route>
           </Routes>
         </AuthProvider>
@@ -94,7 +94,7 @@ describe("LoginPage & RequireAdminAuth", () => {
     vi.spyOn(api, "fetchCurrentUser").mockResolvedValue({
       userId: "u-1",
       email: "admin@example.com",
-      fullName: "Admin S-Shop",
+      fullName: "Admin TechShop",
       roles: ["SUPER_ADMIN"],
     })
     vi.spyOn(api, "fetchMyPermissions").mockResolvedValue(["product.view"])

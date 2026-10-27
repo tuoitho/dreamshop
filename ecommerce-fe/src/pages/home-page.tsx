@@ -143,8 +143,8 @@ export default function HomePage() {
                 <ProductImage
                   emoji={featuredHero?.emoji ?? "🛍️"}
                   hue={featuredHero?.imageHue ?? [160, 200]}
-                  seed={featuredHero?.id ?? "sshop-hero"}
-                  label={featuredHero?.name ?? "S-Shop"}
+                  seed={featuredHero?.id ?? "techshop-hero"}
+                  label={featuredHero?.name ?? "TechShop"}
                 />
               )}
             </div>

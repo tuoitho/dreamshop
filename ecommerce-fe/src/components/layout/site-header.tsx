@@ -110,10 +110,10 @@ export function SiteHeader() {
           </Button>
           <Link to="/" className="flex items-center gap-2">
             <span className="grid size-8 place-items-center rounded-lg bg-primary text-base font-extrabold text-primary-foreground">
-              S
+              T
             </span>
             <span className="hidden text-lg font-extrabold tracking-tight sm:inline">
-              S-Shop
+              TechShop
             </span>
           </Link>
         </div>

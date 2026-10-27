@@ -132,10 +132,10 @@ export function AdminShell() {
         <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-5">
           <div className="flex items-center gap-3">
             <div className="flex size-9 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/15 font-mono text-sm font-semibold text-emerald-300">
-              S
+              T
             </div>
             <div>
-              <div className="text-sm font-semibold leading-tight text-white">S-Shop Admin</div>
+              <div className="text-sm font-semibold leading-tight text-white">TechShop Admin</div>
               <div className="font-mono text-[10px] font-medium tracking-widest text-emerald-400 uppercase">
                 Control Center
               </div>
@@ -208,7 +208,7 @@ export function AdminShell() {
               <Menu className="size-4" />
             </Button>
             <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-sm">
-              <span className="hidden font-medium text-muted-foreground sm:inline">S-Shop Admin</span>
+              <span className="hidden font-medium text-muted-foreground sm:inline">TechShop Admin</span>
               <ChevronRight className="hidden size-3.5 text-muted-foreground sm:inline" />
               <span className="truncate font-semibold text-foreground">{currentTitle}</span>
             </nav>

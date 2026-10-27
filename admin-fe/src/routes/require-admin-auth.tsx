@@ -48,7 +48,7 @@ export function RequireAdminAuth() {
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
             Tài khoản <span className="font-mono font-medium text-foreground">{user.email}</span> hiện
-            không sở hữu quyền truy cập trung tâm quản trị S-Shop. Vui lòng liên hệ quản trị viên cấp
+            không sở hữu quyền truy cập trung tâm quản trị TechShop. Vui lòng liên hệ quản trị viên cấp
             cao hoặc chuyển sang tài khoản vận hành khác.
           </p>
           {user.roles.length > 0 && (

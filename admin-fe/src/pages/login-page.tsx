@@ -72,10 +72,10 @@ export function LoginPage() {
       <div className="hidden flex-col justify-between border-r border-sidebar-border bg-sidebar p-12 text-sidebar-foreground lg:flex">
         <div className="flex items-center gap-3">
           <div className="flex size-10 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/15 font-mono text-base font-semibold text-emerald-300">
-            S
+            T
           </div>
           <div>
-            <div className="text-base font-semibold text-white">S-Shop Admin</div>
+            <div className="text-base font-semibold text-white">TechShop Admin</div>
             <div className="font-mono text-[11px] tracking-widest text-emerald-400 uppercase">
               Operator Control Center
             </div>
@@ -97,7 +97,7 @@ export function LoginPage() {
         </div>
 
         <div className="flex items-center justify-between border-t border-sidebar-border pt-6 font-mono text-xs text-sidebar-muted">
-          <span>S-Shop Commerce Platform</span>
+          <span>TechShop Commerce Platform</span>
           <span>API v1 · Kong Ingress</span>
         </div>
       </div>
@@ -166,7 +166,7 @@ export function LoginPage() {
                 id="login-email"
                 type="email"
                 autoComplete="email"
-                placeholder="admin@sshop.vn"
+                placeholder="admin@techshop.vn"
                 aria-invalid={Boolean(errors.email)}
                 {...register("email")}
               />

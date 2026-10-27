@@ -31,9 +31,9 @@ export function SiteFooter() {
           <div>
             <div className="flex items-center gap-2">
               <span className="grid size-7 place-items-center rounded-lg bg-primary text-sm font-extrabold text-primary-foreground">
-                S
+                T
               </span>
-              <span className="text-base font-extrabold tracking-tight">S-Shop</span>
+              <span className="text-base font-extrabold tracking-tight">TechShop</span>
             </div>
             <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
               Nền tảng mua sắm trực tuyến hiện đại với hàng nghìn sản phẩm chính hãng, giá tốt
@@ -87,7 +87,7 @@ export function SiteFooter() {
             <p className="text-sm font-semibold">Liên hệ</p>
             <ul className="mt-3 grid gap-2 text-xs text-muted-foreground">
               <li>Hotline: 1900 6789</li>
-              <li>Email: hotro@sshop.vn</li>
+              <li>Email: hotro@techshop.vn</li>
               <li>Địa chỉ: 123 Nguyễn Trãi, TP. HCM</li>
             </ul>
           </div>
@@ -95,7 +95,7 @@ export function SiteFooter() {
 
         <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t pt-6 sm:flex-row">
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} S-Shop. Tất cả quyền được bảo lưu.
+            © {new Date().getFullYear()} TechShop. Tất cả quyền được bảo lưu.
           </p>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="rounded border px-1.5 py-0.5">VISA</span>

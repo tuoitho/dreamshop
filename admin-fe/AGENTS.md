@@ -5,7 +5,7 @@ These instructions apply to `admin-fe/` in addition to the root
 
 ## Ownership
 
-`admin-fe/` owns the standalone operator console for S-Shop:
+`admin-fe/` owns the standalone operator console for TechShop:
 
 - Overview KPIs, stock health breakdown, and low-stock watchlist.
 - Catalog product CRUD, soft-delete/restore, and direct browser S3/MinIO media uploads (`IMAGE` & `VIDEO`).
