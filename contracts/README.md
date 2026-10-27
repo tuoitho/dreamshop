@@ -11,7 +11,10 @@ Các file dưới `proto/` là source of truth cho gRPC:
 - `ecommerce.inventory.v1`: đọc tồn kho khả dụng.
 - `ecommerce.cart.v1`: đọc và thay đổi cart line.
 - `ecommerce.identity.v1`: `AuthorizationService` được triển khai cho kiểm tra
-  phân quyền riêng tư từ Catalog (`product.delete`) và Cart (`cart.item.add`);
+  phân quyền riêng tư từ Catalog (`product.view`, `product.create`,
+  `product.update`, `product.delete`, `inventory.view`), Inventory
+  (`inventory.view`, `inventory.update`) và Cart (`cart.view`, `cart.item.add`,
+  `cart.item.update`, `cart.item.remove`, `cart.clear`, `favorite.manage`);
   RPC `IdentityService.GetUser` cũ hiện chưa được nối dây.
 - `ecommerce.order.v1`: contract đã định nghĩa nhưng server gRPC tương ứng chưa
   được application triển khai.

@@ -39,7 +39,7 @@ function isNavLinkActive(linkTo: string, pathname: string, search: string): bool
 }
 
 export function SiteHeader() {
-  const { totalQuantity } = useCart()
+  const { totalQuantity, forbidden: cartForbidden } = useCart()
   const { totalCount: favoriteCount, forbidden: favoritesForbidden } = useFavorites()
   const { isAuthenticated, user, logout } = useAuth()
   const navigate = useNavigate()
@@ -205,16 +205,18 @@ export function SiteHeader() {
               </Link>
             </Button>
           )}
-          <Button variant="ghost" size="icon" className="relative" asChild aria-label="Giỏ hàng">
-            <Link to="/gio-hang">
-              <ShoppingCart />
-              {totalQuantity > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 grid min-w-4 place-items-center rounded-full bg-red-600 px-1 text-[0.6rem] font-bold text-white">
-                  {totalQuantity > 99 ? "99+" : totalQuantity}
-                </span>
-              )}
-            </Link>
-          </Button>
+          {!cartForbidden && (
+            <Button variant="ghost" size="icon" className="relative" asChild aria-label="Giỏ hàng">
+              <Link to="/gio-hang">
+                <ShoppingCart />
+                {totalQuantity > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 grid min-w-4 place-items-center rounded-full bg-red-600 px-1 text-[0.6rem] font-bold text-white">
+                    {totalQuantity > 99 ? "99+" : totalQuantity}
+                  </span>
+                )}
+              </Link>
+            </Button>
+          )}
         </nav>
       </div>
 

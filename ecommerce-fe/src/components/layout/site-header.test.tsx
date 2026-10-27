@@ -54,6 +54,7 @@ function renderHeader(
   authOverrides: Partial<AuthContextValue> = {},
   initialEntries: InitialEntry[] = ["/"],
   favoritesOverrides: Partial<FavoritesContextValue> = {},
+  cartOverrides: Partial<CartContextValue> = {},
 ) {
   const authValue: AuthContextValue = {
     token: null,
@@ -89,7 +90,7 @@ function renderHeader(
     favoritesValue,
     ...render(
       <AuthContext value={authValue}>
-        <CartContext value={makeCartValue()}>
+        <CartContext value={makeCartValue(cartOverrides)}>
           <FavoritesContext value={favoritesValue}>
             <MemoryRouter initialEntries={initialEntries}>
               <SiteHeader />
@@ -228,11 +229,16 @@ describe("SiteHeader", () => {
       { token: "access-token", isAuthenticated: true, user: USER },
       ["/"],
       { totalCount: 120, forbidden: false },
+      { totalQuantity: 3, forbidden: false },
     )
 
     const headerFavLink = screen.getByRole("link", { name: "Sản phẩm yêu thích" })
     expect(headerFavLink).toHaveAttribute("href", "/yeu-thich")
     expect(headerFavLink).toHaveTextContent("99+")
+
+    const headerCartLink = screen.getByRole("link", { name: "Giỏ hàng" })
+    expect(headerCartLink).toHaveAttribute("href", "/gio-hang")
+    expect(headerCartLink).toHaveTextContent("3")
 
     await userEvent.click(screen.getByRole("button", { name: "Nguyễn Văn A" }))
     expect(await screen.findByRole("menuitem", { name: "Sản phẩm yêu thích" })).toHaveAttribute("href", "/yeu-thich")
@@ -247,8 +253,10 @@ describe("SiteHeader", () => {
       { token: "admin-token", isAuthenticated: true, user: { ...USER, roles: ["ADMIN"] } },
       ["/"],
       { totalCount: 0, forbidden: true },
+      { totalQuantity: 0, forbidden: true },
     )
     expect(screen.queryByRole("link", { name: "Sản phẩm yêu thích" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: "Giỏ hàng" })).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Nguyễn Văn A" }))
     expect(screen.queryByRole("menuitem", { name: "Sản phẩm yêu thích" })).not.toBeInTheDocument()
   })

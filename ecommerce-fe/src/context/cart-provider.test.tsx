@@ -5,6 +5,7 @@ import { AuthContext, type AuthContextValue } from "@/context/auth-context"
 import { CartProvider } from "@/context/cart-provider"
 import { useCart } from "@/hooks/use-cart"
 import {
+  ApiClientError,
   addCartItem,
   clearCart,
   getCart,
@@ -86,6 +87,7 @@ function Consumer() {
     selectOnly,
     removeSelected,
     clearCart,
+    forbidden,
     loadError,
     retryLoad,
   } = useCart()
@@ -95,6 +97,7 @@ function Consumer() {
       <output data-testid="items">{items.map((entry) => `${entry.itemId}:${entry.quantity}`).join(",")}</output>
       <output data-testid="selected-total">{selectedTotal}</output>
       <output data-testid="selected-count">{selectedCount}</output>
+      <output data-testid="forbidden">{String(Boolean(forbidden))}</output>
       <button onClick={() => void addItem("product-1", "Red", 2)}>Add</button>
       <button onClick={() => toggleSelected("item-1")}>Toggle first</button>
       <button onClick={() => selectOnly("item-1")}>Select only first</button>
@@ -335,5 +338,40 @@ describe("CartProvider", () => {
     await userEvent.click(screen.getByRole("button", { name: "Retry load" }))
     await waitFor(() => expect(screen.getByTestId("items")).toHaveTextContent("item-1:2"))
     expect(getCart).toHaveBeenCalledTimes(2)
+  })
+
+  it("marks forbidden=true without loadError on 403 getCart, resets on logout, and keeps loaded items on 403 mutation", async () => {
+    vi.mocked(getCart)
+      .mockRejectedValueOnce(new ApiClientError(403, "You do not have permission to access or modify the cart.", "FORBIDDEN"))
+      .mockResolvedValueOnce(cart([item()]))
+    vi.mocked(addCartItem).mockRejectedValueOnce(new ApiClientError(403, "Forbidden", "FORBIDDEN"))
+
+    const view = renderCart()
+
+    await waitFor(() => expect(screen.getByTestId("forbidden")).toHaveTextContent("true"))
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+    expect(screen.getByTestId("items")).toHaveTextContent("")
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry load" }))
+    await waitFor(() => expect(screen.getByTestId("forbidden")).toHaveTextContent("false"))
+    expect(screen.getByTestId("items")).toHaveTextContent("item-1:2")
+
+    await userEvent.click(screen.getByRole("button", { name: "Add" }))
+    await waitFor(() => expect(addCartItem).toHaveBeenCalledTimes(1))
+    expect(screen.getByTestId("items")).toHaveTextContent("item-1:2")
+    expect(screen.getByTestId("forbidden")).toHaveTextContent("false")
+
+    vi.mocked(getCart).mockRejectedValueOnce(new ApiClientError(403, "Forbidden", "FORBIDDEN"))
+    await userEvent.click(screen.getByRole("button", { name: "Retry load" }))
+    await waitFor(() => expect(screen.getByTestId("forbidden")).toHaveTextContent("true"))
+
+    view.rerender(
+      <AuthContext value={authValue({ user: null, isAuthenticated: false })}>
+        <CartProvider>
+          <Consumer />
+        </CartProvider>
+      </AuthContext>
+    )
+    await waitFor(() => expect(screen.getByTestId("forbidden")).toHaveTextContent("false"))
   })
 })

@@ -55,7 +55,8 @@ class IdentityDatabaseMigrationTest extends PostgresIntegrationTestSupport {
         assertThat(jdbc.sql("select name from auth_items where type = 'PERMISSION' order by name")
                 .query(String.class).list())
                 .containsExactly("address.create", "address.delete", "address.set-default",
-                        "address.update", "address.view", "cart.item.add", "favorite.manage",
+                        "address.update", "address.view", "cart.clear", "cart.item.add",
+                        "cart.item.remove", "cart.item.update", "cart.view", "favorite.manage",
                         "inventory.update", "inventory.view", "product.create", "product.delete",
                         "product.update", "product.view", "rbac.manage", "rbac.view",
                         "user.role.assign", "user.status.update", "user.view");
@@ -65,11 +66,16 @@ class IdentityDatabaseMigrationTest extends PostgresIntegrationTestSupport {
                 order by child_name
                 """).query(String.class).list())
                 .contains("inventory.update", "inventory.view", "product.create",
-                        "product.delete", "product.update", "product.view");
+                        "product.delete", "product.update", "product.view")
+                .doesNotContain("cart.clear", "cart.item.add", "cart.item.remove",
+                        "cart.item.update", "cart.view");
         assertThat(jdbc.sql("""
-                select count(*) from auth_item_children
-                where parent_name = 'CUSTOMER' and child_name = 'cart.item.add'
-                """).query(Long.class).single()).isEqualTo(1L);
+                select child_name from auth_item_children
+                where parent_name = 'CUSTOMER' and child_name like 'cart.%'
+                order by child_name
+                """).query(String.class).list())
+                .containsExactly("cart.clear", "cart.item.add", "cart.item.remove",
+                        "cart.item.update", "cart.view");
         assertThat(jdbc.sql("""
                 select count(*) from auth_item_children
                 where parent_name = 'CUSTOMER' and child_name = 'favorite.manage'
@@ -287,6 +293,70 @@ class IdentityDatabaseMigrationTest extends PostgresIntegrationTestSupport {
     }
 
     @Test
+    @Transactional
+    void upgradesV10SchemaWithProtectedCartPermissions() throws Exception {
+        jdbcTemplate.execute("create schema migration_target");
+        jdbcTemplate.execute("""
+                create table migration_target.identity_users (
+                    id uuid primary key,
+                    email varchar(254) not null,
+                    normalized_email varchar(254) not null,
+                    password_hash varchar(255) not null,
+                    status varchar(32) not null,
+                    created_at timestamptz not null,
+                    updated_at timestamptz not null
+                )
+                """);
+        jdbcTemplate.execute("""
+                create table migration_target.roles (
+                    id smallint primary key,
+                    code varchar(32) not null unique
+                )
+                """);
+        jdbcTemplate.execute("""
+                create table migration_target.user_roles (
+                    user_id uuid not null,
+                    role_id smallint not null,
+                    primary key (user_id, role_id)
+                )
+                """);
+        jdbcTemplate.execute("insert into migration_target.roles (id, code) values (1, 'CUSTOMER')");
+
+        jdbcTemplate.execute("set local search_path to migration_target");
+        jdbcTemplate.execute(v5MigrationSql());
+        jdbcTemplate.execute(v6MigrationSql());
+        jdbcTemplate.execute(v7MigrationSql());
+        jdbcTemplate.execute(v8MigrationSql());
+        jdbcTemplate.execute(v9MigrationSql());
+        jdbcTemplate.execute(v10MigrationSql());
+        jdbcTemplate.execute(v11MigrationSql());
+
+        assertThat(jdbc.sql("""
+                select name || ':' || type || ':' || system_item
+                from migration_target.auth_items
+                where name in ('cart.view', 'cart.item.add', 'cart.item.update', 'cart.item.remove', 'cart.clear')
+                order by name
+                """).query(String.class).list())
+                .containsExactly(
+                        "cart.clear:PERMISSION:true",
+                        "cart.item.add:PERMISSION:true",
+                        "cart.item.remove:PERMISSION:true",
+                        "cart.item.update:PERMISSION:true",
+                        "cart.view:PERMISSION:true");
+        assertThat(jdbc.sql("""
+                select child_name from migration_target.auth_item_children
+                where parent_name = 'CUSTOMER' and child_name like 'cart.%'
+                order by child_name
+                """).query(String.class).list())
+                .containsExactly("cart.clear", "cart.item.add", "cart.item.remove",
+                        "cart.item.update", "cart.view");
+        assertThat(jdbc.sql("""
+                select count(*) from migration_target.auth_item_children
+                where parent_name = 'ADMIN' and child_name like 'cart.%'
+                """).query(Long.class).single()).isZero();
+    }
+
+    @Test
     void createsNullableProfileContactColumns() {
         assertThat(jdbc.sql("""
                 select column_name || ':' || data_type
@@ -382,6 +452,16 @@ class IdentityDatabaseMigrationTest extends PostgresIntegrationTestSupport {
 
     private String v9MigrationSql() throws Exception {
         return new ClassPathResource("db/migration/V9__add_favorite_manage_permission.sql")
+                .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private String v10MigrationSql() throws Exception {
+        return new ClassPathResource("db/migration/V10__add_commerce_admin_permissions.sql")
+                .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private String v11MigrationSql() throws Exception {
+        return new ClassPathResource("db/migration/V11__add_cart_permissions.sql")
                 .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
     }
 

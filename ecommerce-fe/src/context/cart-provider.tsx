@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
-import { addCartItem, clearCart as clearCartRequest, getCart, removeCartItem, toErrorInfo, updateCartItemQuantity } from "@/lib/api"
+import { addCartItem, clearCart as clearCartRequest, getCart, removeCartItem, toClientError, toErrorInfo, updateCartItemQuantity } from "@/lib/api"
 import type { CartData, CartItem } from "@/lib/types"
 import { AuthContext } from "@/context/auth-context"
 import { CartContext, type CartContextValue, type CartLoadError } from "./cart-context"
@@ -37,6 +37,11 @@ function authIdentity(ready: boolean, isAuthenticated: boolean, userId: string |
   return ready && isAuthenticated && userId ? userId : null
 }
 
+function isForbiddenError(error: unknown): boolean {
+  const clientError = toClientError(error)
+  return clientError.code === "FORBIDDEN" || clientError.status === 403
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const auth = useContext(AuthContext)
   const ready = auth?.ready ?? true
@@ -53,6 +58,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [selectionOwner, setSelectionOwner] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [degraded, setDegraded] = useState(false)
+  const [forbidden, setForbidden] = useState(false)
   const [loadError, setLoadError] = useState<CartLoadError | null>(null)
   const [loadAttempt, setLoadAttempt] = useState(0)
   const operationGeneration = useRef(0)
@@ -69,6 +75,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const applyCart = useCallback((data: CartData) => {
     setItems(data.items)
     setDegraded(data.degraded)
+    setForbidden(false)
     setSelection((current) => reconcileSelection(data.items, current))
   }, [])
 
@@ -78,6 +85,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setSelection({})
       setSelectionOwner(null)
       setDegraded(false)
+      setForbidden(false)
       setLoadError(null)
       setLoading(false)
       return
@@ -88,6 +96,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const key = selectionKey(identity)
     setItems([])
     setDegraded(false)
+    setForbidden(false)
     setLoadError(null)
     setSelection(readSelection(key))
     setSelectionOwner(identity)
@@ -102,7 +111,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       })
       .catch((error: unknown) => {
         if (active && currentSession(sessionVersion, identity) && operationGeneration.current === operation) {
-          setLoadError(toErrorInfo(error))
+          if (isForbiddenError(error)) {
+            setForbidden(true)
+            setItems([])
+            setDegraded(false)
+            setLoadError(null)
+          } else {
+            setLoadError(toErrorInfo(error))
+          }
         }
       })
       .finally(() => {
@@ -215,10 +231,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       allSelected: selectedItems.length > 0 && selectedItems.length === items.filter(isSelectable).length,
       loading,
       degraded,
+      forbidden,
       loadError,
       retryLoad,
     }
-  }, [addItem, clearCart, degraded, items, loadError, loading, removeItem, removeSelected, retryLoad, selectOnly, selection, toggleAllSelected, toggleSelected, updateQuantity])
+  }, [addItem, clearCart, degraded, forbidden, items, loadError, loading, removeItem, removeSelected, retryLoad, selectOnly, selection, toggleAllSelected, toggleSelected, updateQuantity])
 
   return <CartContext value={value}>{children}</CartContext>
 }

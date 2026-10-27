@@ -60,7 +60,8 @@ kiến trúc canonical nằm trong [`docs/steering/`](docs/steering/).
   dụng từ `quantity`/`reserved`, PostgreSQL và gRPC.
 - **cart-service** (Go, HTTP `8084`, gRPC `127.0.0.1:50053`): lưu giỏ hàng, CRUD
   line item, tổng hợp thông tin sản phẩm/tồn kho từ Catalog & Inventory qua gRPC,
-  và kiểm tra quyền `cart.item.add` qua Identity gRPC khi thêm sản phẩm.
+  và kiểm tra quyền giỏ hàng (`cart.view`, `cart.item.add`, `cart.item.update`,
+  `cart.item.remove`, `cart.clear`) qua Identity gRPC.
 - **order-service** (Java/Spring Boot, HTTP `8083`, Actuator `8093`):
   application skeleton và health check; nghiệp vụ đặt hàng chưa được triển khai.
 - **ecommerce-fe** (React/TypeScript, dev `5173` / container Nginx `8080`):

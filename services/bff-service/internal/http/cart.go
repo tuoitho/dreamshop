@@ -156,7 +156,7 @@ func (h *CartHandler) clear(w http.ResponseWriter, r *http.Request) {
 func (h *CartHandler) writeCartError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, cartclient.ErrPermissionDenied):
-		writeError(w, r, http.StatusForbidden, "FORBIDDEN", "You do not have permission to add products to the cart.", nil)
+		writeError(w, r, http.StatusForbidden, "FORBIDDEN", "You do not have permission to access or modify the cart.", nil)
 	case errors.Is(err, cartclient.ErrAuthorizationUnavailable):
 		writeError(w, r, http.StatusServiceUnavailable, "AUTHORIZATION_SERVICE_UNAVAILABLE", "Authorization service is unavailable.", nil)
 	case errors.Is(err, cartclient.ErrCartItemNotFound):

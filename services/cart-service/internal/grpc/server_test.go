@@ -71,6 +71,9 @@ func (f *fakeStore) EnsureCart(_ context.Context, userID string) (string, error)
 }
 
 func (f *fakeStore) FindCart(_ context.Context, userID string) (string, bool, error) {
+	if f.events != nil {
+		*f.events = append(*f.events, "find-cart")
+	}
 	f.findUserID = userID
 	return f.cartID, f.found, f.findErr
 }
@@ -924,5 +927,151 @@ func TestAddItemFailsClosedWhenAuthorizationClientIsNil(t *testing.T) {
 	assertErrorInfoReason(t, err, reasonAuthorizationUnavailable)
 	if store.ensureUserID != "" || len(store.addArgs) != 0 {
 		t.Fatalf("AddItem() with nil authorization mutated cart state: ensureUserID=%q addArgs=%v", store.ensureUserID, store.addArgs)
+	}
+}
+
+func TestCartOperationsEnforceGranularPermissionsBeforeStoreAndDependencies(t *testing.T) {
+	cases := []struct {
+		name           string
+		wantPermission string
+		wantNextEvent  string
+		invoke         func(cartv1.CartServiceClient) error
+	}{
+		{
+			name:           "GetCart",
+			wantPermission: "cart.view",
+			wantNextEvent:  "find-cart",
+			invoke: func(client cartv1.CartServiceClient) error {
+				_, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: testUserID})
+				return err
+			},
+		},
+		{
+			name:           "UpdateItemQuantity",
+			wantPermission: "cart.item.update",
+			wantNextEvent:  "ensure-cart",
+			invoke: func(client cartv1.CartServiceClient) error {
+				_, err := client.UpdateItemQuantity(context.Background(), &cartv1.UpdateItemQuantityRequest{
+					UserId: testUserID, ItemId: testItemID, Quantity: 2,
+				})
+				return err
+			},
+		},
+		{
+			name:           "RemoveItem",
+			wantPermission: "cart.item.remove",
+			wantNextEvent:  "ensure-cart",
+			invoke: func(client cartv1.CartServiceClient) error {
+				_, err := client.RemoveItem(context.Background(), &cartv1.RemoveItemRequest{
+					UserId: testUserID, ItemId: testItemID,
+				})
+				return err
+			},
+		},
+		{
+			name:           "ClearCart",
+			wantPermission: "cart.clear",
+			wantNextEvent:  "ensure-cart",
+			invoke: func(client cartv1.CartServiceClient) error {
+				_, err := client.ClearCart(context.Background(), &cartv1.ClearCartRequest{UserId: testUserID})
+				return err
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name+" checks permission before store", func(t *testing.T) {
+			events := make([]string, 0, 2)
+			store := &fakeStore{cartID: "cart-1", found: true, events: &events}
+			auth := &fakeAuthorization{allowed: true, events: &events}
+			client := newBufconnClient(t, NewServer(store, &fakeCatalog{}, &fakeInventory{}, auth))
+
+			if err := tc.invoke(client); err != nil {
+				t.Fatalf("%s() error = %v", tc.name, err)
+			}
+			if auth.calls != 1 || auth.userID != testUserID || auth.permission != tc.wantPermission {
+				t.Fatalf("%s() auth = calls=%d user=%q permission=%q, want 1/%s/%s",
+					tc.name, auth.calls, auth.userID, auth.permission, testUserID, tc.wantPermission)
+			}
+			if len(events) < 2 || events[0] != "check-permission" || events[1] != tc.wantNextEvent {
+				t.Fatalf("%s() event order = %v, want [check-permission %s ...]", tc.name, events, tc.wantNextEvent)
+			}
+		})
+
+		t.Run(tc.name+" denied leaves store and dependencies untouched", func(t *testing.T) {
+			store := &fakeStore{
+				cartID: "cart-1",
+				found:  true,
+				lines:  []domain.Line{{ID: testItemID, ProductID: "p-1", VariantLabel: "red", Quantity: 1}},
+			}
+			catalog := &fakeCatalog{products: map[string]*catalogv1.GetProductResponse{"p-1": validProduct("p-1")}, errors: map[string]error{}}
+			inventory := &fakeInventory{availability: map[string]*inventoryv1.GetAvailabilityResponse{"p-1": {ProductId: "p-1", AvailableQuantity: 5}}, errors: map[string]error{}}
+			auth := &fakeAuthorization{allowed: false}
+			client := newBufconnClient(t, NewServer(store, catalog, inventory, auth))
+
+			err := tc.invoke(client)
+			if code := status.Code(err); code != codes.PermissionDenied {
+				t.Fatalf("%s() code = %v, want PermissionDenied", tc.name, code)
+			}
+			assertErrorInfoReason(t, err, "CART_PERMISSION_DENIED")
+			if auth.calls != 1 || auth.userID != testUserID || auth.permission != tc.wantPermission {
+				t.Fatalf("%s() auth = calls=%d user=%q permission=%q, want 1/%s/%s",
+					tc.name, auth.calls, auth.userID, auth.permission, testUserID, tc.wantPermission)
+			}
+			if store.findUserID != "" || store.ensureUserID != "" || len(store.updateArgs) != 0 ||
+				len(store.removeArgs) != 0 || store.clearCartID != "" || len(catalog.called) != 0 || len(inventory.called) != 0 {
+				t.Fatalf("%s() denied triggered side effects: find=%q ensure=%q update=%v remove=%v clear=%q catalog=%v inventory=%v",
+					tc.name, store.findUserID, store.ensureUserID, store.updateArgs, store.removeArgs, store.clearCartID, catalog.called, inventory.called)
+			}
+		})
+
+		t.Run(tc.name+" authorization outage fails closed", func(t *testing.T) {
+			store := &fakeStore{cartID: "cart-1", found: true}
+			catalog := &fakeCatalog{products: map[string]*catalogv1.GetProductResponse{}, errors: map[string]error{}}
+			inventory := &fakeInventory{availability: map[string]*inventoryv1.GetAvailabilityResponse{}, errors: map[string]error{}}
+			auth := &fakeAuthorization{err: status.Error(codes.Unavailable, "identity unavailable")}
+			client := newBufconnClient(t, NewServer(store, catalog, inventory, auth))
+
+			err := tc.invoke(client)
+			if code := status.Code(err); code != codes.Unavailable {
+				t.Fatalf("%s() code = %v, want Unavailable", tc.name, code)
+			}
+			assertErrorInfoReason(t, err, "AUTHORIZATION_UNAVAILABLE")
+			if store.findUserID != "" || store.ensureUserID != "" || len(store.updateArgs) != 0 ||
+				len(store.removeArgs) != 0 || store.clearCartID != "" || len(catalog.called) != 0 || len(inventory.called) != 0 {
+				t.Fatalf("%s() outage triggered side effects: find=%q ensure=%q update=%v remove=%v clear=%q catalog=%v inventory=%v",
+					tc.name, store.findUserID, store.ensureUserID, store.updateArgs, store.removeArgs, store.clearCartID, catalog.called, inventory.called)
+			}
+		})
+
+		t.Run(tc.name+" nil authorization client fails closed", func(t *testing.T) {
+			store := &fakeStore{cartID: "cart-1", found: true}
+			client := newBufconnClient(t, NewServer(store, &fakeCatalog{}, &fakeInventory{}, nil))
+
+			err := tc.invoke(client)
+			if code := status.Code(err); code != codes.Unavailable {
+				t.Fatalf("%s() nil auth code = %v, want Unavailable", tc.name, code)
+			}
+			assertErrorInfoReason(t, err, "AUTHORIZATION_UNAVAILABLE")
+			if store.findUserID != "" || store.ensureUserID != "" {
+				t.Fatalf("%s() nil auth touched store: find=%q ensure=%q", tc.name, store.findUserID, store.ensureUserID)
+			}
+		})
+	}
+}
+
+func TestUpdateItemQuantityValidationSkipsAuthorization(t *testing.T) {
+	store := &fakeStore{cartID: "cart-1"}
+	auth := &fakeAuthorization{allowed: true}
+	client := newBufconnClient(t, NewServer(store, &fakeCatalog{}, &fakeInventory{}, auth))
+
+	_, err := client.UpdateItemQuantity(context.Background(), &cartv1.UpdateItemQuantityRequest{
+		UserId: testUserID, ItemId: testItemID, Quantity: 0,
+	})
+	if code := status.Code(err); code != codes.InvalidArgument {
+		t.Fatalf("UpdateItemQuantity() code = %v, want InvalidArgument", code)
+	}
+	if auth.calls != 0 {
+		t.Fatalf("authorization calls = %d, want 0 for invalid quantity", auth.calls)
 	}
 }

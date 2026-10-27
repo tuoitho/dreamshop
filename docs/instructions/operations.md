@@ -52,11 +52,11 @@ container cannot resolve the host gateway.
   `127.0.0.1:50052`; Cart keeps its persisted lines but returns degraded or
   unavailable stock projections while the dependency is down.
 - Identity authorization unavailable: verify Identity is listening on
-  `127.0.0.1:50054` and Catalog and Cart have `IDENTITY_GRPC_ADDR=127.0.0.1:50054`.
-  Diagnose this port and address directly, never through Kong. Catalog
-  soft-delete and Cart add-item return `503` with
-  `AUTHORIZATION_SERVICE_UNAVAILABLE` without mutating state during an outage;
-  permission denial returns `403`.
+  `127.0.0.1:50054` and Catalog, Inventory, and Cart have
+  `IDENTITY_GRPC_ADDR=127.0.0.1:50054`. Diagnose this port and address
+  directly, never through Kong. Protected Catalog, Inventory, Cart, and
+  Favorites operations return `503` with `AUTHORIZATION_SERVICE_UNAVAILABLE`
+  without mutating state during an outage; permission denial returns `403`.
 - Cart gRPC unavailable: verify Cart is listening on `127.0.0.1:50053` and that
   BFF uses the same `BFF_CART_GRPC_ADDR`.
 - Storefront route returns an upstream error: verify BFF was started with

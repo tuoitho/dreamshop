@@ -28,6 +28,9 @@ type recordingCartServer struct {
 	getBlock              bool
 	getErr                error
 	addErr                error
+	updateErr             error
+	removeErr             error
+	clearErr              error
 	favErr                error
 }
 
@@ -53,16 +56,25 @@ func (s *recordingCartServer) AddItem(_ context.Context, req *cartv1.AddItemRequ
 
 func (s *recordingCartServer) UpdateItemQuantity(_ context.Context, req *cartv1.UpdateItemQuantityRequest) (*cartv1.UpdateItemQuantityResponse, error) {
 	s.updateRequest = req
+	if s.updateErr != nil {
+		return nil, s.updateErr
+	}
 	return &cartv1.UpdateItemQuantityResponse{Cart: &cartv1.Cart{}}, nil
 }
 
 func (s *recordingCartServer) RemoveItem(_ context.Context, req *cartv1.RemoveItemRequest) (*cartv1.RemoveItemResponse, error) {
 	s.removeRequest = req
+	if s.removeErr != nil {
+		return nil, s.removeErr
+	}
 	return &cartv1.RemoveItemResponse{Cart: &cartv1.Cart{}}, nil
 }
 
 func (s *recordingCartServer) ClearCart(_ context.Context, req *cartv1.ClearCartRequest) (*cartv1.ClearCartResponse, error) {
 	s.clearRequest = req
+	if s.clearErr != nil {
+		return nil, s.clearErr
+	}
 	return &cartv1.ClearCartResponse{Cart: &cartv1.Cart{}}, nil
 }
 
@@ -201,11 +213,30 @@ func TestClientMapsCartPermissionErrorInfoToErrPermissionDenied(t *testing.T) {
 	if detailErr != nil {
 		t.Fatalf("add error details: %v", detailErr)
 	}
-	client := newRecordingCartClient(t, &recordingCartServer{addErr: err.Err()}, time.Second)
+	deniedErr := err.Err()
+	server := &recordingCartServer{
+		getErr:    deniedErr,
+		addErr:    deniedErr,
+		updateErr: deniedErr,
+		removeErr: deniedErr,
+		clearErr:  deniedErr,
+	}
+	client := newRecordingCartClient(t, server, time.Second)
 
-	_, got := client.AddItem(context.Background(), "user-1", "product-1", "red", 2)
-	if !errors.Is(got, ErrPermissionDenied) {
-		t.Fatalf("error = %v, want ErrPermissionDenied", got)
+	calls := []struct {
+		name string
+		fn   func() error
+	}{
+		{"GetCart", func() error { _, e := client.GetCart(context.Background(), "user-1"); return e }},
+		{"AddItem", func() error { _, e := client.AddItem(context.Background(), "user-1", "product-1", "red", 2); return e }},
+		{"UpdateItemQuantity", func() error { _, e := client.UpdateItemQuantity(context.Background(), "user-1", "item-1", 2); return e }},
+		{"RemoveItem", func() error { _, e := client.RemoveItem(context.Background(), "user-1", "item-1"); return e }},
+		{"ClearCart", func() error { _, e := client.ClearCart(context.Background(), "user-1"); return e }},
+	}
+	for _, call := range calls {
+		if got := call.fn(); !errors.Is(got, ErrPermissionDenied) {
+			t.Fatalf("%s() error = %v, want ErrPermissionDenied", call.name, got)
+		}
 	}
 }
 
@@ -215,11 +246,30 @@ func TestClientMapsCartAuthorizationUnavailableErrorInfoToErrAuthorizationUnavai
 	if detailErr != nil {
 		t.Fatalf("add error details: %v", detailErr)
 	}
-	client := newRecordingCartClient(t, &recordingCartServer{addErr: err.Err()}, time.Second)
+	unavailErr := err.Err()
+	server := &recordingCartServer{
+		getErr:    unavailErr,
+		addErr:    unavailErr,
+		updateErr: unavailErr,
+		removeErr: unavailErr,
+		clearErr:  unavailErr,
+	}
+	client := newRecordingCartClient(t, server, time.Second)
 
-	_, got := client.AddItem(context.Background(), "user-1", "product-1", "red", 2)
-	if !errors.Is(got, ErrAuthorizationUnavailable) {
-		t.Fatalf("error = %v, want ErrAuthorizationUnavailable", got)
+	calls := []struct {
+		name string
+		fn   func() error
+	}{
+		{"GetCart", func() error { _, e := client.GetCart(context.Background(), "user-1"); return e }},
+		{"AddItem", func() error { _, e := client.AddItem(context.Background(), "user-1", "product-1", "red", 2); return e }},
+		{"UpdateItemQuantity", func() error { _, e := client.UpdateItemQuantity(context.Background(), "user-1", "item-1", 2); return e }},
+		{"RemoveItem", func() error { _, e := client.RemoveItem(context.Background(), "user-1", "item-1"); return e }},
+		{"ClearCart", func() error { _, e := client.ClearCart(context.Background(), "user-1"); return e }},
+	}
+	for _, call := range calls {
+		if got := call.fn(); !errors.Is(got, ErrAuthorizationUnavailable) {
+			t.Fatalf("%s() error = %v, want ErrAuthorizationUnavailable", call.name, got)
+		}
 	}
 }
 

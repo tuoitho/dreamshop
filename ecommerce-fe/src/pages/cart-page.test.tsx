@@ -5,7 +5,7 @@ import { MemoryRouter } from "react-router-dom"
 import { AuthContext, type AuthContextValue } from "@/context/auth-context"
 import { CartContext, type CartContextValue } from "@/context/cart-context"
 import { CartProvider } from "@/context/cart-provider"
-import { getCart } from "@/lib/api"
+import { ApiClientError, getCart } from "@/lib/api"
 import type { CartData, CartItem, CurrentUser } from "@/lib/types"
 import CartPage from "./cart-page"
 
@@ -157,6 +157,20 @@ describe("CartPage load failure", () => {
     expect(screen.queryByText("Giỏ hàng đang trống")).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Thử lại" }))
     expect(await screen.findByRole("heading", { name: "Giỏ hàng" })).toBeInTheDocument()
+  })
+
+  it("renders customer-only notice instead of load error when getCart returns 403 FORBIDDEN", async () => {
+    vi.mocked(getCart).mockRejectedValueOnce(
+      new ApiClientError(403, "You do not have permission to access or modify the cart.", "FORBIDDEN")
+    )
+    renderPage()
+
+    expect(
+      await screen.findByText("Tính năng giỏ hàng chỉ dành cho tài khoản khách hàng.")
+    ).toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Không tải được giỏ hàng" })).not.toBeInTheDocument()
+    expect(screen.queryByText("Giỏ hàng đang trống")).not.toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Về trang chủ" })).toHaveAttribute("href", "/")
   })
 })
 

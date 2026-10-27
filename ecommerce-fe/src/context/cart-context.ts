@@ -23,6 +23,7 @@ export interface CartContextValue {
   allSelected: boolean
   loading: boolean
   degraded: boolean
+  forbidden?: boolean
   loadError: CartLoadError | null
   retryLoad: () => Promise<void>
 }

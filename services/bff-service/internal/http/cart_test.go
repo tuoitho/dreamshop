@@ -422,32 +422,69 @@ func TestCartUnavailableMapsToBadGateway(t *testing.T) {
 }
 
 func TestCartPermissionDeniedMapsToForbidden(t *testing.T) {
-	client := &fakeCartClient{addFn: func(context.Context, string, string, string, int32) (*cartv1.AddItemResponse, error) {
-		return nil, cartclient.ErrPermissionDenied
-	}}
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/cart/items", strings.NewReader(`{"productId":"dt-1","variantLabel":"red","quantity":2}`))
-	req.Header.Set("X-User-Id", "user-1")
-	rec := httptest.NewRecorder()
-	newCartTestMux(t, client).ServeHTTP(rec, req)
+	client := &fakeCartClient{
+		getFn:    func(context.Context, string) (*cartv1.GetCartResponse, error) { return nil, cartclient.ErrPermissionDenied },
+		addFn:    func(context.Context, string, string, string, int32) (*cartv1.AddItemResponse, error) { return nil, cartclient.ErrPermissionDenied },
+		updateFn: func(context.Context, string, string, int32) (*cartv1.UpdateItemQuantityResponse, error) { return nil, cartclient.ErrPermissionDenied },
+		removeFn: func(context.Context, string, string) (*cartv1.RemoveItemResponse, error) { return nil, cartclient.ErrPermissionDenied },
+		clearFn:  func(context.Context, string) (*cartv1.ClearCartResponse, error) { return nil, cartclient.ErrPermissionDenied },
+	}
+	mux := newCartTestMux(t, client)
+	routes := []struct {
+		method string
+		path   string
+		body   string
+	}{
+		{http.MethodGet, "/api/v1/cart", ""},
+		{http.MethodPost, "/api/v1/cart/items", `{"productId":"dt-1","variantLabel":"red","quantity":2}`},
+		{http.MethodPatch, "/api/v1/cart/items/item-1", `{"quantity":2}`},
+		{http.MethodDelete, "/api/v1/cart/items/item-1", ""},
+		{http.MethodDelete, "/api/v1/cart", ""},
+	}
+	for _, route := range routes {
+		req := httptest.NewRequest(route.method, route.path, strings.NewReader(route.body))
+		req.Header.Set("X-User-Id", "user-1")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
 
-	body := decodeBody(t, rec)
-	if rec.Code != http.StatusForbidden || body["code"] != "FORBIDDEN" {
-		t.Fatalf("denied response = %d %s", rec.Code, rec.Body.String())
+		body := decodeBody(t, rec)
+		if rec.Code != http.StatusForbidden || body["code"] != "FORBIDDEN" ||
+			body["message"] != "You do not have permission to access or modify the cart." {
+			t.Fatalf("%s %s denied response = %d %s", route.method, route.path, rec.Code, rec.Body.String())
+		}
 	}
 }
 
 func TestCartAuthorizationUnavailableMapsToServiceUnavailable(t *testing.T) {
-	client := &fakeCartClient{addFn: func(context.Context, string, string, string, int32) (*cartv1.AddItemResponse, error) {
-		return nil, cartclient.ErrAuthorizationUnavailable
-	}}
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/cart/items", strings.NewReader(`{"productId":"dt-1","variantLabel":"red","quantity":2}`))
-	req.Header.Set("X-User-Id", "user-1")
-	rec := httptest.NewRecorder()
-	newCartTestMux(t, client).ServeHTTP(rec, req)
+	client := &fakeCartClient{
+		getFn:    func(context.Context, string) (*cartv1.GetCartResponse, error) { return nil, cartclient.ErrAuthorizationUnavailable },
+		addFn:    func(context.Context, string, string, string, int32) (*cartv1.AddItemResponse, error) { return nil, cartclient.ErrAuthorizationUnavailable },
+		updateFn: func(context.Context, string, string, int32) (*cartv1.UpdateItemQuantityResponse, error) { return nil, cartclient.ErrAuthorizationUnavailable },
+		removeFn: func(context.Context, string, string) (*cartv1.RemoveItemResponse, error) { return nil, cartclient.ErrAuthorizationUnavailable },
+		clearFn:  func(context.Context, string) (*cartv1.ClearCartResponse, error) { return nil, cartclient.ErrAuthorizationUnavailable },
+	}
+	mux := newCartTestMux(t, client)
+	routes := []struct {
+		method string
+		path   string
+		body   string
+	}{
+		{http.MethodGet, "/api/v1/cart", ""},
+		{http.MethodPost, "/api/v1/cart/items", `{"productId":"dt-1","variantLabel":"red","quantity":2}`},
+		{http.MethodPatch, "/api/v1/cart/items/item-1", `{"quantity":2}`},
+		{http.MethodDelete, "/api/v1/cart/items/item-1", ""},
+		{http.MethodDelete, "/api/v1/cart", ""},
+	}
+	for _, route := range routes {
+		req := httptest.NewRequest(route.method, route.path, strings.NewReader(route.body))
+		req.Header.Set("X-User-Id", "user-1")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
 
-	body := decodeBody(t, rec)
-	if rec.Code != http.StatusServiceUnavailable || body["code"] != "AUTHORIZATION_SERVICE_UNAVAILABLE" {
-		t.Fatalf("unavailable response = %d %s", rec.Code, rec.Body.String())
+		body := decodeBody(t, rec)
+		if rec.Code != http.StatusServiceUnavailable || body["code"] != "AUTHORIZATION_SERVICE_UNAVAILABLE" {
+			t.Fatalf("%s %s unavailable response = %d %s", route.method, route.path, rec.Code, rec.Body.String())
+		}
 	}
 }
 

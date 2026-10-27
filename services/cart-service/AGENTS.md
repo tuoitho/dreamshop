@@ -13,8 +13,9 @@ This service owns:
   bindings.
 - Enriched cart and favorite projections assembled by querying Catalog and
   Inventory over private gRPC.
-- Enforcement of `cart.item.add` on `AddItem` and `favorite.manage` on favorite
-  RPCs evaluated via Identity's private authorization gRPC boundary.
+- Enforcement of `cart.view`, `cart.item.add`, `cart.item.update`,
+  `cart.item.remove`, and `cart.clear` on Cart RPCs and `favorite.manage` on
+  favorite RPCs evaluated via Identity's private authorization gRPC boundary.
 
 This service does not own:
 
@@ -35,10 +36,10 @@ This service does not own:
 - Call Catalog (`127.0.0.1:50051`), Inventory (`127.0.0.1:50052`), and Identity
   authorization (`127.0.0.1:50054`, default `500ms` timeout) over direct
   private gRPC.
-- Start `identity-service` before `cart-service`. On `AddItem`, if Identity
-  authorization is unavailable, reject with `Unavailable` (mapped to `503` by
-  BFF) without mutating cart state; if permission is denied, return
-  `PermissionDenied` (`403`).
+- Start `identity-service` before `cart-service`. On Cart and Favorite RPCs, if
+  Identity authorization is unavailable, reject with `Unavailable` (mapped to
+  `503` by BFF) without reading or mutating cart state; if permission is denied,
+  return `PermissionDenied` (`403`).
 - Use generated protobuf contracts from `contracts/go/`; do not edit generated
   contract or `sqlc` files by hand.
 

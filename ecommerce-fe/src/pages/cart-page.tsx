@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
-import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react"
+import { Minus, Plus, ShieldAlert, ShoppingCart, Trash2 } from "lucide-react"
 import { FREE_SHIPPING_THRESHOLD, STANDARD_SHIPPING_FEE } from "@/lib/shipping"
 import { formatVND, cn } from "@/lib/utils"
 import { ProductImage } from "@/components/product-image"
@@ -205,6 +205,7 @@ export default function CartPage() {
     selectedCount,
     selectedTotal,
     degraded,
+    forbidden,
     loading,
     loadError,
     retryLoad,
@@ -217,6 +218,23 @@ export default function CartPage() {
     const timer = window.setTimeout(() => setSearchParams({}, { replace: true }), 4000)
     return () => window.clearTimeout(timer)
   }, [buyId, setSearchParams])
+
+  if (forbidden) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-8">
+        <h1 className="text-2xl font-bold">Giỏ hàng</h1>
+        <div className="mt-6 flex flex-col items-center justify-center rounded-3xl bg-card px-6 py-16 text-center ring-1 ring-foreground/10">
+          <ShieldAlert className="size-12 text-muted-foreground" />
+          <p className="mt-4 max-w-md text-base font-medium">
+            Tính năng giỏ hàng chỉ dành cho tài khoản khách hàng.
+          </p>
+          <Button className="mt-6" asChild>
+            <Link to="/">Về trang chủ</Link>
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   if (loadError && items.length === 0) {
     return (

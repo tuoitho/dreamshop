@@ -20,7 +20,11 @@ import (
 )
 
 const (
+	cartViewPermission             = "cart.view"
 	cartItemAddPermission          = "cart.item.add"
+	cartItemUpdatePermission       = "cart.item.update"
+	cartItemRemovePermission       = "cart.item.remove"
+	cartClearPermission            = "cart.clear"
 	grpcErrorDomain                = "ecommerce.cart.v1"
 	reasonCartPermissionDenied     = "CART_PERMISSION_DENIED"
 	reasonAuthorizationUnavailable = "AUTHORIZATION_UNAVAILABLE"
@@ -71,6 +75,9 @@ func (s *Server) GetCart(ctx context.Context, req *cartv1.GetCartRequest) (*cart
 	if err != nil {
 		return nil, err
 	}
+	if err := s.authorizeCart(ctx, userID, cartViewPermission); err != nil {
+		return nil, err
+	}
 	cartID, found, err := s.store.FindCart(ctx, userID)
 	if err != nil {
 		return nil, internalError("find cart", err)
@@ -101,23 +108,8 @@ func (s *Server) AddItem(ctx context.Context, req *cartv1.AddItemRequest) (*cart
 	if err := positiveQuantity(req.GetQuantity()); err != nil {
 		return nil, err
 	}
-	if s.authorization == nil {
-		return nil, statusWithReason(codes.Unavailable, "authorization service is unavailable", reasonAuthorizationUnavailable)
-	}
-	authorizationCtx, traceID := withAuthorizationTrace(ctx)
-	allowed, err := s.authorization.CheckPermission(authorizationCtx, userID, cartItemAddPermission)
-	if err != nil {
-		if ctx.Err() != nil {
-			return nil, status.FromContextError(ctx.Err()).Err()
-		}
-		slog.WarnContext(ctx, "cart item authorization unavailable", "user_id", userID,
-			"permission", cartItemAddPermission, "trace_id", traceID)
-		return nil, statusWithReason(codes.Unavailable, "authorization service is unavailable", reasonAuthorizationUnavailable)
-	}
-	if !allowed {
-		slog.DebugContext(ctx, "cart item authorization denied", "user_id", userID,
-			"permission", cartItemAddPermission, "trace_id", traceID)
-		return nil, statusWithReason(codes.PermissionDenied, "cart permission denied", reasonCartPermissionDenied)
+	if err := s.authorizeCart(ctx, userID, cartItemAddPermission); err != nil {
+		return nil, err
 	}
 	cartID, err := s.store.EnsureCart(ctx, userID)
 	if err != nil {
@@ -131,6 +123,28 @@ func (s *Server) AddItem(ctx context.Context, req *cartv1.AddItemRequest) (*cart
 		return nil, err
 	}
 	return &cartv1.AddItemResponse{Cart: cart}, nil
+}
+
+func (s *Server) authorizeCart(ctx context.Context, userID, permission string) error {
+	if s.authorization == nil {
+		return statusWithReason(codes.Unavailable, "authorization service is unavailable", reasonAuthorizationUnavailable)
+	}
+	authorizationCtx, traceID := withAuthorizationTrace(ctx)
+	allowed, err := s.authorization.CheckPermission(authorizationCtx, userID, permission)
+	if err != nil {
+		if ctx.Err() != nil {
+			return status.FromContextError(ctx.Err()).Err()
+		}
+		slog.WarnContext(ctx, "cart authorization unavailable", "user_id", userID,
+			"permission", permission, "trace_id", traceID)
+		return statusWithReason(codes.Unavailable, "authorization service is unavailable", reasonAuthorizationUnavailable)
+	}
+	if !allowed {
+		slog.DebugContext(ctx, "cart authorization denied", "user_id", userID,
+			"permission", permission, "trace_id", traceID)
+		return statusWithReason(codes.PermissionDenied, "cart permission denied", reasonCartPermissionDenied)
+	}
+	return nil
 }
 
 func withAuthorizationTrace(ctx context.Context) (context.Context, string) {
@@ -172,6 +186,9 @@ func (s *Server) UpdateItemQuantity(ctx context.Context, req *cartv1.UpdateItemQ
 	if err := positiveQuantity(req.GetQuantity()); err != nil {
 		return nil, err
 	}
+	if err := s.authorizeCart(ctx, userID, cartItemUpdatePermission); err != nil {
+		return nil, err
+	}
 	cartID, err := s.store.EnsureCart(ctx, userID)
 	if err != nil {
 		return nil, internalError("ensure cart", err)
@@ -195,6 +212,9 @@ func (s *Server) RemoveItem(ctx context.Context, req *cartv1.RemoveItemRequest) 
 	if err != nil {
 		return nil, err
 	}
+	if err := s.authorizeCart(ctx, userID, cartItemRemovePermission); err != nil {
+		return nil, err
+	}
 	cartID, err := s.store.EnsureCart(ctx, userID)
 	if err != nil {
 		return nil, internalError("ensure cart", err)
@@ -212,6 +232,9 @@ func (s *Server) RemoveItem(ctx context.Context, req *cartv1.RemoveItemRequest) 
 func (s *Server) ClearCart(ctx context.Context, req *cartv1.ClearCartRequest) (*cartv1.ClearCartResponse, error) {
 	userID, err := requiredUUID(req.GetUserId(), "user_id")
 	if err != nil {
+		return nil, err
+	}
+	if err := s.authorizeCart(ctx, userID, cartClearPermission); err != nil {
 		return nil, err
 	}
 	cartID, err := s.store.EnsureCart(ctx, userID)

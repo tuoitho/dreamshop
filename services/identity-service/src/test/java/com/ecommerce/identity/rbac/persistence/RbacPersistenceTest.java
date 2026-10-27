@@ -114,6 +114,26 @@ class RbacPersistenceTest extends PostgresIntegrationTestSupport {
     }
 
     @Test
+    void grantsCartPermissionsToCustomerAndSuperAdminButNotAdmin() {
+        List<String> cartPermissions = List.of(
+                "cart.view", "cart.item.add", "cart.item.update", "cart.item.remove", "cart.clear");
+
+        repository.assignRole(USER_ID, "CUSTOMER", Instant.now());
+        assertThat(repository.findAllowedPermissions(USER_ID, cartPermissions))
+                .containsExactlyInAnyOrderElementsOf(cartPermissions);
+
+        jdbcTemplate.update("delete from auth_assignments where user_id = ?", USER_ID);
+        repository.assignRole(USER_ID, "ADMIN", Instant.now());
+        assertThat(repository.findAllowedPermissions(USER_ID, cartPermissions))
+                .isEmpty();
+
+        jdbcTemplate.update("delete from auth_assignments where user_id = ?", USER_ID);
+        repository.assignRole(USER_ID, "SUPER_ADMIN", Instant.now());
+        assertThat(repository.findAllowedPermissions(USER_ID, cartPermissions))
+                .containsExactlyInAnyOrderElementsOf(cartPermissions);
+    }
+
+    @Test
     void findsAllEffectivePermissionsForActiveRolesAndReturnsEmptyWhenDisabled() {
         repository.assignRole(USER_ID, "ADMIN", Instant.now());
         assertThat(repository.findAllEffectivePermissions(USER_ID))
