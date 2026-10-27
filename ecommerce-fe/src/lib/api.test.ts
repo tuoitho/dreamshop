@@ -237,6 +237,60 @@ describe("api client", () => {
     expect(refreshAdapter).not.toHaveBeenCalled()
     expect(getAccessToken()).toBe("jwt-new")
   })
+
+  it("suppresses interceptor success and error toasts when logoutRequest is called with silent option", async () => {
+    http.defaults.adapter = vi.fn(async (config) => ({
+      data: { message: "Logout successful" },
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      config,
+    })) as never
+
+    await logoutRequest({ silent: true })
+    expect(toast.success).not.toHaveBeenCalled()
+
+    http.defaults.adapter = vi.fn(async (config) => {
+      throw new AxiosError(
+        "Request failed",
+        "ERR_BAD_REQUEST",
+        config,
+        undefined,
+        {
+          status: 500,
+          data: { message: "Logout failed" },
+          statusText: "Internal Server Error",
+          headers: new AxiosHeaders(),
+          config,
+        }
+      )
+    }) as never
+
+    await logoutRequest({ silent: true }).catch(() => undefined)
+    expect(toast.error).not.toHaveBeenCalled()
+  })
+
+  it("defers interceptor success toast on POST /auth/login while returning the envelope message", async () => {
+    http.defaults.adapter = vi.fn(async (config) => ({
+      data: {
+        data: { accessToken: "jwt-1", tokenType: "Bearer", expiresIn: 900 },
+        message: "Login successful",
+      },
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      config,
+    })) as never
+
+    const result = await login({ email: "customer@example.com", password: "SecretPassword123!" })
+    expect(toast.success).not.toHaveBeenCalled()
+    expect(result).toEqual({
+      accessToken: "jwt-1",
+      tokenType: "Bearer",
+      expiresIn: 900,
+      message: "Login successful",
+    })
+  })
 })
 
 describe("storefront product adapters", () => {

@@ -2,9 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { act, render, screen, waitFor } from "@testing-library/react"
 import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from "axios"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
+import { toast } from "sonner"
 import { AuthProvider } from "./auth-provider"
 import { useAuth } from "@/hooks/use-auth"
-import { getCart, http, refreshHttp } from "@/lib/api"
+import { ApiClientError, getCart, http, refreshHttp } from "@/lib/api"
 import { clearAccessToken, getAccessToken } from "@/lib/auth-session"
 import type { CurrentUser } from "@/lib/types"
 import { RequireAuth } from "@/routes/require-auth"
@@ -377,5 +378,226 @@ describe("AuthProvider session synchronization and concurrency guards", () => {
     expect(screen.getByTestId("token")).toHaveTextContent("none")
     expect(screen.getByTestId("user-email")).toHaveTextContent("none")
     expect(getAccessToken()).toBeNull()
+    expect(toast.success).not.toHaveBeenCalledWith("Logged in")
+  })
+
+  it("shows the login mutation success toast only after verifying pure CUSTOMER role", async () => {
+    const loginUserFetch = deferred<CurrentUser>()
+
+    refreshHttp.defaults.adapter = vi.fn(async (config) => {
+      throw httpError(config, 401, "INVALID_REFRESH_TOKEN", "No refresh cookie")
+    }) as never
+
+    http.defaults.adapter = vi.fn(async (config) => {
+      if (config.url === "/auth/login") {
+        return okResponse(config, {
+          data: { accessToken: "customer-jwt", tokenType: "Bearer", expiresIn: 900 },
+          message: "Login successful",
+        })
+      }
+      if (config.url === "/users/me") {
+        return okResponse(config, await loginUserFetch.promise)
+      }
+      throw new Error(`Unexpected request: ${config.url}`)
+    }) as never
+
+    render(
+      <AuthProvider>
+        <AuthControllerProbe />
+      </AuthProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId("ready")).toHaveTextContent("true")
+    })
+
+    let pendingLogin!: Promise<void>
+    await act(async () => {
+      pendingLogin = latestAuth!.login({ email: "login@example.com", password: "Secret123!" })
+    })
+
+    await waitFor(() => {
+      expect(getAccessToken()).toBe("customer-jwt")
+    })
+    expect(toast.success).not.toHaveBeenCalled()
+
+    await act(async () => {
+      loginUserFetch.resolve(LOGIN_USER)
+      await pendingLogin
+    })
+
+    expect(screen.getByTestId("authenticated")).toHaveTextContent("true")
+    expect(toast.success).toHaveBeenCalledTimes(1)
+    expect(toast.success).toHaveBeenCalledWith("Login successful")
+  })
+
+  it.each([
+    { label: "operator-only", roles: ["SUPER_ADMIN"] },
+    { label: "dual customer and operator", roles: ["CUSTOMER", "SUPER_ADMIN"] },
+    { label: "empty role set", roles: [] as string[] },
+  ])("rejects login and revokes server session silently for $label accounts", async ({ roles }) => {
+    let logoutCalls = 0
+    refreshHttp.defaults.adapter = vi.fn(async (config) => {
+      throw httpError(config, 401, "INVALID_REFRESH_TOKEN", "No refresh cookie")
+    }) as never
+
+    http.defaults.adapter = vi.fn(async (config) => {
+      if (config.url === "/auth/login") {
+        return okResponse(config, {
+          data: { accessToken: "non-customer-jwt", tokenType: "Bearer", expiresIn: 900 },
+          message: "Login successful",
+        })
+      }
+      if (config.url === "/users/me") {
+        return okResponse(config, {
+          ...LOGIN_USER,
+          email: "admin@example.com",
+          roles,
+        })
+      }
+      if (config.url === "/auth/logout") {
+        logoutCalls += 1
+        return okResponse(config, { data: null, message: "Logout successful" })
+      }
+      throw new Error(`Unexpected request: ${config.url}`)
+    }) as never
+
+    render(
+      <AuthProvider>
+        <AuthControllerProbe />
+      </AuthProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId("ready")).toHaveTextContent("true")
+    })
+
+    let caughtError: unknown = null
+    await act(async () => {
+      try {
+        await latestAuth!.login({ email: "admin@example.com", password: "AdminPassword123!" })
+      } catch (err) {
+        caughtError = err
+      }
+    })
+
+    expect(caughtError).toBeInstanceOf(ApiClientError)
+    expect((caughtError as ApiClientError).code).toBe("CUSTOMER_ROLE_REQUIRED")
+    expect((caughtError as ApiClientError).message).toBe("Trang mua sắm chỉ dành cho tài khoản khách hàng.")
+    expect(logoutCalls).toBe(1)
+    expect(screen.getByTestId("authenticated")).toHaveTextContent("false")
+    expect(screen.getByTestId("token")).toHaveTextContent("none")
+    expect(screen.getByTestId("user-email")).toHaveTextContent("none")
+    expect(getAccessToken()).toBeNull()
+    expect(toast.success).not.toHaveBeenCalled()
+  })
+
+  it("ignores non-customer sessions during bootstrap refresh without calling /auth/logout", async () => {
+    let logoutCalls = 0
+    refreshHttp.defaults.adapter = vi.fn(async (config) =>
+      okResponse(config, {
+        data: { accessToken: "admin-boot-jwt", tokenType: "Bearer", expiresIn: 900 },
+        message: "Refreshed",
+      })
+    ) as never
+
+    http.defaults.adapter = vi.fn(async (config) => {
+      if (config.url === "/users/me") {
+        return okResponse(config, {
+          ...BOOTSTRAP_USER,
+          email: "admin@example.com",
+          roles: ["ADMIN", "SUPER_ADMIN"],
+        })
+      }
+      if (config.url === "/auth/logout") {
+        logoutCalls += 1
+        return okResponse(config, { data: null, message: "Logout successful" })
+      }
+      throw new Error(`Unexpected request: ${config.url}`)
+    }) as never
+
+    render(
+      <AuthProvider>
+        <AuthControllerProbe />
+      </AuthProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId("ready")).toHaveTextContent("true")
+    })
+
+    expect(logoutCalls).toBe(0)
+    expect(screen.getByTestId("authenticated")).toHaveTextContent("false")
+    expect(screen.getByTestId("token")).toHaveTextContent("none")
+    expect(screen.getByTestId("user-email")).toHaveTextContent("none")
+    expect(getAccessToken()).toBeNull()
+  })
+
+  it("preserves a newer customer login when slow rollback logout from a rejected non-customer login finishes later", async () => {
+    const rollbackLogout = deferred<void>()
+
+    refreshHttp.defaults.adapter = vi.fn(async (config) => {
+      throw httpError(config, 401, "INVALID_REFRESH_TOKEN", "No refresh cookie")
+    }) as never
+
+    http.defaults.adapter = vi.fn(async (config) => {
+      if (config.url === "/auth/login") {
+        const body = typeof config.data === "string" ? JSON.parse(config.data) : config.data
+        const accessToken = body.email === "admin@example.com" ? "admin-jwt" : "customer-jwt"
+        return okResponse(config, {
+          data: { accessToken, tokenType: "Bearer", expiresIn: 900 },
+          message: "Login successful",
+        })
+      }
+      if (config.url === "/users/me") {
+        const isAdmin = config.headers?.Authorization === "Bearer admin-jwt"
+        return okResponse(
+          config,
+          isAdmin
+            ? { ...LOGIN_USER, email: "admin@example.com", roles: ["SUPER_ADMIN"] }
+            : LOGIN_USER
+        )
+      }
+      if (config.url === "/auth/logout") {
+        await rollbackLogout.promise
+        return okResponse(config, { data: null, message: "Logout successful" })
+      }
+      throw new Error(`Unexpected request: ${config.url}`)
+    }) as never
+
+    render(
+      <AuthProvider>
+        <AuthControllerProbe />
+      </AuthProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId("ready")).toHaveTextContent("true")
+    })
+
+    let rejectedAdminLogin!: Promise<void>
+    await act(async () => {
+      rejectedAdminLogin = latestAuth!
+        .login({ email: "admin@example.com", password: "AdminPassword123!" })
+        .catch(() => undefined)
+    })
+
+    await waitFor(() => {
+      expect(getAccessToken()).toBeNull()
+    })
+
+    await act(async () => {
+      await latestAuth!.login({ email: "login@example.com", password: "Secret123!" })
+    })
+
+    await act(async () => {
+      rollbackLogout.resolve()
+      await rejectedAdminLogin
+    })
+
+    expect(screen.getByTestId("authenticated")).toHaveTextContent("true")
+    expect(screen.getByTestId("token")).toHaveTextContent("customer-jwt")
+    expect(screen.getByTestId("user-email")).toHaveTextContent("login@example.com")
+    expect(getAccessToken()).toBe("customer-jwt")
   })
 })

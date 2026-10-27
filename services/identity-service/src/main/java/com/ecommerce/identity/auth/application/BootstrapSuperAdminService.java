@@ -60,6 +60,7 @@ public class BootstrapSuperAdminService {
                 if (!rbac.assignRole(user.userId(), RbacPermissions.SUPER_ADMIN, now)) {
                     throw new IllegalStateException("SUPER_ADMIN role is not configured");
                 }
+                rbac.revokeRole(user.userId(), RbacPermissions.CUSTOMER);
             });
         } catch (EmailAlreadyRegisteredException exception) {
             return;

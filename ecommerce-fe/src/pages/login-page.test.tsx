@@ -67,12 +67,13 @@ describe("LoginPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Email or password is invalid.")
   })
 
-  it("prefills customer credentials in development mode", async () => {
+  it("prefills customer credentials in development mode and omits non-customer presets", async () => {
     vi.stubEnv("MODE", "development")
     const { loginMock } = renderLogin()
 
     expect(screen.getByLabelText("Email")).toHaveValue("customer1@gmail.com")
     expect(screen.getByLabelText("Mật khẩu")).toHaveValue("123456123456")
+    expect(screen.queryByRole("button", { name: "Admin" })).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole("button", { name: /đăng nhập/i }))
 
@@ -82,25 +83,22 @@ describe("LoginPage", () => {
     })
   })
 
-  it("switches credentials between development accounts", async () => {
-    vi.stubEnv("MODE", "development")
-    const { loginMock } = renderLogin()
+  it("displays customer-only rejection alert when non-customer login is denied", async () => {
+    const { loginMock } = renderLogin(
+      vi.fn().mockRejectedValue(new Error("Trang mua sắm chỉ dành cho tài khoản khách hàng."))
+    )
 
-    await userEvent.click(screen.getByRole("button", { name: "Admin" }))
-    expect(screen.getByLabelText("Email")).toHaveValue("admin@example.com")
-    expect(screen.getByLabelText("Mật khẩu")).toHaveValue("AdminPassword123!")
-
-    await userEvent.click(screen.getByRole("button", { name: "Customer" }))
-    expect(screen.getByLabelText("Email")).toHaveValue("customer1@gmail.com")
-    expect(screen.getByLabelText("Mật khẩu")).toHaveValue("123456123456")
-
-    await userEvent.click(screen.getByRole("button", { name: "Admin" }))
+    await userEvent.type(screen.getByLabelText("Email"), "admin@example.com")
+    await userEvent.type(screen.getByLabelText("Mật khẩu"), "AdminPassword123!")
     await userEvent.click(screen.getByRole("button", { name: /đăng nhập/i }))
 
     expect(loginMock).toHaveBeenCalledWith({
       email: "admin@example.com",
       password: "AdminPassword123!",
     })
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Trang mua sắm chỉ dành cho tài khoản khách hàng."
+    )
   })
 
   it("omits development credentials and preset controls in production", () => {

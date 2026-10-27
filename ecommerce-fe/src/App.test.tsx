@@ -28,7 +28,7 @@ const USER: CurrentUser = {
   userId: "user-1",
   email: "vana@example.com",
   fullName: "Nguyễn Văn A",
-  roles: ["USER"],
+  roles: ["CUSTOMER"],
   phone: "0901234567",
   dateOfBirth: null,
   gender: null,
@@ -130,5 +130,15 @@ describe("App StoreLayout shell", () => {
       user: USER,
     })
     expect(await screen.findByRole("heading", { name: "Sản phẩm yêu thích" })).toBeInTheDocument()
+  })
+
+  it("redirects non-customer contexts away from protected routes to /login without redirect loop", async () => {
+    renderAppAt("/profile", {
+      token: "admin-token",
+      isAuthenticated: true,
+      user: { ...USER, email: "admin@example.com", roles: ["ADMIN"] },
+    })
+
+    expect(await screen.findByText("Đăng nhập vào tài khoản của bạn")).toBeInTheDocument()
   })
 })

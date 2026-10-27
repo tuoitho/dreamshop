@@ -126,12 +126,14 @@ authorization RPC.
 
 When running `ecommerce-fe` in Vite `development` mode (`make fe` or
 `npm --prefix ecommerce-fe run dev`), `http://localhost:5173/login` prefills the
-customer account and provides `DEV` preset buttons for switching between the two
-standard local accounts (omitted from production builds):
+customer account and provides a `DEV` preset button for customer sign-in
+(storefront authentication accepts pure `CUSTOMER` accounts only; presets are
+omitted from production builds). Operator sign-in uses `http://localhost:5174/login`
+(`admin-fe`):
 
 | Role | Email | Password | Provisioning |
 | --- | --- | --- | --- |
-| `CUSTOMER`, `SUPER_ADMIN` | `admin@example.com` | `AdminPassword123!` | Created automatically on local `identity-service` startup unless `IDENTITY_BOOTSTRAP_SUPER_ADMIN_*` overrides it (disabled in `compose.production.yml`). |
+| `SUPER_ADMIN` | `admin@example.com` | `AdminPassword123!` | Created automatically on local `identity-service` startup unless `IDENTITY_BOOTSTRAP_SUPER_ADMIN_*` overrides it (disabled in `compose.production.yml`). |
 | `CUSTOMER` | `customer1@gmail.com` | `123456123456` | Register once per `postgres_data` volume through Kong. |
 
 To create `customer1@gmail.com` on a fresh local database after Kong and

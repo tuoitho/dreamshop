@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
-import { fetchCurrentUser, login as loginRequest, logoutRequest, refreshAccessToken, register as registerRequest, updateCurrentUser } from "@/lib/api"
-import { advanceSessionEpoch, clearAccessToken, getAccessToken, setAccessToken, subscribeAccessToken } from "@/lib/auth-session"
+import { toast } from "sonner"
+import { ApiClientError, fetchCurrentUser, login as loginRequest, logoutRequest, refreshAccessToken, register as registerRequest, updateCurrentUser } from "@/lib/api"
+import {
+  CUSTOMER_ONLY_ERROR_CODE,
+  CUSTOMER_ONLY_ERROR_MESSAGE,
+  advanceSessionEpoch,
+  clearAccessToken,
+  getAccessToken,
+  isCustomerOnlyRoleSet,
+  setAccessToken,
+  subscribeAccessToken,
+} from "@/lib/auth-session"
 import type { CurrentUser, LoginRequest, RegisterRequest, UpdateProfileRequest } from "@/lib/types"
 import { AuthContext, type AuthContextValue } from "./auth-context"
 
@@ -33,6 +43,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (authGenerationRef.current !== generation) return
         const currentUser = await fetchCurrentUser()
         if (authGenerationRef.current !== generation) return
+        if (!isCustomerOnlyRoleSet(currentUser.roles)) {
+          clearAccessToken()
+          setToken(null)
+          setUser(null)
+          return
+        }
         const activeToken = getAccessToken() ?? refreshedToken
         setAccessToken(activeToken)
         setToken(activeToken)
@@ -57,11 +73,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAccessToken(response.accessToken)
       const currentUser = await fetchCurrentUser()
       if (authGenerationRef.current !== generation) return
+      if (!isCustomerOnlyRoleSet(currentUser.roles)) {
+        clearAccessToken()
+        setToken(null)
+        setUser(null)
+        setReady(true)
+        await logoutRequest({ silent: true }).catch(() => undefined)
+        throw new ApiClientError(403, CUSTOMER_ONLY_ERROR_MESSAGE, CUSTOMER_ONLY_ERROR_CODE)
+      }
       const activeToken = getAccessToken() ?? response.accessToken
       setAccessToken(activeToken)
       setToken(activeToken)
       setUser(currentUser)
       setReady(true)
+      if (response.message) {
+        toast.success(response.message)
+      }
     } catch (error) {
       if (authGenerationRef.current === generation) {
         clearAccessToken()

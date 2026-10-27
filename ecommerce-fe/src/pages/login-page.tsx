@@ -5,10 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/hooks/use-auth"
+import { isCustomerOnlyRoleSet } from "@/lib/auth-session"
 
 const DEV_ACCOUNTS = [
   { label: "Customer", email: "customer1@gmail.com", password: "123456123456" },
-  { label: "Admin", email: "admin@example.com", password: "AdminPassword123!" },
 ] as const
 
 interface LoginLocationState {
@@ -28,7 +28,7 @@ function resolveDestination(state: unknown): string {
 }
 
 export default function LoginPage() {
-  const { login, ready, isAuthenticated } = useAuth()
+  const { login, user, ready, isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const isDevMode = import.meta.env.MODE === "development"
@@ -39,8 +39,9 @@ export default function LoginPage() {
 
   const destination = resolveDestination(location.state)
   const justRegistered = Boolean((location.state as LoginLocationState | null)?.registered)
+  const hasCustomerAccess = isAuthenticated && (user === null || isCustomerOnlyRoleSet(user.roles))
 
-  if (ready && isAuthenticated && !submitting) {
+  if (ready && hasCustomerAccess && !submitting) {
     return <Navigate to={destination} replace />
   }
 

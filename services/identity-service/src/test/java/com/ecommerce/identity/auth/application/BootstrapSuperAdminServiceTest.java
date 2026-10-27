@@ -44,7 +44,7 @@ class BootstrapSuperAdminServiceTest {
     }
 
     @Test
-    void createsAndPromotesMissingBootstrapUser() {
+    void createsAndPromotesMissingBootstrapUserWithoutLeavingCustomerRole() {
         IdentityBootstrapSuperAdminProperties properties = properties();
         when(users.existsByNormalizedEmail("root@example.test")).thenReturn(false);
         when(registration.register(any(RegisterCommand.class)))
@@ -56,6 +56,7 @@ class BootstrapSuperAdminServiceTest {
         verify(registration).register(new RegisterCommand(
                 "root@example.test", "SecurePassword123!", "Root Admin"));
         verify(rbac).assignRole(USER_ID, "SUPER_ADMIN", NOW);
+        verify(rbac).revokeRole(USER_ID, "CUSTOMER");
     }
 
     @Test

@@ -65,3 +65,10 @@ export function runSingleFlightRefresh(refresh: () => Promise<string>): Promise<
   }
   return refreshInFlight
 }
+
+export const CUSTOMER_ONLY_ERROR_CODE = "CUSTOMER_ROLE_REQUIRED"
+export const CUSTOMER_ONLY_ERROR_MESSAGE = "Trang mua sắm chỉ dành cho tài khoản khách hàng."
+
+export function isCustomerOnlyRoleSet(roles: readonly string[]): boolean {
+  return roles.length === 1 && roles[0] === "CUSTOMER"
+}

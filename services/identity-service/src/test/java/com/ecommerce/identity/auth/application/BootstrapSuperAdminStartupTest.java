@@ -54,20 +54,21 @@ class BootstrapSuperAdminStartupTest extends PostgresIntegrationTestSupport {
     TransactionOperations transactions;
 
     @Test
-    void seedsSuperAdminDuringApplicationStartup() {
+    void seedsSuperAdminDuringApplicationStartupWithoutCustomerRole() {
         UUID userId = jdbc.sql("select id from identity_users where normalized_email = :email")
                 .param("email", "bootstrap-root@example.test")
                 .query(UUID.class)
                 .single();
 
         assertThat(jdbc.sql("""
-                select count(*)
+                select item_name
                 from auth_assignments
-                where user_id = :userId and item_name = 'SUPER_ADMIN'
+                where user_id = :userId
+                order by item_name
                 """)
                 .param("userId", userId)
-                .query(Long.class)
-                .single()).isEqualTo(1L);
+                .query(String.class)
+                .list()).containsExactly("SUPER_ADMIN");
     }
 
     @Test

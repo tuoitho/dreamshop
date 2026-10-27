@@ -3,6 +3,7 @@ import {
   advanceSessionEpoch,
   clearAccessToken,
   getAccessToken,
+  isCustomerOnlyRoleSet,
   runSingleFlightRefresh,
   setAccessToken,
   subscribeAccessToken,
@@ -56,5 +57,14 @@ describe("auth session", () => {
     resolveRefresh("stale-jwt")
 
     await expect(inFlight).rejects.toThrow(/session changed/i)
+  })
+
+  it("accepts only pure CUSTOMER role sets for storefront access", () => {
+    expect(isCustomerOnlyRoleSet(["CUSTOMER"])).toBe(true)
+    expect(isCustomerOnlyRoleSet([])).toBe(false)
+    expect(isCustomerOnlyRoleSet(["ADMIN"])).toBe(false)
+    expect(isCustomerOnlyRoleSet(["SUPER_ADMIN"])).toBe(false)
+    expect(isCustomerOnlyRoleSet(["CUSTOMER", "SUPER_ADMIN"])).toBe(false)
+    expect(isCustomerOnlyRoleSet(["ADMIN", "CUSTOMER"])).toBe(false)
   })
 })

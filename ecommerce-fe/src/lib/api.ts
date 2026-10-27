@@ -22,11 +22,17 @@ function responseMessage(data: unknown): string | undefined {
 }
 
 function shouldSuppressMutationSuccessToast(response: {
-  config?: { method?: string; url?: string; data?: unknown }
+  config?: { method?: string; url?: string; data?: unknown; _silentToast?: boolean }
   data?: unknown
 }): boolean {
+  if (response.config?._silentToast) {
+    return true
+  }
   const method = response.config?.method?.toLowerCase()
   const url = response.config?.url ?? ""
+  if (method === "post" && url.endsWith("/auth/login")) {
+    return true
+  }
   if (method !== "post" || !url.endsWith("/cart/items")) {
     return false
   }
@@ -77,6 +83,7 @@ export async function refreshAccessToken(): Promise<string> {
 type SessionAwareRequestConfig = InternalAxiosRequestConfig & {
   _retried?: boolean
   _sessionEpoch?: number
+  _silentToast?: boolean
 }
 
 http.interceptors.request.use((config) => {
@@ -105,7 +112,7 @@ http.interceptors.response.use((response) => {
     config._retried ||
     requestEpoch !== getSessionEpoch()
   ) {
-    if (isMutation(config)) {
+    if (isMutation(config) && !config?._silentToast) {
       toast.error(responseMessage(error.response?.data) ?? error.message)
     }
     return Promise.reject(error)
@@ -122,7 +129,7 @@ http.interceptors.response.use((response) => {
     if (getSessionEpoch() === requestEpoch) {
       clearAccessToken()
     }
-    if (isMutation(config)) {
+    if (isMutation(config) && !config?._silentToast) {
       toast.error(responseMessage(error.response?.data) ?? error.message)
     }
     return Promise.reject(error)
@@ -201,10 +208,11 @@ export async function getProduct(id: string, signal?: AbortSignal): Promise<Prod
   }
 }
 
-export async function login(payload: LoginRequest): Promise<LoginResponse> {
+export async function login(payload: LoginRequest): Promise<LoginResponse & { message?: string }> {
   try {
     const { data } = await http.post<ApiResponse<LoginResponse>>("/auth/login", payload)
-    return data.data
+    const message = responseMessage(data)
+    return message !== undefined ? { ...data.data, message } : data.data
   } catch (error) {
     throw toClientError(error)
   }
@@ -237,8 +245,12 @@ export async function updateCurrentUser(payload: UpdateProfileRequest): Promise<
   }
 }
 
-export async function logoutRequest(): Promise<void> {
+export async function logoutRequest(options?: { silent?: boolean }): Promise<void> {
   try {
+    if (options?.silent) {
+      await http.post("/auth/logout", undefined, { _silentToast: true } as SessionAwareRequestConfig)
+      return
+    }
     await http.post("/auth/logout")
   } catch (error) {
     throw toClientError(error)
