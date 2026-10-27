@@ -15,7 +15,8 @@ This design introduces a standalone administrative web application (`admin-fe/`)
 
 ### Goals
 
-- Deliver an independent frontend surface at `admin-fe/` (local dev port `5174`, containerized Nginx on port `8080` routed under `/admin` in production Compose) covering 5 operational modules: **Overview KPIs**, **Products CRUD + Soft-Delete/Restore**, **Inventory Stock Management**, **Users Administration**, and **RBAC Roles/Permissions Hierarchy**.
+- Deliver an independent frontend surface at `admin-fe/` (local dev port `5174`, containerized Nginx on port `8080` routed under `/admin` in production Compose) covering 5 operational modules: **Overview KPIs**, **Products CRUD + Soft-Delete/Restore (with direct MinIO image/video uploads)**, **Inventory Stock Management**, **Users Administration**, and **RBAC Roles/Permissions Hierarchy**.
+- Provision MinIO S3-compatible object storage (`product-media` bucket) in Docker Compose, issue short-lived Presigned `PUT` URLs via `CatalogService.CreateProductMediaUpload` (`POST /api/v1/admin/products/media/presign`) for images (`jpeg/png/webp/avif <= 5 MB`) and short product videos (`mp4/webm <= 30 MB`), track asset metadata and `PENDING -> ATTACHED -> ORPHANED` lifecycle in `catalog_db.product_media_assets` with a 24-hour grace-period background sweeper (`ADR-012`), and render product videos alongside images in `ecommerce-fe` `ProductDetailPage`.
 - Design the visual system and screen prototypes in OpenDesign using the local Antigravity runtime prior to implementing `admin-fe/` components, pulling the generated artifact bundle via OpenDesign to anchor layout, palette, typography, and component craft.
 - Seed granular commerce administrative permissions (`product.view`, `product.create`, `product.update`, `inventory.view`, `inventory.update`) in `identity-service` Flyway migrations alongside existing `product.delete`, `user.*`, and `rbac.*` permissions, and expose `GET /api/v1/users/me/permissions` so `admin-fe/` adapts navigation and controls to effective RBAC permissions (including custom operator roles).
 - Extend `CatalogService` and `InventoryService` with additive protobuf RPCs and enforce permissions via `Identity` private authorization gRPC (`127.0.0.1:50054` locally, `identity-service:50054` in containers, `500ms` timeout, failing closed with `503` on outage and `403` on denial).
@@ -25,13 +26,15 @@ This design introduces a standalone administrative web application (`admin-fe/`)
 ### Non-Goals
 
 - Order management workflows: `order-service` is currently a skeleton without persisted order domain state and remains out of scope until order lifecycle capabilities are implemented.
-- Binary image/file upload storage (S3/MinIO): product images continue to use validated URLs (consistent with `catalog_db.product_images` and `ecommerce-fe`), with live URL thumbnail previews in the product editor.
+- Server-side video transcoding / adaptive HLS streaming: short product showcase videos (`mp4`/`webm` up to `30 MB`) play natively via HTML5 `<video>` directly from MinIO object URLs.
 - Inventory reservations or RabbitMQ asynchronous workflows: stock mutations operate atomically on `inventory_db.stock` while respecting existing `reserved` quantities (`quantity >= reserved`).
 - Public self-registration inside `admin-fe/`: administrative operators authenticate with existing accounts provisioned via bootstrap `SUPER_ADMIN` or assigned roles by an administrator.
 
 ### Anti-Goals
 
 - Importing backend code, protobuf source, or `ecommerce-fe/` source across project directories (`admin-fe/` owns its UI primitives, session adapter, and API types independently).
+- Streaming binary image/video uploads through Kong -> `bff-service` -> `catalog-service` gRPC frames or deleting S3 objects synchronously inside PostgreSQL transactions (`ADR-012`).
+- Mixing video URLs into `product.images` (which `ProductCard` and `cart-service` assume are raster/vector images); videos live in additive `product.videos` / `product_videos`.
 - Hardcoding `user.roles.includes("ADMIN")` as the sole authorization gate in React or BFF; Identity RBAC permissions remain authoritative on every backend mutation/read and drive UI capability visibility via effective permissions.
 - Mutating both `catalog_db` and `inventory_db` inside one synchronous BFF HTTP mutation without distributed transaction guarantees.
 
@@ -96,9 +99,11 @@ rpc ListInventoryCatalogItems(ListInventoryCatalogItemsRequest) returns (ListInv
 rpc GetAdminProduct(GetAdminProductRequest) returns (GetProductResponse);
 rpc CreateProduct(CreateProductRequest) returns (GetProductResponse);
 rpc UpdateProduct(UpdateProductRequest) returns (GetProductResponse);
+rpc CreateProductMediaUpload(CreateProductMediaUploadRequest) returns (CreateProductMediaUploadResponse);
 ```
 
-- `AdminProductSummary`: mirrors `ProductSummary` fields `1..16` plus `bool deleted = 17;`, `int32 variant_count = 18;`, `string created_at = 19;`, `string updated_at = 20;`.
+- `GetProductResponse`: add additive field `repeated string videos = 22;`.
+- `AdminProductSummary`: mirrors `ProductSummary` fields `1..16` plus `bool deleted = 17;`, `int32 variant_count = 18;`, `string created_at = 19;`, `string updated_at = 20;`, `int32 video_count = 21;`.
 - `CategoryMetric`: `string category_id = 1;`, `string category_name = 2;`, `int64 active_product_count = 3;`.
 - `InventoryCatalogItem`: lightweight catalog projection (`string id = 1;`, `string name = 2;`, `string brand = 3;`, `string category_id = 4;`, `string category_name = 5;`, `string image_url = 6;`, `string emoji = 7;`, `repeated uint32 image_hue = 8;`, `bool deleted = 9;`).
 - `ListAdminProductsRequest`:
@@ -120,6 +125,18 @@ rpc UpdateProduct(UpdateProductRequest) returns (GetProductResponse);
   - `repeated CategoryMetric categories = 8;` *(Builder call: returns distinct category metrics across active products for Overview charts and filter dropdowns)*
 - `ListInventoryCatalogItemsRequest { string user_id = 1; string query = 2; string category_id = 3; bool include_deleted = 4; }` / `ListInventoryCatalogItemsResponse { repeated InventoryCatalogItem items = 1; }` *(Builder call: authorizes against `inventory.view` so warehouse-only operators without `product.view` can inspect/restock both active and soft-deleted catalog items without hitting `SearchProducts`'s 50-item active-only cap)*
 - `GetAdminProductRequest { string id = 1; string user_id = 2; }`
+- `CreateProductMediaUploadRequest`:
+  - `string user_id = 1;`
+  - `string filename = 2;`
+  - `string content_type = 3;`
+  - `int64 size_bytes = 4;`
+- `CreateProductMediaUploadResponse`:
+  - `string upload_id = 1;`
+  - `string media_type = 2;` (`"IMAGE"` | `"VIDEO"`)
+  - `string upload_url = 3;`
+  - `string public_url = 4;`
+  - `string object_key = 5;`
+  - `int32 expires_in_seconds = 6;`
 - `CreateProductRequest` / `UpdateProductRequest`:
   - `string user_id = 1;`
   - `string id = 2;` (optional custom slug on create; required target ID on update)
@@ -139,6 +156,7 @@ rpc UpdateProduct(UpdateProductRequest) returns (GetProductResponse);
   - `repeated uint32 image_hue = 16;`
   - `repeated ProductVariant variants = 17;`
   - `repeated string details = 18;`
+  - `repeated string videos = 19;`
 
 #### `contracts/proto/inventory/v1/inventory.proto`
 
@@ -164,21 +182,35 @@ rpc AdjustStock(AdjustStockRequest) returns (AdjustStockResponse);
 - `SetStockRequest { string user_id = 1; string product_id = 2; int32 quantity = 3; }` / `SetStockResponse { StockItem stock = 1; }`
 - `AdjustStockRequest { string user_id = 1; string product_id = 2; int32 delta = 3; }` / `AdjustStockResponse { StockItem stock = 1; }`
 
-### 3. `catalog-service` Extensions
+### 3. `catalog-service` Extensions (`ADR-012`)
 
-- **Migration (`internal/store/migrations/000003_add_products_updated_at.up.sql`):**
+- **Migration (`internal/store/migrations/000003_add_admin_catalog_and_media.up.sql`):**
   - `ALTER TABLE products ADD COLUMN updated_at timestamptz NOT NULL DEFAULT now();`
+  - `CREATE TABLE product_videos (product_id text REFERENCES products(id) ON DELETE CASCADE, url text NOT NULL, position int NOT NULL, PRIMARY KEY (product_id, position));`
+  - `CREATE TABLE product_media_assets`:
+    - `id uuid PRIMARY KEY`, `bucket text NOT NULL`, `object_key text NOT NULL UNIQUE`, `public_url text NOT NULL UNIQUE`, `media_type text NOT NULL CHECK (media_type IN ('IMAGE', 'VIDEO'))`, `original_filename text NOT NULL DEFAULT ''`, `content_type text NOT NULL`, `size_bytes bigint NOT NULL CHECK (size_bytes > 0)`, `status text NOT NULL CHECK (status IN ('PENDING', 'ATTACHED', 'ORPHANED'))`, `uploaded_by text NOT NULL`, `product_id text REFERENCES products(id) ON DELETE SET NULL`, `created_at timestamptz NOT NULL DEFAULT now()`, `attached_at timestamptz`, `expires_at timestamptz`.
+    - Partial indexes on `(expires_at) WHERE status IN ('PENDING', 'ORPHANED')` and `(product_id) WHERE product_id IS NOT NULL`.
+- **MinIO Presigned Upload & Orphan Cleanup (`internal/media/`, `cmd/server/`):**
+  - Configure `MINIO_ENDPOINT` (`localhost:9000` locally, `minio:9000` in containers), `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET` (`product-media`), `MINIO_USE_SSL` (`false`), `MINIO_PUBLIC_BASE_URL` (`http://localhost:9000/product-media` locally, `/product-media` in production Compose), `MEDIA_PRESIGN_TTL` (`5m`), `MEDIA_ORPHAN_GRACE` (`24h`), and `MEDIA_CLEANUP_INTERVAL` (`15m`).
+  - On startup (when MinIO credentials are configured), ensure bucket `product-media` exists with anonymous read-only policy (`s3:GetObject` on `arn:aws:s3:::product-media/*`).
+  - `CreateProductMediaUpload`:
+    - Checks `product.create` OR `product.update` via Identity private authorization gRPC.
+    - Whitelists `image/jpeg`, `image/png`, `image/webp`, `image/avif` (`media_type = 'IMAGE'`, `1 <= size_bytes <= 5_242_880`) and `video/mp4`, `video/webm` (`media_type = 'VIDEO'`, `1 <= size_bytes <= 31_457_280`).
+    - Inserts `product_media_assets` row with `status = 'PENDING'` and `expires_at = now() + 24h`, signs a 5-minute S3 `PUT` URL (rewriting scheme+host to relative `/product-media/...` when `MINIO_PUBLIC_BASE_URL` is path-relative so Kong proxies `Host: minio:9000` transparently), and returns `{ upload_id, media_type, upload_url, public_url, object_key, expires_in_seconds }`.
+  - Background orphan sweeper ticks every `MEDIA_CLEANUP_INTERVAL`, selects expired `PENDING` / `ORPHANED` rows (`FOR UPDATE SKIP LOCKED`, batch `50`), invokes idempotent MinIO `RemoveObject`, and deletes the metadata row outside product write transactions.
 - **Authorization (`internal/grpc/`):**
   - `ListAdminProducts` & `GetAdminProduct` check `product.view`.
   - `ListInventoryCatalogItems` checks `inventory.view`.
   - `CreateProduct` checks `product.create`.
   - `UpdateProduct` checks `product.update`.
-  - `SoftDeleteProduct` continues checking `product.delete` (and updates `updated_at = now()`).
+  - `CreateProductMediaUpload` checks `product.create` or `product.update` (single batch permission check via `AuthorizationService`).
+  - `SoftDeleteProduct` continues checking `product.delete` (and updates `updated_at = now()`, preserving `ATTACHED` media status so restored products retain all images/videos).
   - Unauthenticated/missing `user_id` -> `codes.InvalidArgument`; permission denied -> `codes.PermissionDenied` (`ErrorInfo{Reason: "PRODUCT_PERMISSION_DENIED", Domain: "ecommerce.catalog.v1"}`); Identity gRPC outage -> `codes.Unavailable` (`ErrorInfo{Reason: "AUTHORIZATION_UNAVAILABLE", Domain: "ecommerce.catalog.v1"}`).
 - **Domain Validation & Transactional Store (`internal/domain/`, `internal/store/`):**
-  - `name` (`1..200` chars), `brand` (`1..100`), `category_id` (`1..64`), `category_name` (`1..100`), `price > 0` (`currency = "VND"`), `original_price == 0 || original_price >= price`, at least 1 `ProductVariant` with non-empty `label` (`<= 80` chars) and optional valid hex color (`^#[0-9a-fA-F]{6}$` or empty), max `10` images (`http://` or `https://` URLs), max `20` variants, max `20` details. *(Builder call: Product Drawer provides the 8 canonical storefront categories—`dien-thoai`, `laptop`, `tai-nghe`, `dong-ho`, `thoi-trang`, `gia-dung`, `lam-dep`, `sach`—as primary presets while allowing custom `categoryId`/`categoryName` and surfacing all distinct database categories dynamically via `ListAdminProductsResponse.categories`.)*
-  - On `CreateProduct`: if `id` is empty, generate a URL-safe slug from `name` + short random suffix; if `id` is provided, validate `^[a-z0-9][a-z0-9-]{1,63}$`. Primary-key collision returns `domain.ErrProductExists` -> `codes.AlreadyExists` (`PRODUCT_ID_EXISTS`).
-  - On `UpdateProduct`: atomically update `products` (`updated_at = now()`) and replace `product_images`, `product_variants`, and `product_details` inside one transaction. Missing `id` returns `domain.ErrProductNotFound` -> `codes.NotFound`.
+  - `name` (`1..200` chars), `brand` (`1..100`), `category_id` (`1..64`), `category_name` (`1..100`), `price > 0` (`currency = "VND"`), `original_price == 0 || original_price >= price`, at least 1 `ProductVariant` with non-empty `label` (`<= 80` chars) and optional valid hex color (`^#[0-9a-fA-F]{6}$` or empty), max `10` images and max `3` videos (`http://`, `https://`, or `/product-media/` URLs), max `20` variants, max `20` details. *(Builder call: Product Drawer provides the 8 canonical storefront categories—`dien-thoai`, `laptop`, `tai-nghe`, `dong-ho`, `thoi-trang`, `gia-dung`, `lam-dep`, `sach`—as primary presets while allowing custom `categoryId`/`categoryName` and surfacing all distinct database categories dynamically via `ListAdminProductsResponse.categories`.)*
+  - On `CreateProduct`: if `id` is empty, generate a URL-safe slug from `name` + short random suffix; if `id` is provided, validate `^[a-z0-9][a-z0-9-]{1,63}$`. Primary-key collision returns `domain.ErrProductExists` -> `codes.AlreadyExists` (`PRODUCT_ID_EXISTS`). Within the same SQL transaction, inserts `product_images` and `product_videos`, rejects any `product_media_assets` URL already `ATTACHED` to another `product_id` (`MEDIA_ALREADY_ATTACHED`), and transitions matching `PENDING`/`ORPHANED` rows to `ATTACHED` (`product_id = $1, expires_at = NULL`).
+  - On `UpdateProduct`: atomically updates `products` (`updated_at = now()`), replaces `product_images`, `product_videos`, `product_variants`, and `product_details`, transitions removed `product_media_assets` rows for `$product_id` from `ATTACHED` -> `ORPHANED` (`product_id = NULL, expires_at = now() + 24h`), and transitions kept/newly-added `product_media_assets` rows to `ATTACHED` (`product_id = $1, expires_at = NULL`). Missing `id` returns `domain.ErrProductNotFound` -> `codes.NotFound`.
+  - `GetProduct` & `GetAdminProduct` load `product_videos` ordered by `position` alongside `product_images`.
   - `ListAdminProducts`: returns paginated `AdminProductSummary` matching `query` (`name`, `brand`, `category_name`, or `id` `ILIKE`), `category_id`, and `status` (`all` / `active` / `deleted`), alongside global `active_count`, `deleted_count`, and `categories` metrics.
   - `ListInventoryCatalogItems`: returns lightweight projections (`id`, `name`, `brand`, `category_id`, `category_name`, primary `image_url`, `emoji`, `image_hue`, `deleted`) matching `query`, `category_id`, and `include_deleted` (capped at `1000` rows ordered by `deleted_at IS NOT NULL ASC, updated_at DESC, id ASC`).
 
@@ -212,16 +244,18 @@ rpc AdjustStock(AdjustStockRequest) returns (AdjustStockResponse);
 
 #### BFF HTTP Routes (`services/bff-service/internal/http/`)
 
-All admin handlers use `correlateTrace(RequireCaller(...))`:
+All admin handlers use `correlateTrace(RequireCaller(...))` (and `GET /api/v1/storefront/products/{id}` maps additive `videos: []string` on `productDetail`):
 
 - **Products (`/api/v1/admin/products`):**
+  - `POST /api/v1/admin/products/media/presign` (body `{ "filename", "contentType", "sizeBytes" }`):
+    - Calls `CatalogService.CreateProductMediaUpload` -> `200 OK`, message `"Upload URL generated."`, returning `{ uploadId, mediaType, uploadUrl, publicUrl, objectKey, expiresInSeconds }`.
   - `GET /api/v1/admin/products` (`q`, `categoryId`, `status`, `sort`, `page`, `pageSize`):
     - Calls `CatalogService.ListAdminProducts`.
     - Calls `InventoryService.BatchGetStock` for the page's product IDs. If Inventory returns `PermissionDenied` (operator has `product.view` without `inventory.view`) or transient error, still returns `200 OK` with `stockDegraded: true` and `stock: null` on each item instead of failing product listing.
-    - Returns `{ items, page, pageSize, totalItems, totalPages, activeCount, deletedCount, stockDegraded }`.
-  - `GET /api/v1/admin/products/{id}`: calls `CatalogService.GetAdminProduct` + optional `InventoryService.GetStock`.
-  - `POST /api/v1/admin/products`: validates JSON payload, calls `CatalogService.CreateProduct` -> `201 Created`, message `"Product created."`.
-  - `PUT /api/v1/admin/products/{id}`: validates JSON payload, calls `CatalogService.UpdateProduct` -> `200 OK`, message `"Product updated."`.
+    - Returns `{ items, page, pageSize, totalItems, totalPages, activeCount, deletedCount, categories, stockDegraded }`.
+  - `GET /api/v1/admin/products/{id}`: calls `CatalogService.GetAdminProduct` + optional `InventoryService.GetStock` (includes both `images` and `videos`).
+  - `POST /api/v1/admin/products`: validates JSON payload (`images` + `videos`), calls `CatalogService.CreateProduct` -> `201 Created`, message `"Product created."`.
+  - `PUT /api/v1/admin/products/{id}`: validates JSON payload (`images` + `videos`), calls `CatalogService.UpdateProduct` -> `200 OK`, message `"Product updated."`.
   - `POST /api/v1/admin/products/{id}/delete`: existing soft-delete/restore endpoint preserved (`200 OK`, message `"Product availability updated."`).
 - **Inventory (`/api/v1/admin/inventory`):**
   - `GET /api/v1/admin/inventory` (`q`, `categoryId`, `stockStatus` in `all | in_stock | low_stock | out_of_stock`, `includeDeleted` default `true`, `page`, `pageSize`):
@@ -232,32 +266,36 @@ All admin handlers use `correlateTrace(RequireCaller(...))`:
   - `POST /api/v1/admin/inventory/{productId}/adjust` (body `{ "delta": <int> }`):
     - Verifies product exists via `CatalogService.GetProduct`, then calls `InventoryService.AdjustStock` -> `200 OK`, message `"Stock adjusted."`.
 - **Error Mapping:**
-  - `400 INVALID_REQUEST` (validation / `InvalidArgument` with structured `errors` map when applicable)
+  - `400 INVALID_REQUEST` (validation / `InvalidArgument` with structured `errors` map when applicable, including unsupported MIME or oversized media)
   - `401 UNAUTHORIZED` (missing caller context)
   - `403 FORBIDDEN` (`PermissionDenied`)
   - `404 PRODUCT_NOT_FOUND` (`NotFound`)
-  - `409 PRODUCT_ID_EXISTS` (`AlreadyExists`) / `409 STOCK_BELOW_RESERVED` (`FailedPrecondition`)
-  - `503 AUTHORIZATION_SERVICE_UNAVAILABLE` (`AUTHORIZATION_UNAVAILABLE`)
+  - `409 PRODUCT_ID_EXISTS` (`AlreadyExists`) / `409 MEDIA_ALREADY_ATTACHED` (`FailedPrecondition`) / `409 STOCK_BELOW_RESERVED` (`FailedPrecondition`)
+  - `503 AUTHORIZATION_SERVICE_UNAVAILABLE` (`AUTHORIZATION_UNAVAILABLE`) / `503 MEDIA_STORAGE_UNAVAILABLE` (`MEDIA_STORAGE_UNAVAILABLE`)
   - `502 CATALOG_UNAVAILABLE` / `502 INVENTORY_UNAVAILABLE`
 
-#### Kong & Production Compose (`deployments/`)
+#### MinIO, Kong & Production Compose (`deployments/`)
 
+- `deployments/docker/compose.foundation.yml`:
+  - Add `minio` (`minio/minio:RELEASE.2025-02-28T09-55-16Z`, API `9000:9000` with `MINIO_API_CORS_ALLOW_ORIGIN: "http://localhost:5173,http://localhost:5174"`, Console `127.0.0.1:9001:9001`, healthcheck `/minio/health/live`, named volume `minio_data`).
 - `deployments/kong/kong.yaml`:
   - Add `"http://localhost:5174"` to global `cors.config.origins`.
   - Add protected route `admin-inventory-api` (`paths: ["/api/v1/admin/inventory"]`, `strip_path: false`, `caller-context`) on `bff-service`.
 - `deployments/kong/kong-production.yaml`:
   - Expand `admin-products-api` `methods` to `["GET", "POST", "PUT", "PATCH", "DELETE"]`.
   - Add `admin-inventory-api` (`paths: ["/api/v1/admin/inventory"]`, `methods: ["GET", "POST", "PUT", "PATCH"]`, `strip_path: false`, `caller-context`).
+  - Add `minio` service (`http://minio:9000`) with route `product-media-storage` (`paths: ["/product-media"]`, `methods: ["GET", "HEAD", "PUT"]`, `strip_path: false`, `preserve_host: false`, `request-transformer` stripping `X-User-Id` and `X-User-Roles`).
   - Add `admin-fe` service (`http://admin-fe:8080`) with route `admin-spa` (`paths: ["/admin"]`, `methods: ["GET", "HEAD"]`, `strip_path: false`, `request-transformer` stripping `X-User-Id` and `X-User-Roles`).
-- `deployments/docker/compose.production.yml`:
+- `deployments/docker/compose.production.yml` & `.env.production.example`:
+  - Add internal `minio` service (no host ports published, `minio_data` volume, fail-fast `${MINIO_ROOT_USER:?...}` & `${MINIO_ROOT_PASSWORD:?...}`) and pass MinIO env vars (`MINIO_ENDPOINT=minio:9000`, `MINIO_PUBLIC_BASE_URL=/product-media`) to `catalog-service`.
   - Wire `inventory-service` to `identity-service:50054` (`depends_on` + env vars).
-  - Add `admin-fe` container service (built with `VITE_BASE_PATH=/admin/` and `VITE_API_BASE_URL=/api/v1`) and add `admin-fe` to `kong.depends_on`.
+  - Add `admin-fe` container service (built with `VITE_BASE_PATH=/admin/` and `VITE_API_BASE_URL=/api/v1`) and add `admin-fe` + `minio` to `kong.depends_on`.
 
-### 6. OpenDesign Workflow & Standalone `admin-fe/` Application
+### 6. OpenDesign Workflow, Standalone `admin-fe/`, & Storefront Video Playback
 
 #### Step A: OpenDesign Visual Prototype (Local Antigravity Runtime)
 - Collect/confirm design brief and create a dedicated OpenDesign project (`"S-Shop Admin Control Center"`).
-- Commission generation via OpenDesign's local Antigravity runtime for an executive commerce operations console (distinctive industrial-precision editorial aesthetic, Vietnamese UI copy, crisp data density, clear status badges, KPI cards, product drawer, stock adjustment modal, user & RBAC hierarchy views).
+- Commission generation via OpenDesign's local Antigravity runtime for an executive commerce operations console (distinctive industrial-precision editorial aesthetic, Vietnamese UI copy, crisp data density, clear status badges, KPI cards, product drawer with drag-and-drop media uploader, stock adjustment modal, user & RBAC hierarchy views).
 - Pull generated design artifacts via `get_artifact()` and translate tokens (palette, type scale, spacing, radii, component states) into `admin-fe/src/index.css` and layout/UI components.
 
 #### Step B: `admin-fe/` Architecture & Modules
@@ -268,10 +306,14 @@ All admin handlers use `correlateTrace(RequireCaller(...))`:
 - **Screens & Workflows (`src/pages/`):**
   1. **Login (`/login`):** Focused operator sign-in with field validation, server error handling (`INVALID_CREDENTIALS`, `ACCOUNT_DISABLED`), and redirect restoration.
   2. **Overview (`/`)**: Real-time KPI cards (Active/Hidden Products, Stock Health breakdown, Total/Active Users, RBAC Roles & Permissions), Recharts stock/category breakdown, and Low/Out-of-Stock quick-action watchlist. Each widget renders conditionally based on `can(...)` so partial-permission operators never hit `403` noise.
-  3. **Products (`/products`):** TanStack Table with search, category filter, status tabs (`Tất cả`, `Đang bán`, `Đã ẩn`), sort selector, stock indicator, Soft-Delete / Restore action, and Create/Edit Product Drawer (`react-hook-form` + `zod`) supporting dynamic image URLs with preview, color/label variants, specification details, pricing validation (`originalPrice >= price`), and optional 2-step initial stock setup on creation.
+  3. **Products (`/products`):** TanStack Table with search, category filter, status tabs (`Tất cả`, `Đang bán`, `Đã ẩn`), sort selector, stock indicator, Soft-Delete / Restore action, and Create/Edit Product Drawer (`react-hook-form` + `zod`) supporting direct drag-and-drop MinIO presigned uploads for **Images** (`jpeg/png/webp/avif <= 5 MB`, up to 10) and **Videos** (`mp4/webm <= 30 MB`, up to 3) via native `fetch` `PUT` (without leaking bearer auth headers to S3), live thumbnail/video previews, UI-only `×` removal prior to save, color/label variants, specification details, pricing validation (`originalPrice >= price`), and optional 2-step initial stock setup on creation.
   4. **Inventory (`/inventory`):** Enriched stock table with `Tất cả` / `Còn hàng` / `Sắp hết (1-5)` / `Hết hàng (0)` tabs, search & category filters, KPI summary strip (`Tổng tồn vật lý`, `Đang giữ chỗ`, `Khả dụng`), and Stock Adjustment Dialog supporting both **Đặt tồn kho thực tế** (`SetStock`) and **Nhập / Xuất tương đối** (`AdjustStock` `+/-`) with live preview and `STOCK_BELOW_RESERVED` conflict feedback.
   5. **Users (`/users`):** Server-paginated user directory (`/admin/users`), search by email/name, status filter/badges (`ACTIVE` / `DISABLED`), User Detail Sheet with status toggle (`PATCH /admin/users/{id}/status`) and role assignment/revocation (`PUT` / `DELETE /admin/users/{id}/roles/{role}`) with clear feedback on `SUPER_ADMIN` / self-lock invariants.
-  6. **RBAC (`/rbac`):** Role & Permission catalog (`/admin/rbac/items`), Create/Edit/Delete custom items (with `systemItem` lock badges preventing rename/delete of built-in items), and interactive Hierarchy Manager (`PUT` / `DELETE /admin/rbac/items/{parent}/children/{child}`) showing direct vs. inherited permissions and surfacing cycle-detection conflicts clearly.
+  6. **RBAC (`/rbac`):** Role & read-only Permission catalog (`/admin/rbac/items`), Create/Edit/Delete custom `ROLE` items (`PERMISSION` definitions are fixed via Flyway migrations and protected from runtime creation/mutation; `systemItem` lock badges prevent rename/delete of built-in roles), and interactive Hierarchy Manager (`PUT` / `DELETE /admin/rbac/items/{parent}/children/{child}` for `ROLE -> ROLE` and `ROLE -> PERMISSION` edges) showing direct vs. inherited permissions and surfacing cycle-detection conflicts clearly.
+
+#### Step C: Storefront Video Gallery (`ecommerce-fe/`)
+- Extend `ProductDetail` in `ecommerce-fe/src/lib/types.ts` with optional `videos?: string[]`.
+- Update `ecommerce-fe/src/pages/product-detail-page.tsx` gallery to combine `images` and `videos`, rendering `<img />` for image items and `<video controls playsInline preload="metadata" />` (with play-badge thumbnails in the gallery selector) for video items while keeping `ProductCard` bound strictly to `images[0]`.
 
 ## What Is Left to the Builder
 

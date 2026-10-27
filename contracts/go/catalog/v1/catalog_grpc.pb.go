@@ -19,9 +19,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CatalogService_GetProduct_FullMethodName        = "/ecommerce.catalog.v1.CatalogService/GetProduct"
-	CatalogService_SearchProducts_FullMethodName    = "/ecommerce.catalog.v1.CatalogService/SearchProducts"
-	CatalogService_SoftDeleteProduct_FullMethodName = "/ecommerce.catalog.v1.CatalogService/SoftDeleteProduct"
+	CatalogService_GetProduct_FullMethodName                = "/ecommerce.catalog.v1.CatalogService/GetProduct"
+	CatalogService_SearchProducts_FullMethodName            = "/ecommerce.catalog.v1.CatalogService/SearchProducts"
+	CatalogService_SoftDeleteProduct_FullMethodName         = "/ecommerce.catalog.v1.CatalogService/SoftDeleteProduct"
+	CatalogService_ListAdminProducts_FullMethodName         = "/ecommerce.catalog.v1.CatalogService/ListAdminProducts"
+	CatalogService_ListInventoryCatalogItems_FullMethodName = "/ecommerce.catalog.v1.CatalogService/ListInventoryCatalogItems"
+	CatalogService_GetAdminProduct_FullMethodName           = "/ecommerce.catalog.v1.CatalogService/GetAdminProduct"
+	CatalogService_CreateProduct_FullMethodName             = "/ecommerce.catalog.v1.CatalogService/CreateProduct"
+	CatalogService_UpdateProduct_FullMethodName             = "/ecommerce.catalog.v1.CatalogService/UpdateProduct"
+	CatalogService_CreateProductMediaUpload_FullMethodName  = "/ecommerce.catalog.v1.CatalogService/CreateProductMediaUpload"
 )
 
 // CatalogServiceClient is the client API for CatalogService service.
@@ -31,6 +37,12 @@ type CatalogServiceClient interface {
 	GetProduct(ctx context.Context, in *GetProductRequest, opts ...grpc.CallOption) (*GetProductResponse, error)
 	SearchProducts(ctx context.Context, in *SearchProductsRequest, opts ...grpc.CallOption) (*SearchProductsResponse, error)
 	SoftDeleteProduct(ctx context.Context, in *SoftDeleteProductRequest, opts ...grpc.CallOption) (*SoftDeleteProductResponse, error)
+	ListAdminProducts(ctx context.Context, in *ListAdminProductsRequest, opts ...grpc.CallOption) (*ListAdminProductsResponse, error)
+	ListInventoryCatalogItems(ctx context.Context, in *ListInventoryCatalogItemsRequest, opts ...grpc.CallOption) (*ListInventoryCatalogItemsResponse, error)
+	GetAdminProduct(ctx context.Context, in *GetAdminProductRequest, opts ...grpc.CallOption) (*GetAdminProductResponse, error)
+	CreateProduct(ctx context.Context, in *CreateProductRequest, opts ...grpc.CallOption) (*CreateProductResponse, error)
+	UpdateProduct(ctx context.Context, in *UpdateProductRequest, opts ...grpc.CallOption) (*UpdateProductResponse, error)
+	CreateProductMediaUpload(ctx context.Context, in *CreateProductMediaUploadRequest, opts ...grpc.CallOption) (*CreateProductMediaUploadResponse, error)
 }
 
 type catalogServiceClient struct {
@@ -71,6 +83,66 @@ func (c *catalogServiceClient) SoftDeleteProduct(ctx context.Context, in *SoftDe
 	return out, nil
 }
 
+func (c *catalogServiceClient) ListAdminProducts(ctx context.Context, in *ListAdminProductsRequest, opts ...grpc.CallOption) (*ListAdminProductsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListAdminProductsResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ListAdminProducts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) ListInventoryCatalogItems(ctx context.Context, in *ListInventoryCatalogItemsRequest, opts ...grpc.CallOption) (*ListInventoryCatalogItemsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListInventoryCatalogItemsResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ListInventoryCatalogItems_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) GetAdminProduct(ctx context.Context, in *GetAdminProductRequest, opts ...grpc.CallOption) (*GetAdminProductResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAdminProductResponse)
+	err := c.cc.Invoke(ctx, CatalogService_GetAdminProduct_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) CreateProduct(ctx context.Context, in *CreateProductRequest, opts ...grpc.CallOption) (*CreateProductResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateProductResponse)
+	err := c.cc.Invoke(ctx, CatalogService_CreateProduct_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) UpdateProduct(ctx context.Context, in *UpdateProductRequest, opts ...grpc.CallOption) (*UpdateProductResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateProductResponse)
+	err := c.cc.Invoke(ctx, CatalogService_UpdateProduct_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) CreateProductMediaUpload(ctx context.Context, in *CreateProductMediaUploadRequest, opts ...grpc.CallOption) (*CreateProductMediaUploadResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateProductMediaUploadResponse)
+	err := c.cc.Invoke(ctx, CatalogService_CreateProductMediaUpload_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CatalogServiceServer is the server API for CatalogService service.
 // All implementations must embed UnimplementedCatalogServiceServer
 // for forward compatibility.
@@ -78,6 +150,12 @@ type CatalogServiceServer interface {
 	GetProduct(context.Context, *GetProductRequest) (*GetProductResponse, error)
 	SearchProducts(context.Context, *SearchProductsRequest) (*SearchProductsResponse, error)
 	SoftDeleteProduct(context.Context, *SoftDeleteProductRequest) (*SoftDeleteProductResponse, error)
+	ListAdminProducts(context.Context, *ListAdminProductsRequest) (*ListAdminProductsResponse, error)
+	ListInventoryCatalogItems(context.Context, *ListInventoryCatalogItemsRequest) (*ListInventoryCatalogItemsResponse, error)
+	GetAdminProduct(context.Context, *GetAdminProductRequest) (*GetAdminProductResponse, error)
+	CreateProduct(context.Context, *CreateProductRequest) (*CreateProductResponse, error)
+	UpdateProduct(context.Context, *UpdateProductRequest) (*UpdateProductResponse, error)
+	CreateProductMediaUpload(context.Context, *CreateProductMediaUploadRequest) (*CreateProductMediaUploadResponse, error)
 	mustEmbedUnimplementedCatalogServiceServer()
 }
 
@@ -96,6 +174,24 @@ func (UnimplementedCatalogServiceServer) SearchProducts(context.Context, *Search
 }
 func (UnimplementedCatalogServiceServer) SoftDeleteProduct(context.Context, *SoftDeleteProductRequest) (*SoftDeleteProductResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SoftDeleteProduct not implemented")
+}
+func (UnimplementedCatalogServiceServer) ListAdminProducts(context.Context, *ListAdminProductsRequest) (*ListAdminProductsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListAdminProducts not implemented")
+}
+func (UnimplementedCatalogServiceServer) ListInventoryCatalogItems(context.Context, *ListInventoryCatalogItemsRequest) (*ListInventoryCatalogItemsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListInventoryCatalogItems not implemented")
+}
+func (UnimplementedCatalogServiceServer) GetAdminProduct(context.Context, *GetAdminProductRequest) (*GetAdminProductResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAdminProduct not implemented")
+}
+func (UnimplementedCatalogServiceServer) CreateProduct(context.Context, *CreateProductRequest) (*CreateProductResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateProduct not implemented")
+}
+func (UnimplementedCatalogServiceServer) UpdateProduct(context.Context, *UpdateProductRequest) (*UpdateProductResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateProduct not implemented")
+}
+func (UnimplementedCatalogServiceServer) CreateProductMediaUpload(context.Context, *CreateProductMediaUploadRequest) (*CreateProductMediaUploadResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateProductMediaUpload not implemented")
 }
 func (UnimplementedCatalogServiceServer) mustEmbedUnimplementedCatalogServiceServer() {}
 func (UnimplementedCatalogServiceServer) testEmbeddedByValue()                        {}
@@ -172,6 +268,114 @@ func _CatalogService_SoftDeleteProduct_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CatalogService_ListAdminProducts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAdminProductsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ListAdminProducts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ListAdminProducts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ListAdminProducts(ctx, req.(*ListAdminProductsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_ListInventoryCatalogItems_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListInventoryCatalogItemsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ListInventoryCatalogItems(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ListInventoryCatalogItems_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ListInventoryCatalogItems(ctx, req.(*ListInventoryCatalogItemsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_GetAdminProduct_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAdminProductRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).GetAdminProduct(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_GetAdminProduct_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).GetAdminProduct(ctx, req.(*GetAdminProductRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_CreateProduct_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateProductRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).CreateProduct(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_CreateProduct_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).CreateProduct(ctx, req.(*CreateProductRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_UpdateProduct_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateProductRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).UpdateProduct(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_UpdateProduct_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).UpdateProduct(ctx, req.(*UpdateProductRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_CreateProductMediaUpload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateProductMediaUploadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).CreateProductMediaUpload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_CreateProductMediaUpload_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).CreateProductMediaUpload(ctx, req.(*CreateProductMediaUploadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CatalogService_ServiceDesc is the grpc.ServiceDesc for CatalogService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +394,30 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SoftDeleteProduct",
 			Handler:    _CatalogService_SoftDeleteProduct_Handler,
+		},
+		{
+			MethodName: "ListAdminProducts",
+			Handler:    _CatalogService_ListAdminProducts_Handler,
+		},
+		{
+			MethodName: "ListInventoryCatalogItems",
+			Handler:    _CatalogService_ListInventoryCatalogItems_Handler,
+		},
+		{
+			MethodName: "GetAdminProduct",
+			Handler:    _CatalogService_GetAdminProduct_Handler,
+		},
+		{
+			MethodName: "CreateProduct",
+			Handler:    _CatalogService_CreateProduct_Handler,
+		},
+		{
+			MethodName: "UpdateProduct",
+			Handler:    _CatalogService_UpdateProduct_Handler,
+		},
+		{
+			MethodName: "CreateProductMediaUpload",
+			Handler:    _CatalogService_CreateProductMediaUpload_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

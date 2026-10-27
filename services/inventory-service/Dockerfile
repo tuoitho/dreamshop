@@ -19,6 +19,8 @@ COPY --from=builder /inventory-server /app/inventory-server
 
 ENV HTTP_ADDR=":8082"
 ENV GRPC_ADDR="0.0.0.0:50052"
+ENV IDENTITY_GRPC_ADDR="identity-service:50054"
+ENV IDENTITY_GRPC_TIMEOUT="500ms"
 EXPOSE 8082 50052
 
 CMD ["/app/inventory-server"]

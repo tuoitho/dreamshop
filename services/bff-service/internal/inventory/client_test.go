@@ -2,11 +2,13 @@ package inventory
 
 import (
 	"context"
+	"errors"
 	"net"
 	"testing"
 	"time"
 
 	inventoryv1 "ecommerce.local/contracts/go/inventory/v1"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -32,6 +34,15 @@ func (s *recordingInventoryServer) GetAvailability(ctx context.Context, req *inv
 	return &inventoryv1.GetAvailabilityResponse{
 		ProductId:         req.GetProductId(),
 		AvailableQuantity: s.quantity,
+	}, nil
+}
+
+func (s *recordingInventoryServer) SetStock(_ context.Context, req *inventoryv1.SetStockRequest) (*inventoryv1.SetStockResponse, error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+	return &inventoryv1.SetStockResponse{
+		Stock: &inventoryv1.StockItem{ProductId: req.GetProductId(), Quantity: req.GetQuantity(), AvailableQuantity: req.GetQuantity()},
 	}, nil
 }
 
@@ -96,5 +107,34 @@ func TestClientPropagatesGRPCStatusErrors(t *testing.T) {
 				t.Fatalf("GetAvailability() code = %s, want %s; error = %v", status.Code(err), code, err)
 			}
 		})
+	}
+}
+
+func TestClientMapsInventoryAdminErrors(t *testing.T) {
+	belowSt, _ := status.New(codes.FailedPrecondition, "below reserved").WithDetails(&errdetails.ErrorInfo{
+		Domain: "ecommerce.inventory.v1",
+		Reason: "STOCK_BELOW_RESERVED",
+	})
+	cBelow := newRecordingInventoryClient(t, &recordingInventoryServer{err: belowSt.Err()}, time.Second)
+	if _, err := cBelow.SetStock(context.Background(), "admin-1", "dt-1", 1); !errors.Is(err, ErrStockBelowReserved) {
+		t.Fatalf("SetStock(below) = %v, want ErrStockBelowReserved", err)
+	}
+
+	permSt, _ := status.New(codes.PermissionDenied, "denied").WithDetails(&errdetails.ErrorInfo{
+		Domain: "ecommerce.inventory.v1",
+		Reason: "INVENTORY_PERMISSION_DENIED",
+	})
+	cPerm := newRecordingInventoryClient(t, &recordingInventoryServer{err: permSt.Err()}, time.Second)
+	if _, err := cPerm.SetStock(context.Background(), "viewer-1", "dt-1", 10); !errors.Is(err, ErrPermissionDenied) {
+		t.Fatalf("SetStock(denied) = %v, want ErrPermissionDenied", err)
+	}
+
+	authSt, _ := status.New(codes.Unavailable, "auth down").WithDetails(&errdetails.ErrorInfo{
+		Domain: "ecommerce.inventory.v1",
+		Reason: "AUTHORIZATION_UNAVAILABLE",
+	})
+	cAuth := newRecordingInventoryClient(t, &recordingInventoryServer{err: authSt.Err()}, time.Second)
+	if _, err := cAuth.SetStock(context.Background(), "admin-1", "dt-1", 10); !errors.Is(err, ErrAuthorizationUnavailable) {
+		t.Fatalf("SetStock(auth down) = %v, want ErrAuthorizationUnavailable", err)
 	}
 }

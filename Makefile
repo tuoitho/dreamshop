@@ -1,4 +1,4 @@
-.PHONY: infra-up infra-down infra-logs prod-config prod-up prod-down prod-logs identity order catalog inventory cart bff fe identity-keys proto lint verify check-boundaries up down help
+.PHONY: infra-up infra-down infra-logs prod-config prod-up prod-down prod-logs identity order catalog inventory cart bff fe admin-fe identity-keys proto lint verify check-boundaries up down help
 
 PROD_ENV_FILE ?= .env.production
 
@@ -46,6 +46,9 @@ bff:
 fe:
 	go run ./scripts/start-local -service ecommerce-fe
 
+admin-fe:
+	go run ./scripts/start-local -service admin-fe
+
 identity-keys:
 	go run ./scripts/generate-identity-dev-keys
 
@@ -85,7 +88,8 @@ help:
 	@echo "  make cart              - Start cart-service locally"
 	@echo "  make bff               - Start bff-service locally"
 	@echo "  make fe                - Start ecommerce-fe locally"
+	@echo "  make admin-fe          - Start admin-fe locally"
 	@echo "  make identity-keys     - Generate local Identity RSA keys"
 	@echo "  make verify            - Check foundation files, Buf lint, and running Kong routes"
-	@echo "  make verify SERVICE=<name> - Gate one surface: <name>-service, ecommerce-fe, or contracts"
+	@echo "  make verify SERVICE=<name> - Gate one surface: <name>-service, ecommerce-fe, admin-fe, or contracts"
 	@echo "  make check-boundaries  - Fail on cross-service imports, dependencies, or database references"

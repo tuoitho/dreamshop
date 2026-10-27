@@ -55,11 +55,44 @@ func (fakeCatalogClient) SearchProducts(context.Context, *catalogv1.SearchProduc
 func (fakeCatalogClient) SoftDeleteProduct(context.Context, string, string, bool) error {
 	return nil
 }
+func (fakeCatalogClient) ListAdminProducts(context.Context, *catalogv1.ListAdminProductsRequest) (*catalogv1.ListAdminProductsResponse, error) {
+	return &catalogv1.ListAdminProductsResponse{}, nil
+}
+func (fakeCatalogClient) ListInventoryCatalogItems(context.Context, *catalogv1.ListInventoryCatalogItemsRequest) (*catalogv1.ListInventoryCatalogItemsResponse, error) {
+	return &catalogv1.ListInventoryCatalogItemsResponse{}, nil
+}
+func (fakeCatalogClient) GetAdminProduct(context.Context, string, string) (*catalogv1.GetProductResponse, error) {
+	return &catalogv1.GetProductResponse{}, nil
+}
+func (fakeCatalogClient) CreateProduct(context.Context, *catalogv1.CreateProductRequest) (*catalogv1.GetProductResponse, error) {
+	return &catalogv1.GetProductResponse{}, nil
+}
+func (fakeCatalogClient) UpdateProduct(context.Context, *catalogv1.UpdateProductRequest) (*catalogv1.GetProductResponse, error) {
+	return &catalogv1.GetProductResponse{}, nil
+}
+func (fakeCatalogClient) CreateProductMediaUpload(context.Context, *catalogv1.CreateProductMediaUploadRequest) (*catalogv1.CreateProductMediaUploadResponse, error) {
+	return &catalogv1.CreateProductMediaUploadResponse{}, nil
+}
 
 type fakeInventoryClient struct{}
 
 func (fakeInventoryClient) GetAvailability(context.Context, string) (*inventoryv1.GetAvailabilityResponse, error) {
 	return &inventoryv1.GetAvailabilityResponse{AvailableQuantity: 10}, nil
+}
+func (fakeInventoryClient) GetStock(context.Context, string, string) (*inventoryv1.StockItem, error) {
+	return &inventoryv1.StockItem{}, nil
+}
+func (fakeInventoryClient) BatchGetStock(context.Context, string, []string) ([]*inventoryv1.StockItem, error) {
+	return nil, nil
+}
+func (fakeInventoryClient) ListStocks(context.Context, string) ([]*inventoryv1.StockItem, error) {
+	return nil, nil
+}
+func (fakeInventoryClient) SetStock(context.Context, string, string, int32) (*inventoryv1.StockItem, error) {
+	return &inventoryv1.StockItem{}, nil
+}
+func (fakeInventoryClient) AdjustStock(context.Context, string, string, int32) (*inventoryv1.StockItem, error) {
+	return &inventoryv1.StockItem{}, nil
 }
 
 var _ cart.Client = fakeCartClient{}
@@ -80,6 +113,8 @@ func TestBuildMuxMakesCanonicalRoutesReachableAndRejectsLegacyPaths(t *testing.T
 		{method: http.MethodGet, path: "/api/v1/cart", caller: "user-1", status: http.StatusOK},
 		{method: http.MethodGet, path: "/api/v1/favorites", caller: "user-1", status: http.StatusOK},
 		{method: http.MethodGet, path: "/api/v1/favorites", status: http.StatusUnauthorized},
+		{method: http.MethodGet, path: "/api/v1/admin/products", caller: "admin-1", status: http.StatusOK},
+		{method: http.MethodGet, path: "/api/v1/admin/inventory", caller: "admin-1", status: http.StatusOK},
 		{method: http.MethodGet, path: "/", caller: "user-1", status: http.StatusNotFound},
 		{method: http.MethodGet, path: "/products", status: http.StatusNotFound},
 		{method: http.MethodGet, path: "/api/v1/cart/unknown", caller: "user-1", status: http.StatusNotFound},

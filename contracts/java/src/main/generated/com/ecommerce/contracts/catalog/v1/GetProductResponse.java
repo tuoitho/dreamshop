@@ -37,6 +37,8 @@ private static final long serialVersionUID = 0L;
     variants_ = java.util.Collections.emptyList();
     details_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
+    videos_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
   }
 
   @java.lang.Override
@@ -674,6 +676,43 @@ private static final long serialVersionUID = 0L;
     return deleted_;
   }
 
+  public static final int VIDEOS_FIELD_NUMBER = 22;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList videos_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <code>repeated string videos = 22 [json_name = "videos"];</code>
+   * @return A list containing the videos.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getVideosList() {
+    return videos_;
+  }
+  /**
+   * <code>repeated string videos = 22 [json_name = "videos"];</code>
+   * @return The count of videos.
+   */
+  public int getVideosCount() {
+    return videos_.size();
+  }
+  /**
+   * <code>repeated string videos = 22 [json_name = "videos"];</code>
+   * @param index The index of the element to return.
+   * @return The videos at the given index.
+   */
+  public java.lang.String getVideos(int index) {
+    return videos_.get(index);
+  }
+  /**
+   * <code>repeated string videos = 22 [json_name = "videos"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the videos at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getVideosBytes(int index) {
+    return videos_.getByteString(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -755,6 +794,9 @@ private static final long serialVersionUID = 0L;
     }
     if (deleted_ != false) {
       output.writeBool(21, deleted_);
+    }
+    for (int i = 0; i < videos_.size(); i++) {
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 22, videos_.getRaw(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -858,6 +900,14 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(21, deleted_);
     }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < videos_.size(); i++) {
+        dataSize += computeStringSizeNoTag(videos_.getRaw(i));
+      }
+      size += dataSize;
+      size += 2 * getVideosList().size();
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -922,6 +972,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getDetailsList())) return false;
     if (getDeleted()
         != other.getDeleted()) return false;
+    if (!getVideosList()
+        .equals(other.getVideosList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -993,6 +1045,10 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + DELETED_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getDeleted());
+    if (getVideosCount() > 0) {
+      hash = (37 * hash) + VIDEOS_FIELD_NUMBER;
+      hash = (53 * hash) + getVideosList().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1174,6 +1230,8 @@ private static final long serialVersionUID = 0L;
       details_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
       deleted_ = false;
+      videos_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
       return this;
     }
 
@@ -1289,6 +1347,10 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00100000) != 0)) {
         result.deleted_ = deleted_;
+      }
+      if (((from_bitField0_ & 0x00200000) != 0)) {
+        videos_.makeImmutable();
+        result.videos_ = videos_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1463,6 +1525,16 @@ private static final long serialVersionUID = 0L;
       if (other.getDeleted() != false) {
         setDeleted(other.getDeleted());
       }
+      if (!other.videos_.isEmpty()) {
+        if (videos_.isEmpty()) {
+          videos_ = other.videos_;
+          bitField0_ |= 0x00200000;
+        } else {
+          ensureVideosIsMutable();
+          videos_.addAll(other.videos_);
+        }
+        onChanged();
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1619,6 +1691,12 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00100000;
               break;
             } // case 168
+            case 178: {
+              java.lang.String s = input.readStringRequireUtf8();
+              ensureVideosIsMutable();
+              videos_.add(s);
+              break;
+            } // case 178
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3260,6 +3338,117 @@ private static final long serialVersionUID = 0L;
     public Builder clearDeleted() {
       bitField0_ = (bitField0_ & ~0x00100000);
       deleted_ = false;
+      onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.LazyStringArrayList videos_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureVideosIsMutable() {
+      if (!videos_.isModifiable()) {
+        videos_ = new com.google.protobuf.LazyStringArrayList(videos_);
+      }
+      bitField0_ |= 0x00200000;
+    }
+    /**
+     * <code>repeated string videos = 22 [json_name = "videos"];</code>
+     * @return A list containing the videos.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getVideosList() {
+      videos_.makeImmutable();
+      return videos_;
+    }
+    /**
+     * <code>repeated string videos = 22 [json_name = "videos"];</code>
+     * @return The count of videos.
+     */
+    public int getVideosCount() {
+      return videos_.size();
+    }
+    /**
+     * <code>repeated string videos = 22 [json_name = "videos"];</code>
+     * @param index The index of the element to return.
+     * @return The videos at the given index.
+     */
+    public java.lang.String getVideos(int index) {
+      return videos_.get(index);
+    }
+    /**
+     * <code>repeated string videos = 22 [json_name = "videos"];</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the videos at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getVideosBytes(int index) {
+      return videos_.getByteString(index);
+    }
+    /**
+     * <code>repeated string videos = 22 [json_name = "videos"];</code>
+     * @param index The index to set the value at.
+     * @param value The videos to set.
+     * @return This builder for chaining.
+     */
+    public Builder setVideos(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureVideosIsMutable();
+      videos_.set(index, value);
+      bitField0_ |= 0x00200000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>repeated string videos = 22 [json_name = "videos"];</code>
+     * @param value The videos to add.
+     * @return This builder for chaining.
+     */
+    public Builder addVideos(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureVideosIsMutable();
+      videos_.add(value);
+      bitField0_ |= 0x00200000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>repeated string videos = 22 [json_name = "videos"];</code>
+     * @param values The videos to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllVideos(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureVideosIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, videos_);
+      bitField0_ |= 0x00200000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>repeated string videos = 22 [json_name = "videos"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearVideos() {
+      videos_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00200000);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>repeated string videos = 22 [json_name = "videos"];</code>
+     * @param value The bytes of the videos to add.
+     * @return This builder for chaining.
+     */
+    public Builder addVideosBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureVideosIsMutable();
+      videos_.add(value);
+      bitField0_ |= 0x00200000;
       onChanged();
       return this;
     }

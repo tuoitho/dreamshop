@@ -16,8 +16,10 @@ import (
 
 type recordingCatalogServer struct {
 	catalogv1.UnimplementedCatalogServiceServer
-	softDeleteReq *catalogv1.SoftDeleteProductRequest
-	softDeleteErr error
+	softDeleteReq  *catalogv1.SoftDeleteProductRequest
+	softDeleteErr  error
+	createErr      error
+	mediaUploadErr error
 }
 
 func (s *recordingCatalogServer) SoftDeleteProduct(_ context.Context, req *catalogv1.SoftDeleteProductRequest) (*catalogv1.SoftDeleteProductResponse, error) {
@@ -26,6 +28,20 @@ func (s *recordingCatalogServer) SoftDeleteProduct(_ context.Context, req *catal
 		return nil, s.softDeleteErr
 	}
 	return &catalogv1.SoftDeleteProductResponse{Id: req.GetId(), Deleted: req.GetDeleted()}, nil
+}
+
+func (s *recordingCatalogServer) CreateProduct(_ context.Context, req *catalogv1.CreateProductRequest) (*catalogv1.CreateProductResponse, error) {
+	if s.createErr != nil {
+		return nil, s.createErr
+	}
+	return &catalogv1.CreateProductResponse{Product: &catalogv1.GetProductResponse{Id: req.GetId(), Name: req.GetName()}}, nil
+}
+
+func (s *recordingCatalogServer) CreateProductMediaUpload(_ context.Context, _ *catalogv1.CreateProductMediaUploadRequest) (*catalogv1.CreateProductMediaUploadResponse, error) {
+	if s.mediaUploadErr != nil {
+		return nil, s.mediaUploadErr
+	}
+	return &catalogv1.CreateProductMediaUploadResponse{UploadId: "u-1", MediaType: "IMAGE"}, nil
 }
 
 func newRecordingCatalogClient(t *testing.T, server catalogv1.CatalogServiceServer, timeout time.Duration) *client {
@@ -108,5 +124,34 @@ func TestClientSoftDeletePreservesBareCatalogUnavailableError(t *testing.T) {
 	}
 	if errors.Is(err, ErrPermissionDenied) || errors.Is(err, ErrAuthorizationUnavailable) {
 		t.Fatalf("bare Catalog outage unexpectedly matched authorization sentinel: %v", err)
+	}
+}
+
+func TestClientMapsAdminCreateAndMediaErrors(t *testing.T) {
+	existsSt, _ := status.New(codes.AlreadyExists, "exists").WithDetails(&errdetails.ErrorInfo{
+		Domain: "ecommerce.catalog.v1",
+		Reason: "PRODUCT_ID_EXISTS",
+	})
+	clientExists := newRecordingCatalogClient(t, &recordingCatalogServer{createErr: existsSt.Err()}, time.Second)
+	if _, err := clientExists.CreateProduct(context.Background(), &catalogv1.CreateProductRequest{UserId: "admin-1", Id: "dt-1"}); !errors.Is(err, ErrProductExists) {
+		t.Fatalf("CreateProduct(exists) = %v, want ErrProductExists", err)
+	}
+
+	attachedSt, _ := status.New(codes.FailedPrecondition, "attached").WithDetails(&errdetails.ErrorInfo{
+		Domain: "ecommerce.catalog.v1",
+		Reason: "MEDIA_ALREADY_ATTACHED",
+	})
+	clientAttached := newRecordingCatalogClient(t, &recordingCatalogServer{createErr: attachedSt.Err()}, time.Second)
+	if _, err := clientAttached.CreateProduct(context.Background(), &catalogv1.CreateProductRequest{UserId: "admin-1"}); !errors.Is(err, ErrMediaAlreadyAttached) {
+		t.Fatalf("CreateProduct(attached) = %v, want ErrMediaAlreadyAttached", err)
+	}
+
+	storageSt, _ := status.New(codes.Unavailable, "storage down").WithDetails(&errdetails.ErrorInfo{
+		Domain: "ecommerce.catalog.v1",
+		Reason: "MEDIA_STORAGE_UNAVAILABLE",
+	})
+	clientStorage := newRecordingCatalogClient(t, &recordingCatalogServer{mediaUploadErr: storageSt.Err()}, time.Second)
+	if _, err := clientStorage.CreateProductMediaUpload(context.Background(), &catalogv1.CreateProductMediaUploadRequest{UserId: "admin-1"}); !errors.Is(err, ErrMediaStorageUnavailable) {
+		t.Fatalf("CreateProductMediaUpload(storage down) = %v, want ErrMediaStorageUnavailable", err)
 	}
 }

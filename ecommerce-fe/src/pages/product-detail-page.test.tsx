@@ -292,6 +292,29 @@ describe("ProductDetailPage", () => {
     await waitFor(() => expect(mainImage).toHaveAttribute("src", DETAIL.images![1]))
   })
 
+  it("renders video thumbnails and plays HTML5 video when a video gallery item is selected", async () => {
+    const videoUrl = "http://localhost:9000/product-media/products/2026/10/demo.mp4"
+    vi.mocked(getProduct).mockResolvedValue({
+      ...DETAIL,
+      videos: [videoUrl],
+    })
+    renderDetail()
+
+    expect(await screen.findByAltText(DETAIL.name)).toHaveAttribute("src", DETAIL.images![0])
+    const videoThumb = screen.getByRole("button", { name: "Xem video 1" })
+    expect(videoThumb).toBeInTheDocument()
+
+    await userEvent.click(videoThumb)
+
+    const player = await screen.findByLabelText(`Video ${DETAIL.name}`)
+    expect(player.tagName).toBe("VIDEO")
+    expect(player).toHaveAttribute("src", videoUrl)
+    expect(player).toHaveAttribute("controls")
+
+    await userEvent.click(screen.getByRole("button", { name: "Xem ảnh 1" }))
+    expect(await screen.findByAltText(DETAIL.name)).toHaveAttribute("src", DETAIL.images![0])
+  })
+
   it("falls back to the emoji placeholder when the image fails to load", async () => {
     vi.mocked(getProduct).mockResolvedValue({ ...DETAIL, images: undefined })
     renderDetail()

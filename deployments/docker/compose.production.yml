@@ -8,6 +8,7 @@ volumes:
   postgres_data:
   redis_data:
   rabbitmq_data:
+  minio_data:
 
 services:
   postgres:
@@ -58,6 +59,24 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+
+  minio:
+    image: ${MINIO_IMAGE:-minio/minio:latest}
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+    volumes:
+      - minio_data:/data
+    networks:
+      - ecommerce-prod-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/minio/health/live > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   identity-service:
     image: ecommerce/identity-service:${IMAGE_TAG:-latest}
@@ -113,12 +132,19 @@ services:
         condition: service_healthy
       identity-service:
         condition: service_healthy
+      minio:
+        condition: service_healthy
     environment:
       HTTP_ADDR: ":8081"
       GRPC_ADDR: "0.0.0.0:50051"
       DATABASE_URL: postgres://${POSTGRES_USER:-ecommerce}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/catalog_db?sslmode=disable
       IDENTITY_GRPC_ADDR: "identity-service:50054"
       IDENTITY_GRPC_TIMEOUT: "500ms"
+      MINIO_ENDPOINT: "minio:9000"
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      MINIO_BUCKET: "product-media"
+      MINIO_PUBLIC_BASE_URL: "/product-media"
       SEED_DEMO_DATA: ${SEED_DEMO_DATA:-false}
     networks:
       - ecommerce-prod-net
@@ -138,10 +164,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      identity-service:
+        condition: service_healthy
     environment:
       HTTP_ADDR: ":8082"
       GRPC_ADDR: "0.0.0.0:50052"
       DATABASE_URL: postgres://${POSTGRES_USER:-ecommerce}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/inventory_db?sslmode=disable
+      IDENTITY_GRPC_ADDR: "identity-service:50054"
+      IDENTITY_GRPC_TIMEOUT: "500ms"
       SEED_DEMO_DATA: ${SEED_DEMO_DATA:-false}
     networks:
       - ecommerce-prod-net
@@ -252,6 +282,24 @@ services:
       retries: 5
       start_period: 5s
 
+  admin-fe:
+    image: ecommerce/admin-fe:${IMAGE_TAG:-latest}
+    build:
+      context: ../../admin-fe
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
+        VITE_BASE_PATH: /admin/
+    restart: unless-stopped
+    networks:
+      - ecommerce-prod-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
   kong:
     image: ecommerce/kong:${IMAGE_TAG:-latest}
     build:
@@ -263,6 +311,10 @@ services:
       bff-service:
         condition: service_healthy
       ecommerce-fe:
+        condition: service_healthy
+      admin-fe:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     environment:
       KONG_DATABASE: "off"

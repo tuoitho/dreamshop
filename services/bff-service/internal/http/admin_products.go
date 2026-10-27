@@ -3,8 +3,13 @@ package http
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"ecommerce.local/bff-service/internal/catalog"
+	"ecommerce.local/bff-service/internal/inventory"
+	catalogv1 "ecommerce.local/contracts/go/catalog/v1"
+	commonv1 "ecommerce.local/contracts/go/common/v1"
+	inventoryv1 "ecommerce.local/contracts/go/inventory/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -18,16 +23,354 @@ type softDeleteData struct {
 	Deleted bool   `json:"deleted"`
 }
 
-type AdminProductsHandler struct {
-	catalog catalog.Client
+type mediaPresignRequest struct {
+	Filename    string `json:"filename"`
+	ContentType string `json:"contentType"`
+	SizeBytes   int64  `json:"sizeBytes"`
 }
 
-func NewAdminProductsHandler(client catalog.Client) *AdminProductsHandler {
-	return &AdminProductsHandler{catalog: client}
+type mediaPresignData struct {
+	UploadID         string `json:"uploadId"`
+	MediaType        string `json:"mediaType"`
+	UploadURL        string `json:"uploadUrl"`
+	PublicURL        string `json:"publicUrl"`
+	ObjectKey        string `json:"objectKey"`
+	ExpiresInSeconds int32  `json:"expiresInSeconds"`
+}
+
+type adminProductMutationRequest struct {
+	ID               string           `json:"id,omitempty"`
+	Name             string           `json:"name"`
+	ShortDescription string           `json:"shortDescription"`
+	Description      string           `json:"description"`
+	Brand            string           `json:"brand"`
+	CategoryID       string           `json:"categoryId"`
+	CategoryName     string           `json:"categoryName"`
+	Price            int64            `json:"price"`
+	OriginalPrice    int64            `json:"originalPrice"`
+	Images           []string         `json:"images"`
+	Videos           []string         `json:"videos"`
+	IsNew            bool             `json:"isNew"`
+	Badge            string           `json:"badge"`
+	Featured         bool             `json:"featured"`
+	Emoji            string           `json:"emoji"`
+	ImageHue         []uint32         `json:"imageHue"`
+	Variants         []productVariant `json:"variants"`
+	Details          []string         `json:"details"`
+}
+
+type adminStockSnapshot struct {
+	Quantity          int32  `json:"quantity"`
+	Reserved          int32  `json:"reserved"`
+	AvailableQuantity int32  `json:"availableQuantity"`
+	UpdatedAt         string `json:"updatedAt,omitempty"`
+}
+
+type adminCategoryMetric struct {
+	CategoryID         string `json:"categoryId"`
+	CategoryName       string `json:"categoryName"`
+	ActiveProductCount int64  `json:"activeProductCount"`
+}
+
+type adminProductSummary struct {
+	ID            string              `json:"id"`
+	Name          string              `json:"name"`
+	Brand         string              `json:"brand"`
+	CategoryID    string              `json:"categoryId"`
+	CategoryName  string              `json:"categoryName"`
+	Price         int64               `json:"price"`
+	OriginalPrice int64               `json:"originalPrice"`
+	Images        []string            `json:"images"`
+	Rating        float64             `json:"rating"`
+	ReviewCount   int64               `json:"reviewCount"`
+	SoldCount     int64               `json:"soldCount"`
+	IsNew         bool                `json:"isNew"`
+	Badge         string              `json:"badge"`
+	Featured      bool                `json:"featured"`
+	Emoji         string              `json:"emoji"`
+	ImageHue      []uint32            `json:"imageHue"`
+	Deleted       bool                `json:"deleted"`
+	VariantCount  int32               `json:"variantCount"`
+	VideoCount    int32               `json:"videoCount"`
+	CreatedAt     string              `json:"createdAt"`
+	UpdatedAt     string              `json:"updatedAt"`
+	Stock         *adminStockSnapshot `json:"stock"`
+}
+
+type adminProductsPageData struct {
+	Items         []adminProductSummary `json:"items"`
+	Page          int32                 `json:"page"`
+	PageSize      int32                 `json:"pageSize"`
+	TotalItems    int64                 `json:"totalItems"`
+	TotalPages    int32                 `json:"totalPages"`
+	ActiveCount   int64                 `json:"activeCount"`
+	DeletedCount  int64                 `json:"deletedCount"`
+	Categories    []adminCategoryMetric `json:"categories"`
+	StockDegraded bool                  `json:"stockDegraded"`
+}
+
+type adminProductDetail struct {
+	productDetail
+	Videos []string            `json:"videos"`
+	Stock  *adminStockSnapshot `json:"stock"`
+}
+
+func newAdminProductDetail(resp *catalogv1.GetProductResponse, stock *adminStockSnapshot) adminProductDetail {
+	return adminProductDetail{
+		productDetail: newProductDetail(resp),
+		Videos:        stringsOrEmpty(resp.GetVideos()),
+		Stock:         stock,
+	}
+}
+
+type AdminProductsHandler struct {
+	catalog   catalog.Client
+	inventory inventory.Client
+}
+
+func NewAdminProductsHandler(client catalog.Client, inv ...inventory.Client) *AdminProductsHandler {
+	var invClient inventory.Client
+	if len(inv) > 0 {
+		invClient = inv[0]
+	}
+	return &AdminProductsHandler{catalog: client, inventory: invClient}
 }
 
 func (h *AdminProductsHandler) Register(mux *http.ServeMux) {
+	mux.Handle("POST /api/v1/admin/products/media/presign", correlateTrace(RequireCaller(http.HandlerFunc(h.presignMedia))))
+	mux.Handle("GET /api/v1/admin/products", correlateTrace(RequireCaller(http.HandlerFunc(h.list))))
+	mux.Handle("GET /api/v1/admin/products/{id}", correlateTrace(RequireCaller(http.HandlerFunc(h.detail))))
+	mux.Handle("POST /api/v1/admin/products", correlateTrace(RequireCaller(http.HandlerFunc(h.create))))
+	mux.Handle("PUT /api/v1/admin/products/{id}", correlateTrace(RequireCaller(http.HandlerFunc(h.update))))
 	mux.Handle("POST /api/v1/admin/products/{id}/delete", correlateTrace(RequireCaller(http.HandlerFunc(h.softDelete))))
+}
+
+func (h *AdminProductsHandler) presignMedia(w http.ResponseWriter, r *http.Request) {
+	var input mediaPresignRequest
+	if err := decodeJSON(r, &input); err != nil {
+		writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body.", nil)
+		return
+	}
+	if strings.TrimSpace(input.ContentType) == "" || input.SizeBytes <= 0 {
+		writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "contentType and positive sizeBytes are required.", nil)
+		return
+	}
+
+	resp, err := h.catalog.CreateProductMediaUpload(r.Context(), &catalogv1.CreateProductMediaUploadRequest{
+		UserId:      callerID(r),
+		Filename:    input.Filename,
+		ContentType: input.ContentType,
+		SizeBytes:   input.SizeBytes,
+	})
+	if err != nil {
+		h.writeAdminCatalogError(w, r, err, "You do not have permission to upload product media.")
+		return
+	}
+
+	writeEnvelope(w, http.StatusOK, mediaPresignData{
+		UploadID:         resp.GetUploadId(),
+		MediaType:        resp.GetMediaType(),
+		UploadURL:        resp.GetUploadUrl(),
+		PublicURL:        resp.GetPublicUrl(),
+		ObjectKey:        resp.GetObjectKey(),
+		ExpiresInSeconds: resp.GetExpiresInSeconds(),
+	}, "Upload URL generated.")
+}
+
+func (h *AdminProductsHandler) list(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	page, errPage := parseBoundedInt(q.Get("page"), 1, 1, 1<<31-1)
+	pageSize, errSize := parseBoundedInt(q.Get("pageSize"), 20, 1, 200)
+	if errPage != nil || errSize != nil {
+		fields := map[string]string{}
+		if errPage != nil {
+			fields["page"] = errPage.Error()
+		}
+		if errSize != nil {
+			fields["pageSize"] = errSize.Error()
+		}
+		writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid pagination parameters.", fields)
+		return
+	}
+
+	userID := callerID(r)
+	resp, err := h.catalog.ListAdminProducts(r.Context(), &catalogv1.ListAdminProductsRequest{
+		UserId:     userID,
+		Query:      strings.TrimSpace(q.Get("q")),
+		CategoryId: strings.TrimSpace(q.Get("categoryId")),
+		Status:     strings.TrimSpace(q.Get("status")),
+		Sort:       strings.TrimSpace(q.Get("sort")),
+		Page:       int32(page),
+		PageSize:   int32(pageSize),
+	})
+	if err != nil {
+		h.writeAdminCatalogError(w, r, err, "You do not have permission to view products.")
+		return
+	}
+
+	rawItems := resp.GetItems()
+	var stockByID map[string]*adminStockSnapshot
+	stockDegraded := false
+	if len(rawItems) > 0 && h.inventory != nil {
+		ids := make([]string, 0, len(rawItems))
+		for _, item := range rawItems {
+			ids = append(ids, item.GetId())
+		}
+		stocks, err := h.inventory.BatchGetStock(r.Context(), userID, ids)
+		if err != nil {
+			stockDegraded = true
+		} else {
+			stockByID = make(map[string]*adminStockSnapshot, len(stocks))
+			for _, st := range stocks {
+				stockByID[st.GetProductId()] = toAdminStockSnapshot(st)
+			}
+		}
+	}
+
+	items := make([]adminProductSummary, 0, len(rawItems))
+	for _, p := range rawItems {
+		var stock *adminStockSnapshot
+		if stockByID != nil {
+			stock = stockByID[p.GetId()]
+		}
+		items = append(items, adminProductSummary{
+			ID:            p.GetId(),
+			Name:          p.GetName(),
+			Brand:         p.GetBrand(),
+			CategoryID:    p.GetCategoryId(),
+			CategoryName:  p.GetCategoryName(),
+			Price:         amountMinor(p.GetPrice()),
+			OriginalPrice: amountMinor(p.GetOriginalPrice()),
+			Images:        stringsOrEmpty(p.GetImages()),
+			Rating:        p.GetRating(),
+			ReviewCount:   p.GetReviewCount(),
+			SoldCount:     p.GetSoldCount(),
+			IsNew:         p.GetIsNew(),
+			Badge:         p.GetBadge(),
+			Featured:      p.GetFeatured(),
+			Emoji:         p.GetEmoji(),
+			ImageHue:      uintsOrEmpty(p.GetImageHue()),
+			Deleted:       p.GetDeleted(),
+			VariantCount:  p.GetVariantCount(),
+			VideoCount:    p.GetVideoCount(),
+			CreatedAt:     p.GetCreatedAt(),
+			UpdatedAt:     p.GetUpdatedAt(),
+			Stock:         stock,
+		})
+	}
+
+	categories := make([]adminCategoryMetric, 0, len(resp.GetCategories()))
+	for _, cm := range resp.GetCategories() {
+		categories = append(categories, adminCategoryMetric{
+			CategoryID:         cm.GetCategoryId(),
+			CategoryName:       cm.GetCategoryName(),
+			ActiveProductCount: cm.GetActiveProductCount(),
+		})
+	}
+
+	writeEnvelope(w, http.StatusOK, adminProductsPageData{
+		Items:         items,
+		Page:          resp.GetPage(),
+		PageSize:      resp.GetPageSize(),
+		TotalItems:    resp.GetTotalItems(),
+		TotalPages:    resp.GetTotalPages(),
+		ActiveCount:   resp.GetActiveCount(),
+		DeletedCount:  resp.GetDeletedCount(),
+		Categories:    categories,
+		StockDegraded: stockDegraded,
+	}, "Admin products retrieved.")
+}
+
+func (h *AdminProductsHandler) detail(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimSpace(r.PathValue("id"))
+	userID := callerID(r)
+
+	resp, err := h.catalog.GetAdminProduct(r.Context(), userID, id)
+	if err != nil {
+		h.writeAdminCatalogError(w, r, err, "You do not have permission to view products.")
+		return
+	}
+
+	var stock *adminStockSnapshot
+	if h.inventory != nil {
+		if st, err := h.inventory.GetStock(r.Context(), userID, id); err == nil && st != nil {
+			stock = toAdminStockSnapshot(st)
+		}
+	}
+	writeEnvelope(w, http.StatusOK, newAdminProductDetail(resp, stock), "Product retrieved.")
+}
+
+func (h *AdminProductsHandler) create(w http.ResponseWriter, r *http.Request) {
+	var input adminProductMutationRequest
+	if err := decodeJSON(r, &input); err != nil {
+		writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body.", nil)
+		return
+	}
+
+	resp, err := h.catalog.CreateProduct(r.Context(), &catalogv1.CreateProductRequest{
+		UserId:           callerID(r),
+		Id:               input.ID,
+		Name:             input.Name,
+		ShortDescription: input.ShortDescription,
+		Description:      input.Description,
+		Brand:            input.Brand,
+		CategoryId:       input.CategoryID,
+		CategoryName:     input.CategoryName,
+		Price:            &commonv1.Money{Currency: "VND", AmountMinor: input.Price},
+		OriginalPrice:    &commonv1.Money{Currency: "VND", AmountMinor: input.OriginalPrice},
+		Images:           input.Images,
+		Videos:           input.Videos,
+		IsNew:            input.IsNew,
+		Badge:            input.Badge,
+		Featured:         input.Featured,
+		Emoji:            input.Emoji,
+		ImageHue:         input.ImageHue,
+		Variants:         toProtoVariants(input.Variants),
+		Details:          input.Details,
+	})
+	if err != nil {
+		h.writeAdminCatalogError(w, r, err, "You do not have permission to create products.")
+		return
+	}
+
+	writeEnvelope(w, http.StatusCreated, newAdminProductDetail(resp, nil), "Product created.")
+}
+
+func (h *AdminProductsHandler) update(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimSpace(r.PathValue("id"))
+	var input adminProductMutationRequest
+	if err := decodeJSON(r, &input); err != nil {
+		writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body.", nil)
+		return
+	}
+
+	resp, err := h.catalog.UpdateProduct(r.Context(), &catalogv1.UpdateProductRequest{
+		UserId:           callerID(r),
+		Id:               id,
+		Name:             input.Name,
+		ShortDescription: input.ShortDescription,
+		Description:      input.Description,
+		Brand:            input.Brand,
+		CategoryId:       input.CategoryID,
+		CategoryName:     input.CategoryName,
+		Price:            &commonv1.Money{Currency: "VND", AmountMinor: input.Price},
+		OriginalPrice:    &commonv1.Money{Currency: "VND", AmountMinor: input.OriginalPrice},
+		Images:           input.Images,
+		Videos:           input.Videos,
+		IsNew:            input.IsNew,
+		Badge:            input.Badge,
+		Featured:         input.Featured,
+		Emoji:            input.Emoji,
+		ImageHue:         input.ImageHue,
+		Variants:         toProtoVariants(input.Variants),
+		Details:          input.Details,
+	})
+	if err != nil {
+		h.writeAdminCatalogError(w, r, err, "You do not have permission to update products.")
+		return
+	}
+
+	writeEnvelope(w, http.StatusOK, newAdminProductDetail(resp, nil), "Product updated.")
 }
 
 func (h *AdminProductsHandler) softDelete(w http.ResponseWriter, r *http.Request) {
@@ -40,20 +383,53 @@ func (h *AdminProductsHandler) softDelete(w http.ResponseWriter, r *http.Request
 	deleted := *input.Deleted
 	id := r.PathValue("id")
 	if err := h.catalog.SoftDeleteProduct(r.Context(), callerID(r), id, deleted); err != nil {
-		switch {
-		case errors.Is(err, catalog.ErrPermissionDenied):
-			writeError(w, r, http.StatusForbidden, "FORBIDDEN", "You do not have permission to delete or restore products.", nil)
-		case errors.Is(err, catalog.ErrAuthorizationUnavailable):
-			writeError(w, r, http.StatusServiceUnavailable, "AUTHORIZATION_SERVICE_UNAVAILABLE", "Authorization service is unavailable.", nil)
-		case errors.Is(err, catalog.ErrProductNotFound):
-			writeError(w, r, http.StatusNotFound, "PRODUCT_NOT_FOUND", "Product not found.", nil)
-		case status.Code(err) == codes.InvalidArgument:
-			writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request.", nil)
-		default:
-			writeError(w, r, http.StatusBadGateway, "CATALOG_UNAVAILABLE", "Catalog service is unavailable.", nil)
-		}
+		h.writeAdminCatalogError(w, r, err, "You do not have permission to delete or restore products.")
 		return
 	}
 
 	writeEnvelope(w, http.StatusOK, softDeleteData{ID: id, Deleted: deleted}, "Product availability updated.")
+}
+
+func (h *AdminProductsHandler) writeAdminCatalogError(w http.ResponseWriter, r *http.Request, err error, forbiddenMsg string) {
+	switch {
+	case errors.Is(err, catalog.ErrPermissionDenied):
+		writeError(w, r, http.StatusForbidden, "FORBIDDEN", forbiddenMsg, nil)
+	case errors.Is(err, catalog.ErrAuthorizationUnavailable):
+		writeError(w, r, http.StatusServiceUnavailable, "AUTHORIZATION_SERVICE_UNAVAILABLE", "Authorization service is unavailable.", nil)
+	case errors.Is(err, catalog.ErrMediaStorageUnavailable):
+		writeError(w, r, http.StatusServiceUnavailable, "MEDIA_STORAGE_UNAVAILABLE", "Media storage service is unavailable.", nil)
+	case errors.Is(err, catalog.ErrProductNotFound):
+		writeError(w, r, http.StatusNotFound, "PRODUCT_NOT_FOUND", "Product not found.", nil)
+	case errors.Is(err, catalog.ErrProductExists):
+		writeError(w, r, http.StatusConflict, "PRODUCT_ID_EXISTS", "A product with this ID already exists.", nil)
+	case errors.Is(err, catalog.ErrMediaAlreadyAttached):
+		writeError(w, r, http.StatusConflict, "MEDIA_ALREADY_ATTACHED", "One or more media files are already attached to another product.", nil)
+	case status.Code(err) == codes.InvalidArgument:
+		writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", status.Convert(err).Message(), nil)
+	default:
+		writeError(w, r, http.StatusBadGateway, "CATALOG_UNAVAILABLE", "Catalog service is unavailable.", nil)
+	}
+}
+
+func toProtoVariants(variants []productVariant) []*catalogv1.ProductVariant {
+	out := make([]*catalogv1.ProductVariant, 0, len(variants))
+	for _, v := range variants {
+		out = append(out, &catalogv1.ProductVariant{
+			Label:    v.Label,
+			ColorHex: v.ColorHex,
+		})
+	}
+	return out
+}
+
+func toAdminStockSnapshot(st *inventoryv1.StockItem) *adminStockSnapshot {
+	if st == nil {
+		return nil
+	}
+	return &adminStockSnapshot{
+		Quantity:          st.GetQuantity(),
+		Reserved:          st.GetReserved(),
+		AvailableQuantity: st.GetAvailableQuantity(),
+		UpdatedAt:         st.GetUpdatedAt(),
+	}
 }

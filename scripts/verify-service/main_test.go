@@ -88,6 +88,9 @@ func TestVerifyServiceJavaAndFrontendAndContracts(t *testing.T) {
 	if code := runWithDeps([]string{"-root", root, "-service", "ecommerce-fe"}, &out, "linux", execMock); code != 0 {
 		t.Fatalf("ecommerce-fe failed: %d", code)
 	}
+	if code := runWithDeps([]string{"-root", root, "-service", "admin-fe"}, &out, "linux", execMock); code != 0 {
+		t.Fatalf("admin-fe failed: %d; out:\n%s", code, out.String())
+	}
 	if code := runWithDeps([]string{"-root", root, "-service", "contracts", "-base-branch", "develop"}, &out, "linux", execMock); code != 0 {
 		t.Fatalf("contracts failed: %d", code)
 	}
@@ -97,6 +100,9 @@ func TestVerifyServiceJavaAndFrontendAndContracts(t *testing.T) {
 		"npm --prefix ecommerce-fe test -- --run",
 		"npm --prefix ecommerce-fe run lint",
 		"npm --prefix ecommerce-fe run build",
+		"npm --prefix admin-fe test -- --run",
+		"npm --prefix admin-fe run lint",
+		"npm --prefix admin-fe run build",
 		"git rev-parse --git-common-dir",
 		"buf format --diff --exit-code",
 		"buf lint",

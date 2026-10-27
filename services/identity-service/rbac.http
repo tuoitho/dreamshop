@@ -117,7 +117,7 @@ Content-Type: application/json
   "status": "ACTIVE"
 }
 
-### Create a custom permission (first run returns 201)
+### Attempting to create a permission at runtime is rejected (expected 400 VALIDATION_FAILED)
 POST {{api}}/admin/rbac/items
 Authorization: Bearer {{adminToken}}
 Content-Type: application/json
@@ -136,11 +136,11 @@ Content-Type: application/json
 {
   "name": "ADDRESS_AUDITOR",
   "type": "ROLE",
-  "description": "Can audit address changes"
+  "description": "Can view customer addresses"
 }
 
-### Add a permission to the custom role (idempotent)
-PUT {{api}}/admin/rbac/items/ADDRESS_AUDITOR/children/address.audit
+### Add a built-in permission to the custom role (idempotent)
+PUT {{api}}/admin/rbac/items/ADDRESS_AUDITOR/children/address.view
 Authorization: Bearer {{adminToken}}
 
 ### Assign the custom role to the customer
@@ -158,10 +158,6 @@ Authorization: Bearer {{adminToken}}
 
 ### Delete the custom role
 DELETE {{api}}/admin/rbac/items/ADDRESS_AUDITOR
-Authorization: Bearer {{adminToken}}
-
-### Delete the custom permission
-DELETE {{api}}/admin/rbac/items/address.audit
 Authorization: Bearer {{adminToken}}
 
 ### Customer cannot access RBAC administration (expected 403)

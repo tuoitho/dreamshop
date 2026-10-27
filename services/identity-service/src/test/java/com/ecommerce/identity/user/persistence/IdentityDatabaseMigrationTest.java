@@ -56,8 +56,16 @@ class IdentityDatabaseMigrationTest extends PostgresIntegrationTestSupport {
                 .query(String.class).list())
                 .containsExactly("address.create", "address.delete", "address.set-default",
                         "address.update", "address.view", "cart.item.add", "favorite.manage",
-                        "product.delete", "rbac.manage", "rbac.view", "user.role.assign",
-                        "user.status.update", "user.view");
+                        "inventory.update", "inventory.view", "product.create", "product.delete",
+                        "product.update", "product.view", "rbac.manage", "rbac.view",
+                        "user.role.assign", "user.status.update", "user.view");
+        assertThat(jdbc.sql("""
+                select child_name from auth_item_children
+                where parent_name = 'ADMIN'
+                order by child_name
+                """).query(String.class).list())
+                .contains("inventory.update", "inventory.view", "product.create",
+                        "product.delete", "product.update", "product.view");
         assertThat(jdbc.sql("""
                 select count(*) from auth_item_children
                 where parent_name = 'CUSTOMER' and child_name = 'cart.item.add'

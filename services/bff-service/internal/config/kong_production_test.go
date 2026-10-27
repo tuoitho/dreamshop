@@ -22,22 +22,25 @@ type kongServiceConfig struct {
 }
 
 type kongRouteConfig struct {
-	Name      string             `yaml:"name"`
-	Paths     []string           `yaml:"paths"`
-	Methods   []string           `yaml:"methods"`
-	StripPath *bool              `yaml:"strip_path"`
-	Plugins   []kongPluginConfig `yaml:"plugins"`
+	Name         string             `yaml:"name"`
+	Paths        []string           `yaml:"paths"`
+	Methods      []string           `yaml:"methods"`
+	StripPath    *bool              `yaml:"strip_path"`
+	PreserveHost *bool              `yaml:"preserve_host"`
+	Plugins      []kongPluginConfig `yaml:"plugins"`
 }
 
 type kongPluginConfig struct {
 	Name   string `yaml:"name"`
 	Config struct {
-		JWKSURI  string   `yaml:"jwks_uri"`
-		Issuer   string   `yaml:"issuer"`
-		Audience string   `yaml:"audience"`
-		Origins  []string `yaml:"origins"`
-		Methods  []string `yaml:"methods"`
-		Remove   struct {
+		JWKSURI            string   `yaml:"jwks_uri"`
+		Issuer             string   `yaml:"issuer"`
+		Audience           string   `yaml:"audience"`
+		Origins            []string `yaml:"origins"`
+		Methods            []string `yaml:"methods"`
+		AllowedPayloadSize int      `yaml:"allowed_payload_size"`
+		SizeUnit           string   `yaml:"size_unit"`
+		Remove             struct {
 			Headers []string `yaml:"headers"`
 		} `yaml:"remove"`
 	} `yaml:"config"`
@@ -84,21 +87,24 @@ func TestProductionKongConsolidatesServicesWithStripPathFalseAndServesSPA(t *tes
 		t.Fatal("kong-production.yaml must not contain placeholder frontend.example.com CORS origin")
 	}
 
-	if len(doc.Services) != 3 {
-		t.Fatalf("kong-production.yaml services count = %d, want 3 (identity-service, bff-service, ecommerce-fe)", len(doc.Services))
+	if len(doc.Services) != 5 {
+		t.Fatalf("kong-production.yaml services count = %d, want 5 (identity-service, bff-service, ecommerce-fe, admin-fe, minio)", len(doc.Services))
 	}
 
 	expectedServices := map[string]string{
 		"identity-service": "http://identity-service:8080",
 		"bff-service":      "http://bff-service:8080",
 		"ecommerce-fe":     "http://ecommerce-fe:8080",
+		"admin-fe":         "http://admin-fe:8080",
+		"minio":            "http://minio:9000",
 	}
 
 	type routeExpectation struct {
-		service   string
-		paths     []string
-		methods   []string
-		protected bool
+		service           string
+		paths             []string
+		methods           []string
+		protected         bool
+		preserveHostFalse bool
 	}
 	expectedRoutes := map[string]routeExpectation{
 		"identity-auth-public": {
@@ -150,8 +156,27 @@ func TestProductionKongConsolidatesServicesWithStripPathFalseAndServesSPA(t *tes
 		"admin-products-api": {
 			service:   "bff-service",
 			paths:     []string{"/api/v1/admin/products"},
-			methods:   []string{"POST"},
+			methods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
 			protected: true,
+		},
+		"admin-inventory-api": {
+			service:   "bff-service",
+			paths:     []string{"/api/v1/admin/inventory"},
+			methods:   []string{"GET", "POST", "PUT", "PATCH"},
+			protected: true,
+		},
+		"product-media-storage": {
+			service:           "minio",
+			paths:             []string{"/product-media"},
+			methods:           []string{"GET", "HEAD", "PUT"},
+			protected:         false,
+			preserveHostFalse: true,
+		},
+		"admin-spa": {
+			service:   "admin-fe",
+			paths:     []string{"/admin"},
+			methods:   []string{"GET", "HEAD"},
+			protected: false,
 		},
 		"frontend-spa": {
 			service:   "ecommerce-fe",
@@ -208,6 +233,15 @@ func TestProductionKongConsolidatesServicesWithStripPathFalseAndServesSPA(t *tes
 			}
 			if !slices.Equal(route.Methods, exp.methods) {
 				t.Errorf("route %q methods = %v, want %v", route.Name, route.Methods, exp.methods)
+			}
+			if exp.preserveHostFalse && (route.PreserveHost == nil || *route.PreserveHost) {
+				t.Errorf("route %q must set preserve_host: false so MinIO SigV4 Host header matches minio:9000", route.Name)
+			}
+			if route.Name == "product-media-storage" {
+				rsl, ok := hasPlugin(route.Plugins, "request-size-limiting")
+				if !ok || rsl.Config.AllowedPayloadSize != 32 || rsl.Config.SizeUnit != "megabytes" {
+					t.Errorf("route %q must enforce 32MB request-size-limiting, got %#v (present=%t)", route.Name, rsl.Config, ok)
+				}
 			}
 
 			if exp.protected {

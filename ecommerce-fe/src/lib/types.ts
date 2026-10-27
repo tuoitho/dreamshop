@@ -165,6 +165,7 @@ export interface ProductDetail extends ProductSummary {
   description: string
   details: string[]
   variants: ProductVariant[]
+  videos?: string[]
   deleted?: boolean
 }
 

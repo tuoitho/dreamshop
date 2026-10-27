@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	inventoryv1 "ecommerce.local/contracts/go/inventory/v1"
+	"ecommerce.local/inventory-service/internal/authorization"
 	"ecommerce.local/inventory-service/internal/config"
 	inventorygrpc "ecommerce.local/inventory-service/internal/grpc"
 	internalhttp "ecommerce.local/inventory-service/internal/http"
@@ -48,9 +49,15 @@ func main() {
 		log.Fatalf("failed to seed inventory: %v", err)
 	}
 
+	authClient, err := authorization.NewClient(cfg.IdentityGRPCAddr, cfg.IdentityGRPCTimeout)
+	if err != nil {
+		log.Fatalf("failed to create identity authorization client: %v", err)
+	}
+	defer func() { _ = authClient.Close() }()
+
 	repo := store.New(pool)
 	grpcServer := grpc.NewServer()
-	inventoryv1.RegisterInventoryServiceServer(grpcServer, inventorygrpc.NewServer(repo))
+	inventoryv1.RegisterInventoryServiceServer(grpcServer, inventorygrpc.NewServerWithAuth(repo, authClient))
 
 	healthMux := http.NewServeMux()
 	healthMux.Handle("/healthz", internalhttp.NewHealthHandler("inventory-service"))

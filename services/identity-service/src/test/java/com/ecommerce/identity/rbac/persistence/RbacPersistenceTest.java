@@ -112,4 +112,21 @@ class RbacPersistenceTest extends PostgresIntegrationTestSupport {
         assertThat(repository.findAllowedPermissions(USER_ID, List.of("favorite.manage")))
                 .containsExactly("favorite.manage");
     }
+
+    @Test
+    void findsAllEffectivePermissionsForActiveRolesAndReturnsEmptyWhenDisabled() {
+        repository.assignRole(USER_ID, "ADMIN", Instant.now());
+        assertThat(repository.findAllEffectivePermissions(USER_ID))
+                .contains("product.view", "product.create", "product.update", "product.delete",
+                        "inventory.view", "inventory.update", "user.view", "rbac.view")
+                .doesNotContain("favorite.manage");
+
+        jdbcTemplate.update("delete from auth_assignments where user_id = ?", USER_ID);
+        repository.assignRole(USER_ID, "SUPER_ADMIN", Instant.now());
+        assertThat(repository.findAllEffectivePermissions(USER_ID))
+                .contains("product.view", "inventory.update", "favorite.manage", "address.manage");
+
+        jdbcTemplate.update("update identity_users set status = 'DISABLED' where id = ?", USER_ID);
+        assertThat(repository.findAllEffectivePermissions(USER_ID)).isEmpty();
+    }
 }

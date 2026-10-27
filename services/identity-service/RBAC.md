@@ -28,10 +28,13 @@ where user_id = '<USER_UUID>'::uuid
   and item_name = 'SUPER_ADMIN';
 ```
 
-After verification, use the admin APIs for all subsequent role, permission,
-hierarchy, user-status, and assignment changes. The final active
-`SUPER_ADMIN` assignment cannot be revoked, and a super administrator cannot be
-disabled when it is the last active assignment.
+After verification, use the admin APIs for all subsequent custom role,
+hierarchy (`ROLE -> ROLE` and `ROLE -> PERMISSION`), user-status, and assignment
+changes. Atomic `PERMISSION` definitions are provisioned exclusively through
+Flyway migrations and cannot be created, renamed, deleted, or assigned child
+edges at runtime. The final active `SUPER_ADMIN` assignment cannot be revoked,
+and a super administrator cannot be disabled when it is the last active
+assignment.
 
 ## Opt-in startup seed
 

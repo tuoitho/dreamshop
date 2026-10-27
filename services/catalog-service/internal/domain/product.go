@@ -1,5 +1,7 @@
 package domain
 
+import "time"
+
 // ProductVariant is a variant of a product (for example a color or an option
 // group label). Pure domain value.
 type ProductVariant struct {
@@ -21,6 +23,7 @@ type Product struct {
 	PriceMinor         int64
 	OriginalPriceMinor int64
 	Images             []string
+	Videos             []string
 	Rating             float64
 	ReviewCount        int64
 	SoldCount          int64
@@ -32,6 +35,8 @@ type Product struct {
 	Variants           []ProductVariant
 	Details            []string
 	Deleted            bool
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
 }
 
 // Summary is the search-result projection of a Product. It carries the same

@@ -29,6 +29,7 @@ func setupCleanRepo(t *testing.T) string {
 	writeTestFile(t, root, "contracts/go/cart.go", "package cartv1\n")
 	writeTestFile(t, root, "contracts/java/src/Order.java", "package com.ecommerce.contracts;\nimport com.ecommerce.contracts.common.Base;\n")
 	writeTestFile(t, root, "ecommerce-fe/src/App.tsx", "import React from 'react'\n")
+	writeTestFile(t, root, "admin-fe/src/App.tsx", "import React from 'react'\n")
 	return root
 }
 
@@ -42,7 +43,7 @@ func TestCheckBoundariesCleanRepoPasses(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("expected exit 0, got %d; output:\n%s", code, out.String())
 	}
-	if !strings.Contains(out.String(), "Boundary check passed for 2 services, contracts, and ecommerce-fe.") {
+	if !strings.Contains(out.String(), "Boundary check passed for 2 services, contracts, ecommerce-fe, and admin-fe.") {
 		t.Fatalf("unexpected output: %s", out.String())
 	}
 }
@@ -57,6 +58,10 @@ func TestCheckBoundariesDetectsViolations(t *testing.T) {
 	writeTestFile(t, root, "contracts/java/src/Bad.java", "import com.ecommerce.order.Foo;\n")
 	writeTestFile(t, root, "ecommerce-fe/src/bad.ts", "import { x } from '../../services/cart-service/internal/foo'\n")
 	writeTestFile(t, root, "ecommerce-fe/src/badProto.ts", "import proto from '../../contracts/proto/cart/v1/cart.proto'\n")
+	writeTestFile(t, root, "ecommerce-fe/src/badAdmin.ts", "import { x } from '../../admin-fe/src/lib/api'\n")
+	writeTestFile(t, root, "admin-fe/src/badService.ts", "import { x } from '../../services/catalog-service/internal/domain/product'\n")
+	writeTestFile(t, root, "admin-fe/src/badProto.ts", "import proto from '../../contracts/proto/catalog/v1/catalog.proto'\n")
+	writeTestFile(t, root, "admin-fe/src/badStorefront.ts", "import { x } from '../../ecommerce-fe/src/lib/api'\n")
 	writeTestFile(t, root, "services/cart-service/internal/kong_call.go", "package internal\nconst url = \"http://localhost:8000/api/v1/catalog\"\n")
 
 	var out bytes.Buffer
@@ -76,7 +81,11 @@ func TestCheckBoundariesDetectsViolations(t *testing.T) {
 		"contracts/java/src/Bad.java:1: contract module imports service code: import com.ecommerce.order",
 		"ecommerce-fe/src/bad.ts:1: frontend imports backend source:",
 		"ecommerce-fe/src/badProto.ts:1: frontend imports backend source:",
-		"Boundary check failed: 9 violation(s). See docs/steering/service-boundaries.md.",
+		"ecommerce-fe/src/badAdmin.ts:1: cross-frontend import:",
+		"admin-fe/src/badService.ts:1: frontend imports backend source:",
+		"admin-fe/src/badProto.ts:1: frontend imports backend source:",
+		"admin-fe/src/badStorefront.ts:1: cross-frontend import:",
+		"Boundary check failed: 13 violation(s). See docs/steering/service-boundaries.md.",
 	}
 	for _, want := range expectedSubstrings {
 		if !strings.Contains(got, want) {

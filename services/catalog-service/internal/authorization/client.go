@@ -48,3 +48,24 @@ func (c *Client) CheckPermission(ctx context.Context, userID, permission string)
 	}
 	return response.GetAllowed(), nil
 }
+
+func (c *Client) CheckAnyPermission(ctx context.Context, userID string, permissions ...string) (bool, error) {
+	if len(permissions) == 0 {
+		return false, nil
+	}
+	callCtx, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+	response, err := c.service.CheckPermissions(callCtx, &identityv1.CheckPermissionsRequest{
+		UserId:      userID,
+		Permissions: permissions,
+	})
+	if err != nil {
+		return false, err
+	}
+	for _, decision := range response.GetDecisions() {
+		if decision.GetAllowed() {
+			return true, nil
+		}
+	}
+	return false, nil
+}

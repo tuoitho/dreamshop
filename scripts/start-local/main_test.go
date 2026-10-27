@@ -124,6 +124,22 @@ func TestStartLocalIdentityOrderCartBff(t *testing.T) {
 	if got.Env["VITE_API_BASE_URL"] != "http://localhost:8000/api/v1" {
 		t.Fatalf("unexpected fe VITE_API_BASE_URL: %q", got.Env["VITE_API_BASE_URL"])
 	}
+
+	// Admin frontend (admin / admin-fe) sets default VITE_API_BASE_URL and runs Vite dev server
+	errOut.Reset()
+	code = runWithDeps([]string{"-root", root, "-service", "admin-fe"}, strings.NewReader(""), &out, &errOut, []string{}, launcher)
+	if code != 0 {
+		t.Fatalf("admin-fe exit %d: %s", code, errOut.String())
+	}
+	if got.Dir != root {
+		t.Fatalf("unexpected admin-fe dir: %s", got.Dir)
+	}
+	if got.Name != "npm" || !reflect.DeepEqual(got.Args, []string{"--prefix", "admin-fe", "run", "dev"}) {
+		t.Fatalf("unexpected admin-fe command: %s %v", got.Name, got.Args)
+	}
+	if got.Env["VITE_API_BASE_URL"] != "http://localhost:8000/api/v1" {
+		t.Fatalf("unexpected admin-fe VITE_API_BASE_URL: %q", got.Env["VITE_API_BASE_URL"])
+	}
 }
 
 func TestStartLocalCatalogAndInventoryDefaults(t *testing.T) {
@@ -155,6 +171,11 @@ func TestStartLocalCatalogAndInventoryDefaults(t *testing.T) {
 		got.Env["DATABASE_URL"] != "postgres://ecommerce:change-me-local-only@127.0.0.1:5432/catalog_db?sslmode=disable" ||
 		got.Env["IDENTITY_GRPC_ADDR"] != "127.0.0.1:50054" ||
 		got.Env["IDENTITY_GRPC_TIMEOUT"] != "500ms" ||
+		got.Env["MINIO_ENDPOINT"] != "localhost:9000" ||
+		got.Env["MINIO_ACCESS_KEY"] != "minioadmin" ||
+		got.Env["MINIO_SECRET_KEY"] != "minioadmin" ||
+		got.Env["MINIO_BUCKET"] != "product-media" ||
+		got.Env["MINIO_PUBLIC_BASE_URL"] != "http://localhost:9000/product-media" ||
 		got.Env["SEED_DEMO_DATA"] != "true" {
 		t.Fatalf("unexpected catalog env: %v", got.Env)
 	}
@@ -173,6 +194,8 @@ func TestStartLocalCatalogAndInventoryDefaults(t *testing.T) {
 	if got.Env["HTTP_ADDR"] != ":8082" ||
 		got.Env["GRPC_ADDR"] != "127.0.0.1:50052" ||
 		got.Env["DATABASE_URL"] != "postgres://ecommerce:change-me-local-only@127.0.0.1:5432/inventory_db?sslmode=disable" ||
+		got.Env["IDENTITY_GRPC_ADDR"] != "127.0.0.1:50054" ||
+		got.Env["IDENTITY_GRPC_TIMEOUT"] != "500ms" ||
 		got.Env["SEED_DEMO_DATA"] != "true" {
 		t.Fatalf("unexpected inventory env: %v", got.Env)
 	}

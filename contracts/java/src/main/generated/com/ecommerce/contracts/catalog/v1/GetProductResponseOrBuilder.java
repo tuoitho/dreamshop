@@ -272,4 +272,29 @@ public interface GetProductResponseOrBuilder extends
    * @return The deleted.
    */
   boolean getDeleted();
+
+  /**
+   * <code>repeated string videos = 22 [json_name = "videos"];</code>
+   * @return A list containing the videos.
+   */
+  java.util.List<java.lang.String>
+      getVideosList();
+  /**
+   * <code>repeated string videos = 22 [json_name = "videos"];</code>
+   * @return The count of videos.
+   */
+  int getVideosCount();
+  /**
+   * <code>repeated string videos = 22 [json_name = "videos"];</code>
+   * @param index The index of the element to return.
+   * @return The videos at the given index.
+   */
+  java.lang.String getVideos(int index);
+  /**
+   * <code>repeated string videos = 22 [json_name = "videos"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the videos at the given index.
+   */
+  com.google.protobuf.ByteString
+      getVideosBytes(int index);
 }

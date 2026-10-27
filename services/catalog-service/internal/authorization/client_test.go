@@ -14,9 +14,11 @@ import (
 
 type recordingAuthorizationServer struct {
 	identityv1.UnimplementedAuthorizationServiceServer
-	request *identityv1.CheckPermissionRequest
-	allowed bool
-	err     error
+	request       *identityv1.CheckPermissionRequest
+	batchRequest  *identityv1.CheckPermissionsRequest
+	allowed       bool
+	batchAllowed  map[string]bool
+	err           error
 }
 
 func (s *recordingAuthorizationServer) CheckPermission(_ context.Context, request *identityv1.CheckPermissionRequest) (*identityv1.CheckPermissionResponse, error) {
@@ -25,6 +27,21 @@ func (s *recordingAuthorizationServer) CheckPermission(_ context.Context, reques
 		return nil, s.err
 	}
 	return &identityv1.CheckPermissionResponse{Allowed: s.allowed}, nil
+}
+
+func (s *recordingAuthorizationServer) CheckPermissions(_ context.Context, request *identityv1.CheckPermissionsRequest) (*identityv1.CheckPermissionsResponse, error) {
+	s.batchRequest = request
+	if s.err != nil {
+		return nil, s.err
+	}
+	decisions := make([]*identityv1.PermissionDecision, 0, len(request.GetPermissions()))
+	for _, perm := range request.GetPermissions() {
+		decisions = append(decisions, &identityv1.PermissionDecision{
+			Permission: perm,
+			Allowed:    s.batchAllowed[perm],
+		})
+	}
+	return &identityv1.CheckPermissionsResponse{Decisions: decisions}, nil
 }
 
 func startAuthorizationTestServer(t *testing.T, implementation identityv1.AuthorizationServiceServer) (string, func()) {
@@ -139,5 +156,30 @@ func TestNewClientRejectsBlankTarget(t *testing.T) {
 			_ = client.Close()
 			t.Fatalf("NewClient(%q) error = nil, want rejection", target)
 		}
+	}
+}
+
+func TestClientCheckAnyPermissionUsesBatchCheckPermissions(t *testing.T) {
+	server := &recordingAuthorizationServer{
+		batchAllowed: map[string]bool{
+			"product.create": false,
+			"product.update": true,
+		},
+	}
+	target, stop := startAuthorizationTestServer(t, server)
+	defer stop()
+
+	client, err := NewClient(target, time.Second)
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+	defer client.Close()
+
+	allowed, err := client.CheckAnyPermission(context.Background(), "editor-1", "product.create", "product.update")
+	if err != nil || !allowed {
+		t.Fatalf("CheckAnyPermission() = %t, %v; want true, nil", allowed, err)
+	}
+	if server.batchRequest.GetUserId() != "editor-1" || len(server.batchRequest.GetPermissions()) != 2 {
+		t.Fatalf("batchRequest = %+v", server.batchRequest)
 	}
 }

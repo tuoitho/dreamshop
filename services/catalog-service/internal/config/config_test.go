@@ -15,6 +15,15 @@ func clearCatalogConfigEnv(t *testing.T) {
 		"IDENTITY_GRPC_ADDR",
 		"IDENTITY_GRPC_TIMEOUT",
 		"SEED_DEMO_DATA",
+		"MINIO_ENDPOINT",
+		"MINIO_ACCESS_KEY",
+		"MINIO_SECRET_KEY",
+		"MINIO_USE_SSL",
+		"MINIO_BUCKET",
+		"MINIO_PUBLIC_BASE_URL",
+		"MEDIA_PRESIGN_TTL",
+		"MEDIA_ORPHAN_GRACE",
+		"MEDIA_CLEANUP_INTERVAL",
 	} {
 		t.Setenv(key, "")
 	}
@@ -45,6 +54,27 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.SeedDemoData {
 		t.Fatal("expected SeedDemoData to default to false")
+	}
+	if cfg.MinIOEndpoint != "localhost:9000" {
+		t.Fatalf("expected MinIOEndpoint localhost:9000, got %s", cfg.MinIOEndpoint)
+	}
+	if cfg.MinIOBucket != "product-media" {
+		t.Fatalf("expected MinIOBucket product-media, got %s", cfg.MinIOBucket)
+	}
+	if cfg.MinIOPublicBaseURL != "http://localhost:9000/product-media" {
+		t.Fatalf("expected MinIOPublicBaseURL http://localhost:9000/product-media, got %s", cfg.MinIOPublicBaseURL)
+	}
+	if cfg.MinIOUseSSL {
+		t.Fatal("expected MinIOUseSSL to default to false")
+	}
+	if cfg.MediaPresignTTL != 5*time.Minute {
+		t.Fatalf("expected MediaPresignTTL 5m, got %s", cfg.MediaPresignTTL)
+	}
+	if cfg.MediaOrphanGrace != 24*time.Hour {
+		t.Fatalf("expected MediaOrphanGrace 24h, got %s", cfg.MediaOrphanGrace)
+	}
+	if cfg.MediaCleanupInterval != 15*time.Minute {
+		t.Fatalf("expected MediaCleanupInterval 15m, got %s", cfg.MediaCleanupInterval)
 	}
 }
 

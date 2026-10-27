@@ -5,6 +5,7 @@ import {
   ChevronRight,
   Heart,
   Minus,
+  Play,
   Plus,
   RotateCcw,
   Share2,
@@ -309,9 +310,22 @@ export default function ProductDetailPage() {
       : 0
 
   const images = product.images ?? []
-  const activeImage =
-    images.length > 0 && !galleryError
-      ? images[Math.min(activeIndex, images.length - 1)]
+  const videos = product.videos ?? []
+  const galleryItems = [
+    ...images.map((src, index) => ({
+      kind: "image" as const,
+      src,
+      label: `Xem ảnh ${index + 1}`,
+    })),
+    ...videos.map((src, index) => ({
+      kind: "video" as const,
+      src,
+      label: `Xem video ${index + 1}`,
+    })),
+  ]
+  const activeItem =
+    galleryItems.length > 0
+      ? galleryItems[Math.min(activeIndex, galleryItems.length - 1)]
       : undefined
 
   const requireAuthentication = () => {
@@ -459,11 +473,24 @@ export default function ProductDetailPage() {
       ) : null}
 
       <div className="mt-6 grid gap-8 lg:grid-cols-2">
-        <div className="relative overflow-hidden rounded-3xl ring-1 ring-foreground/10">
-          {activeImage ? (
-            <>
+        <div className="space-y-3">
+          <div className="relative overflow-hidden rounded-3xl ring-1 ring-foreground/10">
+            {activeItem?.kind === "video" ? (
+              <video
+                key={activeItem.src}
+                src={activeItem.src}
+                controls
+                playsInline
+                preload="metadata"
+                aria-label={`Video ${product.name}`}
+                className={cn(
+                  "aspect-square w-full bg-black object-contain",
+                  !availability.purchasable && "opacity-75 grayscale-[25%]"
+                )}
+              />
+            ) : activeItem?.kind === "image" && !galleryError ? (
               <img
-                src={activeImage}
+                src={activeItem.src}
                 alt={product.name}
                 className={cn(
                   "aspect-square w-full object-cover",
@@ -471,41 +498,54 @@ export default function ProductDetailPage() {
                 )}
                 onError={() => setGalleryError(true)}
               />
-              {images.length > 1 && (
-                <div className="absolute inset-x-0 bottom-0 flex justify-center gap-2 bg-gradient-to-t from-black/40 to-transparent p-3">
-                  {images.map((src, index) => (
-                    <button
-                      key={src}
-                      type="button"
-                      onClick={() => setActiveIndex(index)}
-                      aria-label={`Xem ảnh ${index + 1}`}
-                      aria-pressed={index === activeIndex}
-                      className={cn(
-                        "size-14 overflow-hidden rounded-lg ring-2 transition-opacity",
-                        index === activeIndex
-                          ? "ring-white opacity-100"
-                          : "ring-white/50 opacity-70 hover:opacity-100"
-                      )}
-                    >
-                      <img src={src} alt="" className="h-full w-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </>
-          ) : (
-            <ProductImage
-              emoji={product.emoji ?? "🛍️"}
-              hue={product.imageHue ?? [200, 240]}
-              seed={product.id}
-              label={product.name}
-              className={cn("aspect-square", !availability.purchasable && "opacity-75 grayscale-[25%]")}
-            />
-          )}
-          {discount > 0 && availability.purchasable && (
-            <span className="absolute top-4 left-4 rounded-lg bg-red-600 px-2 py-1 text-xs font-bold text-white">
-              -{discount}%
-            </span>
+            ) : (
+              <ProductImage
+                emoji={product.emoji ?? "🛍️"}
+                hue={product.imageHue ?? [200, 240]}
+                seed={product.id}
+                label={product.name}
+                className={cn(
+                  "aspect-square",
+                  !availability.purchasable && "opacity-75 grayscale-[25%]"
+                )}
+              />
+            )}
+            {discount > 0 && availability.purchasable && (
+              <span className="absolute top-4 left-4 rounded-lg bg-red-600 px-2 py-1 text-xs font-bold text-white">
+                -{discount}%
+              </span>
+            )}
+          </div>
+
+          {galleryItems.length > 1 && (
+            <div className="flex flex-wrap justify-center gap-2">
+              {galleryItems.map((item, index) => (
+                <button
+                  key={`${item.kind}-${item.src}-${index}`}
+                  type="button"
+                  onClick={() => {
+                    setGalleryError(false)
+                    setActiveIndex(index)
+                  }}
+                  aria-label={item.label}
+                  aria-pressed={index === activeIndex}
+                  className={cn(
+                    "relative size-14 overflow-hidden rounded-lg ring-2 transition-opacity",
+                    index === activeIndex
+                      ? "ring-primary opacity-100"
+                      : "ring-border opacity-75 hover:opacity-100"
+                  )}
+                >
+                  {item.kind === "video" ? (
+                    <span className="flex h-full w-full items-center justify-center bg-slate-900 text-white">
+                      <Play className="size-5 fill-current" />
+                    </span>
+                  ) : (
+                    <img src={item.src} alt="" className="h-full w-full object-cover" />
+                  )}
+                </button>
+              ))}
+            </div>
           )}
         </div>
 

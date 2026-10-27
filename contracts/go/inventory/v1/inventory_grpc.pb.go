@@ -20,6 +20,11 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	InventoryService_GetAvailability_FullMethodName = "/ecommerce.inventory.v1.InventoryService/GetAvailability"
+	InventoryService_GetStock_FullMethodName        = "/ecommerce.inventory.v1.InventoryService/GetStock"
+	InventoryService_BatchGetStock_FullMethodName   = "/ecommerce.inventory.v1.InventoryService/BatchGetStock"
+	InventoryService_ListStocks_FullMethodName      = "/ecommerce.inventory.v1.InventoryService/ListStocks"
+	InventoryService_SetStock_FullMethodName        = "/ecommerce.inventory.v1.InventoryService/SetStock"
+	InventoryService_AdjustStock_FullMethodName     = "/ecommerce.inventory.v1.InventoryService/AdjustStock"
 )
 
 // InventoryServiceClient is the client API for InventoryService service.
@@ -27,6 +32,11 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type InventoryServiceClient interface {
 	GetAvailability(ctx context.Context, in *GetAvailabilityRequest, opts ...grpc.CallOption) (*GetAvailabilityResponse, error)
+	GetStock(ctx context.Context, in *GetStockRequest, opts ...grpc.CallOption) (*GetStockResponse, error)
+	BatchGetStock(ctx context.Context, in *BatchGetStockRequest, opts ...grpc.CallOption) (*BatchGetStockResponse, error)
+	ListStocks(ctx context.Context, in *ListStocksRequest, opts ...grpc.CallOption) (*ListStocksResponse, error)
+	SetStock(ctx context.Context, in *SetStockRequest, opts ...grpc.CallOption) (*SetStockResponse, error)
+	AdjustStock(ctx context.Context, in *AdjustStockRequest, opts ...grpc.CallOption) (*AdjustStockResponse, error)
 }
 
 type inventoryServiceClient struct {
@@ -47,11 +57,66 @@ func (c *inventoryServiceClient) GetAvailability(ctx context.Context, in *GetAva
 	return out, nil
 }
 
+func (c *inventoryServiceClient) GetStock(ctx context.Context, in *GetStockRequest, opts ...grpc.CallOption) (*GetStockResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetStockResponse)
+	err := c.cc.Invoke(ctx, InventoryService_GetStock_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inventoryServiceClient) BatchGetStock(ctx context.Context, in *BatchGetStockRequest, opts ...grpc.CallOption) (*BatchGetStockResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchGetStockResponse)
+	err := c.cc.Invoke(ctx, InventoryService_BatchGetStock_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inventoryServiceClient) ListStocks(ctx context.Context, in *ListStocksRequest, opts ...grpc.CallOption) (*ListStocksResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListStocksResponse)
+	err := c.cc.Invoke(ctx, InventoryService_ListStocks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inventoryServiceClient) SetStock(ctx context.Context, in *SetStockRequest, opts ...grpc.CallOption) (*SetStockResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetStockResponse)
+	err := c.cc.Invoke(ctx, InventoryService_SetStock_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inventoryServiceClient) AdjustStock(ctx context.Context, in *AdjustStockRequest, opts ...grpc.CallOption) (*AdjustStockResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdjustStockResponse)
+	err := c.cc.Invoke(ctx, InventoryService_AdjustStock_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // InventoryServiceServer is the server API for InventoryService service.
 // All implementations must embed UnimplementedInventoryServiceServer
 // for forward compatibility.
 type InventoryServiceServer interface {
 	GetAvailability(context.Context, *GetAvailabilityRequest) (*GetAvailabilityResponse, error)
+	GetStock(context.Context, *GetStockRequest) (*GetStockResponse, error)
+	BatchGetStock(context.Context, *BatchGetStockRequest) (*BatchGetStockResponse, error)
+	ListStocks(context.Context, *ListStocksRequest) (*ListStocksResponse, error)
+	SetStock(context.Context, *SetStockRequest) (*SetStockResponse, error)
+	AdjustStock(context.Context, *AdjustStockRequest) (*AdjustStockResponse, error)
 	mustEmbedUnimplementedInventoryServiceServer()
 }
 
@@ -64,6 +129,21 @@ type UnimplementedInventoryServiceServer struct{}
 
 func (UnimplementedInventoryServiceServer) GetAvailability(context.Context, *GetAvailabilityRequest) (*GetAvailabilityResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAvailability not implemented")
+}
+func (UnimplementedInventoryServiceServer) GetStock(context.Context, *GetStockRequest) (*GetStockResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetStock not implemented")
+}
+func (UnimplementedInventoryServiceServer) BatchGetStock(context.Context, *BatchGetStockRequest) (*BatchGetStockResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchGetStock not implemented")
+}
+func (UnimplementedInventoryServiceServer) ListStocks(context.Context, *ListStocksRequest) (*ListStocksResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListStocks not implemented")
+}
+func (UnimplementedInventoryServiceServer) SetStock(context.Context, *SetStockRequest) (*SetStockResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetStock not implemented")
+}
+func (UnimplementedInventoryServiceServer) AdjustStock(context.Context, *AdjustStockRequest) (*AdjustStockResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdjustStock not implemented")
 }
 func (UnimplementedInventoryServiceServer) mustEmbedUnimplementedInventoryServiceServer() {}
 func (UnimplementedInventoryServiceServer) testEmbeddedByValue()                          {}
@@ -104,6 +184,96 @@ func _InventoryService_GetAvailability_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _InventoryService_GetStock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetStockRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).GetStock(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_GetStock_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).GetStock(ctx, req.(*GetStockRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InventoryService_BatchGetStock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchGetStockRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).BatchGetStock(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_BatchGetStock_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).BatchGetStock(ctx, req.(*BatchGetStockRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InventoryService_ListStocks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListStocksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).ListStocks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_ListStocks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).ListStocks(ctx, req.(*ListStocksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InventoryService_SetStock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetStockRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).SetStock(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_SetStock_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).SetStock(ctx, req.(*SetStockRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InventoryService_AdjustStock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdjustStockRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).AdjustStock(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_AdjustStock_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).AdjustStock(ctx, req.(*AdjustStockRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // InventoryService_ServiceDesc is the grpc.ServiceDesc for InventoryService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +284,26 @@ var InventoryService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAvailability",
 			Handler:    _InventoryService_GetAvailability_Handler,
+		},
+		{
+			MethodName: "GetStock",
+			Handler:    _InventoryService_GetStock_Handler,
+		},
+		{
+			MethodName: "BatchGetStock",
+			Handler:    _InventoryService_BatchGetStock_Handler,
+		},
+		{
+			MethodName: "ListStocks",
+			Handler:    _InventoryService_ListStocks_Handler,
+		},
+		{
+			MethodName: "SetStock",
+			Handler:    _InventoryService_SetStock_Handler,
+		},
+		{
+			MethodName: "AdjustStock",
+			Handler:    _InventoryService_AdjustStock_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

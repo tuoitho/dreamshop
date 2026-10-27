@@ -45,13 +45,14 @@ Detailed steering documents translate those decisions into implementation rules.
   consumption.
 - `services/cart-service/`: Go; shopping cart, line items, and catalog/inventory
   enrichment over private gRPC.
-- `ecommerce-fe/`: React/Vite/TypeScript frontend.
+- `ecommerce-fe/`: React/Vite/TypeScript storefront frontend.
+- `admin-fe/`: React/Vite/TypeScript administrative console frontend.
 - `contracts/`: protobuf sources and generated Java/Go modules.
-- `deployments/`: Docker Compose, Kong, PostgreSQL, and local secret setup.
+- `deployments/`: Docker Compose, Kong, PostgreSQL, MinIO, and local secret setup.
 
 Keep production code and tests within the owning application surface. Java tests
 belong in `src/test/java`; Go tests use adjacent `_test.go` files; frontend tests
-use `*.test.ts` or `*.test.tsx` under `ecommerce-fe/src`.
+use `*.test.ts` or `*.test.tsx` under `ecommerce-fe/src` or `admin-fe/src`.
 
 ## Before Modifying Code
 
@@ -124,31 +125,32 @@ Developer procedures and contribution policy live in `docs/instructions/`:
 ## Commands
 
 - `docker compose -f deployments/docker/compose.foundation.yml up -d` starts
-  PostgreSQL, Redis, RabbitMQ, and Kong.
+  PostgreSQL, Redis, RabbitMQ, MinIO, and Kong.
 - `make infra-up` starts or refreshes the local foundation; `make infra-down`
   stops it without deleting volumes.
 - `make prod-config`, `make prod-up`, `make prod-down`, and `make prod-logs`
   validate, start, stop, or inspect the self-contained production Compose stack.
 - `make identity-keys` generates local-only Identity signing keys.
 - `make identity`, `make order`, `make catalog`, `make inventory`, `make cart`,
-  `make bff`, or `make fe` runs the corresponding surface directly from the
-  host.
+  `make bff`, `make fe`, or `make admin-fe` runs the corresponding surface
+  directly from the host.
 - `mvn test` builds and tests all Maven modules (Docker Desktop must be running
   for `identity-service` Testcontainers tests).
 - `go test ./scripts/... ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...`
   runs all Go script and service tests on Linux/CI; on Windows PowerShell, use
   `./services/cart-service/internal/...` for Cart because `cart-service/cmd/server`
   tests use Unix `syscall.Kill`.
-- `npm --prefix ecommerce-fe run dev` starts the frontend. Replace `dev` with
+- `npm --prefix ecommerce-fe run dev` starts the storefront (`npm --prefix admin-fe run dev` starts the admin console). Replace `dev` with
   `test`, `lint`, or `build` for the corresponding check.
 - `buf lint` validates protobuf sources; `buf generate` regenerates Java and Go
   contract modules.
 - `make verify SERVICE=<surface>` runs the boundary check and the build/test gate
   for one surface: a service directory name under `services/`, `ecommerce-fe`,
-  or `contracts`. A zero exit code means the gate passed.
+  `admin-fe`, or `contracts`. A zero exit code means the gate passed.
 - `make check-boundaries` fails on cross-service imports, service-to-service
   build dependencies, foreign database references, internal service calls
-  through Kong (`:8000`), and frontend imports of backend or contract source.
+  through Kong (`:8000`), frontend imports of backend or contract source, and
+  cross-frontend imports between `ecommerce-fe` and `admin-fe`.
 
 Run infrastructure in Docker Compose and application services directly from a
 terminal or IDE. When containerized Kong proxies to a Windows-hosted
@@ -168,24 +170,27 @@ on Linux/WSL) and verify the listed health endpoint after startup.
 | inventory-service | `8082` | `127.0.0.1:50052` | |
 | order-service | `8083` (mgmt `8093`) | - | Actuator health is isolated on `:8093`. |
 | cart-service | `8084` | `127.0.0.1:50053` | BFF calls Cart directly over gRPC. |
-| ecommerce-fe | `5173` | - | Browser development server. |
+| ecommerce-fe | `5173` | - | Storefront browser development server. |
+| admin-fe | `5174` | - | Administrative dashboard browser development server (production Kong `/admin`). |
 | Kong | proxy `8000`; admin `8001` | - | Public local ingress. |
 | PostgreSQL | `5432` | - | |
 | Redis | `6379` | - | |
 | RabbitMQ | AMQP `5672`; management `15672` | - | |
+| MinIO | API `9000`; console `127.0.0.1:9001` | - | S3-compatible object storage (`product-media` bucket; production Kong `/product-media`). |
 
 - The browser calls public APIs only through `http://localhost:8000/api/v1`
   (or same-origin `/api/v1` in production Compose), covering Identity auth,
-  profile, shipping addresses, locations, admin user/RBAC management, storefront
-  products, cart CRUD, and admin product soft-delete/restore.
-- Internal service calls use direct private gRPC. BFF calls Catalog at `50051`
-  and Cart at `50053`; Catalog calls Identity authorization at `127.0.0.1:50054`
-  with a `500ms` timeout; Cart calls Catalog at `50051`, Inventory at `50052`,
-  and Identity authorization at `127.0.0.1:50054` with a `500ms` timeout. Start
-  Identity before Catalog and Cart. Do not route these calls through Kong or use
-  another service's HTTP port.
-- Roll out authorization dependencies provider-first: Identity, then Catalog and
-  Cart, then BFF.
+  profile, shipping addresses, locations, effective permissions, admin user/RBAC
+  management, storefront products, cart CRUD, and admin product/media/inventory
+  workflows (with direct browser presigned `PUT` uploads to MinIO).
+- Internal service calls use direct private gRPC. BFF calls Catalog at `50051`,
+  Inventory at `50052`, and Cart at `50053`; Catalog and Inventory call Identity
+  authorization at `127.0.0.1:50054` with a `500ms` timeout; Cart calls Catalog
+  at `50051`, Inventory at `50052`, and Identity authorization at `127.0.0.1:50054`
+  with a `500ms` timeout. Start Identity before Catalog, Inventory, and Cart. Do
+  not route these calls through Kong or use another service's HTTP port.
+- Roll out authorization dependencies provider-first: Identity, then Catalog,
+  Inventory, and Cart, then BFF.
 
 ## Naming
 

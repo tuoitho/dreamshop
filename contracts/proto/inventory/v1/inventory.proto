@@ -8,6 +8,11 @@ option java_package = "com.ecommerce.contracts.inventory.v1";
 
 service InventoryService {
   rpc GetAvailability(GetAvailabilityRequest) returns (GetAvailabilityResponse);
+  rpc GetStock(GetStockRequest) returns (GetStockResponse);
+  rpc BatchGetStock(BatchGetStockRequest) returns (BatchGetStockResponse);
+  rpc ListStocks(ListStocksRequest) returns (ListStocksResponse);
+  rpc SetStock(SetStockRequest) returns (SetStockResponse);
+  rpc AdjustStock(AdjustStockRequest) returns (AdjustStockResponse);
 }
 
 message GetAvailabilityRequest {
@@ -17,4 +22,58 @@ message GetAvailabilityRequest {
 message GetAvailabilityResponse {
   string product_id = 1;
   int32 available_quantity = 2;
+}
+
+message StockItem {
+  string product_id = 1;
+  int32 quantity = 2;
+  int32 reserved = 3;
+  int32 available_quantity = 4;
+  string updated_at = 5;
+}
+
+message GetStockRequest {
+  string user_id = 1;
+  string product_id = 2;
+}
+
+message GetStockResponse {
+  StockItem stock = 1;
+}
+
+message BatchGetStockRequest {
+  string user_id = 1;
+  repeated string product_ids = 2;
+}
+
+message BatchGetStockResponse {
+  repeated StockItem items = 1;
+}
+
+message ListStocksRequest {
+  string user_id = 1;
+}
+
+message ListStocksResponse {
+  repeated StockItem items = 1;
+}
+
+message SetStockRequest {
+  string user_id = 1;
+  string product_id = 2;
+  int32 quantity = 3;
+}
+
+message SetStockResponse {
+  StockItem stock = 1;
+}
+
+message AdjustStockRequest {
+  string user_id = 1;
+  string product_id = 2;
+  int32 delta = 3;
+}
+
+message AdjustStockResponse {
+  StockItem stock = 1;
 }

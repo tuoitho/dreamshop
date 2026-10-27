@@ -21,6 +21,11 @@ public class MeController {
         return MeResponse.from(meService.current(caller.userId()));
     }
 
+    @GetMapping("/api/v1/users/me/permissions")
+    ApiResponse<java.util.Set<String>> permissions(@AuthenticationPrincipal CallerContextPrincipal caller) {
+        return new ApiResponse<>(meService.permissions(caller.userId()), "Permissions retrieved.");
+    }
+
     @PatchMapping("/api/v1/users/me")
     ApiResponse<MeUpdateResponse> update(@AuthenticationPrincipal CallerContextPrincipal caller,
             @Valid @RequestBody UpdateMeRequest request) {

@@ -34,10 +34,15 @@ public class AdminUserService {
 
     @Transactional(readOnly = true)
     public AdminUserPage list(String rawQuery, int page, int pageSize) {
+        return list(rawQuery, null, page, pageSize);
+    }
+
+    @Transactional(readOnly = true)
+    public AdminUserPage list(String rawQuery, AccountStatus status, int page, int pageSize) {
         String query = rawQuery == null ? "" : rawQuery.trim().toLowerCase(java.util.Locale.ROOT);
         PageRequest pageable = PageRequest.of(page - 1, pageSize,
                 Sort.by(Sort.Order.desc("createdAt"), Sort.Order.asc("id")));
-        Page<IdentityUserEntity> result = users.searchAdminUsers(query, pageable);
+        Page<IdentityUserEntity> result = users.searchAdminUsers(query, status, pageable);
         List<IdentityUserEntity> pageUsers = result.getContent();
         Map<UUID, Set<String>> rolesByUserId = pageUsers.isEmpty()
                 ? Map.of()
@@ -45,7 +50,10 @@ public class AdminUserService {
         List<AdminUserView> items = pageUsers.stream()
                 .map(user -> toView(user, rolesByUserId.getOrDefault(user.id(), Set.of())))
                 .toList();
-        return new AdminUserPage(items, page, pageSize, result.getTotalElements(), result.getTotalPages());
+        long activeCount = users.countByStatus(AccountStatus.ACTIVE);
+        long disabledCount = users.countByStatus(AccountStatus.DISABLED);
+        return new AdminUserPage(items, page, pageSize, result.getTotalElements(), result.getTotalPages(),
+                activeCount, disabledCount);
     }
 
     @Transactional(readOnly = true)

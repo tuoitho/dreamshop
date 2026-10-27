@@ -22,7 +22,13 @@ public final class RbacTestData {
                     ('address.delete', 'PERMISSION', 'Delete shipping addresses', true, now(), now()),
                     ('address.set-default', 'PERMISSION', 'Set default shipping address', true, now(), now()),
                     ('cart.item.add', 'PERMISSION', 'Add products to the current user cart', true, now(), now()),
+                    ('favorite.manage', 'PERMISSION', 'Manage product favorites for the current user', true, now(), now()),
+                    ('product.view', 'PERMISSION', 'View all catalog products including soft-deleted items', true, now(), now()),
+                    ('product.create', 'PERMISSION', 'Create catalog products', true, now(), now()),
+                    ('product.update', 'PERMISSION', 'Update catalog products', true, now(), now()),
                     ('product.delete', 'PERMISSION', 'Soft delete or restore catalog products', true, now(), now()),
+                    ('inventory.view', 'PERMISSION', 'View inventory stock levels', true, now(), now()),
+                    ('inventory.update', 'PERMISSION', 'Adjust and set inventory stock quantities', true, now(), now()),
                     ('user.view', 'PERMISSION', 'View users', true, now(), now()),
                     ('user.status.update', 'PERMISSION', 'Update user status', true, now(), now()),
                     ('user.role.assign', 'PERMISSION', 'Assign user roles', true, now(), now()),
@@ -38,12 +44,18 @@ public final class RbacTestData {
                     ('CUSTOMER', 'address.delete'),
                     ('CUSTOMER', 'address.set-default'),
                     ('CUSTOMER', 'cart.item.add'),
+                    ('CUSTOMER', 'favorite.manage'),
                     ('ADMIN', 'user.view'),
                     ('ADMIN', 'user.status.update'),
                     ('ADMIN', 'user.role.assign'),
                     ('ADMIN', 'rbac.view'),
                     ('ADMIN', 'rbac.manage'),
-                    ('ADMIN', 'product.delete')
+                    ('ADMIN', 'product.view'),
+                    ('ADMIN', 'product.create'),
+                    ('ADMIN', 'product.update'),
+                    ('ADMIN', 'product.delete'),
+                    ('ADMIN', 'inventory.view'),
+                    ('ADMIN', 'inventory.update')
                 """);
     }
 

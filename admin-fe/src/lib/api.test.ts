@@ -1,0 +1,203 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { AxiosHeaders, type InternalAxiosRequestConfig } from "axios"
+import {
+  ApiClientError,
+  fetchCurrentUser,
+  fetchMyPermissions,
+  http,
+  listAdminInventory,
+  listAdminProducts,
+  refreshHttp,
+  setProductStock,
+} from "./api"
+import { clearAccessToken, setAccessToken } from "./auth-session"
+
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}))
+
+describe("admin api client", () => {
+  const originalHttpAdapter = http.defaults.adapter
+  const originalRefreshAdapter = refreshHttp.defaults.adapter
+
+  beforeEach(() => {
+    clearAccessToken()
+  })
+
+  afterEach(() => {
+    http.defaults.adapter = originalHttpAdapter
+    refreshHttp.defaults.adapter = originalRefreshAdapter
+    clearAccessToken()
+  })
+
+  it("reads unwrapped /users/me and enveloped /users/me/permissions", async () => {
+    setAccessToken("valid-token")
+    http.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
+      if (config.url === "/users/me") {
+        return {
+          data: {
+            userId: "u-1",
+            email: "admin@sshop.vn",
+            fullName: "Quản trị viên",
+            roles: ["ADMIN"],
+          },
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          config,
+        }
+      }
+      if (config.url === "/users/me/permissions") {
+        return {
+          data: {
+            data: ["product.view", "inventory.view"],
+            message: "Effective permissions retrieved.",
+          },
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          config,
+        }
+      }
+      throw new Error(`Unexpected URL: ${config.url}`)
+    }
+
+    const user = await fetchCurrentUser()
+    const perms = await fetchMyPermissions()
+
+    expect(user.userId).toBe("u-1")
+    expect(user.email).toBe("admin@sshop.vn")
+    expect(perms).toEqual(["product.view", "inventory.view"])
+  })
+
+  it("coalesces concurrent 401 responses into a single refresh request and retries once", async () => {
+    setAccessToken("expired-token")
+    let refreshCount = 0
+
+    refreshHttp.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
+      refreshCount += 1
+      await new Promise((r) => setTimeout(r, 15))
+      return {
+        data: {
+          data: {
+            accessToken: "fresh-token",
+            tokenType: "Bearer",
+            expiresIn: 900,
+          },
+          message: "Token refreshed.",
+        },
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        config,
+      }
+    }
+
+    http.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
+      const auth = config.headers?.Authorization
+      if (auth !== "Bearer fresh-token") {
+        const err = new Error("Unauthorized") as Error & {
+          isAxiosError: boolean
+          response: unknown
+          config: InternalAxiosRequestConfig
+        }
+        err.isAxiosError = true
+        err.config = config
+        err.response = {
+          status: 401,
+          statusText: "Unauthorized",
+          headers: new AxiosHeaders(),
+          config,
+          data: { code: "UNAUTHORIZED", message: "Expired token" },
+        }
+        return Promise.reject(Object.assign(new (await import("axios")).AxiosError("Unauthorized", "ERR_BAD_REQUEST", config, null, err.response as never)))
+      }
+
+      if (config.url === "/admin/products") {
+        return {
+          data: {
+            data: {
+              items: [],
+              page: 1,
+              pageSize: 20,
+              totalItems: 0,
+              totalPages: 0,
+              activeCount: 0,
+              deletedCount: 0,
+              categories: [],
+              stockDegraded: false,
+            },
+            message: "Products retrieved.",
+          },
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          config,
+        }
+      }
+
+      return {
+        data: {
+          data: {
+            items: [],
+            page: 1,
+            pageSize: 20,
+            totalItems: 0,
+            totalPages: 0,
+            summary: {
+              totalTrackedProducts: 0,
+              inStockCount: 0,
+              lowStockCount: 0,
+              outOfStockCount: 0,
+              totalQuantity: 0,
+              totalReserved: 0,
+              totalAvailable: 0,
+            },
+          },
+          message: "Inventory retrieved.",
+        },
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        config,
+      }
+    }
+
+    const [products, inventory] = await Promise.all([
+      listAdminProducts({ page: 1, pageSize: 20 }),
+      listAdminInventory({ page: 1, pageSize: 20 }),
+    ])
+
+    expect(refreshCount).toBe(1)
+    expect(products.items).toEqual([])
+    expect(inventory.items).toEqual([])
+  })
+
+  it("maps structured backend error envelopes into ApiClientError with code and traceId", async () => {
+    setAccessToken("valid-token")
+    const { AxiosError } = await import("axios")
+    http.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
+      throw new AxiosError("Conflict", "ERR_BAD_REQUEST", config, null, {
+        status: 409,
+        statusText: "Conflict",
+        headers: new AxiosHeaders(),
+        config,
+        data: {
+          code: "STOCK_BELOW_RESERVED",
+          message: "Stock quantity cannot be lower than reserved quantity.",
+          traceId: "trace-abc-123",
+        },
+      })
+    }
+
+    await expect(setProductStock("dt-1", 2)).rejects.toMatchObject({
+      name: "ApiClientError",
+      status: 409,
+      code: "STOCK_BELOW_RESERVED",
+      traceId: "trace-abc-123",
+    } satisfies Partial<ApiClientError>)
+  })
+})

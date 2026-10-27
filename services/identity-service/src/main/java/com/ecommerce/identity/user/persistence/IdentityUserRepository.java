@@ -1,5 +1,6 @@
 package com.ecommerce.identity.user.persistence;
 
+import com.ecommerce.identity.auth.domain.AccountStatus;
 import java.util.Optional;
 import java.util.UUID;
 import jakarta.persistence.LockModeType;
@@ -24,8 +25,14 @@ public interface IdentityUserRepository extends JpaRepository<IdentityUserEntity
             where (:query = ''
                 or lower(u.normalizedEmail) like lower(concat('%', :query, '%'))
                 or lower(u.profile.fullName) like lower(concat('%', :query, '%')))
+              and (:status is null or u.status = :status)
             """)
-    Page<IdentityUserEntity> searchAdminUsers(@Param("query") String query, Pageable pageable);
+    Page<IdentityUserEntity> searchAdminUsers(
+            @Param("query") String query,
+            @Param("status") AccountStatus status,
+            Pageable pageable);
+
+    long countByStatus(AccountStatus status);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from IdentityUserEntity u where u.id = :id")

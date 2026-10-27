@@ -7,8 +7,10 @@ import (
 	"errors"
 	"log/slog"
 	"strings"
+	"time"
 
 	"ecommerce.local/catalog-service/internal/domain"
+	"ecommerce.local/catalog-service/internal/media"
 	catalogv1 "ecommerce.local/contracts/go/catalog/v1"
 	commonv1 "ecommerce.local/contracts/go/common/v1"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
@@ -21,15 +23,51 @@ const (
 	moneyCurrency                  = "VND"
 	errorDomain                    = "ecommerce.catalog.v1"
 	productDeletePermission        = "product.delete"
+	productViewPermission          = "product.view"
+	productCreatePermission        = "product.create"
+	productUpdatePermission        = "product.update"
+	inventoryViewPermission        = "inventory.view"
 	reasonNotFound                 = "PRODUCT_NOT_FOUND"
+	reasonProductExists            = "PRODUCT_ID_EXISTS"
+	reasonMediaAlreadyAttached     = "MEDIA_ALREADY_ATTACHED"
+	reasonMediaStorageUnavailable  = "MEDIA_STORAGE_UNAVAILABLE"
 	reasonProductPermissionDenied  = "PRODUCT_PERMISSION_DENIED"
 	reasonAuthorizationUnavailable = "AUTHORIZATION_UNAVAILABLE"
 	traceMetadataKey               = "x-trace-id"
 	maxTraceIDLength               = 64
+	defaultOrphanGrace             = 24 * time.Hour
+	defaultPresignTTL              = 5 * time.Minute
 )
 
 type authorizationClient interface {
 	CheckPermission(context.Context, string, string) (bool, error)
+}
+
+type batchAuthorizationClient interface {
+	CheckAnyPermission(context.Context, string, ...string) (bool, error)
+}
+
+// MediaSigner presigns browser PUT uploads into the product-media bucket.
+type MediaSigner interface {
+	Bucket() string
+	EnsureBucket(ctx context.Context) error
+	PresignPut(objectKey, contentType string, sizeBytes int64, ttl time.Duration) (*media.SignedUpload, error)
+}
+
+// ServerOption configures optional dependencies on Server.
+type ServerOption func(*Server)
+
+// WithMediaSigner enables presigned product media uploads and sets lifecycle TTLs.
+func WithMediaSigner(signer MediaSigner, presignTTL, orphanGrace time.Duration) ServerOption {
+	return func(s *Server) {
+		s.mediaSigner = signer
+		if presignTTL > 0 {
+			s.presignTTL = presignTTL
+		}
+		if orphanGrace > 0 {
+			s.orphanGrace = orphanGrace
+		}
+	}
 }
 
 // Server implements catalogv1.CatalogServiceServer over a domain.Repository.
@@ -37,11 +75,25 @@ type Server struct {
 	catalogv1.UnimplementedCatalogServiceServer
 	repo          domain.Repository
 	authorization authorizationClient
+	mediaSigner   MediaSigner
+	presignTTL    time.Duration
+	orphanGrace   time.Duration
 }
 
 // NewServer creates a CatalogService gRPC server backed by repo and authorization.
-func NewServer(repo domain.Repository, authorization authorizationClient) *Server {
-	return &Server{repo: repo, authorization: authorization}
+func NewServer(repo domain.Repository, authorization authorizationClient, opts ...ServerOption) *Server {
+	srv := &Server{
+		repo:          repo,
+		authorization: authorization,
+		presignTTL:    defaultPresignTTL,
+		orphanGrace:   defaultOrphanGrace,
+	}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(srv)
+		}
+	}
+	return srv
 }
 
 // GetProduct returns the full product detail.
@@ -96,28 +148,8 @@ func (s *Server) SoftDeleteProduct(ctx context.Context, req *catalogv1.SoftDelet
 	if id == "" {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
-	userID := strings.TrimSpace(req.GetUserId())
-	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user_id is required")
-	}
-	if s.authorization == nil {
-		return nil, statusWithReason(codes.Unavailable, "authorization service is unavailable", reasonAuthorizationUnavailable)
-	}
-
-	authorizationCtx, traceID := withAuthorizationTrace(ctx)
-	allowed, err := s.authorization.CheckPermission(authorizationCtx, userID, productDeletePermission)
-	if err != nil {
-		if ctx.Err() != nil {
-			return nil, status.FromContextError(ctx.Err()).Err()
-		}
-		slog.WarnContext(ctx, "product delete authorization unavailable", "user_id", userID,
-			"permission", productDeletePermission, "trace_id", traceID)
-		return nil, statusWithReason(codes.Unavailable, "authorization service is unavailable", reasonAuthorizationUnavailable)
-	}
-	if !allowed {
-		slog.DebugContext(ctx, "product delete authorization denied", "user_id", userID,
-			"permission", productDeletePermission, "trace_id", traceID)
-		return nil, statusWithReason(codes.PermissionDenied, "product permission denied", reasonProductPermissionDenied)
+	if err := s.authorize(ctx, req.GetUserId(), productDeletePermission); err != nil {
+		return nil, err
 	}
 
 	if err := s.repo.SoftDelete(ctx, id, req.GetDeleted()); err != nil {
@@ -168,6 +200,7 @@ func productToProto(p *domain.Product) *catalogv1.GetProductResponse {
 		Price:            moneyToProto(p.PriceMinor),
 		OriginalPrice:    moneyToProto(p.OriginalPriceMinor),
 		Images:           p.Images,
+		Videos:           p.Videos,
 		Rating:           p.Rating,
 		ReviewCount:      p.ReviewCount,
 		SoldCount:        p.SoldCount,
@@ -237,6 +270,73 @@ func statusWithReason(code codes.Code, message, reason string) error {
 		return base.Err()
 	}
 	return withDetails.Err()
+}
+
+func (s *Server) authorize(ctx context.Context, rawUserID, permission string) error {
+	userID := strings.TrimSpace(rawUserID)
+	if userID == "" {
+		return status.Error(codes.InvalidArgument, "user_id is required")
+	}
+	if s.authorization == nil {
+		return statusWithReason(codes.Unavailable, "authorization service is unavailable", reasonAuthorizationUnavailable)
+	}
+	authorizationCtx, traceID := withAuthorizationTrace(ctx)
+	allowed, err := s.authorization.CheckPermission(authorizationCtx, userID, permission)
+	if err != nil {
+		if ctx.Err() != nil {
+			return status.FromContextError(ctx.Err()).Err()
+		}
+		slog.WarnContext(ctx, "catalog authorization unavailable", "user_id", userID,
+			"permission", permission, "trace_id", traceID)
+		return statusWithReason(codes.Unavailable, "authorization service is unavailable", reasonAuthorizationUnavailable)
+	}
+	if !allowed {
+		slog.DebugContext(ctx, "catalog authorization denied", "user_id", userID,
+			"permission", permission, "trace_id", traceID)
+		return statusWithReason(codes.PermissionDenied, "product permission denied", reasonProductPermissionDenied)
+	}
+	return nil
+}
+
+func (s *Server) authorizeAny(ctx context.Context, rawUserID string, permissions ...string) error {
+	userID := strings.TrimSpace(rawUserID)
+	if userID == "" {
+		return status.Error(codes.InvalidArgument, "user_id is required")
+	}
+	if s.authorization == nil {
+		return statusWithReason(codes.Unavailable, "authorization service is unavailable", reasonAuthorizationUnavailable)
+	}
+	authorizationCtx, traceID := withAuthorizationTrace(ctx)
+
+	if batchAuth, ok := s.authorization.(batchAuthorizationClient); ok {
+		allowed, err := batchAuth.CheckAnyPermission(authorizationCtx, userID, permissions...)
+		if err != nil {
+			if ctx.Err() != nil {
+				return status.FromContextError(ctx.Err()).Err()
+			}
+			slog.WarnContext(ctx, "catalog batch authorization unavailable", "user_id", userID, "trace_id", traceID)
+			return statusWithReason(codes.Unavailable, "authorization service is unavailable", reasonAuthorizationUnavailable)
+		}
+		if !allowed {
+			return statusWithReason(codes.PermissionDenied, "product permission denied", reasonProductPermissionDenied)
+		}
+		return nil
+	}
+
+	for _, perm := range permissions {
+		allowed, err := s.authorization.CheckPermission(authorizationCtx, userID, perm)
+		if err != nil {
+			if ctx.Err() != nil {
+				return status.FromContextError(ctx.Err()).Err()
+			}
+			slog.WarnContext(ctx, "catalog authorization unavailable", "user_id", userID, "permission", perm, "trace_id", traceID)
+			return statusWithReason(codes.Unavailable, "authorization service is unavailable", reasonAuthorizationUnavailable)
+		}
+		if allowed {
+			return nil
+		}
+	}
+	return statusWithReason(codes.PermissionDenied, "product permission denied", reasonProductPermissionDenied)
 }
 
 // notFoundError builds a codes.NotFound status carrying a stable

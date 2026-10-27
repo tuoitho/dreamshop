@@ -162,6 +162,11 @@ func runWithDeps(args []string, in io.Reader, out, errOut io.Writer, baseEnv []s
 		setDefaultEnv(env, "GRPC_ADDR", "127.0.0.1:50051")
 		setDefaultEnv(env, "IDENTITY_GRPC_ADDR", "127.0.0.1:50054")
 		setDefaultEnv(env, "IDENTITY_GRPC_TIMEOUT", "500ms")
+		setDefaultEnv(env, "MINIO_ENDPOINT", "localhost:9000")
+		setDefaultEnv(env, "MINIO_ACCESS_KEY", "minioadmin")
+		setDefaultEnv(env, "MINIO_SECRET_KEY", "minioadmin")
+		setDefaultEnv(env, "MINIO_BUCKET", "product-media")
+		setDefaultEnv(env, "MINIO_PUBLIC_BASE_URL", "http://localhost:9000/product-media")
 		setDefaultEnv(env, "SEED_DEMO_DATA", "true")
 
 		return launch(filepath.Join(root, "services", "catalog-service"), formatEnv(env), "go", "run", "./cmd/server")
@@ -170,6 +175,8 @@ func runWithDeps(args []string, in io.Reader, out, errOut io.Writer, baseEnv []s
 		setDefaultEnv(env, "DATABASE_URL", "postgres://ecommerce:change-me-local-only@127.0.0.1:5432/inventory_db?sslmode=disable")
 		setDefaultEnv(env, "HTTP_ADDR", ":8082")
 		setDefaultEnv(env, "GRPC_ADDR", "127.0.0.1:50052")
+		setDefaultEnv(env, "IDENTITY_GRPC_ADDR", "127.0.0.1:50054")
+		setDefaultEnv(env, "IDENTITY_GRPC_TIMEOUT", "500ms")
 		setDefaultEnv(env, "SEED_DEMO_DATA", "true")
 
 		return launch(filepath.Join(root, "services", "inventory-service"), formatEnv(env), "go", "run", "./cmd/server")
@@ -203,8 +210,13 @@ func runWithDeps(args []string, in io.Reader, out, errOut io.Writer, baseEnv []s
 
 		return launch(root, formatEnv(env), "npm", "--prefix", "ecommerce-fe", "run", "dev")
 
+	case "admin-fe":
+		setDefaultEnv(env, "VITE_API_BASE_URL", "http://localhost:8000/api/v1")
+
+		return launch(root, formatEnv(env), "npm", "--prefix", "admin-fe", "run", "dev")
+
 	default:
-		fmt.Fprintf(errOut, "Unknown local service %q. Expected one of: identity-service, order-service, catalog-service, inventory-service, cart-service, bff-service, ecommerce-fe\n", service)
+		fmt.Fprintf(errOut, "Unknown local service %q. Expected one of: identity-service, order-service, catalog-service, inventory-service, cart-service, bff-service, ecommerce-fe, admin-fe\n", service)
 		return 2
 	}
 }
@@ -226,6 +238,8 @@ func normalizeService(s string) string {
 		return "bff-service"
 	case "fe", "frontend", "ecommerce-fe":
 		return "ecommerce-fe"
+	case "admin", "admin-fe":
+		return "admin-fe"
 	default:
 		return s
 	}

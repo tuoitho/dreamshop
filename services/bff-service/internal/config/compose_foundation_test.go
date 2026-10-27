@@ -16,7 +16,7 @@ func TestFoundationComposePersistsStatefulDataWithNamedVolumes(t *testing.T) {
 		t.Fatalf("parse compose.foundation.yml: %v", err)
 	}
 
-	for _, vol := range []string{"postgres_data", "redis_data", "rabbitmq_data"} {
+	for _, vol := range []string{"postgres_data", "redis_data", "rabbitmq_data", "minio_data"} {
 		if _, ok := compose.Volumes[vol]; !ok {
 			t.Errorf("compose.foundation.yml missing named volume %q", vol)
 		}
@@ -38,5 +38,22 @@ func TestFoundationComposePersistsStatefulDataWithNamedVolumes(t *testing.T) {
 	rabbitmq := compose.Services["rabbitmq"]
 	if !slices.Contains(rabbitmq.Volumes, "rabbitmq_data:/var/lib/rabbitmq") {
 		t.Errorf("rabbitmq volumes = %v, missing rabbitmq_data:/var/lib/rabbitmq", rabbitmq.Volumes)
+	}
+
+	minio, ok := compose.Services["minio"]
+	if !ok {
+		t.Fatal("compose.foundation.yml missing minio service")
+	}
+	if !slices.Contains(minio.Volumes, "minio_data:/data") {
+		t.Errorf("minio volumes = %v, missing minio_data:/data", minio.Volumes)
+	}
+	if !slices.Contains(minio.Ports, "9000:9000") || !slices.Contains(minio.Ports, "127.0.0.1:9001:9001") {
+		t.Errorf("minio ports = %v, want 9000:9000 and 127.0.0.1:9001:9001", minio.Ports)
+	}
+	if minio.Environment["MINIO_API_CORS_ALLOW_ORIGIN"] != "http://localhost:5173,http://localhost:5174" {
+		t.Errorf("minio MINIO_API_CORS_ALLOW_ORIGIN = %q, want http://localhost:5173,http://localhost:5174", minio.Environment["MINIO_API_CORS_ALLOW_ORIGIN"])
+	}
+	if len(minio.Healthcheck) == 0 {
+		t.Error("minio missing healthcheck")
 	}
 }

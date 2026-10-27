@@ -58,7 +58,7 @@ func TestProductionComposeEnforcesIsolationSecretsAndStartupOrder(t *testing.T) 
 	if _, ok := compose.Networks["ecommerce-prod-net"]; !ok {
 		t.Error("compose missing ecommerce-prod-net network")
 	}
-	for _, vol := range []string{"postgres_data", "redis_data", "rabbitmq_data"} {
+	for _, vol := range []string{"postgres_data", "redis_data", "rabbitmq_data", "minio_data"} {
 		if _, ok := compose.Volumes[vol]; !ok {
 			t.Errorf("compose missing named volume %q", vol)
 		}
@@ -68,6 +68,7 @@ func TestProductionComposeEnforcesIsolationSecretsAndStartupOrder(t *testing.T) 
 		"postgres",
 		"redis",
 		"rabbitmq",
+		"minio",
 		"kong",
 		"identity-service",
 		"bff-service",
@@ -76,6 +77,7 @@ func TestProductionComposeEnforcesIsolationSecretsAndStartupOrder(t *testing.T) 
 		"cart-service",
 		"order-service",
 		"ecommerce-fe",
+		"admin-fe",
 	}
 
 	for _, name := range expectedServices {
@@ -109,13 +111,20 @@ func TestProductionComposeEnforcesIsolationSecretsAndStartupOrder(t *testing.T) 
 	if !slices.Contains(kong.Volumes, "../kong/kong-production.yaml:/usr/local/kong/declarative/kong.yml:ro") {
 		t.Errorf("kong volumes = %v, missing kong-production.yaml read-only mount", kong.Volumes)
 	}
-	assertHealthyDeps(t, "kong", kong.DependsOn, "identity-service", "bff-service", "ecommerce-fe")
+	assertHealthyDeps(t, "kong", kong.DependsOn, "identity-service", "bff-service", "ecommerce-fe", "admin-fe", "minio")
 
 	if !strings.HasPrefix(compose.Services["postgres"].Environment["POSTGRES_PASSWORD"], "${POSTGRES_PASSWORD:?") {
 		t.Errorf("postgres POSTGRES_PASSWORD must fail fast via :?, got %q", compose.Services["postgres"].Environment["POSTGRES_PASSWORD"])
 	}
 	if !strings.HasPrefix(compose.Services["rabbitmq"].Environment["RABBITMQ_DEFAULT_PASS"], "${RABBITMQ_DEFAULT_PASS:?") {
 		t.Errorf("rabbitmq RABBITMQ_DEFAULT_PASS must fail fast via :?, got %q", compose.Services["rabbitmq"].Environment["RABBITMQ_DEFAULT_PASS"])
+	}
+	if !strings.HasPrefix(compose.Services["minio"].Environment["MINIO_ROOT_USER"], "${MINIO_ROOT_USER:?") ||
+		!strings.HasPrefix(compose.Services["minio"].Environment["MINIO_ROOT_PASSWORD"], "${MINIO_ROOT_PASSWORD:?") {
+		t.Errorf("minio MINIO_ROOT_USER/MINIO_ROOT_PASSWORD must fail fast via :?, got %v", compose.Services["minio"].Environment)
+	}
+	if !slices.Contains(compose.Services["minio"].Volumes, "minio_data:/data") {
+		t.Errorf("minio volumes = %v, missing minio_data:/data", compose.Services["minio"].Volumes)
 	}
 
 	identity := compose.Services["identity-service"]
@@ -153,10 +162,21 @@ func TestProductionComposeEnforcesIsolationSecretsAndStartupOrder(t *testing.T) 
 	if catalog.Environment["IDENTITY_GRPC_ADDR"] != "identity-service:50054" || catalog.Environment["IDENTITY_GRPC_TIMEOUT"] != "500ms" {
 		t.Errorf("catalog-service Identity gRPC env = addr=%q timeout=%q, want identity-service:50054 / 500ms", catalog.Environment["IDENTITY_GRPC_ADDR"], catalog.Environment["IDENTITY_GRPC_TIMEOUT"])
 	}
-	assertHealthyDeps(t, "catalog-service", catalog.DependsOn, "postgres", "identity-service")
-	if compose.Services["inventory-service"].Environment["GRPC_ADDR"] != "0.0.0.0:50052" {
-		t.Errorf("inventory-service GRPC_ADDR = %q, want 0.0.0.0:50052", compose.Services["inventory-service"].Environment["GRPC_ADDR"])
+	if catalog.Environment["MINIO_ENDPOINT"] != "minio:9000" ||
+		catalog.Environment["MINIO_BUCKET"] != "product-media" ||
+		catalog.Environment["MINIO_PUBLIC_BASE_URL"] != "/product-media" {
+		t.Errorf("catalog-service MinIO env = %v, want minio:9000 / product-media / /product-media", catalog.Environment)
 	}
+	assertHealthyDeps(t, "catalog-service", catalog.DependsOn, "postgres", "identity-service", "minio")
+
+	inventory := compose.Services["inventory-service"]
+	if inventory.Environment["GRPC_ADDR"] != "0.0.0.0:50052" {
+		t.Errorf("inventory-service GRPC_ADDR = %q, want 0.0.0.0:50052", inventory.Environment["GRPC_ADDR"])
+	}
+	if inventory.Environment["IDENTITY_GRPC_ADDR"] != "identity-service:50054" || inventory.Environment["IDENTITY_GRPC_TIMEOUT"] != "500ms" {
+		t.Errorf("inventory-service Identity gRPC env = addr=%q timeout=%q, want identity-service:50054 / 500ms", inventory.Environment["IDENTITY_GRPC_ADDR"], inventory.Environment["IDENTITY_GRPC_TIMEOUT"])
+	}
+	assertHealthyDeps(t, "inventory-service", inventory.DependsOn, "postgres", "identity-service")
 
 	cart := compose.Services["cart-service"]
 	if cart.Environment["GRPC_ADDR"] != "0.0.0.0:50053" {
@@ -190,6 +210,8 @@ func TestProductionComposeEnforcesIsolationSecretsAndStartupOrder(t *testing.T) 
 		"POSTGRES_PASSWORD=",
 		"RABBITMQ_DEFAULT_USER=",
 		"RABBITMQ_DEFAULT_PASS=",
+		"MINIO_ROOT_USER=",
+		"MINIO_ROOT_PASSWORD=",
 		"IDENTITY_KEYS_DIR=",
 		"IDENTITY_SESSION_COOKIE_SECURE=true",
 		"IDENTITY_BOOTSTRAP_SUPER_ADMIN_EMAIL=",

@@ -10,8 +10,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ecommerce.identity.rbac.domain.AuthItemType;
+import com.ecommerce.identity.rbac.domain.InvalidRbacItemException;
+import com.ecommerce.identity.rbac.domain.RbacHierarchyConflictException;
 import com.ecommerce.identity.rbac.domain.RbacItem;
 import com.ecommerce.identity.rbac.domain.RbacItemExistsException;
+import com.ecommerce.identity.rbac.domain.RbacSystemItemProtectedException;
 import com.ecommerce.identity.rbac.persistence.RbacRepository;
 import java.time.Clock;
 import java.time.Instant;
@@ -68,5 +71,27 @@ class RbacAdminServiceTest {
         order.verify(repository).lockHierarchy();
         order.verify(repository).findItem("AUDITOR");
         order.verify(repository).updateItem("SUPPORT", "AUDITOR", "Auditor", NOW);
+    }
+
+    @Test
+    void rejectsPermissionCreationUpdateDeletionAndParentEdges() {
+        assertThatThrownBy(() -> service.create("ticket.view", AuthItemType.PERMISSION, "View tickets"))
+                .isInstanceOf(InvalidRbacItemException.class)
+                .satisfies(ex -> assertThat(((InvalidRbacItemException) ex).errors()).containsKey("type"));
+        verify(repository, never()).createItem(any(), any(), any(), any());
+
+        RbacItem permission = new RbacItem("ticket.view", AuthItemType.PERMISSION, "View tickets", false, NOW, NOW);
+        RbacItem childPerm = new RbacItem("ticket.export", AuthItemType.PERMISSION, "Export tickets", true, NOW, NOW);
+        when(repository.findItem("ticket.view")).thenReturn(Optional.of(permission));
+        when(repository.findItem("ticket.export")).thenReturn(Optional.of(childPerm));
+
+        assertThatThrownBy(() -> service.update("ticket.view", "ticket.view", "Updated desc"))
+                .isInstanceOf(RbacSystemItemProtectedException.class);
+        assertThatThrownBy(() -> service.delete("ticket.view"))
+                .isInstanceOf(RbacSystemItemProtectedException.class);
+        assertThatThrownBy(() -> service.addChild("ticket.view", "ticket.export"))
+                .isInstanceOf(RbacHierarchyConflictException.class);
+        assertThatThrownBy(() -> service.removeChild("ticket.view", "ticket.export"))
+                .isInstanceOf(RbacHierarchyConflictException.class);
     }
 }

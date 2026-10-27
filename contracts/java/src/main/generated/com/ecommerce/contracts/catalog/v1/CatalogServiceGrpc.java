@@ -108,6 +108,192 @@ public final class CatalogServiceGrpc {
     return getSoftDeleteProductMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.ListAdminProductsRequest,
+      com.ecommerce.contracts.catalog.v1.ListAdminProductsResponse> getListAdminProductsMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "ListAdminProducts",
+      requestType = com.ecommerce.contracts.catalog.v1.ListAdminProductsRequest.class,
+      responseType = com.ecommerce.contracts.catalog.v1.ListAdminProductsResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.ListAdminProductsRequest,
+      com.ecommerce.contracts.catalog.v1.ListAdminProductsResponse> getListAdminProductsMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.ListAdminProductsRequest, com.ecommerce.contracts.catalog.v1.ListAdminProductsResponse> getListAdminProductsMethod;
+    if ((getListAdminProductsMethod = CatalogServiceGrpc.getListAdminProductsMethod) == null) {
+      synchronized (CatalogServiceGrpc.class) {
+        if ((getListAdminProductsMethod = CatalogServiceGrpc.getListAdminProductsMethod) == null) {
+          CatalogServiceGrpc.getListAdminProductsMethod = getListAdminProductsMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.catalog.v1.ListAdminProductsRequest, com.ecommerce.contracts.catalog.v1.ListAdminProductsResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "ListAdminProducts"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.ListAdminProductsRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.ListAdminProductsResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new CatalogServiceMethodDescriptorSupplier("ListAdminProducts"))
+              .build();
+        }
+      }
+    }
+    return getListAdminProductsMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsRequest,
+      com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsResponse> getListInventoryCatalogItemsMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "ListInventoryCatalogItems",
+      requestType = com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsRequest.class,
+      responseType = com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsRequest,
+      com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsResponse> getListInventoryCatalogItemsMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsRequest, com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsResponse> getListInventoryCatalogItemsMethod;
+    if ((getListInventoryCatalogItemsMethod = CatalogServiceGrpc.getListInventoryCatalogItemsMethod) == null) {
+      synchronized (CatalogServiceGrpc.class) {
+        if ((getListInventoryCatalogItemsMethod = CatalogServiceGrpc.getListInventoryCatalogItemsMethod) == null) {
+          CatalogServiceGrpc.getListInventoryCatalogItemsMethod = getListInventoryCatalogItemsMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsRequest, com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "ListInventoryCatalogItems"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new CatalogServiceMethodDescriptorSupplier("ListInventoryCatalogItems"))
+              .build();
+        }
+      }
+    }
+    return getListInventoryCatalogItemsMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.GetAdminProductRequest,
+      com.ecommerce.contracts.catalog.v1.GetAdminProductResponse> getGetAdminProductMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "GetAdminProduct",
+      requestType = com.ecommerce.contracts.catalog.v1.GetAdminProductRequest.class,
+      responseType = com.ecommerce.contracts.catalog.v1.GetAdminProductResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.GetAdminProductRequest,
+      com.ecommerce.contracts.catalog.v1.GetAdminProductResponse> getGetAdminProductMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.GetAdminProductRequest, com.ecommerce.contracts.catalog.v1.GetAdminProductResponse> getGetAdminProductMethod;
+    if ((getGetAdminProductMethod = CatalogServiceGrpc.getGetAdminProductMethod) == null) {
+      synchronized (CatalogServiceGrpc.class) {
+        if ((getGetAdminProductMethod = CatalogServiceGrpc.getGetAdminProductMethod) == null) {
+          CatalogServiceGrpc.getGetAdminProductMethod = getGetAdminProductMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.catalog.v1.GetAdminProductRequest, com.ecommerce.contracts.catalog.v1.GetAdminProductResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "GetAdminProduct"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.GetAdminProductRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.GetAdminProductResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new CatalogServiceMethodDescriptorSupplier("GetAdminProduct"))
+              .build();
+        }
+      }
+    }
+    return getGetAdminProductMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.CreateProductRequest,
+      com.ecommerce.contracts.catalog.v1.CreateProductResponse> getCreateProductMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "CreateProduct",
+      requestType = com.ecommerce.contracts.catalog.v1.CreateProductRequest.class,
+      responseType = com.ecommerce.contracts.catalog.v1.CreateProductResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.CreateProductRequest,
+      com.ecommerce.contracts.catalog.v1.CreateProductResponse> getCreateProductMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.CreateProductRequest, com.ecommerce.contracts.catalog.v1.CreateProductResponse> getCreateProductMethod;
+    if ((getCreateProductMethod = CatalogServiceGrpc.getCreateProductMethod) == null) {
+      synchronized (CatalogServiceGrpc.class) {
+        if ((getCreateProductMethod = CatalogServiceGrpc.getCreateProductMethod) == null) {
+          CatalogServiceGrpc.getCreateProductMethod = getCreateProductMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.catalog.v1.CreateProductRequest, com.ecommerce.contracts.catalog.v1.CreateProductResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "CreateProduct"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.CreateProductRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.CreateProductResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new CatalogServiceMethodDescriptorSupplier("CreateProduct"))
+              .build();
+        }
+      }
+    }
+    return getCreateProductMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.UpdateProductRequest,
+      com.ecommerce.contracts.catalog.v1.UpdateProductResponse> getUpdateProductMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "UpdateProduct",
+      requestType = com.ecommerce.contracts.catalog.v1.UpdateProductRequest.class,
+      responseType = com.ecommerce.contracts.catalog.v1.UpdateProductResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.UpdateProductRequest,
+      com.ecommerce.contracts.catalog.v1.UpdateProductResponse> getUpdateProductMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.UpdateProductRequest, com.ecommerce.contracts.catalog.v1.UpdateProductResponse> getUpdateProductMethod;
+    if ((getUpdateProductMethod = CatalogServiceGrpc.getUpdateProductMethod) == null) {
+      synchronized (CatalogServiceGrpc.class) {
+        if ((getUpdateProductMethod = CatalogServiceGrpc.getUpdateProductMethod) == null) {
+          CatalogServiceGrpc.getUpdateProductMethod = getUpdateProductMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.catalog.v1.UpdateProductRequest, com.ecommerce.contracts.catalog.v1.UpdateProductResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "UpdateProduct"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.UpdateProductRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.UpdateProductResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new CatalogServiceMethodDescriptorSupplier("UpdateProduct"))
+              .build();
+        }
+      }
+    }
+    return getUpdateProductMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadRequest,
+      com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadResponse> getCreateProductMediaUploadMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "CreateProductMediaUpload",
+      requestType = com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadRequest.class,
+      responseType = com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadRequest,
+      com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadResponse> getCreateProductMediaUploadMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadRequest, com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadResponse> getCreateProductMediaUploadMethod;
+    if ((getCreateProductMediaUploadMethod = CatalogServiceGrpc.getCreateProductMediaUploadMethod) == null) {
+      synchronized (CatalogServiceGrpc.class) {
+        if ((getCreateProductMediaUploadMethod = CatalogServiceGrpc.getCreateProductMediaUploadMethod) == null) {
+          CatalogServiceGrpc.getCreateProductMediaUploadMethod = getCreateProductMediaUploadMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadRequest, com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "CreateProductMediaUpload"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new CatalogServiceMethodDescriptorSupplier("CreateProductMediaUpload"))
+              .build();
+        }
+      }
+    }
+    return getCreateProductMediaUploadMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -176,6 +362,48 @@ public final class CatalogServiceGrpc {
         io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.SoftDeleteProductResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSoftDeleteProductMethod(), responseObserver);
     }
+
+    /**
+     */
+    default void listAdminProducts(com.ecommerce.contracts.catalog.v1.ListAdminProductsRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.ListAdminProductsResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListAdminProductsMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void listInventoryCatalogItems(com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListInventoryCatalogItemsMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void getAdminProduct(com.ecommerce.contracts.catalog.v1.GetAdminProductRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.GetAdminProductResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetAdminProductMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void createProduct(com.ecommerce.contracts.catalog.v1.CreateProductRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.CreateProductResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCreateProductMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void updateProduct(com.ecommerce.contracts.catalog.v1.UpdateProductRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.UpdateProductResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateProductMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void createProductMediaUpload(com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCreateProductMediaUploadMethod(), responseObserver);
+    }
   }
 
   /**
@@ -228,6 +456,54 @@ public final class CatalogServiceGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getSoftDeleteProductMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     */
+    public void listAdminProducts(com.ecommerce.contracts.catalog.v1.ListAdminProductsRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.ListAdminProductsResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListAdminProductsMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void listInventoryCatalogItems(com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListInventoryCatalogItemsMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void getAdminProduct(com.ecommerce.contracts.catalog.v1.GetAdminProductRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.GetAdminProductResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetAdminProductMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void createProduct(com.ecommerce.contracts.catalog.v1.CreateProductRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.CreateProductResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getCreateProductMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void updateProduct(com.ecommerce.contracts.catalog.v1.UpdateProductRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.UpdateProductResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdateProductMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void createProductMediaUpload(com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getCreateProductMediaUploadMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -265,6 +541,48 @@ public final class CatalogServiceGrpc {
     public com.ecommerce.contracts.catalog.v1.SoftDeleteProductResponse softDeleteProduct(com.ecommerce.contracts.catalog.v1.SoftDeleteProductRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getSoftDeleteProductMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.catalog.v1.ListAdminProductsResponse listAdminProducts(com.ecommerce.contracts.catalog.v1.ListAdminProductsRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListAdminProductsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsResponse listInventoryCatalogItems(com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListInventoryCatalogItemsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.catalog.v1.GetAdminProductResponse getAdminProduct(com.ecommerce.contracts.catalog.v1.GetAdminProductRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetAdminProductMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.catalog.v1.CreateProductResponse createProduct(com.ecommerce.contracts.catalog.v1.CreateProductRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getCreateProductMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.catalog.v1.UpdateProductResponse updateProduct(com.ecommerce.contracts.catalog.v1.UpdateProductRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdateProductMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadResponse createProductMediaUpload(com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getCreateProductMediaUploadMethod(), getCallOptions(), request);
     }
   }
 
@@ -307,11 +625,65 @@ public final class CatalogServiceGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getSoftDeleteProductMethod(), getCallOptions()), request);
     }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.catalog.v1.ListAdminProductsResponse> listAdminProducts(
+        com.ecommerce.contracts.catalog.v1.ListAdminProductsRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListAdminProductsMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsResponse> listInventoryCatalogItems(
+        com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListInventoryCatalogItemsMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.catalog.v1.GetAdminProductResponse> getAdminProduct(
+        com.ecommerce.contracts.catalog.v1.GetAdminProductRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetAdminProductMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.catalog.v1.CreateProductResponse> createProduct(
+        com.ecommerce.contracts.catalog.v1.CreateProductRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getCreateProductMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.catalog.v1.UpdateProductResponse> updateProduct(
+        com.ecommerce.contracts.catalog.v1.UpdateProductRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdateProductMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadResponse> createProductMediaUpload(
+        com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getCreateProductMediaUploadMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET_PRODUCT = 0;
   private static final int METHODID_SEARCH_PRODUCTS = 1;
   private static final int METHODID_SOFT_DELETE_PRODUCT = 2;
+  private static final int METHODID_LIST_ADMIN_PRODUCTS = 3;
+  private static final int METHODID_LIST_INVENTORY_CATALOG_ITEMS = 4;
+  private static final int METHODID_GET_ADMIN_PRODUCT = 5;
+  private static final int METHODID_CREATE_PRODUCT = 6;
+  private static final int METHODID_UPDATE_PRODUCT = 7;
+  private static final int METHODID_CREATE_PRODUCT_MEDIA_UPLOAD = 8;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -341,6 +713,30 @@ public final class CatalogServiceGrpc {
         case METHODID_SOFT_DELETE_PRODUCT:
           serviceImpl.softDeleteProduct((com.ecommerce.contracts.catalog.v1.SoftDeleteProductRequest) request,
               (io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.SoftDeleteProductResponse>) responseObserver);
+          break;
+        case METHODID_LIST_ADMIN_PRODUCTS:
+          serviceImpl.listAdminProducts((com.ecommerce.contracts.catalog.v1.ListAdminProductsRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.ListAdminProductsResponse>) responseObserver);
+          break;
+        case METHODID_LIST_INVENTORY_CATALOG_ITEMS:
+          serviceImpl.listInventoryCatalogItems((com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsResponse>) responseObserver);
+          break;
+        case METHODID_GET_ADMIN_PRODUCT:
+          serviceImpl.getAdminProduct((com.ecommerce.contracts.catalog.v1.GetAdminProductRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.GetAdminProductResponse>) responseObserver);
+          break;
+        case METHODID_CREATE_PRODUCT:
+          serviceImpl.createProduct((com.ecommerce.contracts.catalog.v1.CreateProductRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.CreateProductResponse>) responseObserver);
+          break;
+        case METHODID_UPDATE_PRODUCT:
+          serviceImpl.updateProduct((com.ecommerce.contracts.catalog.v1.UpdateProductRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.UpdateProductResponse>) responseObserver);
+          break;
+        case METHODID_CREATE_PRODUCT_MEDIA_UPLOAD:
+          serviceImpl.createProductMediaUpload((com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -381,6 +777,48 @@ public final class CatalogServiceGrpc {
               com.ecommerce.contracts.catalog.v1.SoftDeleteProductRequest,
               com.ecommerce.contracts.catalog.v1.SoftDeleteProductResponse>(
                 service, METHODID_SOFT_DELETE_PRODUCT)))
+        .addMethod(
+          getListAdminProductsMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.catalog.v1.ListAdminProductsRequest,
+              com.ecommerce.contracts.catalog.v1.ListAdminProductsResponse>(
+                service, METHODID_LIST_ADMIN_PRODUCTS)))
+        .addMethod(
+          getListInventoryCatalogItemsMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsRequest,
+              com.ecommerce.contracts.catalog.v1.ListInventoryCatalogItemsResponse>(
+                service, METHODID_LIST_INVENTORY_CATALOG_ITEMS)))
+        .addMethod(
+          getGetAdminProductMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.catalog.v1.GetAdminProductRequest,
+              com.ecommerce.contracts.catalog.v1.GetAdminProductResponse>(
+                service, METHODID_GET_ADMIN_PRODUCT)))
+        .addMethod(
+          getCreateProductMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.catalog.v1.CreateProductRequest,
+              com.ecommerce.contracts.catalog.v1.CreateProductResponse>(
+                service, METHODID_CREATE_PRODUCT)))
+        .addMethod(
+          getUpdateProductMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.catalog.v1.UpdateProductRequest,
+              com.ecommerce.contracts.catalog.v1.UpdateProductResponse>(
+                service, METHODID_UPDATE_PRODUCT)))
+        .addMethod(
+          getCreateProductMediaUploadMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadRequest,
+              com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadResponse>(
+                service, METHODID_CREATE_PRODUCT_MEDIA_UPLOAD)))
         .build();
   }
 
@@ -432,6 +870,12 @@ public final class CatalogServiceGrpc {
               .addMethod(getGetProductMethod())
               .addMethod(getSearchProductsMethod())
               .addMethod(getSoftDeleteProductMethod())
+              .addMethod(getListAdminProductsMethod())
+              .addMethod(getListInventoryCatalogItemsMethod())
+              .addMethod(getGetAdminProductMethod())
+              .addMethod(getCreateProductMethod())
+              .addMethod(getUpdateProductMethod())
+              .addMethod(getCreateProductMediaUploadMethod())
               .build();
         }
       }

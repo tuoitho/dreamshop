@@ -23,8 +23,11 @@ func TestDevelopmentKongConsolidatesTwoServicesWithStripPathFalseAndPreservesCOR
 	}
 
 	corsPlugin, hasCORS := hasPlugin(doc.Plugins, "cors")
-	if !hasCORS || !slices.Contains(corsPlugin.Config.Origins, "http://localhost:5173") || !slices.Contains(corsPlugin.Config.Methods, "OPTIONS") {
-		t.Fatalf("kong.yaml global cors plugin = %#v (present=%t), want localhost:5173 with OPTIONS", corsPlugin.Config, hasCORS)
+	if !hasCORS ||
+		!slices.Contains(corsPlugin.Config.Origins, "http://localhost:5173") ||
+		!slices.Contains(corsPlugin.Config.Origins, "http://localhost:5174") ||
+		!slices.Contains(corsPlugin.Config.Methods, "OPTIONS") {
+		t.Fatalf("kong.yaml global cors plugin = %#v (present=%t), want localhost:5173 + localhost:5174 with OPTIONS", corsPlugin.Config, hasCORS)
 	}
 
 	expectedServices := map[string]string{
@@ -71,6 +74,11 @@ func TestDevelopmentKongConsolidatesTwoServicesWithStripPathFalseAndPreservesCOR
 		"admin-products-api": {
 			service:   "bff-service",
 			paths:     []string{"/api/v1/admin/products"},
+			protected: true,
+		},
+		"admin-inventory-api": {
+			service:   "bff-service",
+			paths:     []string{"/api/v1/admin/inventory"},
 			protected: true,
 		},
 	}

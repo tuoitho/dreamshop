@@ -10,6 +10,7 @@
 **/target
 **/tmp
 ecommerce-fe/dist
+admin-fe/dist
 .env
 .env.*
 deployments/secrets

@@ -12,6 +12,12 @@ service CatalogService {
   rpc GetProduct(GetProductRequest) returns (GetProductResponse);
   rpc SearchProducts(SearchProductsRequest) returns (SearchProductsResponse);
   rpc SoftDeleteProduct(SoftDeleteProductRequest) returns (SoftDeleteProductResponse);
+  rpc ListAdminProducts(ListAdminProductsRequest) returns (ListAdminProductsResponse);
+  rpc ListInventoryCatalogItems(ListInventoryCatalogItemsRequest) returns (ListInventoryCatalogItemsResponse);
+  rpc GetAdminProduct(GetAdminProductRequest) returns (GetAdminProductResponse);
+  rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
+  rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse);
+  rpc CreateProductMediaUpload(CreateProductMediaUploadRequest) returns (CreateProductMediaUploadResponse);
 }
 
 message GetProductRequest {
@@ -42,6 +48,7 @@ message GetProductResponse {
   repeated ProductVariant variants = 19;
   repeated string details = 20;
   bool deleted = 21;
+  repeated string videos = 22;
 }
 
 message ProductVariant {
@@ -101,4 +108,155 @@ message SearchProductsResponse {
   int32 page_size = 3;
   int64 total_items = 4;
   int32 total_pages = 5;
+}
+
+message AdminProductSummary {
+  string id = 1;
+  string name = 2;
+  string brand = 3;
+  string category_id = 4;
+  string category_name = 5;
+  ecommerce.common.v1.Money price = 6;
+  ecommerce.common.v1.Money original_price = 7;
+  repeated string images = 8;
+  double rating = 9;
+  int64 review_count = 10;
+  int64 sold_count = 11;
+  bool is_new = 12;
+  string badge = 13;
+  bool featured = 14;
+  string emoji = 15;
+  repeated uint32 image_hue = 16;
+  bool deleted = 17;
+  int32 variant_count = 18;
+  string created_at = 19;
+  string updated_at = 20;
+  int32 video_count = 21;
+}
+
+message CategoryMetric {
+  string category_id = 1;
+  string category_name = 2;
+  int64 active_product_count = 3;
+}
+
+message InventoryCatalogItem {
+  string id = 1;
+  string name = 2;
+  string brand = 3;
+  string category_id = 4;
+  string category_name = 5;
+  string image_url = 6;
+  string emoji = 7;
+  repeated uint32 image_hue = 8;
+  bool deleted = 9;
+}
+
+message ListAdminProductsRequest {
+  string user_id = 1;
+  string query = 2;
+  string category_id = 3;
+  string status = 4;
+  string sort = 5;
+  int32 page = 6;
+  int32 page_size = 7;
+}
+
+message ListAdminProductsResponse {
+  repeated AdminProductSummary items = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  int64 total_items = 4;
+  int32 total_pages = 5;
+  int64 active_count = 6;
+  int64 deleted_count = 7;
+  repeated CategoryMetric categories = 8;
+}
+
+message ListInventoryCatalogItemsRequest {
+  string user_id = 1;
+  string query = 2;
+  string category_id = 3;
+  bool include_deleted = 4;
+}
+
+message ListInventoryCatalogItemsResponse {
+  repeated InventoryCatalogItem items = 1;
+}
+
+message GetAdminProductRequest {
+  string id = 1;
+  string user_id = 2;
+}
+
+message GetAdminProductResponse {
+  GetProductResponse product = 1;
+}
+
+message CreateProductResponse {
+  GetProductResponse product = 1;
+}
+
+message UpdateProductResponse {
+  GetProductResponse product = 1;
+}
+
+message CreateProductMediaUploadRequest {
+  string user_id = 1;
+  string filename = 2;
+  string content_type = 3;
+  int64 size_bytes = 4;
+}
+
+message CreateProductMediaUploadResponse {
+  string upload_id = 1;
+  string media_type = 2;
+  string upload_url = 3;
+  string public_url = 4;
+  string object_key = 5;
+  int32 expires_in_seconds = 6;
+}
+
+message CreateProductRequest {
+  string user_id = 1;
+  string id = 2;
+  string name = 3;
+  string short_description = 4;
+  string description = 5;
+  string brand = 6;
+  string category_id = 7;
+  string category_name = 8;
+  ecommerce.common.v1.Money price = 9;
+  ecommerce.common.v1.Money original_price = 10;
+  repeated string images = 11;
+  bool is_new = 12;
+  string badge = 13;
+  bool featured = 14;
+  string emoji = 15;
+  repeated uint32 image_hue = 16;
+  repeated ProductVariant variants = 17;
+  repeated string details = 18;
+  repeated string videos = 19;
+}
+
+message UpdateProductRequest {
+  string user_id = 1;
+  string id = 2;
+  string name = 3;
+  string short_description = 4;
+  string description = 5;
+  string brand = 6;
+  string category_id = 7;
+  string category_name = 8;
+  ecommerce.common.v1.Money price = 9;
+  ecommerce.common.v1.Money original_price = 10;
+  repeated string images = 11;
+  bool is_new = 12;
+  string badge = 13;
+  bool featured = 14;
+  string emoji = 15;
+  repeated uint32 image_hue = 16;
+  repeated ProductVariant variants = 17;
+  repeated string details = 18;
+  repeated string videos = 19;
 }

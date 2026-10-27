@@ -26,8 +26,10 @@ Catalog implementation code or read its persistence/cache directly.
 - Keep product identity and descriptive catalog truth inside this service.
 - Do not infer stock availability from catalog data; Inventory owns that fact.
 - Do not embed order workflow or role hierarchy storage in catalog logic;
-  evaluate `product.delete` authorization via Identity's private gRPC boundary
-  (`127.0.0.1:50054`, default `500ms` timeout) before mutating catalog state.
+  evaluate `product.view`, `product.create`, `product.update`, `product.delete`,
+  and `inventory.view` (for `ListInventoryCatalogItems`) authorization via
+  Identity's private gRPC boundary (`127.0.0.1:50054`, default `500ms` timeout)
+  before reading admin projections or mutating catalog/media state.
 - Cache entries are derived data. Define their source, key, TTL/invalidation,
   stale-read tolerance, and recovery behavior.
 - Catalog persistence, cache namespaces, and migrations are owned here and are
@@ -42,10 +44,11 @@ semantics.
 - `cmd/server/`: process startup and dependency wiring.
 - `internal/config/`: environment-backed configuration (`HTTP_ADDR`,
   `GRPC_ADDR`, `DATABASE_URL`, `IDENTITY_GRPC_ADDR`, `IDENTITY_GRPC_TIMEOUT`,
-  `SEED_DEMO_DATA`).
+  `SEED_DEMO_DATA`, `MINIO_*`, `MEDIA_*`).
 - `internal/authorization/`: private gRPC client to Identity authorization.
-- `internal/domain/`: catalog search, filtering, and product rules.
-- `internal/store/`: PostgreSQL migrations, seed data, and repository adapter.
+- `internal/media/`: S3 SigV4 MinIO presigner/object remover and background orphan sweeper (`ADR-012`).
+- `internal/domain/`: catalog search, filtering, media validation, and product rules.
+- `internal/store/`: PostgreSQL migrations (`products`, `product_images`, `product_videos`, `product_media_assets`), seed data, and repository adapter.
 - `internal/grpc/`: `CatalogServiceServer` gRPC handler implementation.
 - `internal/http/`: health and HTTP transport concerns.
 

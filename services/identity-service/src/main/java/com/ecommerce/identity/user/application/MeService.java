@@ -39,6 +39,14 @@ public class MeService {
         return toCurrentUser(user, rbac.assignedRoles(userId));
     }
 
+    @Transactional(readOnly = true)
+    public java.util.Set<String> permissions(UUID userId) {
+        repository.findWithProfileById(userId)
+                .filter(candidate -> candidate.status() == AccountStatus.ACTIVE)
+                .orElseThrow(UserNotFoundException::new);
+        return rbac.findAllEffectivePermissions(userId);
+    }
+
     @Transactional
     public CurrentUser update(UUID userId, String fullName, String phone, String dateOfBirth,
             String gender, String provinceCode, String wardCode, String addressLine) {

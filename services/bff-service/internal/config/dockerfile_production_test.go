@@ -46,6 +46,7 @@ func TestBackendDockerfilesAndRootDockerignore(t *testing.T) {
 		"**/node_modules",
 		"**/target",
 		"ecommerce-fe/dist",
+		"admin-fe/dist",
 		".env",
 		".env.*",
 		"deployments/secrets",
@@ -132,6 +133,14 @@ func TestBackendDockerfilesAndRootDockerignore(t *testing.T) {
 	if !strings.Contains(catalogDockerfile, `ENV IDENTITY_GRPC_TIMEOUT="500ms"`) {
 		t.Error("catalog-service Dockerfile must set ENV IDENTITY_GRPC_TIMEOUT=\"500ms\"")
 	}
+
+	inventoryDockerfile := readRepoFile(t, root, "services", "inventory-service", "Dockerfile")
+	if !strings.Contains(inventoryDockerfile, `ENV IDENTITY_GRPC_ADDR="identity-service:50054"`) {
+		t.Error("inventory-service Dockerfile must set ENV IDENTITY_GRPC_ADDR=\"identity-service:50054\"")
+	}
+	if !strings.Contains(inventoryDockerfile, `ENV IDENTITY_GRPC_TIMEOUT="500ms"`) {
+		t.Error("inventory-service Dockerfile must set ENV IDENTITY_GRPC_TIMEOUT=\"500ms\"")
+	}
 }
 
 func TestGoServicesBuildStandaloneWithGoWorkOff(t *testing.T) {
@@ -183,6 +192,44 @@ func TestFrontendDockerfileAndNginxConfig(t *testing.T) {
 	} {
 		if !strings.Contains(nginxConf, expected) {
 			t.Errorf("ecommerce-fe/nginx.conf missing %q", expected)
+		}
+	}
+
+	adminIgnore := readRepoFile(t, root, "admin-fe", ".dockerignore")
+	for _, entry := range []string{"node_modules", "dist", ".env", ".env.*", ".opencode", ".agents"} {
+		if !hasTrimmedLine(adminIgnore, entry) {
+			t.Errorf("admin-fe/.dockerignore missing %q", entry)
+		}
+	}
+
+	adminDockerfile := readRepoFile(t, root, "admin-fe", "Dockerfile")
+	for _, expected := range []string{
+		"FROM node:22.12-alpine",
+		"ARG VITE_API_BASE_URL=/api/v1",
+		"ARG VITE_BASE_PATH=/admin/",
+		"ENV VITE_BASE_PATH=${VITE_BASE_PATH}",
+		"npm ci",
+		"npm run build",
+		"FROM nginxinc/nginx-unprivileged:1.27-alpine",
+		"/etc/nginx/conf.d/default.conf",
+		"/usr/share/nginx/html/admin",
+		"EXPOSE 8080",
+	} {
+		if !strings.Contains(adminDockerfile, expected) {
+			t.Errorf("admin-fe/Dockerfile missing %q", expected)
+		}
+	}
+
+	adminNginx := readRepoFile(t, root, "admin-fe", "nginx.conf")
+	for _, expected := range []string{
+		"listen 8080;",
+		"absolute_redirect off;",
+		"location = /healthz",
+		"location = /admin",
+		"try_files $uri $uri/ /admin/index.html;",
+	} {
+		if !strings.Contains(adminNginx, expected) {
+			t.Errorf("admin-fe/nginx.conf missing %q", expected)
 		}
 	}
 }

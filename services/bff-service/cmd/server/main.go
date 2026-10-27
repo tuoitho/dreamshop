@@ -55,13 +55,15 @@ func buildMux(cartClient cart.Client, catalogClient catalog.Client, inventoryCli
 	productsHandler := internalhttp.NewProductsHandler(catalogClient, inventoryClient)
 	cartHandler := internalhttp.NewCartHandler(cartClient)
 	favoritesHandler := internalhttp.NewFavoritesHandler(cartClient)
-	adminHandler := internalhttp.NewAdminProductsHandler(catalogClient)
+	adminProductsHandler := internalhttp.NewAdminProductsHandler(catalogClient, inventoryClient)
+	adminInventoryHandler := internalhttp.NewAdminInventoryHandler(catalogClient, inventoryClient)
 
 	mux := http.NewServeMux()
 	mux.Handle("/healthz", healthHandler)
 	productsHandler.Register(mux)
 	cartHandler.Register(mux)
 	favoritesHandler.Register(mux)
-	adminHandler.Register(mux)
+	adminProductsHandler.Register(mux)
+	adminInventoryHandler.Register(mux)
 	return mux
 }

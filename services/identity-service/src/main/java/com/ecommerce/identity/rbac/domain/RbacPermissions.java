@@ -15,6 +15,12 @@ public final class RbacPermissions {
     public static final String USER_ROLE_ASSIGN = "user.role.assign";
     public static final String RBAC_VIEW = "rbac.view";
     public static final String RBAC_MANAGE = "rbac.manage";
+    public static final String PRODUCT_VIEW = "product.view";
+    public static final String PRODUCT_CREATE = "product.create";
+    public static final String PRODUCT_UPDATE = "product.update";
+    public static final String PRODUCT_DELETE = "product.delete";
+    public static final String INVENTORY_VIEW = "inventory.view";
+    public static final String INVENTORY_UPDATE = "inventory.update";
 
     private RbacPermissions() {
     }

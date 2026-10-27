@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"net"
+	"sort"
 	"testing"
+	"time"
 
 	inventoryv1 "ecommerce.local/contracts/go/inventory/v1"
 	"ecommerce.local/inventory-service/internal/domain"
@@ -29,6 +31,64 @@ func (m *memoryRepo) Get(_ context.Context, productID string) (domain.Stock, err
 		return domain.Stock{ProductID: productID}, nil
 	}
 	return stock, nil
+}
+
+func (m *memoryRepo) BatchGet(ctx context.Context, productIDs []string) ([]domain.Stock, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	out := make([]domain.Stock, len(productIDs))
+	for i, id := range productIDs {
+		st, _ := m.Get(ctx, id)
+		out[i] = st
+	}
+	return out, nil
+}
+
+func (m *memoryRepo) ListAll(_ context.Context) ([]domain.Stock, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	out := make([]domain.Stock, 0, len(m.stocks))
+	for _, st := range m.stocks {
+		out = append(out, st)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].ProductID < out[j].ProductID })
+	return out, nil
+}
+
+func (m *memoryRepo) SetQuantity(_ context.Context, productID string, quantity int32) (domain.Stock, error) {
+	if m.err != nil {
+		return domain.Stock{}, m.err
+	}
+	cur := m.stocks[productID]
+	if quantity < 0 || quantity < cur.Reserved {
+		return domain.Stock{}, domain.ErrStockBelowReserved
+	}
+	cur.ProductID = productID
+	cur.Quantity = quantity
+	cur.UpdatedAt = time.Now().UTC()
+	m.stocks[productID] = cur
+	return cur, nil
+}
+
+func (m *memoryRepo) AdjustQuantity(_ context.Context, productID string, delta int32) (domain.Stock, error) {
+	if m.err != nil {
+		return domain.Stock{}, m.err
+	}
+	cur, ok := m.stocks[productID]
+	if !ok && delta < 0 {
+		return domain.Stock{}, domain.ErrStockBelowReserved
+	}
+	next := cur.Quantity + delta
+	if next < cur.Reserved {
+		return domain.Stock{}, domain.ErrStockBelowReserved
+	}
+	cur.ProductID = productID
+	cur.Quantity = next
+	cur.UpdatedAt = time.Now().UTC()
+	m.stocks[productID] = cur
+	return cur, nil
 }
 
 func newTestClient(t *testing.T, repo domain.Repository) inventoryv1.InventoryServiceClient {

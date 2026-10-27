@@ -7,5 +7,7 @@ public record AdminUserPage(
         int page,
         int pageSize,
         long totalItems,
-        int totalPages) {
+        int totalPages,
+        long activeCount,
+        long disabledCount) {
 }

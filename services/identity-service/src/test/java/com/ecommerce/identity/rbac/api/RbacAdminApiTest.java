@@ -1,6 +1,7 @@
 package com.ecommerce.identity.rbac.api;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -80,9 +81,11 @@ class RbacAdminApiTest extends PostgresIntegrationTestSupport {
                         .content("""
                                 {"name":"ticket.view","type":"PERMISSION","description":"View tickets"}
                                 """))
-                .andExpect(status().isCreated());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.errors.type").exists());
 
-        mockMvc.perform(put("/api/v1/admin/rbac/items/SUPPORT/children/ticket.view")
+        mockMvc.perform(put("/api/v1/admin/rbac/items/SUPPORT/children/address.view")
                         .header("X-User-Id", SUPER_ADMIN_ID.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value((Object) null));
@@ -90,23 +93,49 @@ class RbacAdminApiTest extends PostgresIntegrationTestSupport {
         mockMvc.perform(get("/api/v1/admin/rbac/items/SUPPORT")
                         .header("X-User-Id", SUPER_ADMIN_ID.toString()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.directChildren[0]").value("ticket.view"));
+                .andExpect(jsonPath("$.data.directChildren[0]").value("address.view"));
     }
 
     @Test
     void rejectsHierarchyCycleAndProtectsBuiltInItems() throws Exception {
         createItem("SUPPORT", "ROLE");
-        createItem("ticket.view", "PERMISSION");
-        addChild("SUPPORT", "ticket.view");
+        createItem("ESCALATION", "ROLE");
+        addChild("SUPPORT", "ESCALATION");
+        addChild("ESCALATION", "address.view");
 
-        mockMvc.perform(put("/api/v1/admin/rbac/items/ticket.view/children/SUPPORT")
+        mockMvc.perform(put("/api/v1/admin/rbac/items/ESCALATION/children/SUPPORT")
                         .header("X-User-Id", SUPER_ADMIN_ID.toString()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("RBAC_HIERARCHY_CONFLICT"));
 
-        mockMvc.perform(put("/api/v1/admin/rbac/items/SUPPORT/children/ticket.view")
+        mockMvc.perform(put("/api/v1/admin/rbac/items/address.view/children/SUPPORT")
                         .header("X-User-Id", SUPER_ADMIN_ID.toString()))
-                .andExpect(status().isOk());
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("RBAC_HIERARCHY_CONFLICT"));
+
+        mockMvc.perform(put("/api/v1/admin/rbac/items/address.view/children/address.create")
+                        .header("X-User-Id", SUPER_ADMIN_ID.toString()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("RBAC_HIERARCHY_CONFLICT"));
+
+        mockMvc.perform(delete("/api/v1/admin/rbac/items/address.view/children/address.create")
+                        .header("X-User-Id", SUPER_ADMIN_ID.toString()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("RBAC_HIERARCHY_CONFLICT"));
+
+        mockMvc.perform(patch("/api/v1/admin/rbac/items/address.view")
+                        .header("X-User-Id", SUPER_ADMIN_ID.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"address.view","description":"mutated"}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("RBAC_SYSTEM_ITEM_PROTECTED"));
+
+        mockMvc.perform(delete("/api/v1/admin/rbac/items/address.view")
+                        .header("X-User-Id", SUPER_ADMIN_ID.toString()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("RBAC_SYSTEM_ITEM_PROTECTED"));
 
         mockMvc.perform(put("/api/v1/admin/rbac/items/CUSTOMER/children/address.create")
                         .header("X-User-Id", SUPER_ADMIN_ID.toString()))

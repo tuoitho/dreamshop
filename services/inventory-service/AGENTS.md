@@ -42,11 +42,13 @@ behavior as domain/contract semantics rather than transport defaults.
 
 - `cmd/server/`: process startup, signal handling, and dependency wiring.
 - `internal/config/`: environment-backed configuration (`HTTP_ADDR`,
-  `GRPC_ADDR`, `DATABASE_URL`, `SEED_DEMO_DATA`).
-- `internal/domain/`: stock and availability domain rules (`Quantity - Reserved`).
+  `GRPC_ADDR`, `DATABASE_URL`, `IDENTITY_GRPC_ADDR`, `IDENTITY_GRPC_TIMEOUT`,
+  `SEED_DEMO_DATA`).
+- `internal/authorization/`: private gRPC client to Identity authorization (`inventory.view`, `inventory.update`).
+- `internal/domain/`: stock and availability domain rules (`Quantity - Reserved`, `ErrStockBelowReserved`).
 - `internal/store/`: embedded SQL migrations (`000001_create_stock.up.sql`),
   seed data, and PostgreSQL store adapter.
-- `internal/grpc/`: `InventoryServiceServer` (`GetAvailability`) gRPC handler.
+- `internal/grpc/`: `InventoryServiceServer` (`GetAvailability`, `GetStock`, `BatchGetStock`, `ListStocks`, `SetStock`, `AdjustStock`) gRPC handler.
 - `internal/http/`: `/healthz` HTTP readiness/liveness handler.
 
 As reservation and event capabilities are added, keep domain/application rules

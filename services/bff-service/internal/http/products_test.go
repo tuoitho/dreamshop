@@ -30,11 +30,17 @@ import (
 
 // fakeCatalogClient is a test double for catalog.Client.
 type fakeCatalogClient struct {
-	searchFn     func(ctx context.Context, req *catalogv1.SearchProductsRequest) (*catalogv1.SearchProductsResponse, error)
-	getProductFn func(ctx context.Context, id string) (*catalogv1.GetProductResponse, error)
-	softDeleteFn func(ctx context.Context, userID, id string, deleted bool) error
-	searchCalls  int
-	lastSearch   *catalogv1.SearchProductsRequest
+	searchFn           func(ctx context.Context, req *catalogv1.SearchProductsRequest) (*catalogv1.SearchProductsResponse, error)
+	getProductFn       func(ctx context.Context, id string) (*catalogv1.GetProductResponse, error)
+	softDeleteFn       func(ctx context.Context, userID, id string, deleted bool) error
+	listAdminFn        func(ctx context.Context, req *catalogv1.ListAdminProductsRequest) (*catalogv1.ListAdminProductsResponse, error)
+	listInventoryFn    func(ctx context.Context, req *catalogv1.ListInventoryCatalogItemsRequest) (*catalogv1.ListInventoryCatalogItemsResponse, error)
+	getAdminProductFn  func(ctx context.Context, userID, id string) (*catalogv1.GetProductResponse, error)
+	createProductFn    func(ctx context.Context, req *catalogv1.CreateProductRequest) (*catalogv1.GetProductResponse, error)
+	updateProductFn    func(ctx context.Context, req *catalogv1.UpdateProductRequest) (*catalogv1.GetProductResponse, error)
+	createMediaFn      func(ctx context.Context, req *catalogv1.CreateProductMediaUploadRequest) (*catalogv1.CreateProductMediaUploadResponse, error)
+	searchCalls        int
+	lastSearch         *catalogv1.SearchProductsRequest
 }
 
 func (f *fakeCatalogClient) SearchProducts(ctx context.Context, req *catalogv1.SearchProductsRequest) (*catalogv1.SearchProductsResponse, error) {
@@ -58,6 +64,48 @@ func (f *fakeCatalogClient) SoftDeleteProduct(ctx context.Context, userID, id st
 		return f.softDeleteFn(ctx, userID, id, deleted)
 	}
 	return errors.New("unexpected SoftDeleteProduct call")
+}
+
+func (f *fakeCatalogClient) ListAdminProducts(ctx context.Context, req *catalogv1.ListAdminProductsRequest) (*catalogv1.ListAdminProductsResponse, error) {
+	if f.listAdminFn != nil {
+		return f.listAdminFn(ctx, req)
+	}
+	return &catalogv1.ListAdminProductsResponse{}, nil
+}
+
+func (f *fakeCatalogClient) ListInventoryCatalogItems(ctx context.Context, req *catalogv1.ListInventoryCatalogItemsRequest) (*catalogv1.ListInventoryCatalogItemsResponse, error) {
+	if f.listInventoryFn != nil {
+		return f.listInventoryFn(ctx, req)
+	}
+	return &catalogv1.ListInventoryCatalogItemsResponse{}, nil
+}
+
+func (f *fakeCatalogClient) GetAdminProduct(ctx context.Context, userID, id string) (*catalogv1.GetProductResponse, error) {
+	if f.getAdminProductFn != nil {
+		return f.getAdminProductFn(ctx, userID, id)
+	}
+	return nil, errors.New("unexpected GetAdminProduct call")
+}
+
+func (f *fakeCatalogClient) CreateProduct(ctx context.Context, req *catalogv1.CreateProductRequest) (*catalogv1.GetProductResponse, error) {
+	if f.createProductFn != nil {
+		return f.createProductFn(ctx, req)
+	}
+	return nil, errors.New("unexpected CreateProduct call")
+}
+
+func (f *fakeCatalogClient) UpdateProduct(ctx context.Context, req *catalogv1.UpdateProductRequest) (*catalogv1.GetProductResponse, error) {
+	if f.updateProductFn != nil {
+		return f.updateProductFn(ctx, req)
+	}
+	return nil, errors.New("unexpected UpdateProduct call")
+}
+
+func (f *fakeCatalogClient) CreateProductMediaUpload(ctx context.Context, req *catalogv1.CreateProductMediaUploadRequest) (*catalogv1.CreateProductMediaUploadResponse, error) {
+	if f.createMediaFn != nil {
+		return f.createMediaFn(ctx, req)
+	}
+	return nil, errors.New("unexpected CreateProductMediaUpload call")
 }
 
 func money(amount int64) *commonv1.Money {
@@ -86,10 +134,15 @@ func sampleSummary() *catalogv1.ProductSummary {
 }
 
 type fakeInventoryClient struct {
-	mu      sync.Mutex
-	getFn   func(ctx context.Context, productID string) (*inventoryv1.GetAvailabilityResponse, error)
-	called  []string
-	traceID string
+	mu          sync.Mutex
+	getFn       func(ctx context.Context, productID string) (*inventoryv1.GetAvailabilityResponse, error)
+	getStockFn  func(ctx context.Context, userID, productID string) (*inventoryv1.StockItem, error)
+	batchGetFn  func(ctx context.Context, userID string, productIDs []string) ([]*inventoryv1.StockItem, error)
+	listStockFn func(ctx context.Context, userID string) ([]*inventoryv1.StockItem, error)
+	setStockFn  func(ctx context.Context, userID, productID string, quantity int32) (*inventoryv1.StockItem, error)
+	adjStockFn  func(ctx context.Context, userID, productID string, delta int32) (*inventoryv1.StockItem, error)
+	called      []string
+	traceID     string
 }
 
 func (f *fakeInventoryClient) GetAvailability(ctx context.Context, productID string) (*inventoryv1.GetAvailabilityResponse, error) {
@@ -105,6 +158,45 @@ func (f *fakeInventoryClient) GetAvailability(ctx context.Context, productID str
 		return f.getFn(ctx, productID)
 	}
 	return &inventoryv1.GetAvailabilityResponse{ProductId: productID, AvailableQuantity: 20}, nil
+}
+
+func (f *fakeInventoryClient) GetStock(ctx context.Context, userID, productID string) (*inventoryv1.StockItem, error) {
+	if f.getStockFn != nil {
+		return f.getStockFn(ctx, userID, productID)
+	}
+	return &inventoryv1.StockItem{ProductId: productID, Quantity: 10, AvailableQuantity: 10}, nil
+}
+
+func (f *fakeInventoryClient) BatchGetStock(ctx context.Context, userID string, productIDs []string) ([]*inventoryv1.StockItem, error) {
+	if f.batchGetFn != nil {
+		return f.batchGetFn(ctx, userID, productIDs)
+	}
+	out := make([]*inventoryv1.StockItem, 0, len(productIDs))
+	for _, id := range productIDs {
+		out = append(out, &inventoryv1.StockItem{ProductId: id, Quantity: 10, AvailableQuantity: 10})
+	}
+	return out, nil
+}
+
+func (f *fakeInventoryClient) ListStocks(ctx context.Context, userID string) ([]*inventoryv1.StockItem, error) {
+	if f.listStockFn != nil {
+		return f.listStockFn(ctx, userID)
+	}
+	return nil, nil
+}
+
+func (f *fakeInventoryClient) SetStock(ctx context.Context, userID, productID string, quantity int32) (*inventoryv1.StockItem, error) {
+	if f.setStockFn != nil {
+		return f.setStockFn(ctx, userID, productID, quantity)
+	}
+	return &inventoryv1.StockItem{ProductId: productID, Quantity: quantity, AvailableQuantity: quantity}, nil
+}
+
+func (f *fakeInventoryClient) AdjustStock(ctx context.Context, userID, productID string, delta int32) (*inventoryv1.StockItem, error) {
+	if f.adjStockFn != nil {
+		return f.adjStockFn(ctx, userID, productID, delta)
+	}
+	return &inventoryv1.StockItem{ProductId: productID, Quantity: delta, AvailableQuantity: delta}, nil
 }
 
 func newTestMux(t *testing.T, client catalog.Client) http.Handler {
@@ -754,6 +846,23 @@ func TestGetProductAvailabilityStatesAndDegradation(t *testing.T) {
 		}
 		if !strings.Contains(logBuf.String(), "traceId=trace-degraded-123") {
 			t.Fatalf("expected degraded log to include traceId=trace-degraded-123, got %q", logBuf.String())
+		}
+	})
+
+	t.Run("detail maps additive videos slice from catalog", func(t *testing.T) {
+		cat := &fakeCatalogClient{getProductFn: func(context.Context, string) (*catalogv1.GetProductResponse, error) {
+			d := baseDetail(false, oneVariant)
+			d.Videos = []string{"/product-media/products/2026/10/demo.mp4"}
+			return d, nil
+		}}
+		rec := doRequest(newTestMux(t, cat), http.MethodGet, "/api/v1/storefront/products/dt-2")
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", rec.Code)
+		}
+		data := decodeBody(t, rec)["data"].(map[string]any)
+		vids, ok := data["videos"].([]any)
+		if !ok || len(vids) != 1 || vids[0] != "/product-media/products/2026/10/demo.mp4" {
+			t.Fatalf("expected videos slice on productDetail, got %#v", data["videos"])
 		}
 	})
 }

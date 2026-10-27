@@ -32,9 +32,10 @@ public class AdminUserController {
     @PreAuthorize("@rbac.can(authentication, 'user.view')")
     ApiResponse<AdminUserPageResponse> list(
             @RequestParam(value = "q", defaultValue = "") String query,
+            @RequestParam(value = "status", required = false) com.ecommerce.identity.auth.domain.AccountStatus status,
             @RequestParam(value = "page", defaultValue = "1") @Min(1) int page,
             @RequestParam(value = "pageSize", defaultValue = "20") @Min(1) @Max(100) int pageSize) {
-        return new ApiResponse<>(AdminUserPageResponse.from(service.list(query, page, pageSize)),
+        return new ApiResponse<>(AdminUserPageResponse.from(service.list(query, status, page, pageSize)),
                 "Users retrieved.");
     }
 

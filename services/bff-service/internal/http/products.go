@@ -62,6 +62,7 @@ type productDetail struct {
 	ShortDescription string           `json:"shortDescription"`
 	Description      string           `json:"description"`
 	Details          []string         `json:"details"`
+	Videos           []string         `json:"videos,omitempty"`
 	Variants         []productVariant `json:"variants"`
 	Deleted          bool             `json:"deleted"`
 }
@@ -452,6 +453,7 @@ func newProductDetail(p *catalogv1.GetProductResponse) productDetail {
 		ShortDescription: p.GetShortDescription(),
 		Description:      p.GetDescription(),
 		Details:          stringsOrEmpty(p.GetDetails()),
+		Videos:           p.GetVideos(),
 		Variants:         variants,
 		Deleted:          p.GetDeleted(),
 	}

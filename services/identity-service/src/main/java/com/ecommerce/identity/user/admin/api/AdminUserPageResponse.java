@@ -8,9 +8,12 @@ public record AdminUserPageResponse(
         int page,
         int pageSize,
         long totalItems,
-        int totalPages) {
+        int totalPages,
+        long activeCount,
+        long disabledCount) {
     public static AdminUserPageResponse from(AdminUserPage page) {
         return new AdminUserPageResponse(page.items().stream().map(AdminUserResponse::from).toList(),
-                page.page(), page.pageSize(), page.totalItems(), page.totalPages());
+                page.page(), page.pageSize(), page.totalItems(), page.totalPages(),
+                page.activeCount(), page.disabledCount());
     }
 }

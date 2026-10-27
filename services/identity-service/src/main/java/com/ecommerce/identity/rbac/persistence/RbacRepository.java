@@ -77,6 +77,28 @@ public interface RbacRepository extends JpaRepository<AuthItemEntity, String> {
             @Param("userId") UUID userId,
             @Param("permissions") Collection<String> permissions);
 
+    @Query(value = """
+            with recursive reachable(name) as (
+                select a.item_name
+                from auth_assignments a
+                join identity_users u on u.id = a.user_id and u.status = 'ACTIVE'
+                where a.user_id = :userId
+                union
+                select c.child_name
+                from auth_item_children c
+                join reachable r on r.name = c.parent_name
+            )
+            select target.name
+            from auth_items target
+            where target.type = 'PERMISSION'
+              and (
+                  exists (select 1 from reachable where name = 'SUPER_ADMIN')
+                  or exists (select 1 from reachable where name = target.name)
+              )
+            order by target.name
+            """, nativeQuery = true)
+    List<String> findAllEffectivePermissionNames(@Param("userId") UUID userId);
+
     @Modifying
     @Transactional
     @Query(value = """
@@ -244,6 +266,11 @@ public interface RbacRepository extends JpaRepository<AuthItemEntity, String> {
         }
         return Collections.unmodifiableSet(new LinkedHashSet<>(
                 findAllowedPermissionNames(userId, permissions)));
+    }
+
+    default Set<String> findAllEffectivePermissions(UUID userId) {
+        return Collections.unmodifiableSet(new LinkedHashSet<>(
+                findAllEffectivePermissionNames(userId)));
     }
 
     default boolean roleExists(String roleName) {

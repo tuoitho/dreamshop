@@ -24,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class RbacAdminService {
     private static final Pattern ROLE_NAME = Pattern.compile("^[A-Z][A-Z0-9_]{1,127}$");
-    private static final Pattern PERMISSION_NAME = Pattern.compile("^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)+$");
 
     private final RbacRepository repository;
     private final Clock clock;
@@ -50,13 +49,13 @@ public class RbacAdminService {
     @Transactional
     public RbacItemView create(String rawName, AuthItemType type, String rawDescription) {
         String name = normalizeName(rawName);
-        validateName(name, type);
+        validateRoleCreation(name, type);
         repository.lockHierarchy();
         if (repository.findItem(name).isPresent()) {
             throw new RbacItemExistsException();
         }
         Instant now = clock.instant();
-        if (!repository.createItem(name, type, normalizeDescription(rawDescription), now)) {
+        if (!repository.createItem(name, AuthItemType.ROLE, normalizeDescription(rawDescription), now)) {
             throw new RbacItemExistsException();
         }
         return get(name);
@@ -65,8 +64,11 @@ public class RbacAdminService {
     @Transactional
     public RbacItemView update(String rawCurrentName, String rawName, String rawDescription) {
         RbacItem current = requireItem(rawCurrentName);
+        if (current.type() == AuthItemType.PERMISSION) {
+            throw new RbacSystemItemProtectedException();
+        }
         String newName = normalizeName(rawName);
-        validateName(newName, current.type());
+        validateRoleName(newName);
         if (current.systemItem() && !current.name().equals(newName)) {
             throw new RbacSystemItemProtectedException();
         }
@@ -92,7 +94,7 @@ public class RbacAdminService {
     @Transactional
     public void delete(String rawName) {
         RbacItem item = requireItem(rawName);
-        if (item.systemItem()) {
+        if (item.systemItem() || item.type() == AuthItemType.PERMISSION) {
             throw new RbacSystemItemProtectedException();
         }
         if (!repository.deleteCustomItem(item.name())) {
@@ -120,6 +122,9 @@ public class RbacAdminService {
                 || RbacPermissions.SUPER_ADMIN.equals(child.name())) {
             throw new RbacSystemItemProtectedException();
         }
+        if (parent.type() == AuthItemType.PERMISSION) {
+            throw new RbacHierarchyConflictException();
+        }
         repository.removeChild(parent.name(), child.name());
     }
 
@@ -129,26 +134,30 @@ public class RbacAdminService {
     }
 
     private void validateEdge(RbacItem parent, RbacItem child) {
-        if (parent.name().equals(child.name())
-                || (parent.type() == AuthItemType.PERMISSION && child.type() == AuthItemType.ROLE)
-                || RbacPermissions.SUPER_ADMIN.equals(parent.name())
+        if (RbacPermissions.SUPER_ADMIN.equals(parent.name())
                 || RbacPermissions.SUPER_ADMIN.equals(child.name())) {
-            if (RbacPermissions.SUPER_ADMIN.equals(parent.name())
-                    || RbacPermissions.SUPER_ADMIN.equals(child.name())) {
-                throw new RbacSystemItemProtectedException();
-            }
+            throw new RbacSystemItemProtectedException();
+        }
+        if (parent.name().equals(child.name()) || parent.type() == AuthItemType.PERMISSION) {
             throw new RbacHierarchyConflictException();
         }
     }
 
-    private void validateName(String name, AuthItemType type) {
+    private void validateRoleCreation(String name, AuthItemType type) {
         if (type == null) {
-            throw new InvalidRbacItemException(java.util.Map.of("type", "must be supplied"));
+            throw new InvalidRbacItemException(Map.of("type", "must be supplied"));
         }
-        Pattern pattern = type == AuthItemType.ROLE ? ROLE_NAME : PERMISSION_NAME;
-        if (name == null || !pattern.matcher(name).matches()) {
-            throw new InvalidRbacItemException(java.util.Map.of(
-                    "name", "must match the naming convention for " + type.name().toLowerCase()));
+        if (type != AuthItemType.ROLE) {
+            throw new InvalidRbacItemException(Map.of(
+                    "type", "only ROLE items can be created; permissions are defined by service migrations"));
+        }
+        validateRoleName(name);
+    }
+
+    private void validateRoleName(String name) {
+        if (name == null || !ROLE_NAME.matcher(name).matches()) {
+            throw new InvalidRbacItemException(Map.of(
+                    "name", "must match the naming convention for role"));
         }
     }
 

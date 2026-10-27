@@ -43,7 +43,7 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.GET, "/.well-known/jwks.json", "/api/v1/auth/.well-known/jwks.json").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/users/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/me", "/api/v1/users/me/permissions").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/users/me").authenticated()
                         .requestMatchers("/api/v1/users/me/addresses", "/api/v1/users/me/addresses/**").authenticated()
                         .requestMatchers("/api/v1/admin/users", "/api/v1/admin/users/**", "/api/v1/admin/rbac/**").authenticated()

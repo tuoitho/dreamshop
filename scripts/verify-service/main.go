@@ -140,6 +140,17 @@ func runWithDeps(args []string, out io.Writer, goos string, runCmd execFunc) int
 			return c
 		}
 
+	case service == "admin-fe":
+		if c := step("admin frontend tests", "npm", "--prefix", "admin-fe", "test", "--", "--run"); c != 0 {
+			return c
+		}
+		if c := step("admin frontend lint", "npm", "--prefix", "admin-fe", "run", "lint"); c != 0 {
+			return c
+		}
+		if c := step("admin frontend build", "npm", "--prefix", "admin-fe", "run", "build"); c != 0 {
+			return c
+		}
+
 	case fileExists(filepath.Join(serviceAbs, "pom.xml")):
 		if c := step("maven verify "+service, "mvn", "--batch-mode", "--no-transfer-progress", "-pl", serviceRel, "-am", "verify"); c != 0 {
 			return c
@@ -189,7 +200,7 @@ func listSurfaces(root string) []string {
 		}
 	}
 	sort.Strings(surfaces)
-	return append(surfaces, "ecommerce-fe", "contracts")
+	return append(surfaces, "ecommerce-fe", "admin-fe", "contracts")
 }
 
 func fileExists(path string) bool {

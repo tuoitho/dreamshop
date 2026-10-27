@@ -91,6 +91,29 @@ class MeApiTest extends PostgresIntegrationTestSupport {
     }
 
     @Test
+    void returnsEffectivePermissionsForActiveCallerAndRejectsUnauthenticatedOrDisabledCaller() throws Exception {
+        String userId = registerUser("perms@example.com");
+        jdbcTemplate.update("insert into auth_assignments (user_id, item_name, created_at) values (?, 'ADMIN', now())",
+                UUID.fromString(userId));
+
+        mockMvc.perform(get("/api/v1/users/me/permissions").header("X-User-Id", userId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Permissions retrieved."))
+                .andExpect(jsonPath("$.data[?(@ == 'product.view')]").isNotEmpty())
+                .andExpect(jsonPath("$.data[?(@ == 'inventory.update')]").isNotEmpty())
+                .andExpect(jsonPath("$.data[?(@ == 'favorite.manage')]").isNotEmpty());
+
+        mockMvc.perform(get("/api/v1/users/me/permissions"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+
+        jdbcTemplate.update("update identity_users set status = 'DISABLED' where id = ?", UUID.fromString(userId));
+        mockMvc.perform(get("/api/v1/users/me/permissions").header("X-User-Id", userId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("USER_NOT_FOUND"));
+    }
+
+    @Test
     void updatesCurrentUserFullName() throws Exception {
         String userId = registerUser("update@example.com");
 

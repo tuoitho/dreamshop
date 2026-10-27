@@ -26,6 +26,7 @@ import (
 // handler tests stay free of infrastructure.
 type memoryRepo struct {
 	products        []*domain.Product
+	mediaAssets     []*domain.MediaAsset
 	softDeleteCalls int
 }
 
@@ -51,6 +52,51 @@ func (m *memoryRepo) SoftDelete(_ context.Context, id string, deleted bool) erro
 		}
 	}
 	return domain.ErrProductNotFound
+}
+
+func (m *memoryRepo) ListAdmin(_ context.Context, filter domain.AdminSearchFilter) (*domain.AdminSearchResult, error) {
+	return domain.ListAdminProducts(m.products, filter), nil
+}
+
+func (m *memoryRepo) ListInventoryItems(_ context.Context, filter domain.InventoryCatalogFilter) ([]*domain.InventoryCatalogItem, error) {
+	return domain.ListInventoryCatalogItems(m.products, filter), nil
+}
+
+func (m *memoryRepo) Create(_ context.Context, product *domain.Product, _ time.Duration) (*domain.Product, error) {
+	for _, existing := range m.products {
+		if existing.ID == product.ID {
+			return nil, domain.ErrProductExists
+		}
+	}
+	cp := *product
+	now := time.Now().UTC()
+	cp.CreatedAt = now
+	cp.UpdatedAt = now
+	m.products = append(m.products, &cp)
+	return &cp, nil
+}
+
+func (m *memoryRepo) Update(_ context.Context, product *domain.Product, _ time.Duration) (*domain.Product, error) {
+	for i, existing := range m.products {
+		if existing.ID == product.ID {
+			cp := *product
+			cp.Deleted = existing.Deleted
+			cp.Rating = existing.Rating
+			cp.ReviewCount = existing.ReviewCount
+			cp.SoldCount = existing.SoldCount
+			cp.CreatedAt = existing.CreatedAt
+			cp.UpdatedAt = time.Now().UTC()
+			m.products[i] = &cp
+			return &cp, nil
+		}
+	}
+	return nil, domain.ErrProductNotFound
+}
+
+func (m *memoryRepo) CreateMediaAsset(_ context.Context, asset *domain.MediaAsset) error {
+	cp := *asset
+	m.mediaAssets = append(m.mediaAssets, &cp)
+	return nil
 }
 
 type fakeAuthorization struct {

@@ -44,6 +44,8 @@ class AdminUserApiTest extends PostgresIntegrationTestSupport {
 
     @Test
     void listsUsersForCallerWithUserViewPermission() throws Exception {
+        jdbcTemplate.update("update identity_users set status = 'DISABLED' where id = ?", CUSTOMER_ID);
+
         mockMvc.perform(get("/api/v1/admin/users")
                         .header("X-User-Id", SUPER_ADMIN_ID.toString())
                         .param("page", "1")
@@ -54,7 +56,19 @@ class AdminUserApiTest extends PostgresIntegrationTestSupport {
                 .andExpect(jsonPath("$.data.pageSize").value(20))
                 .andExpect(jsonPath("$.data.totalItems").value(3))
                 .andExpect(jsonPath("$.data.totalPages").value(1))
+                .andExpect(jsonPath("$.data.activeCount").value(2))
+                .andExpect(jsonPath("$.data.disabledCount").value(1))
                 .andExpect(jsonPath("$.data.items[0].passwordHash").doesNotExist());
+
+        mockMvc.perform(get("/api/v1/admin/users")
+                        .header("X-User-Id", SUPER_ADMIN_ID.toString())
+                        .param("status", "DISABLED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalItems").value(1))
+                .andExpect(jsonPath("$.data.activeCount").value(2))
+                .andExpect(jsonPath("$.data.disabledCount").value(1))
+                .andExpect(jsonPath("$.data.items[0].userId").value(CUSTOMER_ID.toString()))
+                .andExpect(jsonPath("$.data.items[0].status").value("DISABLED"));
     }
 
     @Test

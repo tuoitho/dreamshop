@@ -26,9 +26,11 @@ var (
 	goImportPattern       = regexp.MustCompile(`ecommerce\.local/[A-Za-z0-9._-]+`)
 	javaImportPattern     = regexp.MustCompile(`^\s*import\s+(static\s+)?com\.ecommerce\.([a-z0-9_]+)`)
 	pomArtifactPattern    = regexp.MustCompile(`<artifactId>([a-z0-9-]+-service)</artifactId>`)
-	kongCallPattern       = regexp.MustCompile(`(localhost|127\.0\.0\.1|kong|host\.docker\.internal):8000\b`)
-	contractGoPattern     = regexp.MustCompile(`ecommerce\.local/[A-Za-z0-9._-]+-service`)
-	frontendImportPattern = regexp.MustCompile(`(from\s+|import\s*\(\s*|require\s*\(\s*)['"][^'"]*(services/[a-z0-9-]+-service|contracts/(go|java|proto))[^'"]*['"]`)
+	kongCallPattern          = regexp.MustCompile(`(localhost|127\.0\.0\.1|kong|host\.docker\.internal):8000\b`)
+	contractGoPattern        = regexp.MustCompile(`ecommerce\.local/[A-Za-z0-9._-]+-service`)
+	frontendImportPattern    = regexp.MustCompile(`(from\s+|import\s*\(\s*|require\s*\(\s*)['"][^'"]*(services/[a-z0-9-]+-service|contracts/(go|java|proto))[^'"]*['"]`)
+	storefrontToAdminPattern = regexp.MustCompile(`(from\s+|import\s*\(\s*|require\s*\(\s*)['"][^'"]*admin-fe/[^'"]*['"]`)
+	adminToStorefrontPattern = regexp.MustCompile(`(from\s+|import\s*\(\s*|require\s*\(\s*)['"][^'"]*ecommerce-fe/[^'"]*['"]`)
 )
 
 // Check scans the repository rooted at root and writes human-readable output to out.
@@ -155,6 +157,17 @@ func Check(root string, out io.Writer) int {
 	addMatches(frontendFiles, frontendImportPattern, func(_ []string) bool {
 		return true
 	}, "frontend imports backend source")
+	addMatches(frontendFiles, storefrontToAdminPattern, func(_ []string) bool {
+		return true
+	}, "cross-frontend import")
+
+	adminFrontendFiles := getSourceFiles(filepath.Join(absRoot, "admin-fe", "src"), []string{".ts", ".tsx", ".js", ".jsx"})
+	addMatches(adminFrontendFiles, frontendImportPattern, func(_ []string) bool {
+		return true
+	}, "frontend imports backend source")
+	addMatches(adminFrontendFiles, adminToStorefrontPattern, func(_ []string) bool {
+		return true
+	}, "cross-frontend import")
 
 	if len(violations) > 0 {
 		for _, v := range violations {
@@ -164,7 +177,7 @@ func Check(root string, out io.Writer) int {
 		return 1
 	}
 
-	fmt.Fprintf(out, "Boundary check passed for %d services, contracts, and ecommerce-fe.\n", len(services))
+	fmt.Fprintf(out, "Boundary check passed for %d services, contracts, ecommerce-fe, and admin-fe.\n", len(services))
 	return 0
 }
 

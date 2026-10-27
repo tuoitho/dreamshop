@@ -1,5 +1,5 @@
 _format_version: "3.0"
-# CORS plugin global cho phép frontend dev (localhost:5173) gọi API qua gateway.
+# CORS plugin global cho phép frontend dev (localhost:5173 và localhost:5174) gọi API qua gateway.
 services:
   - name: identity-service
     url: http://host.docker.internal:8080
@@ -68,12 +68,22 @@ services:
               jwks_uri: http://host.docker.internal:8080/.well-known/jwks.json
               issuer: http://localhost:8080
               audience: ecommerce-api
+      - name: admin-inventory-api
+        paths: ["/api/v1/admin/inventory"]
+        strip_path: false
+        plugins:
+          - name: caller-context
+            config:
+              jwks_uri: http://host.docker.internal:8080/.well-known/jwks.json
+              issuer: http://localhost:8080
+              audience: ecommerce-api
 
 plugins:
   - name: cors
     config:
       origins:
         - "http://localhost:5173"
+        - "http://localhost:5174"
       methods:
         - GET
         - POST

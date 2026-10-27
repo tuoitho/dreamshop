@@ -39,7 +39,7 @@ class AdminUserServiceTest {
         IdentityUserEntity u1 = mockUser(USER_1, "u1@example.com", "User One");
         IdentityUserEntity u2 = mockUser(USER_2, "u2@example.com", "User Two");
         IdentityUserEntity u3 = mockUser(USER_3, "u3@example.com", "User Three");
-        when(users.searchAdminUsers(any(String.class), any(Pageable.class)))
+        when(users.searchAdminUsers(any(String.class), any(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(u1, u2, u3)));
         when(rbac.assignedRolesByUserIds(List.of(USER_1, USER_2, USER_3)))
                 .thenReturn(Map.of(
@@ -58,12 +58,16 @@ class AdminUserServiceTest {
 
     @Test
     void listSkipsBatchRoleQueryWhenPageIsEmpty() {
-        when(users.searchAdminUsers(any(String.class), any(Pageable.class)))
+        when(users.searchAdminUsers(any(String.class), any(), any(Pageable.class)))
                 .thenReturn(Page.empty());
+        when(users.countByStatus(AccountStatus.ACTIVE)).thenReturn(4L);
+        when(users.countByStatus(AccountStatus.DISABLED)).thenReturn(2L);
 
-        AdminUserPage page = service.list("", 1, 20);
+        AdminUserPage page = service.list("", AccountStatus.DISABLED, 1, 20);
 
         assertThat(page.items()).isEmpty();
+        assertThat(page.activeCount()).isEqualTo(4L);
+        assertThat(page.disabledCount()).isEqualTo(2L);
         verify(rbac, never()).assignedRolesByUserIds(any());
         verify(rbac, never()).assignedRoles(any(UUID.class));
     }
