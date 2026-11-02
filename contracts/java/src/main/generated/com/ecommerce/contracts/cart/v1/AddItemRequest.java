@@ -19,7 +19,7 @@ private static final long serialVersionUID = 0L;
   private AddItemRequest() {
     userId_ = "";
     productId_ = "";
-    variantLabel_ = "";
+    skuId_ = "";
   }
 
   @java.lang.Override
@@ -120,39 +120,39 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int VARIANT_LABEL_FIELD_NUMBER = 3;
+  public static final int SKU_ID_FIELD_NUMBER = 3;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object variantLabel_ = "";
+  private volatile java.lang.Object skuId_ = "";
   /**
-   * <code>string variant_label = 3 [json_name = "variantLabel"];</code>
-   * @return The variantLabel.
+   * <code>string sku_id = 3 [json_name = "skuId"];</code>
+   * @return The skuId.
    */
   @java.lang.Override
-  public java.lang.String getVariantLabel() {
-    java.lang.Object ref = variantLabel_;
+  public java.lang.String getSkuId() {
+    java.lang.Object ref = skuId_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      variantLabel_ = s;
+      skuId_ = s;
       return s;
     }
   }
   /**
-   * <code>string variant_label = 3 [json_name = "variantLabel"];</code>
-   * @return The bytes for variantLabel.
+   * <code>string sku_id = 3 [json_name = "skuId"];</code>
+   * @return The bytes for skuId.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getVariantLabelBytes() {
-    java.lang.Object ref = variantLabel_;
+      getSkuIdBytes() {
+    java.lang.Object ref = skuId_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      variantLabel_ = b;
+      skuId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -190,8 +190,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(productId_)) {
       com.google.protobuf.GeneratedMessageV3.writeString(output, 2, productId_);
     }
-    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(variantLabel_)) {
-      com.google.protobuf.GeneratedMessageV3.writeString(output, 3, variantLabel_);
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(skuId_)) {
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 3, skuId_);
     }
     if (quantity_ != 0) {
       output.writeInt32(4, quantity_);
@@ -211,8 +211,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(productId_)) {
       size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, productId_);
     }
-    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(variantLabel_)) {
-      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, variantLabel_);
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(skuId_)) {
+      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, skuId_);
     }
     if (quantity_ != 0) {
       size += com.google.protobuf.CodedOutputStream
@@ -237,8 +237,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getUserId())) return false;
     if (!getProductId()
         .equals(other.getProductId())) return false;
-    if (!getVariantLabel()
-        .equals(other.getVariantLabel())) return false;
+    if (!getSkuId()
+        .equals(other.getSkuId())) return false;
     if (getQuantity()
         != other.getQuantity()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -256,8 +256,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getUserId().hashCode();
     hash = (37 * hash) + PRODUCT_ID_FIELD_NUMBER;
     hash = (53 * hash) + getProductId().hashCode();
-    hash = (37 * hash) + VARIANT_LABEL_FIELD_NUMBER;
-    hash = (53 * hash) + getVariantLabel().hashCode();
+    hash = (37 * hash) + SKU_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getSkuId().hashCode();
     hash = (37 * hash) + QUANTITY_FIELD_NUMBER;
     hash = (53 * hash) + getQuantity();
     hash = (29 * hash) + getUnknownFields().hashCode();
@@ -393,7 +393,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       userId_ = "";
       productId_ = "";
-      variantLabel_ = "";
+      skuId_ = "";
       quantity_ = 0;
       return this;
     }
@@ -435,7 +435,7 @@ private static final long serialVersionUID = 0L;
         result.productId_ = productId_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.variantLabel_ = variantLabel_;
+        result.skuId_ = skuId_;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.quantity_ = quantity_;
@@ -496,8 +496,8 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000002;
         onChanged();
       }
-      if (!other.getVariantLabel().isEmpty()) {
-        variantLabel_ = other.variantLabel_;
+      if (!other.getSkuId().isEmpty()) {
+        skuId_ = other.skuId_;
         bitField0_ |= 0x00000004;
         onChanged();
       }
@@ -541,7 +541,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 18
             case 26: {
-              variantLabel_ = input.readStringRequireUtf8();
+              skuId_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000004;
               break;
             } // case 26
@@ -711,73 +711,73 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object variantLabel_ = "";
+    private java.lang.Object skuId_ = "";
     /**
-     * <code>string variant_label = 3 [json_name = "variantLabel"];</code>
-     * @return The variantLabel.
+     * <code>string sku_id = 3 [json_name = "skuId"];</code>
+     * @return The skuId.
      */
-    public java.lang.String getVariantLabel() {
-      java.lang.Object ref = variantLabel_;
+    public java.lang.String getSkuId() {
+      java.lang.Object ref = skuId_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        variantLabel_ = s;
+        skuId_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
       }
     }
     /**
-     * <code>string variant_label = 3 [json_name = "variantLabel"];</code>
-     * @return The bytes for variantLabel.
+     * <code>string sku_id = 3 [json_name = "skuId"];</code>
+     * @return The bytes for skuId.
      */
     public com.google.protobuf.ByteString
-        getVariantLabelBytes() {
-      java.lang.Object ref = variantLabel_;
+        getSkuIdBytes() {
+      java.lang.Object ref = skuId_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        variantLabel_ = b;
+        skuId_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
       }
     }
     /**
-     * <code>string variant_label = 3 [json_name = "variantLabel"];</code>
-     * @param value The variantLabel to set.
+     * <code>string sku_id = 3 [json_name = "skuId"];</code>
+     * @param value The skuId to set.
      * @return This builder for chaining.
      */
-    public Builder setVariantLabel(
+    public Builder setSkuId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      variantLabel_ = value;
+      skuId_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
     /**
-     * <code>string variant_label = 3 [json_name = "variantLabel"];</code>
+     * <code>string sku_id = 3 [json_name = "skuId"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearVariantLabel() {
-      variantLabel_ = getDefaultInstance().getVariantLabel();
+    public Builder clearSkuId() {
+      skuId_ = getDefaultInstance().getSkuId();
       bitField0_ = (bitField0_ & ~0x00000004);
       onChanged();
       return this;
     }
     /**
-     * <code>string variant_label = 3 [json_name = "variantLabel"];</code>
-     * @param value The bytes for variantLabel to set.
+     * <code>string sku_id = 3 [json_name = "skuId"];</code>
+     * @param value The bytes for skuId to set.
      * @return This builder for chaining.
      */
-    public Builder setVariantLabelBytes(
+    public Builder setSkuIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      variantLabel_ = value;
+      skuId_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;

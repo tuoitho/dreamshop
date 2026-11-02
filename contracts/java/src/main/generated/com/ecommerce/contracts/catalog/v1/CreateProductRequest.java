@@ -57,7 +57,6 @@ private static final long serialVersionUID = 0L;
             com.ecommerce.contracts.catalog.v1.CreateProductRequest.class, com.ecommerce.contracts.catalog.v1.CreateProductRequest.Builder.class);
   }
 
-  private int bitField0_;
   public static final int USER_ID_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
   private volatile java.lang.Object userId_ = "";
@@ -370,64 +369,12 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int PRICE_FIELD_NUMBER = 9;
-  private com.ecommerce.contracts.common.v1.Money price_;
-  /**
-   * <code>.ecommerce.common.v1.Money price = 9 [json_name = "price"];</code>
-   * @return Whether the price field is set.
-   */
-  @java.lang.Override
-  public boolean hasPrice() {
-    return ((bitField0_ & 0x00000001) != 0);
-  }
-  /**
-   * <code>.ecommerce.common.v1.Money price = 9 [json_name = "price"];</code>
-   * @return The price.
-   */
-  @java.lang.Override
-  public com.ecommerce.contracts.common.v1.Money getPrice() {
-    return price_ == null ? com.ecommerce.contracts.common.v1.Money.getDefaultInstance() : price_;
-  }
-  /**
-   * <code>.ecommerce.common.v1.Money price = 9 [json_name = "price"];</code>
-   */
-  @java.lang.Override
-  public com.ecommerce.contracts.common.v1.MoneyOrBuilder getPriceOrBuilder() {
-    return price_ == null ? com.ecommerce.contracts.common.v1.Money.getDefaultInstance() : price_;
-  }
-
-  public static final int ORIGINAL_PRICE_FIELD_NUMBER = 10;
-  private com.ecommerce.contracts.common.v1.Money originalPrice_;
-  /**
-   * <code>.ecommerce.common.v1.Money original_price = 10 [json_name = "originalPrice"];</code>
-   * @return Whether the originalPrice field is set.
-   */
-  @java.lang.Override
-  public boolean hasOriginalPrice() {
-    return ((bitField0_ & 0x00000002) != 0);
-  }
-  /**
-   * <code>.ecommerce.common.v1.Money original_price = 10 [json_name = "originalPrice"];</code>
-   * @return The originalPrice.
-   */
-  @java.lang.Override
-  public com.ecommerce.contracts.common.v1.Money getOriginalPrice() {
-    return originalPrice_ == null ? com.ecommerce.contracts.common.v1.Money.getDefaultInstance() : originalPrice_;
-  }
-  /**
-   * <code>.ecommerce.common.v1.Money original_price = 10 [json_name = "originalPrice"];</code>
-   */
-  @java.lang.Override
-  public com.ecommerce.contracts.common.v1.MoneyOrBuilder getOriginalPriceOrBuilder() {
-    return originalPrice_ == null ? com.ecommerce.contracts.common.v1.Money.getDefaultInstance() : originalPrice_;
-  }
-
-  public static final int IMAGES_FIELD_NUMBER = 11;
+  public static final int IMAGES_FIELD_NUMBER = 9;
   @SuppressWarnings("serial")
   private com.google.protobuf.LazyStringArrayList images_ =
       com.google.protobuf.LazyStringArrayList.emptyList();
   /**
-   * <code>repeated string images = 11 [json_name = "images"];</code>
+   * <code>repeated string images = 9 [json_name = "images"];</code>
    * @return A list containing the images.
    */
   public com.google.protobuf.ProtocolStringList
@@ -435,14 +382,14 @@ private static final long serialVersionUID = 0L;
     return images_;
   }
   /**
-   * <code>repeated string images = 11 [json_name = "images"];</code>
+   * <code>repeated string images = 9 [json_name = "images"];</code>
    * @return The count of images.
    */
   public int getImagesCount() {
     return images_.size();
   }
   /**
-   * <code>repeated string images = 11 [json_name = "images"];</code>
+   * <code>repeated string images = 9 [json_name = "images"];</code>
    * @param index The index of the element to return.
    * @return The images at the given index.
    */
@@ -450,7 +397,7 @@ private static final long serialVersionUID = 0L;
     return images_.get(index);
   }
   /**
-   * <code>repeated string images = 11 [json_name = "images"];</code>
+   * <code>repeated string images = 9 [json_name = "images"];</code>
    * @param index The index of the value to return.
    * @return The bytes of the images at the given index.
    */
@@ -459,10 +406,10 @@ private static final long serialVersionUID = 0L;
     return images_.getByteString(index);
   }
 
-  public static final int IS_NEW_FIELD_NUMBER = 12;
+  public static final int IS_NEW_FIELD_NUMBER = 10;
   private boolean isNew_ = false;
   /**
-   * <code>bool is_new = 12 [json_name = "isNew"];</code>
+   * <code>bool is_new = 10 [json_name = "isNew"];</code>
    * @return The isNew.
    */
   @java.lang.Override
@@ -470,11 +417,11 @@ private static final long serialVersionUID = 0L;
     return isNew_;
   }
 
-  public static final int BADGE_FIELD_NUMBER = 13;
+  public static final int BADGE_FIELD_NUMBER = 11;
   @SuppressWarnings("serial")
   private volatile java.lang.Object badge_ = "";
   /**
-   * <code>string badge = 13 [json_name = "badge"];</code>
+   * <code>string badge = 11 [json_name = "badge"];</code>
    * @return The badge.
    */
   @java.lang.Override
@@ -491,7 +438,7 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
-   * <code>string badge = 13 [json_name = "badge"];</code>
+   * <code>string badge = 11 [json_name = "badge"];</code>
    * @return The bytes for badge.
    */
   @java.lang.Override
@@ -509,10 +456,10 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int FEATURED_FIELD_NUMBER = 14;
+  public static final int FEATURED_FIELD_NUMBER = 12;
   private boolean featured_ = false;
   /**
-   * <code>bool featured = 14 [json_name = "featured"];</code>
+   * <code>bool featured = 12 [json_name = "featured"];</code>
    * @return The featured.
    */
   @java.lang.Override
@@ -520,11 +467,11 @@ private static final long serialVersionUID = 0L;
     return featured_;
   }
 
-  public static final int EMOJI_FIELD_NUMBER = 15;
+  public static final int EMOJI_FIELD_NUMBER = 13;
   @SuppressWarnings("serial")
   private volatile java.lang.Object emoji_ = "";
   /**
-   * <code>string emoji = 15 [json_name = "emoji"];</code>
+   * <code>string emoji = 13 [json_name = "emoji"];</code>
    * @return The emoji.
    */
   @java.lang.Override
@@ -541,7 +488,7 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
-   * <code>string emoji = 15 [json_name = "emoji"];</code>
+   * <code>string emoji = 13 [json_name = "emoji"];</code>
    * @return The bytes for emoji.
    */
   @java.lang.Override
@@ -559,12 +506,12 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int IMAGE_HUE_FIELD_NUMBER = 16;
+  public static final int IMAGE_HUE_FIELD_NUMBER = 14;
   @SuppressWarnings("serial")
   private com.google.protobuf.Internal.IntList imageHue_ =
       emptyIntList();
   /**
-   * <code>repeated uint32 image_hue = 16 [json_name = "imageHue"];</code>
+   * <code>repeated uint32 image_hue = 14 [json_name = "imageHue"];</code>
    * @return A list containing the imageHue.
    */
   @java.lang.Override
@@ -573,14 +520,14 @@ private static final long serialVersionUID = 0L;
     return imageHue_;
   }
   /**
-   * <code>repeated uint32 image_hue = 16 [json_name = "imageHue"];</code>
+   * <code>repeated uint32 image_hue = 14 [json_name = "imageHue"];</code>
    * @return The count of imageHue.
    */
   public int getImageHueCount() {
     return imageHue_.size();
   }
   /**
-   * <code>repeated uint32 image_hue = 16 [json_name = "imageHue"];</code>
+   * <code>repeated uint32 image_hue = 14 [json_name = "imageHue"];</code>
    * @param index The index of the element to return.
    * @return The imageHue at the given index.
    */
@@ -589,18 +536,18 @@ private static final long serialVersionUID = 0L;
   }
   private int imageHueMemoizedSerializedSize = -1;
 
-  public static final int VARIANTS_FIELD_NUMBER = 17;
+  public static final int VARIANTS_FIELD_NUMBER = 15;
   @SuppressWarnings("serial")
   private java.util.List<com.ecommerce.contracts.catalog.v1.ProductVariant> variants_;
   /**
-   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
    */
   @java.lang.Override
   public java.util.List<com.ecommerce.contracts.catalog.v1.ProductVariant> getVariantsList() {
     return variants_;
   }
   /**
-   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
    */
   @java.lang.Override
   public java.util.List<? extends com.ecommerce.contracts.catalog.v1.ProductVariantOrBuilder> 
@@ -608,21 +555,21 @@ private static final long serialVersionUID = 0L;
     return variants_;
   }
   /**
-   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
    */
   @java.lang.Override
   public int getVariantsCount() {
     return variants_.size();
   }
   /**
-   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
    */
   @java.lang.Override
   public com.ecommerce.contracts.catalog.v1.ProductVariant getVariants(int index) {
     return variants_.get(index);
   }
   /**
-   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
    */
   @java.lang.Override
   public com.ecommerce.contracts.catalog.v1.ProductVariantOrBuilder getVariantsOrBuilder(
@@ -630,12 +577,12 @@ private static final long serialVersionUID = 0L;
     return variants_.get(index);
   }
 
-  public static final int DETAILS_FIELD_NUMBER = 18;
+  public static final int DETAILS_FIELD_NUMBER = 16;
   @SuppressWarnings("serial")
   private com.google.protobuf.LazyStringArrayList details_ =
       com.google.protobuf.LazyStringArrayList.emptyList();
   /**
-   * <code>repeated string details = 18 [json_name = "details"];</code>
+   * <code>repeated string details = 16 [json_name = "details"];</code>
    * @return A list containing the details.
    */
   public com.google.protobuf.ProtocolStringList
@@ -643,14 +590,14 @@ private static final long serialVersionUID = 0L;
     return details_;
   }
   /**
-   * <code>repeated string details = 18 [json_name = "details"];</code>
+   * <code>repeated string details = 16 [json_name = "details"];</code>
    * @return The count of details.
    */
   public int getDetailsCount() {
     return details_.size();
   }
   /**
-   * <code>repeated string details = 18 [json_name = "details"];</code>
+   * <code>repeated string details = 16 [json_name = "details"];</code>
    * @param index The index of the element to return.
    * @return The details at the given index.
    */
@@ -658,7 +605,7 @@ private static final long serialVersionUID = 0L;
     return details_.get(index);
   }
   /**
-   * <code>repeated string details = 18 [json_name = "details"];</code>
+   * <code>repeated string details = 16 [json_name = "details"];</code>
    * @param index The index of the value to return.
    * @return The bytes of the details at the given index.
    */
@@ -667,12 +614,12 @@ private static final long serialVersionUID = 0L;
     return details_.getByteString(index);
   }
 
-  public static final int VIDEOS_FIELD_NUMBER = 19;
+  public static final int VIDEOS_FIELD_NUMBER = 17;
   @SuppressWarnings("serial")
   private com.google.protobuf.LazyStringArrayList videos_ =
       com.google.protobuf.LazyStringArrayList.emptyList();
   /**
-   * <code>repeated string videos = 19 [json_name = "videos"];</code>
+   * <code>repeated string videos = 17 [json_name = "videos"];</code>
    * @return A list containing the videos.
    */
   public com.google.protobuf.ProtocolStringList
@@ -680,14 +627,14 @@ private static final long serialVersionUID = 0L;
     return videos_;
   }
   /**
-   * <code>repeated string videos = 19 [json_name = "videos"];</code>
+   * <code>repeated string videos = 17 [json_name = "videos"];</code>
    * @return The count of videos.
    */
   public int getVideosCount() {
     return videos_.size();
   }
   /**
-   * <code>repeated string videos = 19 [json_name = "videos"];</code>
+   * <code>repeated string videos = 17 [json_name = "videos"];</code>
    * @param index The index of the element to return.
    * @return The videos at the given index.
    */
@@ -695,7 +642,7 @@ private static final long serialVersionUID = 0L;
     return videos_.get(index);
   }
   /**
-   * <code>repeated string videos = 19 [json_name = "videos"];</code>
+   * <code>repeated string videos = 17 [json_name = "videos"];</code>
    * @param index The index of the value to return.
    * @return The bytes of the videos at the given index.
    */
@@ -743,42 +690,36 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(categoryName_)) {
       com.google.protobuf.GeneratedMessageV3.writeString(output, 8, categoryName_);
     }
-    if (((bitField0_ & 0x00000001) != 0)) {
-      output.writeMessage(9, getPrice());
-    }
-    if (((bitField0_ & 0x00000002) != 0)) {
-      output.writeMessage(10, getOriginalPrice());
-    }
     for (int i = 0; i < images_.size(); i++) {
-      com.google.protobuf.GeneratedMessageV3.writeString(output, 11, images_.getRaw(i));
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 9, images_.getRaw(i));
     }
     if (isNew_ != false) {
-      output.writeBool(12, isNew_);
+      output.writeBool(10, isNew_);
     }
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(badge_)) {
-      com.google.protobuf.GeneratedMessageV3.writeString(output, 13, badge_);
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 11, badge_);
     }
     if (featured_ != false) {
-      output.writeBool(14, featured_);
+      output.writeBool(12, featured_);
     }
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(emoji_)) {
-      com.google.protobuf.GeneratedMessageV3.writeString(output, 15, emoji_);
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 13, emoji_);
     }
     if (getImageHueList().size() > 0) {
-      output.writeUInt32NoTag(130);
+      output.writeUInt32NoTag(114);
       output.writeUInt32NoTag(imageHueMemoizedSerializedSize);
     }
     for (int i = 0; i < imageHue_.size(); i++) {
       output.writeUInt32NoTag(imageHue_.getInt(i));
     }
     for (int i = 0; i < variants_.size(); i++) {
-      output.writeMessage(17, variants_.get(i));
+      output.writeMessage(15, variants_.get(i));
     }
     for (int i = 0; i < details_.size(); i++) {
-      com.google.protobuf.GeneratedMessageV3.writeString(output, 18, details_.getRaw(i));
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 16, details_.getRaw(i));
     }
     for (int i = 0; i < videos_.size(); i++) {
-      com.google.protobuf.GeneratedMessageV3.writeString(output, 19, videos_.getRaw(i));
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 17, videos_.getRaw(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -813,14 +754,6 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(categoryName_)) {
       size += com.google.protobuf.GeneratedMessageV3.computeStringSize(8, categoryName_);
     }
-    if (((bitField0_ & 0x00000001) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(9, getPrice());
-    }
-    if (((bitField0_ & 0x00000002) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(10, getOriginalPrice());
-    }
     {
       int dataSize = 0;
       for (int i = 0; i < images_.size(); i++) {
@@ -831,17 +764,17 @@ private static final long serialVersionUID = 0L;
     }
     if (isNew_ != false) {
       size += com.google.protobuf.CodedOutputStream
-        .computeBoolSize(12, isNew_);
+        .computeBoolSize(10, isNew_);
     }
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(badge_)) {
-      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(13, badge_);
+      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(11, badge_);
     }
     if (featured_ != false) {
       size += com.google.protobuf.CodedOutputStream
-        .computeBoolSize(14, featured_);
+        .computeBoolSize(12, featured_);
     }
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(emoji_)) {
-      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(15, emoji_);
+      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(13, emoji_);
     }
     {
       int dataSize = 0;
@@ -851,7 +784,7 @@ private static final long serialVersionUID = 0L;
       }
       size += dataSize;
       if (!getImageHueList().isEmpty()) {
-        size += 2;
+        size += 1;
         size += com.google.protobuf.CodedOutputStream
             .computeInt32SizeNoTag(dataSize);
       }
@@ -859,7 +792,7 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < variants_.size(); i++) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(17, variants_.get(i));
+        .computeMessageSize(15, variants_.get(i));
     }
     {
       int dataSize = 0;
@@ -908,16 +841,6 @@ private static final long serialVersionUID = 0L;
         .equals(other.getCategoryId())) return false;
     if (!getCategoryName()
         .equals(other.getCategoryName())) return false;
-    if (hasPrice() != other.hasPrice()) return false;
-    if (hasPrice()) {
-      if (!getPrice()
-          .equals(other.getPrice())) return false;
-    }
-    if (hasOriginalPrice() != other.hasOriginalPrice()) return false;
-    if (hasOriginalPrice()) {
-      if (!getOriginalPrice()
-          .equals(other.getOriginalPrice())) return false;
-    }
     if (!getImagesList()
         .equals(other.getImagesList())) return false;
     if (getIsNew()
@@ -963,14 +886,6 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getCategoryId().hashCode();
     hash = (37 * hash) + CATEGORY_NAME_FIELD_NUMBER;
     hash = (53 * hash) + getCategoryName().hashCode();
-    if (hasPrice()) {
-      hash = (37 * hash) + PRICE_FIELD_NUMBER;
-      hash = (53 * hash) + getPrice().hashCode();
-    }
-    if (hasOriginalPrice()) {
-      hash = (37 * hash) + ORIGINAL_PRICE_FIELD_NUMBER;
-      hash = (53 * hash) + getOriginalPrice().hashCode();
-    }
     if (getImagesCount() > 0) {
       hash = (37 * hash) + IMAGES_FIELD_NUMBER;
       hash = (53 * hash) + getImagesList().hashCode();
@@ -1120,21 +1035,13 @@ private static final long serialVersionUID = 0L;
 
     // Construct using com.ecommerce.contracts.catalog.v1.CreateProductRequest.newBuilder()
     private Builder() {
-      maybeForceBuilderInitialization();
+
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
       super(parent);
-      maybeForceBuilderInitialization();
-    }
-    private void maybeForceBuilderInitialization() {
-      if (com.google.protobuf.GeneratedMessageV3
-              .alwaysUseFieldBuilders) {
-        getPriceFieldBuilder();
-        getOriginalPriceFieldBuilder();
-        getVariantsFieldBuilder();
-      }
+
     }
     @java.lang.Override
     public Builder clear() {
@@ -1148,16 +1055,6 @@ private static final long serialVersionUID = 0L;
       brand_ = "";
       categoryId_ = "";
       categoryName_ = "";
-      price_ = null;
-      if (priceBuilder_ != null) {
-        priceBuilder_.dispose();
-        priceBuilder_ = null;
-      }
-      originalPrice_ = null;
-      if (originalPriceBuilder_ != null) {
-        originalPriceBuilder_.dispose();
-        originalPriceBuilder_ = null;
-      }
       images_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
       isNew_ = false;
@@ -1171,7 +1068,7 @@ private static final long serialVersionUID = 0L;
         variants_ = null;
         variantsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00010000);
+      bitField0_ = (bitField0_ & ~0x00004000);
       details_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
       videos_ =
@@ -1210,9 +1107,9 @@ private static final long serialVersionUID = 0L;
 
     private void buildPartialRepeatedFields(com.ecommerce.contracts.catalog.v1.CreateProductRequest result) {
       if (variantsBuilder_ == null) {
-        if (((bitField0_ & 0x00010000) != 0)) {
+        if (((bitField0_ & 0x00004000) != 0)) {
           variants_ = java.util.Collections.unmodifiableList(variants_);
-          bitField0_ = (bitField0_ & ~0x00010000);
+          bitField0_ = (bitField0_ & ~0x00004000);
         }
         result.variants_ = variants_;
       } else {
@@ -1246,48 +1143,34 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000080) != 0)) {
         result.categoryName_ = categoryName_;
       }
-      int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000100) != 0)) {
-        result.price_ = priceBuilder_ == null
-            ? price_
-            : priceBuilder_.build();
-        to_bitField0_ |= 0x00000001;
-      }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
-        result.originalPrice_ = originalPriceBuilder_ == null
-            ? originalPrice_
-            : originalPriceBuilder_.build();
-        to_bitField0_ |= 0x00000002;
-      }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
         images_.makeImmutable();
         result.images_ = images_;
       }
-      if (((from_bitField0_ & 0x00000800) != 0)) {
+      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.isNew_ = isNew_;
       }
-      if (((from_bitField0_ & 0x00001000) != 0)) {
+      if (((from_bitField0_ & 0x00000400) != 0)) {
         result.badge_ = badge_;
       }
-      if (((from_bitField0_ & 0x00002000) != 0)) {
+      if (((from_bitField0_ & 0x00000800) != 0)) {
         result.featured_ = featured_;
       }
-      if (((from_bitField0_ & 0x00004000) != 0)) {
+      if (((from_bitField0_ & 0x00001000) != 0)) {
         result.emoji_ = emoji_;
       }
-      if (((from_bitField0_ & 0x00008000) != 0)) {
+      if (((from_bitField0_ & 0x00002000) != 0)) {
         imageHue_.makeImmutable();
         result.imageHue_ = imageHue_;
       }
-      if (((from_bitField0_ & 0x00020000) != 0)) {
+      if (((from_bitField0_ & 0x00008000) != 0)) {
         details_.makeImmutable();
         result.details_ = details_;
       }
-      if (((from_bitField0_ & 0x00040000) != 0)) {
+      if (((from_bitField0_ & 0x00010000) != 0)) {
         videos_.makeImmutable();
         result.videos_ = videos_;
       }
-      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -1374,16 +1257,10 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000080;
         onChanged();
       }
-      if (other.hasPrice()) {
-        mergePrice(other.getPrice());
-      }
-      if (other.hasOriginalPrice()) {
-        mergeOriginalPrice(other.getOriginalPrice());
-      }
       if (!other.images_.isEmpty()) {
         if (images_.isEmpty()) {
           images_ = other.images_;
-          bitField0_ |= 0x00000400;
+          bitField0_ |= 0x00000100;
         } else {
           ensureImagesIsMutable();
           images_.addAll(other.images_);
@@ -1395,7 +1272,7 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getBadge().isEmpty()) {
         badge_ = other.badge_;
-        bitField0_ |= 0x00001000;
+        bitField0_ |= 0x00000400;
         onChanged();
       }
       if (other.getFeatured() != false) {
@@ -1403,14 +1280,14 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getEmoji().isEmpty()) {
         emoji_ = other.emoji_;
-        bitField0_ |= 0x00004000;
+        bitField0_ |= 0x00001000;
         onChanged();
       }
       if (!other.imageHue_.isEmpty()) {
         if (imageHue_.isEmpty()) {
           imageHue_ = other.imageHue_;
           imageHue_.makeImmutable();
-          bitField0_ |= 0x00008000;
+          bitField0_ |= 0x00002000;
         } else {
           ensureImageHueIsMutable();
           imageHue_.addAll(other.imageHue_);
@@ -1421,7 +1298,7 @@ private static final long serialVersionUID = 0L;
         if (!other.variants_.isEmpty()) {
           if (variants_.isEmpty()) {
             variants_ = other.variants_;
-            bitField0_ = (bitField0_ & ~0x00010000);
+            bitField0_ = (bitField0_ & ~0x00004000);
           } else {
             ensureVariantsIsMutable();
             variants_.addAll(other.variants_);
@@ -1434,7 +1311,7 @@ private static final long serialVersionUID = 0L;
             variantsBuilder_.dispose();
             variantsBuilder_ = null;
             variants_ = other.variants_;
-            bitField0_ = (bitField0_ & ~0x00010000);
+            bitField0_ = (bitField0_ & ~0x00004000);
             variantsBuilder_ = 
               com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
                  getVariantsFieldBuilder() : null;
@@ -1446,7 +1323,7 @@ private static final long serialVersionUID = 0L;
       if (!other.details_.isEmpty()) {
         if (details_.isEmpty()) {
           details_ = other.details_;
-          bitField0_ |= 0x00020000;
+          bitField0_ |= 0x00008000;
         } else {
           ensureDetailsIsMutable();
           details_.addAll(other.details_);
@@ -1456,7 +1333,7 @@ private static final long serialVersionUID = 0L;
       if (!other.videos_.isEmpty()) {
         if (videos_.isEmpty()) {
           videos_ = other.videos_;
-          bitField0_ |= 0x00040000;
+          bitField0_ |= 0x00010000;
         } else {
           ensureVideosIsMutable();
           videos_.addAll(other.videos_);
@@ -1530,52 +1407,38 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 66
             case 74: {
-              input.readMessage(
-                  getPriceFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00000100;
-              break;
-            } // case 74
-            case 82: {
-              input.readMessage(
-                  getOriginalPriceFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00000200;
-              break;
-            } // case 82
-            case 90: {
               java.lang.String s = input.readStringRequireUtf8();
               ensureImagesIsMutable();
               images_.add(s);
               break;
+            } // case 74
+            case 80: {
+              isNew_ = input.readBool();
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 80
+            case 90: {
+              badge_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000400;
+              break;
             } // case 90
             case 96: {
-              isNew_ = input.readBool();
+              featured_ = input.readBool();
               bitField0_ |= 0x00000800;
               break;
             } // case 96
             case 106: {
-              badge_ = input.readStringRequireUtf8();
+              emoji_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00001000;
               break;
             } // case 106
             case 112: {
-              featured_ = input.readBool();
-              bitField0_ |= 0x00002000;
-              break;
-            } // case 112
-            case 122: {
-              emoji_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00004000;
-              break;
-            } // case 122
-            case 128: {
               int v = input.readUInt32();
               ensureImageHueIsMutable();
               imageHue_.addInt(v);
               break;
-            } // case 128
-            case 130: {
+            } // case 112
+            case 114: {
               int length = input.readRawVarint32();
               int limit = input.pushLimit(length);
               ensureImageHueIsMutable();
@@ -1584,8 +1447,8 @@ private static final long serialVersionUID = 0L;
               }
               input.popLimit(limit);
               break;
-            } // case 130
-            case 138: {
+            } // case 114
+            case 122: {
               com.ecommerce.contracts.catalog.v1.ProductVariant m =
                   input.readMessage(
                       com.ecommerce.contracts.catalog.v1.ProductVariant.parser(),
@@ -1597,19 +1460,19 @@ private static final long serialVersionUID = 0L;
                 variantsBuilder_.addMessage(m);
               }
               break;
-            } // case 138
-            case 146: {
+            } // case 122
+            case 130: {
               java.lang.String s = input.readStringRequireUtf8();
               ensureDetailsIsMutable();
               details_.add(s);
               break;
-            } // case 146
-            case 154: {
+            } // case 130
+            case 138: {
               java.lang.String s = input.readStringRequireUtf8();
               ensureVideosIsMutable();
               videos_.add(s);
               break;
-            } // case 154
+            } // case 138
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2203,258 +2066,16 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private com.ecommerce.contracts.common.v1.Money price_;
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.ecommerce.contracts.common.v1.Money, com.ecommerce.contracts.common.v1.Money.Builder, com.ecommerce.contracts.common.v1.MoneyOrBuilder> priceBuilder_;
-    /**
-     * <code>.ecommerce.common.v1.Money price = 9 [json_name = "price"];</code>
-     * @return Whether the price field is set.
-     */
-    public boolean hasPrice() {
-      return ((bitField0_ & 0x00000100) != 0);
-    }
-    /**
-     * <code>.ecommerce.common.v1.Money price = 9 [json_name = "price"];</code>
-     * @return The price.
-     */
-    public com.ecommerce.contracts.common.v1.Money getPrice() {
-      if (priceBuilder_ == null) {
-        return price_ == null ? com.ecommerce.contracts.common.v1.Money.getDefaultInstance() : price_;
-      } else {
-        return priceBuilder_.getMessage();
-      }
-    }
-    /**
-     * <code>.ecommerce.common.v1.Money price = 9 [json_name = "price"];</code>
-     */
-    public Builder setPrice(com.ecommerce.contracts.common.v1.Money value) {
-      if (priceBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        price_ = value;
-      } else {
-        priceBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00000100;
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>.ecommerce.common.v1.Money price = 9 [json_name = "price"];</code>
-     */
-    public Builder setPrice(
-        com.ecommerce.contracts.common.v1.Money.Builder builderForValue) {
-      if (priceBuilder_ == null) {
-        price_ = builderForValue.build();
-      } else {
-        priceBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00000100;
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>.ecommerce.common.v1.Money price = 9 [json_name = "price"];</code>
-     */
-    public Builder mergePrice(com.ecommerce.contracts.common.v1.Money value) {
-      if (priceBuilder_ == null) {
-        if (((bitField0_ & 0x00000100) != 0) &&
-          price_ != null &&
-          price_ != com.ecommerce.contracts.common.v1.Money.getDefaultInstance()) {
-          getPriceBuilder().mergeFrom(value);
-        } else {
-          price_ = value;
-        }
-      } else {
-        priceBuilder_.mergeFrom(value);
-      }
-      if (price_ != null) {
-        bitField0_ |= 0x00000100;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <code>.ecommerce.common.v1.Money price = 9 [json_name = "price"];</code>
-     */
-    public Builder clearPrice() {
-      bitField0_ = (bitField0_ & ~0x00000100);
-      price_ = null;
-      if (priceBuilder_ != null) {
-        priceBuilder_.dispose();
-        priceBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>.ecommerce.common.v1.Money price = 9 [json_name = "price"];</code>
-     */
-    public com.ecommerce.contracts.common.v1.Money.Builder getPriceBuilder() {
-      bitField0_ |= 0x00000100;
-      onChanged();
-      return getPriceFieldBuilder().getBuilder();
-    }
-    /**
-     * <code>.ecommerce.common.v1.Money price = 9 [json_name = "price"];</code>
-     */
-    public com.ecommerce.contracts.common.v1.MoneyOrBuilder getPriceOrBuilder() {
-      if (priceBuilder_ != null) {
-        return priceBuilder_.getMessageOrBuilder();
-      } else {
-        return price_ == null ?
-            com.ecommerce.contracts.common.v1.Money.getDefaultInstance() : price_;
-      }
-    }
-    /**
-     * <code>.ecommerce.common.v1.Money price = 9 [json_name = "price"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.ecommerce.contracts.common.v1.Money, com.ecommerce.contracts.common.v1.Money.Builder, com.ecommerce.contracts.common.v1.MoneyOrBuilder> 
-        getPriceFieldBuilder() {
-      if (priceBuilder_ == null) {
-        priceBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-            com.ecommerce.contracts.common.v1.Money, com.ecommerce.contracts.common.v1.Money.Builder, com.ecommerce.contracts.common.v1.MoneyOrBuilder>(
-                getPrice(),
-                getParentForChildren(),
-                isClean());
-        price_ = null;
-      }
-      return priceBuilder_;
-    }
-
-    private com.ecommerce.contracts.common.v1.Money originalPrice_;
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.ecommerce.contracts.common.v1.Money, com.ecommerce.contracts.common.v1.Money.Builder, com.ecommerce.contracts.common.v1.MoneyOrBuilder> originalPriceBuilder_;
-    /**
-     * <code>.ecommerce.common.v1.Money original_price = 10 [json_name = "originalPrice"];</code>
-     * @return Whether the originalPrice field is set.
-     */
-    public boolean hasOriginalPrice() {
-      return ((bitField0_ & 0x00000200) != 0);
-    }
-    /**
-     * <code>.ecommerce.common.v1.Money original_price = 10 [json_name = "originalPrice"];</code>
-     * @return The originalPrice.
-     */
-    public com.ecommerce.contracts.common.v1.Money getOriginalPrice() {
-      if (originalPriceBuilder_ == null) {
-        return originalPrice_ == null ? com.ecommerce.contracts.common.v1.Money.getDefaultInstance() : originalPrice_;
-      } else {
-        return originalPriceBuilder_.getMessage();
-      }
-    }
-    /**
-     * <code>.ecommerce.common.v1.Money original_price = 10 [json_name = "originalPrice"];</code>
-     */
-    public Builder setOriginalPrice(com.ecommerce.contracts.common.v1.Money value) {
-      if (originalPriceBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        originalPrice_ = value;
-      } else {
-        originalPriceBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00000200;
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>.ecommerce.common.v1.Money original_price = 10 [json_name = "originalPrice"];</code>
-     */
-    public Builder setOriginalPrice(
-        com.ecommerce.contracts.common.v1.Money.Builder builderForValue) {
-      if (originalPriceBuilder_ == null) {
-        originalPrice_ = builderForValue.build();
-      } else {
-        originalPriceBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00000200;
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>.ecommerce.common.v1.Money original_price = 10 [json_name = "originalPrice"];</code>
-     */
-    public Builder mergeOriginalPrice(com.ecommerce.contracts.common.v1.Money value) {
-      if (originalPriceBuilder_ == null) {
-        if (((bitField0_ & 0x00000200) != 0) &&
-          originalPrice_ != null &&
-          originalPrice_ != com.ecommerce.contracts.common.v1.Money.getDefaultInstance()) {
-          getOriginalPriceBuilder().mergeFrom(value);
-        } else {
-          originalPrice_ = value;
-        }
-      } else {
-        originalPriceBuilder_.mergeFrom(value);
-      }
-      if (originalPrice_ != null) {
-        bitField0_ |= 0x00000200;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <code>.ecommerce.common.v1.Money original_price = 10 [json_name = "originalPrice"];</code>
-     */
-    public Builder clearOriginalPrice() {
-      bitField0_ = (bitField0_ & ~0x00000200);
-      originalPrice_ = null;
-      if (originalPriceBuilder_ != null) {
-        originalPriceBuilder_.dispose();
-        originalPriceBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>.ecommerce.common.v1.Money original_price = 10 [json_name = "originalPrice"];</code>
-     */
-    public com.ecommerce.contracts.common.v1.Money.Builder getOriginalPriceBuilder() {
-      bitField0_ |= 0x00000200;
-      onChanged();
-      return getOriginalPriceFieldBuilder().getBuilder();
-    }
-    /**
-     * <code>.ecommerce.common.v1.Money original_price = 10 [json_name = "originalPrice"];</code>
-     */
-    public com.ecommerce.contracts.common.v1.MoneyOrBuilder getOriginalPriceOrBuilder() {
-      if (originalPriceBuilder_ != null) {
-        return originalPriceBuilder_.getMessageOrBuilder();
-      } else {
-        return originalPrice_ == null ?
-            com.ecommerce.contracts.common.v1.Money.getDefaultInstance() : originalPrice_;
-      }
-    }
-    /**
-     * <code>.ecommerce.common.v1.Money original_price = 10 [json_name = "originalPrice"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilderV3<
-        com.ecommerce.contracts.common.v1.Money, com.ecommerce.contracts.common.v1.Money.Builder, com.ecommerce.contracts.common.v1.MoneyOrBuilder> 
-        getOriginalPriceFieldBuilder() {
-      if (originalPriceBuilder_ == null) {
-        originalPriceBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-            com.ecommerce.contracts.common.v1.Money, com.ecommerce.contracts.common.v1.Money.Builder, com.ecommerce.contracts.common.v1.MoneyOrBuilder>(
-                getOriginalPrice(),
-                getParentForChildren(),
-                isClean());
-        originalPrice_ = null;
-      }
-      return originalPriceBuilder_;
-    }
-
     private com.google.protobuf.LazyStringArrayList images_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
     private void ensureImagesIsMutable() {
       if (!images_.isModifiable()) {
         images_ = new com.google.protobuf.LazyStringArrayList(images_);
       }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000100;
     }
     /**
-     * <code>repeated string images = 11 [json_name = "images"];</code>
+     * <code>repeated string images = 9 [json_name = "images"];</code>
      * @return A list containing the images.
      */
     public com.google.protobuf.ProtocolStringList
@@ -2463,14 +2084,14 @@ private static final long serialVersionUID = 0L;
       return images_;
     }
     /**
-     * <code>repeated string images = 11 [json_name = "images"];</code>
+     * <code>repeated string images = 9 [json_name = "images"];</code>
      * @return The count of images.
      */
     public int getImagesCount() {
       return images_.size();
     }
     /**
-     * <code>repeated string images = 11 [json_name = "images"];</code>
+     * <code>repeated string images = 9 [json_name = "images"];</code>
      * @param index The index of the element to return.
      * @return The images at the given index.
      */
@@ -2478,7 +2099,7 @@ private static final long serialVersionUID = 0L;
       return images_.get(index);
     }
     /**
-     * <code>repeated string images = 11 [json_name = "images"];</code>
+     * <code>repeated string images = 9 [json_name = "images"];</code>
      * @param index The index of the value to return.
      * @return The bytes of the images at the given index.
      */
@@ -2487,7 +2108,7 @@ private static final long serialVersionUID = 0L;
       return images_.getByteString(index);
     }
     /**
-     * <code>repeated string images = 11 [json_name = "images"];</code>
+     * <code>repeated string images = 9 [json_name = "images"];</code>
      * @param index The index to set the value at.
      * @param value The images to set.
      * @return This builder for chaining.
@@ -2497,12 +2118,12 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureImagesIsMutable();
       images_.set(index, value);
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
     /**
-     * <code>repeated string images = 11 [json_name = "images"];</code>
+     * <code>repeated string images = 9 [json_name = "images"];</code>
      * @param value The images to add.
      * @return This builder for chaining.
      */
@@ -2511,12 +2132,12 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureImagesIsMutable();
       images_.add(value);
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
     /**
-     * <code>repeated string images = 11 [json_name = "images"];</code>
+     * <code>repeated string images = 9 [json_name = "images"];</code>
      * @param values The images to add.
      * @return This builder for chaining.
      */
@@ -2525,23 +2146,23 @@ private static final long serialVersionUID = 0L;
       ensureImagesIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, images_);
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
     /**
-     * <code>repeated string images = 11 [json_name = "images"];</code>
+     * <code>repeated string images = 9 [json_name = "images"];</code>
      * @return This builder for chaining.
      */
     public Builder clearImages() {
       images_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000400);;
+      bitField0_ = (bitField0_ & ~0x00000100);;
       onChanged();
       return this;
     }
     /**
-     * <code>repeated string images = 11 [json_name = "images"];</code>
+     * <code>repeated string images = 9 [json_name = "images"];</code>
      * @param value The bytes of the images to add.
      * @return This builder for chaining.
      */
@@ -2551,14 +2172,14 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       ensureImagesIsMutable();
       images_.add(value);
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
 
     private boolean isNew_ ;
     /**
-     * <code>bool is_new = 12 [json_name = "isNew"];</code>
+     * <code>bool is_new = 10 [json_name = "isNew"];</code>
      * @return The isNew.
      */
     @java.lang.Override
@@ -2566,23 +2187,23 @@ private static final long serialVersionUID = 0L;
       return isNew_;
     }
     /**
-     * <code>bool is_new = 12 [json_name = "isNew"];</code>
+     * <code>bool is_new = 10 [json_name = "isNew"];</code>
      * @param value The isNew to set.
      * @return This builder for chaining.
      */
     public Builder setIsNew(boolean value) {
 
       isNew_ = value;
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
     /**
-     * <code>bool is_new = 12 [json_name = "isNew"];</code>
+     * <code>bool is_new = 10 [json_name = "isNew"];</code>
      * @return This builder for chaining.
      */
     public Builder clearIsNew() {
-      bitField0_ = (bitField0_ & ~0x00000800);
+      bitField0_ = (bitField0_ & ~0x00000200);
       isNew_ = false;
       onChanged();
       return this;
@@ -2590,7 +2211,7 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object badge_ = "";
     /**
-     * <code>string badge = 13 [json_name = "badge"];</code>
+     * <code>string badge = 11 [json_name = "badge"];</code>
      * @return The badge.
      */
     public java.lang.String getBadge() {
@@ -2606,7 +2227,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>string badge = 13 [json_name = "badge"];</code>
+     * <code>string badge = 11 [json_name = "badge"];</code>
      * @return The bytes for badge.
      */
     public com.google.protobuf.ByteString
@@ -2623,7 +2244,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>string badge = 13 [json_name = "badge"];</code>
+     * <code>string badge = 11 [json_name = "badge"];</code>
      * @param value The badge to set.
      * @return This builder for chaining.
      */
@@ -2631,22 +2252,22 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       badge_ = value;
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
     /**
-     * <code>string badge = 13 [json_name = "badge"];</code>
+     * <code>string badge = 11 [json_name = "badge"];</code>
      * @return This builder for chaining.
      */
     public Builder clearBadge() {
       badge_ = getDefaultInstance().getBadge();
-      bitField0_ = (bitField0_ & ~0x00001000);
+      bitField0_ = (bitField0_ & ~0x00000400);
       onChanged();
       return this;
     }
     /**
-     * <code>string badge = 13 [json_name = "badge"];</code>
+     * <code>string badge = 11 [json_name = "badge"];</code>
      * @param value The bytes for badge to set.
      * @return This builder for chaining.
      */
@@ -2655,14 +2276,14 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       badge_ = value;
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
 
     private boolean featured_ ;
     /**
-     * <code>bool featured = 14 [json_name = "featured"];</code>
+     * <code>bool featured = 12 [json_name = "featured"];</code>
      * @return The featured.
      */
     @java.lang.Override
@@ -2670,23 +2291,23 @@ private static final long serialVersionUID = 0L;
       return featured_;
     }
     /**
-     * <code>bool featured = 14 [json_name = "featured"];</code>
+     * <code>bool featured = 12 [json_name = "featured"];</code>
      * @param value The featured to set.
      * @return This builder for chaining.
      */
     public Builder setFeatured(boolean value) {
 
       featured_ = value;
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
     /**
-     * <code>bool featured = 14 [json_name = "featured"];</code>
+     * <code>bool featured = 12 [json_name = "featured"];</code>
      * @return This builder for chaining.
      */
     public Builder clearFeatured() {
-      bitField0_ = (bitField0_ & ~0x00002000);
+      bitField0_ = (bitField0_ & ~0x00000800);
       featured_ = false;
       onChanged();
       return this;
@@ -2694,7 +2315,7 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object emoji_ = "";
     /**
-     * <code>string emoji = 15 [json_name = "emoji"];</code>
+     * <code>string emoji = 13 [json_name = "emoji"];</code>
      * @return The emoji.
      */
     public java.lang.String getEmoji() {
@@ -2710,7 +2331,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>string emoji = 15 [json_name = "emoji"];</code>
+     * <code>string emoji = 13 [json_name = "emoji"];</code>
      * @return The bytes for emoji.
      */
     public com.google.protobuf.ByteString
@@ -2727,7 +2348,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>string emoji = 15 [json_name = "emoji"];</code>
+     * <code>string emoji = 13 [json_name = "emoji"];</code>
      * @param value The emoji to set.
      * @return This builder for chaining.
      */
@@ -2735,22 +2356,22 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       emoji_ = value;
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
     /**
-     * <code>string emoji = 15 [json_name = "emoji"];</code>
+     * <code>string emoji = 13 [json_name = "emoji"];</code>
      * @return This builder for chaining.
      */
     public Builder clearEmoji() {
       emoji_ = getDefaultInstance().getEmoji();
-      bitField0_ = (bitField0_ & ~0x00004000);
+      bitField0_ = (bitField0_ & ~0x00001000);
       onChanged();
       return this;
     }
     /**
-     * <code>string emoji = 15 [json_name = "emoji"];</code>
+     * <code>string emoji = 13 [json_name = "emoji"];</code>
      * @param value The bytes for emoji to set.
      * @return This builder for chaining.
      */
@@ -2759,7 +2380,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       emoji_ = value;
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -2769,10 +2390,10 @@ private static final long serialVersionUID = 0L;
       if (!imageHue_.isModifiable()) {
         imageHue_ = makeMutableCopy(imageHue_);
       }
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00002000;
     }
     /**
-     * <code>repeated uint32 image_hue = 16 [json_name = "imageHue"];</code>
+     * <code>repeated uint32 image_hue = 14 [json_name = "imageHue"];</code>
      * @return A list containing the imageHue.
      */
     public java.util.List<java.lang.Integer>
@@ -2781,14 +2402,14 @@ private static final long serialVersionUID = 0L;
       return imageHue_;
     }
     /**
-     * <code>repeated uint32 image_hue = 16 [json_name = "imageHue"];</code>
+     * <code>repeated uint32 image_hue = 14 [json_name = "imageHue"];</code>
      * @return The count of imageHue.
      */
     public int getImageHueCount() {
       return imageHue_.size();
     }
     /**
-     * <code>repeated uint32 image_hue = 16 [json_name = "imageHue"];</code>
+     * <code>repeated uint32 image_hue = 14 [json_name = "imageHue"];</code>
      * @param index The index of the element to return.
      * @return The imageHue at the given index.
      */
@@ -2796,7 +2417,7 @@ private static final long serialVersionUID = 0L;
       return imageHue_.getInt(index);
     }
     /**
-     * <code>repeated uint32 image_hue = 16 [json_name = "imageHue"];</code>
+     * <code>repeated uint32 image_hue = 14 [json_name = "imageHue"];</code>
      * @param index The index to set the value at.
      * @param value The imageHue to set.
      * @return This builder for chaining.
@@ -2806,12 +2427,12 @@ private static final long serialVersionUID = 0L;
 
       ensureImageHueIsMutable();
       imageHue_.setInt(index, value);
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
     /**
-     * <code>repeated uint32 image_hue = 16 [json_name = "imageHue"];</code>
+     * <code>repeated uint32 image_hue = 14 [json_name = "imageHue"];</code>
      * @param value The imageHue to add.
      * @return This builder for chaining.
      */
@@ -2819,12 +2440,12 @@ private static final long serialVersionUID = 0L;
 
       ensureImageHueIsMutable();
       imageHue_.addInt(value);
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
     /**
-     * <code>repeated uint32 image_hue = 16 [json_name = "imageHue"];</code>
+     * <code>repeated uint32 image_hue = 14 [json_name = "imageHue"];</code>
      * @param values The imageHue to add.
      * @return This builder for chaining.
      */
@@ -2833,17 +2454,17 @@ private static final long serialVersionUID = 0L;
       ensureImageHueIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, imageHue_);
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
     /**
-     * <code>repeated uint32 image_hue = 16 [json_name = "imageHue"];</code>
+     * <code>repeated uint32 image_hue = 14 [json_name = "imageHue"];</code>
      * @return This builder for chaining.
      */
     public Builder clearImageHue() {
       imageHue_ = emptyIntList();
-      bitField0_ = (bitField0_ & ~0x00008000);
+      bitField0_ = (bitField0_ & ~0x00002000);
       onChanged();
       return this;
     }
@@ -2851,9 +2472,9 @@ private static final long serialVersionUID = 0L;
     private java.util.List<com.ecommerce.contracts.catalog.v1.ProductVariant> variants_ =
       java.util.Collections.emptyList();
     private void ensureVariantsIsMutable() {
-      if (!((bitField0_ & 0x00010000) != 0)) {
+      if (!((bitField0_ & 0x00004000) != 0)) {
         variants_ = new java.util.ArrayList<com.ecommerce.contracts.catalog.v1.ProductVariant>(variants_);
-        bitField0_ |= 0x00010000;
+        bitField0_ |= 0x00004000;
        }
     }
 
@@ -2861,7 +2482,7 @@ private static final long serialVersionUID = 0L;
         com.ecommerce.contracts.catalog.v1.ProductVariant, com.ecommerce.contracts.catalog.v1.ProductVariant.Builder, com.ecommerce.contracts.catalog.v1.ProductVariantOrBuilder> variantsBuilder_;
 
     /**
-     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
      */
     public java.util.List<com.ecommerce.contracts.catalog.v1.ProductVariant> getVariantsList() {
       if (variantsBuilder_ == null) {
@@ -2871,7 +2492,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
      */
     public int getVariantsCount() {
       if (variantsBuilder_ == null) {
@@ -2881,7 +2502,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
      */
     public com.ecommerce.contracts.catalog.v1.ProductVariant getVariants(int index) {
       if (variantsBuilder_ == null) {
@@ -2891,7 +2512,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
      */
     public Builder setVariants(
         int index, com.ecommerce.contracts.catalog.v1.ProductVariant value) {
@@ -2908,7 +2529,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
      */
     public Builder setVariants(
         int index, com.ecommerce.contracts.catalog.v1.ProductVariant.Builder builderForValue) {
@@ -2922,7 +2543,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
      */
     public Builder addVariants(com.ecommerce.contracts.catalog.v1.ProductVariant value) {
       if (variantsBuilder_ == null) {
@@ -2938,7 +2559,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
      */
     public Builder addVariants(
         int index, com.ecommerce.contracts.catalog.v1.ProductVariant value) {
@@ -2955,7 +2576,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
      */
     public Builder addVariants(
         com.ecommerce.contracts.catalog.v1.ProductVariant.Builder builderForValue) {
@@ -2969,7 +2590,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
      */
     public Builder addVariants(
         int index, com.ecommerce.contracts.catalog.v1.ProductVariant.Builder builderForValue) {
@@ -2983,7 +2604,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
      */
     public Builder addAllVariants(
         java.lang.Iterable<? extends com.ecommerce.contracts.catalog.v1.ProductVariant> values) {
@@ -2998,12 +2619,12 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
      */
     public Builder clearVariants() {
       if (variantsBuilder_ == null) {
         variants_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00010000);
+        bitField0_ = (bitField0_ & ~0x00004000);
         onChanged();
       } else {
         variantsBuilder_.clear();
@@ -3011,7 +2632,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
      */
     public Builder removeVariants(int index) {
       if (variantsBuilder_ == null) {
@@ -3024,14 +2645,14 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
      */
     public com.ecommerce.contracts.catalog.v1.ProductVariant.Builder getVariantsBuilder(
         int index) {
       return getVariantsFieldBuilder().getBuilder(index);
     }
     /**
-     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
      */
     public com.ecommerce.contracts.catalog.v1.ProductVariantOrBuilder getVariantsOrBuilder(
         int index) {
@@ -3041,7 +2662,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
      */
     public java.util.List<? extends com.ecommerce.contracts.catalog.v1.ProductVariantOrBuilder> 
          getVariantsOrBuilderList() {
@@ -3052,14 +2673,14 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
      */
     public com.ecommerce.contracts.catalog.v1.ProductVariant.Builder addVariantsBuilder() {
       return getVariantsFieldBuilder().addBuilder(
           com.ecommerce.contracts.catalog.v1.ProductVariant.getDefaultInstance());
     }
     /**
-     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
      */
     public com.ecommerce.contracts.catalog.v1.ProductVariant.Builder addVariantsBuilder(
         int index) {
@@ -3067,7 +2688,7 @@ private static final long serialVersionUID = 0L;
           index, com.ecommerce.contracts.catalog.v1.ProductVariant.getDefaultInstance());
     }
     /**
-     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
      */
     public java.util.List<com.ecommerce.contracts.catalog.v1.ProductVariant.Builder> 
          getVariantsBuilderList() {
@@ -3080,7 +2701,7 @@ private static final long serialVersionUID = 0L;
         variantsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
             com.ecommerce.contracts.catalog.v1.ProductVariant, com.ecommerce.contracts.catalog.v1.ProductVariant.Builder, com.ecommerce.contracts.catalog.v1.ProductVariantOrBuilder>(
                 variants_,
-                ((bitField0_ & 0x00010000) != 0),
+                ((bitField0_ & 0x00004000) != 0),
                 getParentForChildren(),
                 isClean());
         variants_ = null;
@@ -3094,10 +2715,10 @@ private static final long serialVersionUID = 0L;
       if (!details_.isModifiable()) {
         details_ = new com.google.protobuf.LazyStringArrayList(details_);
       }
-      bitField0_ |= 0x00020000;
+      bitField0_ |= 0x00008000;
     }
     /**
-     * <code>repeated string details = 18 [json_name = "details"];</code>
+     * <code>repeated string details = 16 [json_name = "details"];</code>
      * @return A list containing the details.
      */
     public com.google.protobuf.ProtocolStringList
@@ -3106,14 +2727,14 @@ private static final long serialVersionUID = 0L;
       return details_;
     }
     /**
-     * <code>repeated string details = 18 [json_name = "details"];</code>
+     * <code>repeated string details = 16 [json_name = "details"];</code>
      * @return The count of details.
      */
     public int getDetailsCount() {
       return details_.size();
     }
     /**
-     * <code>repeated string details = 18 [json_name = "details"];</code>
+     * <code>repeated string details = 16 [json_name = "details"];</code>
      * @param index The index of the element to return.
      * @return The details at the given index.
      */
@@ -3121,7 +2742,7 @@ private static final long serialVersionUID = 0L;
       return details_.get(index);
     }
     /**
-     * <code>repeated string details = 18 [json_name = "details"];</code>
+     * <code>repeated string details = 16 [json_name = "details"];</code>
      * @param index The index of the value to return.
      * @return The bytes of the details at the given index.
      */
@@ -3130,7 +2751,7 @@ private static final long serialVersionUID = 0L;
       return details_.getByteString(index);
     }
     /**
-     * <code>repeated string details = 18 [json_name = "details"];</code>
+     * <code>repeated string details = 16 [json_name = "details"];</code>
      * @param index The index to set the value at.
      * @param value The details to set.
      * @return This builder for chaining.
@@ -3140,12 +2761,12 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureDetailsIsMutable();
       details_.set(index, value);
-      bitField0_ |= 0x00020000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
     /**
-     * <code>repeated string details = 18 [json_name = "details"];</code>
+     * <code>repeated string details = 16 [json_name = "details"];</code>
      * @param value The details to add.
      * @return This builder for chaining.
      */
@@ -3154,12 +2775,12 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureDetailsIsMutable();
       details_.add(value);
-      bitField0_ |= 0x00020000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
     /**
-     * <code>repeated string details = 18 [json_name = "details"];</code>
+     * <code>repeated string details = 16 [json_name = "details"];</code>
      * @param values The details to add.
      * @return This builder for chaining.
      */
@@ -3168,23 +2789,23 @@ private static final long serialVersionUID = 0L;
       ensureDetailsIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, details_);
-      bitField0_ |= 0x00020000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
     /**
-     * <code>repeated string details = 18 [json_name = "details"];</code>
+     * <code>repeated string details = 16 [json_name = "details"];</code>
      * @return This builder for chaining.
      */
     public Builder clearDetails() {
       details_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00020000);;
+      bitField0_ = (bitField0_ & ~0x00008000);;
       onChanged();
       return this;
     }
     /**
-     * <code>repeated string details = 18 [json_name = "details"];</code>
+     * <code>repeated string details = 16 [json_name = "details"];</code>
      * @param value The bytes of the details to add.
      * @return This builder for chaining.
      */
@@ -3194,7 +2815,7 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       ensureDetailsIsMutable();
       details_.add(value);
-      bitField0_ |= 0x00020000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
@@ -3205,10 +2826,10 @@ private static final long serialVersionUID = 0L;
       if (!videos_.isModifiable()) {
         videos_ = new com.google.protobuf.LazyStringArrayList(videos_);
       }
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00010000;
     }
     /**
-     * <code>repeated string videos = 19 [json_name = "videos"];</code>
+     * <code>repeated string videos = 17 [json_name = "videos"];</code>
      * @return A list containing the videos.
      */
     public com.google.protobuf.ProtocolStringList
@@ -3217,14 +2838,14 @@ private static final long serialVersionUID = 0L;
       return videos_;
     }
     /**
-     * <code>repeated string videos = 19 [json_name = "videos"];</code>
+     * <code>repeated string videos = 17 [json_name = "videos"];</code>
      * @return The count of videos.
      */
     public int getVideosCount() {
       return videos_.size();
     }
     /**
-     * <code>repeated string videos = 19 [json_name = "videos"];</code>
+     * <code>repeated string videos = 17 [json_name = "videos"];</code>
      * @param index The index of the element to return.
      * @return The videos at the given index.
      */
@@ -3232,7 +2853,7 @@ private static final long serialVersionUID = 0L;
       return videos_.get(index);
     }
     /**
-     * <code>repeated string videos = 19 [json_name = "videos"];</code>
+     * <code>repeated string videos = 17 [json_name = "videos"];</code>
      * @param index The index of the value to return.
      * @return The bytes of the videos at the given index.
      */
@@ -3241,7 +2862,7 @@ private static final long serialVersionUID = 0L;
       return videos_.getByteString(index);
     }
     /**
-     * <code>repeated string videos = 19 [json_name = "videos"];</code>
+     * <code>repeated string videos = 17 [json_name = "videos"];</code>
      * @param index The index to set the value at.
      * @param value The videos to set.
      * @return This builder for chaining.
@@ -3251,12 +2872,12 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureVideosIsMutable();
       videos_.set(index, value);
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return this;
     }
     /**
-     * <code>repeated string videos = 19 [json_name = "videos"];</code>
+     * <code>repeated string videos = 17 [json_name = "videos"];</code>
      * @param value The videos to add.
      * @return This builder for chaining.
      */
@@ -3265,12 +2886,12 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureVideosIsMutable();
       videos_.add(value);
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return this;
     }
     /**
-     * <code>repeated string videos = 19 [json_name = "videos"];</code>
+     * <code>repeated string videos = 17 [json_name = "videos"];</code>
      * @param values The videos to add.
      * @return This builder for chaining.
      */
@@ -3279,23 +2900,23 @@ private static final long serialVersionUID = 0L;
       ensureVideosIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, videos_);
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return this;
     }
     /**
-     * <code>repeated string videos = 19 [json_name = "videos"];</code>
+     * <code>repeated string videos = 17 [json_name = "videos"];</code>
      * @return This builder for chaining.
      */
     public Builder clearVideos() {
       videos_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00040000);;
+      bitField0_ = (bitField0_ & ~0x00010000);;
       onChanged();
       return this;
     }
     /**
-     * <code>repeated string videos = 19 [json_name = "videos"];</code>
+     * <code>repeated string videos = 17 [json_name = "videos"];</code>
      * @param value The bytes of the videos to add.
      * @return This builder for chaining.
      */
@@ -3305,7 +2926,7 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       ensureVideosIsMutable();
       videos_.add(value);
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return this;
     }

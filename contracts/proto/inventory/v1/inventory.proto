@@ -8,33 +8,51 @@ option java_package = "com.ecommerce.contracts.inventory.v1";
 
 service InventoryService {
   rpc GetAvailability(GetAvailabilityRequest) returns (GetAvailabilityResponse);
+  rpc BatchGetAvailability(BatchGetAvailabilityRequest) returns (BatchGetAvailabilityResponse);
   rpc GetStock(GetStockRequest) returns (GetStockResponse);
   rpc BatchGetStock(BatchGetStockRequest) returns (BatchGetStockResponse);
   rpc ListStocks(ListStocksRequest) returns (ListStocksResponse);
   rpc SetStock(SetStockRequest) returns (SetStockResponse);
   rpc AdjustStock(AdjustStockRequest) returns (AdjustStockResponse);
+  rpc DeleteStocks(DeleteStocksRequest) returns (DeleteStocksResponse);
+}
+
+message AvailabilityItem {
+  string sku_id = 1;
+  string product_id = 2;
+  int32 available_quantity = 3;
 }
 
 message GetAvailabilityRequest {
-  string product_id = 1;
+  string sku_id = 1;
 }
 
 message GetAvailabilityResponse {
-  string product_id = 1;
-  int32 available_quantity = 2;
+  string sku_id = 1;
+  string product_id = 2;
+  int32 available_quantity = 3;
+}
+
+message BatchGetAvailabilityRequest {
+  repeated string sku_ids = 1;
+}
+
+message BatchGetAvailabilityResponse {
+  repeated AvailabilityItem items = 1;
 }
 
 message StockItem {
-  string product_id = 1;
-  int32 quantity = 2;
-  int32 reserved = 3;
-  int32 available_quantity = 4;
-  string updated_at = 5;
+  string sku_id = 1;
+  string product_id = 2;
+  int32 quantity = 3;
+  int32 reserved = 4;
+  int32 available_quantity = 5;
+  string updated_at = 6;
 }
 
 message GetStockRequest {
   string user_id = 1;
-  string product_id = 2;
+  string sku_id = 2;
 }
 
 message GetStockResponse {
@@ -43,7 +61,7 @@ message GetStockResponse {
 
 message BatchGetStockRequest {
   string user_id = 1;
-  repeated string product_ids = 2;
+  repeated string sku_ids = 2;
 }
 
 message BatchGetStockResponse {
@@ -60,8 +78,9 @@ message ListStocksResponse {
 
 message SetStockRequest {
   string user_id = 1;
-  string product_id = 2;
-  int32 quantity = 3;
+  string sku_id = 2;
+  string product_id = 3;
+  int32 quantity = 4;
 }
 
 message SetStockResponse {
@@ -70,10 +89,19 @@ message SetStockResponse {
 
 message AdjustStockRequest {
   string user_id = 1;
-  string product_id = 2;
-  int32 delta = 3;
+  string sku_id = 2;
+  string product_id = 3;
+  int32 delta = 4;
 }
 
 message AdjustStockResponse {
   StockItem stock = 1;
 }
+
+message DeleteStocksRequest {
+  string user_id = 1;
+  repeated string sku_ids = 2;
+  bool dry_run = 3;
+}
+
+message DeleteStocksResponse {}

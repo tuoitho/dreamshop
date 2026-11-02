@@ -21,23 +21,35 @@ public interface OrderItemOrBuilder extends
       getProductIdBytes();
 
   /**
-   * <code>int32 quantity = 2 [json_name = "quantity"];</code>
+   * <code>string sku_id = 2 [json_name = "skuId"];</code>
+   * @return The skuId.
+   */
+  java.lang.String getSkuId();
+  /**
+   * <code>string sku_id = 2 [json_name = "skuId"];</code>
+   * @return The bytes for skuId.
+   */
+  com.google.protobuf.ByteString
+      getSkuIdBytes();
+
+  /**
+   * <code>int32 quantity = 3 [json_name = "quantity"];</code>
    * @return The quantity.
    */
   int getQuantity();
 
   /**
-   * <code>.ecommerce.common.v1.Money unit_price = 3 [json_name = "unitPrice"];</code>
+   * <code>.ecommerce.common.v1.Money unit_price = 4 [json_name = "unitPrice"];</code>
    * @return Whether the unitPrice field is set.
    */
   boolean hasUnitPrice();
   /**
-   * <code>.ecommerce.common.v1.Money unit_price = 3 [json_name = "unitPrice"];</code>
+   * <code>.ecommerce.common.v1.Money unit_price = 4 [json_name = "unitPrice"];</code>
    * @return The unitPrice.
    */
   com.ecommerce.contracts.common.v1.Money getUnitPrice();
   /**
-   * <code>.ecommerce.common.v1.Money unit_price = 3 [json_name = "unitPrice"];</code>
+   * <code>.ecommerce.common.v1.Money unit_price = 4 [json_name = "unitPrice"];</code>
    */
   com.ecommerce.contracts.common.v1.MoneyOrBuilder getUnitPriceOrBuilder();
 }

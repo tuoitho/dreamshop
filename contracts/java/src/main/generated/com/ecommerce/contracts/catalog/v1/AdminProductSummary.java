@@ -29,6 +29,8 @@ private static final long serialVersionUID = 0L;
     imageHue_ = emptyIntList();
     createdAt_ = "";
     updatedAt_ = "";
+    skuIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
   }
 
   @java.lang.Override
@@ -610,6 +612,69 @@ private static final long serialVersionUID = 0L;
     return videoCount_;
   }
 
+  public static final int MAX_PRICE_FIELD_NUMBER = 22;
+  private com.ecommerce.contracts.common.v1.Money maxPrice_;
+  /**
+   * <code>.ecommerce.common.v1.Money max_price = 22 [json_name = "maxPrice"];</code>
+   * @return Whether the maxPrice field is set.
+   */
+  @java.lang.Override
+  public boolean hasMaxPrice() {
+    return ((bitField0_ & 0x00000004) != 0);
+  }
+  /**
+   * <code>.ecommerce.common.v1.Money max_price = 22 [json_name = "maxPrice"];</code>
+   * @return The maxPrice.
+   */
+  @java.lang.Override
+  public com.ecommerce.contracts.common.v1.Money getMaxPrice() {
+    return maxPrice_ == null ? com.ecommerce.contracts.common.v1.Money.getDefaultInstance() : maxPrice_;
+  }
+  /**
+   * <code>.ecommerce.common.v1.Money max_price = 22 [json_name = "maxPrice"];</code>
+   */
+  @java.lang.Override
+  public com.ecommerce.contracts.common.v1.MoneyOrBuilder getMaxPriceOrBuilder() {
+    return maxPrice_ == null ? com.ecommerce.contracts.common.v1.Money.getDefaultInstance() : maxPrice_;
+  }
+
+  public static final int SKU_IDS_FIELD_NUMBER = 23;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList skuIds_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <code>repeated string sku_ids = 23 [json_name = "skuIds"];</code>
+   * @return A list containing the skuIds.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getSkuIdsList() {
+    return skuIds_;
+  }
+  /**
+   * <code>repeated string sku_ids = 23 [json_name = "skuIds"];</code>
+   * @return The count of skuIds.
+   */
+  public int getSkuIdsCount() {
+    return skuIds_.size();
+  }
+  /**
+   * <code>repeated string sku_ids = 23 [json_name = "skuIds"];</code>
+   * @param index The index of the element to return.
+   * @return The skuIds at the given index.
+   */
+  public java.lang.String getSkuIds(int index) {
+    return skuIds_.get(index);
+  }
+  /**
+   * <code>repeated string sku_ids = 23 [json_name = "skuIds"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the skuIds at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getSkuIdsBytes(int index) {
+    return skuIds_.getByteString(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -691,6 +756,12 @@ private static final long serialVersionUID = 0L;
     }
     if (videoCount_ != 0) {
       output.writeInt32(21, videoCount_);
+    }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      output.writeMessage(22, getMaxPrice());
+    }
+    for (int i = 0; i < skuIds_.size(); i++) {
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 23, skuIds_.getRaw(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -790,6 +861,18 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(21, videoCount_);
     }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(22, getMaxPrice());
+    }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < skuIds_.size(); i++) {
+        dataSize += computeStringSizeNoTag(skuIds_.getRaw(i));
+      }
+      size += dataSize;
+      size += 2 * getSkuIdsList().size();
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -854,6 +937,13 @@ private static final long serialVersionUID = 0L;
         .equals(other.getUpdatedAt())) return false;
     if (getVideoCount()
         != other.getVideoCount()) return false;
+    if (hasMaxPrice() != other.hasMaxPrice()) return false;
+    if (hasMaxPrice()) {
+      if (!getMaxPrice()
+          .equals(other.getMaxPrice())) return false;
+    }
+    if (!getSkuIdsList()
+        .equals(other.getSkuIdsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -921,6 +1011,14 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getUpdatedAt().hashCode();
     hash = (37 * hash) + VIDEO_COUNT_FIELD_NUMBER;
     hash = (53 * hash) + getVideoCount();
+    if (hasMaxPrice()) {
+      hash = (37 * hash) + MAX_PRICE_FIELD_NUMBER;
+      hash = (53 * hash) + getMaxPrice().hashCode();
+    }
+    if (getSkuIdsCount() > 0) {
+      hash = (37 * hash) + SKU_IDS_FIELD_NUMBER;
+      hash = (53 * hash) + getSkuIdsList().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1053,6 +1151,7 @@ private static final long serialVersionUID = 0L;
               .alwaysUseFieldBuilders) {
         getPriceFieldBuilder();
         getOriginalPriceFieldBuilder();
+        getMaxPriceFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1089,6 +1188,13 @@ private static final long serialVersionUID = 0L;
       createdAt_ = "";
       updatedAt_ = "";
       videoCount_ = 0;
+      maxPrice_ = null;
+      if (maxPriceBuilder_ != null) {
+        maxPriceBuilder_.dispose();
+        maxPriceBuilder_ = null;
+      }
+      skuIds_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
       return this;
     }
 
@@ -1193,6 +1299,16 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00100000) != 0)) {
         result.videoCount_ = videoCount_;
+      }
+      if (((from_bitField0_ & 0x00200000) != 0)) {
+        result.maxPrice_ = maxPriceBuilder_ == null
+            ? maxPrice_
+            : maxPriceBuilder_.build();
+        to_bitField0_ |= 0x00000004;
+      }
+      if (((from_bitField0_ & 0x00400000) != 0)) {
+        skuIds_.makeImmutable();
+        result.skuIds_ = skuIds_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1336,6 +1452,19 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getVideoCount() != 0) {
         setVideoCount(other.getVideoCount());
+      }
+      if (other.hasMaxPrice()) {
+        mergeMaxPrice(other.getMaxPrice());
+      }
+      if (!other.skuIds_.isEmpty()) {
+        if (skuIds_.isEmpty()) {
+          skuIds_ = other.skuIds_;
+          bitField0_ |= 0x00400000;
+        } else {
+          ensureSkuIdsIsMutable();
+          skuIds_.addAll(other.skuIds_);
+        }
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1484,6 +1613,19 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00100000;
               break;
             } // case 168
+            case 178: {
+              input.readMessage(
+                  getMaxPriceFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00200000;
+              break;
+            } // case 178
+            case 186: {
+              java.lang.String s = input.readStringRequireUtf8();
+              ensureSkuIdsIsMutable();
+              skuIds_.add(s);
+              break;
+            } // case 186
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2838,6 +2980,238 @@ private static final long serialVersionUID = 0L;
     public Builder clearVideoCount() {
       bitField0_ = (bitField0_ & ~0x00100000);
       videoCount_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private com.ecommerce.contracts.common.v1.Money maxPrice_;
+    private com.google.protobuf.SingleFieldBuilderV3<
+        com.ecommerce.contracts.common.v1.Money, com.ecommerce.contracts.common.v1.Money.Builder, com.ecommerce.contracts.common.v1.MoneyOrBuilder> maxPriceBuilder_;
+    /**
+     * <code>.ecommerce.common.v1.Money max_price = 22 [json_name = "maxPrice"];</code>
+     * @return Whether the maxPrice field is set.
+     */
+    public boolean hasMaxPrice() {
+      return ((bitField0_ & 0x00200000) != 0);
+    }
+    /**
+     * <code>.ecommerce.common.v1.Money max_price = 22 [json_name = "maxPrice"];</code>
+     * @return The maxPrice.
+     */
+    public com.ecommerce.contracts.common.v1.Money getMaxPrice() {
+      if (maxPriceBuilder_ == null) {
+        return maxPrice_ == null ? com.ecommerce.contracts.common.v1.Money.getDefaultInstance() : maxPrice_;
+      } else {
+        return maxPriceBuilder_.getMessage();
+      }
+    }
+    /**
+     * <code>.ecommerce.common.v1.Money max_price = 22 [json_name = "maxPrice"];</code>
+     */
+    public Builder setMaxPrice(com.ecommerce.contracts.common.v1.Money value) {
+      if (maxPriceBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        maxPrice_ = value;
+      } else {
+        maxPriceBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00200000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>.ecommerce.common.v1.Money max_price = 22 [json_name = "maxPrice"];</code>
+     */
+    public Builder setMaxPrice(
+        com.ecommerce.contracts.common.v1.Money.Builder builderForValue) {
+      if (maxPriceBuilder_ == null) {
+        maxPrice_ = builderForValue.build();
+      } else {
+        maxPriceBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00200000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>.ecommerce.common.v1.Money max_price = 22 [json_name = "maxPrice"];</code>
+     */
+    public Builder mergeMaxPrice(com.ecommerce.contracts.common.v1.Money value) {
+      if (maxPriceBuilder_ == null) {
+        if (((bitField0_ & 0x00200000) != 0) &&
+          maxPrice_ != null &&
+          maxPrice_ != com.ecommerce.contracts.common.v1.Money.getDefaultInstance()) {
+          getMaxPriceBuilder().mergeFrom(value);
+        } else {
+          maxPrice_ = value;
+        }
+      } else {
+        maxPriceBuilder_.mergeFrom(value);
+      }
+      if (maxPrice_ != null) {
+        bitField0_ |= 0x00200000;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <code>.ecommerce.common.v1.Money max_price = 22 [json_name = "maxPrice"];</code>
+     */
+    public Builder clearMaxPrice() {
+      bitField0_ = (bitField0_ & ~0x00200000);
+      maxPrice_ = null;
+      if (maxPriceBuilder_ != null) {
+        maxPriceBuilder_.dispose();
+        maxPriceBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>.ecommerce.common.v1.Money max_price = 22 [json_name = "maxPrice"];</code>
+     */
+    public com.ecommerce.contracts.common.v1.Money.Builder getMaxPriceBuilder() {
+      bitField0_ |= 0x00200000;
+      onChanged();
+      return getMaxPriceFieldBuilder().getBuilder();
+    }
+    /**
+     * <code>.ecommerce.common.v1.Money max_price = 22 [json_name = "maxPrice"];</code>
+     */
+    public com.ecommerce.contracts.common.v1.MoneyOrBuilder getMaxPriceOrBuilder() {
+      if (maxPriceBuilder_ != null) {
+        return maxPriceBuilder_.getMessageOrBuilder();
+      } else {
+        return maxPrice_ == null ?
+            com.ecommerce.contracts.common.v1.Money.getDefaultInstance() : maxPrice_;
+      }
+    }
+    /**
+     * <code>.ecommerce.common.v1.Money max_price = 22 [json_name = "maxPrice"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilderV3<
+        com.ecommerce.contracts.common.v1.Money, com.ecommerce.contracts.common.v1.Money.Builder, com.ecommerce.contracts.common.v1.MoneyOrBuilder> 
+        getMaxPriceFieldBuilder() {
+      if (maxPriceBuilder_ == null) {
+        maxPriceBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+            com.ecommerce.contracts.common.v1.Money, com.ecommerce.contracts.common.v1.Money.Builder, com.ecommerce.contracts.common.v1.MoneyOrBuilder>(
+                getMaxPrice(),
+                getParentForChildren(),
+                isClean());
+        maxPrice_ = null;
+      }
+      return maxPriceBuilder_;
+    }
+
+    private com.google.protobuf.LazyStringArrayList skuIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureSkuIdsIsMutable() {
+      if (!skuIds_.isModifiable()) {
+        skuIds_ = new com.google.protobuf.LazyStringArrayList(skuIds_);
+      }
+      bitField0_ |= 0x00400000;
+    }
+    /**
+     * <code>repeated string sku_ids = 23 [json_name = "skuIds"];</code>
+     * @return A list containing the skuIds.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getSkuIdsList() {
+      skuIds_.makeImmutable();
+      return skuIds_;
+    }
+    /**
+     * <code>repeated string sku_ids = 23 [json_name = "skuIds"];</code>
+     * @return The count of skuIds.
+     */
+    public int getSkuIdsCount() {
+      return skuIds_.size();
+    }
+    /**
+     * <code>repeated string sku_ids = 23 [json_name = "skuIds"];</code>
+     * @param index The index of the element to return.
+     * @return The skuIds at the given index.
+     */
+    public java.lang.String getSkuIds(int index) {
+      return skuIds_.get(index);
+    }
+    /**
+     * <code>repeated string sku_ids = 23 [json_name = "skuIds"];</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the skuIds at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getSkuIdsBytes(int index) {
+      return skuIds_.getByteString(index);
+    }
+    /**
+     * <code>repeated string sku_ids = 23 [json_name = "skuIds"];</code>
+     * @param index The index to set the value at.
+     * @param value The skuIds to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSkuIds(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureSkuIdsIsMutable();
+      skuIds_.set(index, value);
+      bitField0_ |= 0x00400000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>repeated string sku_ids = 23 [json_name = "skuIds"];</code>
+     * @param value The skuIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addSkuIds(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureSkuIdsIsMutable();
+      skuIds_.add(value);
+      bitField0_ |= 0x00400000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>repeated string sku_ids = 23 [json_name = "skuIds"];</code>
+     * @param values The skuIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllSkuIds(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureSkuIdsIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, skuIds_);
+      bitField0_ |= 0x00400000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>repeated string sku_ids = 23 [json_name = "skuIds"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearSkuIds() {
+      skuIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00400000);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>repeated string sku_ids = 23 [json_name = "skuIds"];</code>
+     * @param value The bytes of the skuIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addSkuIdsBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureSkuIdsIsMutable();
+      skuIds_.add(value);
+      bitField0_ |= 0x00400000;
       onChanged();
       return this;
     }

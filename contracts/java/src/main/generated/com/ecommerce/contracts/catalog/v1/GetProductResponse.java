@@ -5,11 +5,6 @@
 package com.ecommerce.contracts.catalog.v1;
 
 /**
- * <pre>
- * Full product detail. Fields 1-4 are the original contract; new fields are
- * additive and consumers must tolerate their absence.
- * </pre>
- *
  * Protobuf type {@code ecommerce.catalog.v1.GetProductResponse}
  */
 public final class GetProductResponse extends
@@ -713,6 +708,32 @@ private static final long serialVersionUID = 0L;
     return videos_.getByteString(index);
   }
 
+  public static final int MAX_PRICE_FIELD_NUMBER = 23;
+  private com.ecommerce.contracts.common.v1.Money maxPrice_;
+  /**
+   * <code>.ecommerce.common.v1.Money max_price = 23 [json_name = "maxPrice"];</code>
+   * @return Whether the maxPrice field is set.
+   */
+  @java.lang.Override
+  public boolean hasMaxPrice() {
+    return ((bitField0_ & 0x00000004) != 0);
+  }
+  /**
+   * <code>.ecommerce.common.v1.Money max_price = 23 [json_name = "maxPrice"];</code>
+   * @return The maxPrice.
+   */
+  @java.lang.Override
+  public com.ecommerce.contracts.common.v1.Money getMaxPrice() {
+    return maxPrice_ == null ? com.ecommerce.contracts.common.v1.Money.getDefaultInstance() : maxPrice_;
+  }
+  /**
+   * <code>.ecommerce.common.v1.Money max_price = 23 [json_name = "maxPrice"];</code>
+   */
+  @java.lang.Override
+  public com.ecommerce.contracts.common.v1.MoneyOrBuilder getMaxPriceOrBuilder() {
+    return maxPrice_ == null ? com.ecommerce.contracts.common.v1.Money.getDefaultInstance() : maxPrice_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -797,6 +818,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < videos_.size(); i++) {
       com.google.protobuf.GeneratedMessageV3.writeString(output, 22, videos_.getRaw(i));
+    }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      output.writeMessage(23, getMaxPrice());
     }
     getUnknownFields().writeTo(output);
   }
@@ -908,6 +932,10 @@ private static final long serialVersionUID = 0L;
       size += dataSize;
       size += 2 * getVideosList().size();
     }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(23, getMaxPrice());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -974,6 +1002,11 @@ private static final long serialVersionUID = 0L;
         != other.getDeleted()) return false;
     if (!getVideosList()
         .equals(other.getVideosList())) return false;
+    if (hasMaxPrice() != other.hasMaxPrice()) return false;
+    if (hasMaxPrice()) {
+      if (!getMaxPrice()
+          .equals(other.getMaxPrice())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1048,6 +1081,10 @@ private static final long serialVersionUID = 0L;
     if (getVideosCount() > 0) {
       hash = (37 * hash) + VIDEOS_FIELD_NUMBER;
       hash = (53 * hash) + getVideosList().hashCode();
+    }
+    if (hasMaxPrice()) {
+      hash = (37 * hash) + MAX_PRICE_FIELD_NUMBER;
+      hash = (53 * hash) + getMaxPrice().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -1147,11 +1184,6 @@ private static final long serialVersionUID = 0L;
     return builder;
   }
   /**
-   * <pre>
-   * Full product detail. Fields 1-4 are the original contract; new fields are
-   * additive and consumers must tolerate their absence.
-   * </pre>
-   *
    * Protobuf type {@code ecommerce.catalog.v1.GetProductResponse}
    */
   public static final class Builder extends
@@ -1187,6 +1219,7 @@ private static final long serialVersionUID = 0L;
         getPriceFieldBuilder();
         getOriginalPriceFieldBuilder();
         getVariantsFieldBuilder();
+        getMaxPriceFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1232,6 +1265,11 @@ private static final long serialVersionUID = 0L;
       deleted_ = false;
       videos_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
+      maxPrice_ = null;
+      if (maxPriceBuilder_ != null) {
+        maxPriceBuilder_.dispose();
+        maxPriceBuilder_ = null;
+      }
       return this;
     }
 
@@ -1351,6 +1389,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00200000) != 0)) {
         videos_.makeImmutable();
         result.videos_ = videos_;
+      }
+      if (((from_bitField0_ & 0x00400000) != 0)) {
+        result.maxPrice_ = maxPriceBuilder_ == null
+            ? maxPrice_
+            : maxPriceBuilder_.build();
+        to_bitField0_ |= 0x00000004;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1535,6 +1579,9 @@ private static final long serialVersionUID = 0L;
         }
         onChanged();
       }
+      if (other.hasMaxPrice()) {
+        mergeMaxPrice(other.getMaxPrice());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1697,6 +1744,13 @@ private static final long serialVersionUID = 0L;
               videos_.add(s);
               break;
             } // case 178
+            case 186: {
+              input.readMessage(
+                  getMaxPriceFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00400000;
+              break;
+            } // case 186
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3451,6 +3505,127 @@ private static final long serialVersionUID = 0L;
       bitField0_ |= 0x00200000;
       onChanged();
       return this;
+    }
+
+    private com.ecommerce.contracts.common.v1.Money maxPrice_;
+    private com.google.protobuf.SingleFieldBuilderV3<
+        com.ecommerce.contracts.common.v1.Money, com.ecommerce.contracts.common.v1.Money.Builder, com.ecommerce.contracts.common.v1.MoneyOrBuilder> maxPriceBuilder_;
+    /**
+     * <code>.ecommerce.common.v1.Money max_price = 23 [json_name = "maxPrice"];</code>
+     * @return Whether the maxPrice field is set.
+     */
+    public boolean hasMaxPrice() {
+      return ((bitField0_ & 0x00400000) != 0);
+    }
+    /**
+     * <code>.ecommerce.common.v1.Money max_price = 23 [json_name = "maxPrice"];</code>
+     * @return The maxPrice.
+     */
+    public com.ecommerce.contracts.common.v1.Money getMaxPrice() {
+      if (maxPriceBuilder_ == null) {
+        return maxPrice_ == null ? com.ecommerce.contracts.common.v1.Money.getDefaultInstance() : maxPrice_;
+      } else {
+        return maxPriceBuilder_.getMessage();
+      }
+    }
+    /**
+     * <code>.ecommerce.common.v1.Money max_price = 23 [json_name = "maxPrice"];</code>
+     */
+    public Builder setMaxPrice(com.ecommerce.contracts.common.v1.Money value) {
+      if (maxPriceBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        maxPrice_ = value;
+      } else {
+        maxPriceBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00400000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>.ecommerce.common.v1.Money max_price = 23 [json_name = "maxPrice"];</code>
+     */
+    public Builder setMaxPrice(
+        com.ecommerce.contracts.common.v1.Money.Builder builderForValue) {
+      if (maxPriceBuilder_ == null) {
+        maxPrice_ = builderForValue.build();
+      } else {
+        maxPriceBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00400000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>.ecommerce.common.v1.Money max_price = 23 [json_name = "maxPrice"];</code>
+     */
+    public Builder mergeMaxPrice(com.ecommerce.contracts.common.v1.Money value) {
+      if (maxPriceBuilder_ == null) {
+        if (((bitField0_ & 0x00400000) != 0) &&
+          maxPrice_ != null &&
+          maxPrice_ != com.ecommerce.contracts.common.v1.Money.getDefaultInstance()) {
+          getMaxPriceBuilder().mergeFrom(value);
+        } else {
+          maxPrice_ = value;
+        }
+      } else {
+        maxPriceBuilder_.mergeFrom(value);
+      }
+      if (maxPrice_ != null) {
+        bitField0_ |= 0x00400000;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <code>.ecommerce.common.v1.Money max_price = 23 [json_name = "maxPrice"];</code>
+     */
+    public Builder clearMaxPrice() {
+      bitField0_ = (bitField0_ & ~0x00400000);
+      maxPrice_ = null;
+      if (maxPriceBuilder_ != null) {
+        maxPriceBuilder_.dispose();
+        maxPriceBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>.ecommerce.common.v1.Money max_price = 23 [json_name = "maxPrice"];</code>
+     */
+    public com.ecommerce.contracts.common.v1.Money.Builder getMaxPriceBuilder() {
+      bitField0_ |= 0x00400000;
+      onChanged();
+      return getMaxPriceFieldBuilder().getBuilder();
+    }
+    /**
+     * <code>.ecommerce.common.v1.Money max_price = 23 [json_name = "maxPrice"];</code>
+     */
+    public com.ecommerce.contracts.common.v1.MoneyOrBuilder getMaxPriceOrBuilder() {
+      if (maxPriceBuilder_ != null) {
+        return maxPriceBuilder_.getMessageOrBuilder();
+      } else {
+        return maxPrice_ == null ?
+            com.ecommerce.contracts.common.v1.Money.getDefaultInstance() : maxPrice_;
+      }
+    }
+    /**
+     * <code>.ecommerce.common.v1.Money max_price = 23 [json_name = "maxPrice"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilderV3<
+        com.ecommerce.contracts.common.v1.Money, com.ecommerce.contracts.common.v1.Money.Builder, com.ecommerce.contracts.common.v1.MoneyOrBuilder> 
+        getMaxPriceFieldBuilder() {
+      if (maxPriceBuilder_ == null) {
+        maxPriceBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+            com.ecommerce.contracts.common.v1.Money, com.ecommerce.contracts.common.v1.Money.Builder, com.ecommerce.contracts.common.v1.MoneyOrBuilder>(
+                getMaxPrice(),
+                getParentForChildren(),
+                isClean());
+        maxPrice_ = null;
+      }
+      return maxPriceBuilder_;
     }
     @java.lang.Override
     public final Builder setUnknownFields(

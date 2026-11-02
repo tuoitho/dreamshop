@@ -18,6 +18,7 @@ private static final long serialVersionUID = 0L;
   }
   private OrderItem() {
     productId_ = "";
+    skuId_ = "";
   }
 
   @java.lang.Override
@@ -80,10 +81,49 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int QUANTITY_FIELD_NUMBER = 2;
+  public static final int SKU_ID_FIELD_NUMBER = 2;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object skuId_ = "";
+  /**
+   * <code>string sku_id = 2 [json_name = "skuId"];</code>
+   * @return The skuId.
+   */
+  @java.lang.Override
+  public java.lang.String getSkuId() {
+    java.lang.Object ref = skuId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      skuId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <code>string sku_id = 2 [json_name = "skuId"];</code>
+   * @return The bytes for skuId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getSkuIdBytes() {
+    java.lang.Object ref = skuId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      skuId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int QUANTITY_FIELD_NUMBER = 3;
   private int quantity_ = 0;
   /**
-   * <code>int32 quantity = 2 [json_name = "quantity"];</code>
+   * <code>int32 quantity = 3 [json_name = "quantity"];</code>
    * @return The quantity.
    */
   @java.lang.Override
@@ -91,10 +131,10 @@ private static final long serialVersionUID = 0L;
     return quantity_;
   }
 
-  public static final int UNIT_PRICE_FIELD_NUMBER = 3;
+  public static final int UNIT_PRICE_FIELD_NUMBER = 4;
   private com.ecommerce.contracts.common.v1.Money unitPrice_;
   /**
-   * <code>.ecommerce.common.v1.Money unit_price = 3 [json_name = "unitPrice"];</code>
+   * <code>.ecommerce.common.v1.Money unit_price = 4 [json_name = "unitPrice"];</code>
    * @return Whether the unitPrice field is set.
    */
   @java.lang.Override
@@ -102,7 +142,7 @@ private static final long serialVersionUID = 0L;
     return ((bitField0_ & 0x00000001) != 0);
   }
   /**
-   * <code>.ecommerce.common.v1.Money unit_price = 3 [json_name = "unitPrice"];</code>
+   * <code>.ecommerce.common.v1.Money unit_price = 4 [json_name = "unitPrice"];</code>
    * @return The unitPrice.
    */
   @java.lang.Override
@@ -110,7 +150,7 @@ private static final long serialVersionUID = 0L;
     return unitPrice_ == null ? com.ecommerce.contracts.common.v1.Money.getDefaultInstance() : unitPrice_;
   }
   /**
-   * <code>.ecommerce.common.v1.Money unit_price = 3 [json_name = "unitPrice"];</code>
+   * <code>.ecommerce.common.v1.Money unit_price = 4 [json_name = "unitPrice"];</code>
    */
   @java.lang.Override
   public com.ecommerce.contracts.common.v1.MoneyOrBuilder getUnitPriceOrBuilder() {
@@ -134,11 +174,14 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(productId_)) {
       com.google.protobuf.GeneratedMessageV3.writeString(output, 1, productId_);
     }
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(skuId_)) {
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 2, skuId_);
+    }
     if (quantity_ != 0) {
-      output.writeInt32(2, quantity_);
+      output.writeInt32(3, quantity_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
-      output.writeMessage(3, getUnitPrice());
+      output.writeMessage(4, getUnitPrice());
     }
     getUnknownFields().writeTo(output);
   }
@@ -152,13 +195,16 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(productId_)) {
       size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, productId_);
     }
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(skuId_)) {
+      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, skuId_);
+    }
     if (quantity_ != 0) {
       size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(2, quantity_);
+        .computeInt32Size(3, quantity_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(3, getUnitPrice());
+        .computeMessageSize(4, getUnitPrice());
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -177,6 +223,8 @@ private static final long serialVersionUID = 0L;
 
     if (!getProductId()
         .equals(other.getProductId())) return false;
+    if (!getSkuId()
+        .equals(other.getSkuId())) return false;
     if (getQuantity()
         != other.getQuantity()) return false;
     if (hasUnitPrice() != other.hasUnitPrice()) return false;
@@ -197,6 +245,8 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + PRODUCT_ID_FIELD_NUMBER;
     hash = (53 * hash) + getProductId().hashCode();
+    hash = (37 * hash) + SKU_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getSkuId().hashCode();
     hash = (37 * hash) + QUANTITY_FIELD_NUMBER;
     hash = (53 * hash) + getQuantity();
     if (hasUnitPrice()) {
@@ -341,6 +391,7 @@ private static final long serialVersionUID = 0L;
       super.clear();
       bitField0_ = 0;
       productId_ = "";
+      skuId_ = "";
       quantity_ = 0;
       unitPrice_ = null;
       if (unitPriceBuilder_ != null) {
@@ -384,10 +435,13 @@ private static final long serialVersionUID = 0L;
         result.productId_ = productId_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
+        result.skuId_ = skuId_;
+      }
+      if (((from_bitField0_ & 0x00000004) != 0)) {
         result.quantity_ = quantity_;
       }
       int to_bitField0_ = 0;
-      if (((from_bitField0_ & 0x00000004) != 0)) {
+      if (((from_bitField0_ & 0x00000008) != 0)) {
         result.unitPrice_ = unitPriceBuilder_ == null
             ? unitPrice_
             : unitPriceBuilder_.build();
@@ -445,6 +499,11 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000001;
         onChanged();
       }
+      if (!other.getSkuId().isEmpty()) {
+        skuId_ = other.skuId_;
+        bitField0_ |= 0x00000002;
+        onChanged();
+      }
       if (other.getQuantity() != 0) {
         setQuantity(other.getQuantity());
       }
@@ -482,18 +541,23 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000001;
               break;
             } // case 10
-            case 16: {
-              quantity_ = input.readInt32();
+            case 18: {
+              skuId_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000002;
               break;
-            } // case 16
-            case 26: {
+            } // case 18
+            case 24: {
+              quantity_ = input.readInt32();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 24
+            case 34: {
               input.readMessage(
                   getUnitPriceFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000008;
               break;
-            } // case 26
+            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -583,9 +647,81 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
+    private java.lang.Object skuId_ = "";
+    /**
+     * <code>string sku_id = 2 [json_name = "skuId"];</code>
+     * @return The skuId.
+     */
+    public java.lang.String getSkuId() {
+      java.lang.Object ref = skuId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        skuId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <code>string sku_id = 2 [json_name = "skuId"];</code>
+     * @return The bytes for skuId.
+     */
+    public com.google.protobuf.ByteString
+        getSkuIdBytes() {
+      java.lang.Object ref = skuId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        skuId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <code>string sku_id = 2 [json_name = "skuId"];</code>
+     * @param value The skuId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSkuId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      skuId_ = value;
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string sku_id = 2 [json_name = "skuId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearSkuId() {
+      skuId_ = getDefaultInstance().getSkuId();
+      bitField0_ = (bitField0_ & ~0x00000002);
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string sku_id = 2 [json_name = "skuId"];</code>
+     * @param value The bytes for skuId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSkuIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      skuId_ = value;
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+
     private int quantity_ ;
     /**
-     * <code>int32 quantity = 2 [json_name = "quantity"];</code>
+     * <code>int32 quantity = 3 [json_name = "quantity"];</code>
      * @return The quantity.
      */
     @java.lang.Override
@@ -593,23 +729,23 @@ private static final long serialVersionUID = 0L;
       return quantity_;
     }
     /**
-     * <code>int32 quantity = 2 [json_name = "quantity"];</code>
+     * <code>int32 quantity = 3 [json_name = "quantity"];</code>
      * @param value The quantity to set.
      * @return This builder for chaining.
      */
     public Builder setQuantity(int value) {
 
       quantity_ = value;
-      bitField0_ |= 0x00000002;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
     /**
-     * <code>int32 quantity = 2 [json_name = "quantity"];</code>
+     * <code>int32 quantity = 3 [json_name = "quantity"];</code>
      * @return This builder for chaining.
      */
     public Builder clearQuantity() {
-      bitField0_ = (bitField0_ & ~0x00000002);
+      bitField0_ = (bitField0_ & ~0x00000004);
       quantity_ = 0;
       onChanged();
       return this;
@@ -619,14 +755,14 @@ private static final long serialVersionUID = 0L;
     private com.google.protobuf.SingleFieldBuilderV3<
         com.ecommerce.contracts.common.v1.Money, com.ecommerce.contracts.common.v1.Money.Builder, com.ecommerce.contracts.common.v1.MoneyOrBuilder> unitPriceBuilder_;
     /**
-     * <code>.ecommerce.common.v1.Money unit_price = 3 [json_name = "unitPrice"];</code>
+     * <code>.ecommerce.common.v1.Money unit_price = 4 [json_name = "unitPrice"];</code>
      * @return Whether the unitPrice field is set.
      */
     public boolean hasUnitPrice() {
-      return ((bitField0_ & 0x00000004) != 0);
+      return ((bitField0_ & 0x00000008) != 0);
     }
     /**
-     * <code>.ecommerce.common.v1.Money unit_price = 3 [json_name = "unitPrice"];</code>
+     * <code>.ecommerce.common.v1.Money unit_price = 4 [json_name = "unitPrice"];</code>
      * @return The unitPrice.
      */
     public com.ecommerce.contracts.common.v1.Money getUnitPrice() {
@@ -637,7 +773,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>.ecommerce.common.v1.Money unit_price = 3 [json_name = "unitPrice"];</code>
+     * <code>.ecommerce.common.v1.Money unit_price = 4 [json_name = "unitPrice"];</code>
      */
     public Builder setUnitPrice(com.ecommerce.contracts.common.v1.Money value) {
       if (unitPriceBuilder_ == null) {
@@ -648,12 +784,12 @@ private static final long serialVersionUID = 0L;
       } else {
         unitPriceBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
     /**
-     * <code>.ecommerce.common.v1.Money unit_price = 3 [json_name = "unitPrice"];</code>
+     * <code>.ecommerce.common.v1.Money unit_price = 4 [json_name = "unitPrice"];</code>
      */
     public Builder setUnitPrice(
         com.ecommerce.contracts.common.v1.Money.Builder builderForValue) {
@@ -662,16 +798,16 @@ private static final long serialVersionUID = 0L;
       } else {
         unitPriceBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
     /**
-     * <code>.ecommerce.common.v1.Money unit_price = 3 [json_name = "unitPrice"];</code>
+     * <code>.ecommerce.common.v1.Money unit_price = 4 [json_name = "unitPrice"];</code>
      */
     public Builder mergeUnitPrice(com.ecommerce.contracts.common.v1.Money value) {
       if (unitPriceBuilder_ == null) {
-        if (((bitField0_ & 0x00000004) != 0) &&
+        if (((bitField0_ & 0x00000008) != 0) &&
           unitPrice_ != null &&
           unitPrice_ != com.ecommerce.contracts.common.v1.Money.getDefaultInstance()) {
           getUnitPriceBuilder().mergeFrom(value);
@@ -682,16 +818,16 @@ private static final long serialVersionUID = 0L;
         unitPriceBuilder_.mergeFrom(value);
       }
       if (unitPrice_ != null) {
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       return this;
     }
     /**
-     * <code>.ecommerce.common.v1.Money unit_price = 3 [json_name = "unitPrice"];</code>
+     * <code>.ecommerce.common.v1.Money unit_price = 4 [json_name = "unitPrice"];</code>
      */
     public Builder clearUnitPrice() {
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000008);
       unitPrice_ = null;
       if (unitPriceBuilder_ != null) {
         unitPriceBuilder_.dispose();
@@ -701,15 +837,15 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.ecommerce.common.v1.Money unit_price = 3 [json_name = "unitPrice"];</code>
+     * <code>.ecommerce.common.v1.Money unit_price = 4 [json_name = "unitPrice"];</code>
      */
     public com.ecommerce.contracts.common.v1.Money.Builder getUnitPriceBuilder() {
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000008;
       onChanged();
       return getUnitPriceFieldBuilder().getBuilder();
     }
     /**
-     * <code>.ecommerce.common.v1.Money unit_price = 3 [json_name = "unitPrice"];</code>
+     * <code>.ecommerce.common.v1.Money unit_price = 4 [json_name = "unitPrice"];</code>
      */
     public com.ecommerce.contracts.common.v1.MoneyOrBuilder getUnitPriceOrBuilder() {
       if (unitPriceBuilder_ != null) {
@@ -720,7 +856,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>.ecommerce.common.v1.Money unit_price = 3 [json_name = "unitPrice"];</code>
+     * <code>.ecommerce.common.v1.Money unit_price = 4 [json_name = "unitPrice"];</code>
      */
     private com.google.protobuf.SingleFieldBuilderV3<
         com.ecommerce.contracts.common.v1.Money, com.ecommerce.contracts.common.v1.Money.Builder, com.ecommerce.contracts.common.v1.MoneyOrBuilder> 

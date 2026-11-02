@@ -33,140 +33,167 @@ public interface CartItemOrBuilder extends
       getProductIdBytes();
 
   /**
-   * <code>string variant_label = 3 [json_name = "variantLabel"];</code>
+   * <code>string sku_id = 3 [json_name = "skuId"];</code>
+   * @return The skuId.
+   */
+  java.lang.String getSkuId();
+  /**
+   * <code>string sku_id = 3 [json_name = "skuId"];</code>
+   * @return The bytes for skuId.
+   */
+  com.google.protobuf.ByteString
+      getSkuIdBytes();
+
+  /**
+   * <code>string variant_label = 4 [json_name = "variantLabel"];</code>
    * @return The variantLabel.
    */
   java.lang.String getVariantLabel();
   /**
-   * <code>string variant_label = 3 [json_name = "variantLabel"];</code>
+   * <code>string variant_label = 4 [json_name = "variantLabel"];</code>
    * @return The bytes for variantLabel.
    */
   com.google.protobuf.ByteString
       getVariantLabelBytes();
 
   /**
-   * <code>int32 quantity = 4 [json_name = "quantity"];</code>
-   * @return The quantity.
-   */
-  int getQuantity();
-
-  /**
-   * <code>string name = 5 [json_name = "name"];</code>
-   * @return The name.
-   */
-  java.lang.String getName();
-  /**
-   * <code>string name = 5 [json_name = "name"];</code>
-   * @return The bytes for name.
-   */
-  com.google.protobuf.ByteString
-      getNameBytes();
-
-  /**
-   * <code>string brand = 6 [json_name = "brand"];</code>
-   * @return The brand.
-   */
-  java.lang.String getBrand();
-  /**
-   * <code>string brand = 6 [json_name = "brand"];</code>
-   * @return The bytes for brand.
-   */
-  com.google.protobuf.ByteString
-      getBrandBytes();
-
-  /**
-   * <code>string category_name = 7 [json_name = "categoryName"];</code>
-   * @return The categoryName.
-   */
-  java.lang.String getCategoryName();
-  /**
-   * <code>string category_name = 7 [json_name = "categoryName"];</code>
-   * @return The bytes for categoryName.
-   */
-  com.google.protobuf.ByteString
-      getCategoryNameBytes();
-
-  /**
-   * <code>.ecommerce.common.v1.Money unit_price = 8 [json_name = "unitPrice"];</code>
-   * @return Whether the unitPrice field is set.
-   */
-  boolean hasUnitPrice();
-  /**
-   * <code>.ecommerce.common.v1.Money unit_price = 8 [json_name = "unitPrice"];</code>
-   * @return The unitPrice.
-   */
-  com.ecommerce.contracts.common.v1.Money getUnitPrice();
-  /**
-   * <code>.ecommerce.common.v1.Money unit_price = 8 [json_name = "unitPrice"];</code>
-   */
-  com.ecommerce.contracts.common.v1.MoneyOrBuilder getUnitPriceOrBuilder();
-
-  /**
-   * <code>string image_emoji = 9 [json_name = "imageEmoji"];</code>
-   * @return The imageEmoji.
-   */
-  java.lang.String getImageEmoji();
-  /**
-   * <code>string image_emoji = 9 [json_name = "imageEmoji"];</code>
-   * @return The bytes for imageEmoji.
-   */
-  com.google.protobuf.ByteString
-      getImageEmojiBytes();
-
-  /**
-   * <code>repeated uint32 image_hue = 10 [json_name = "imageHue"];</code>
-   * @return A list containing the imageHue.
-   */
-  java.util.List<java.lang.Integer> getImageHueList();
-  /**
-   * <code>repeated uint32 image_hue = 10 [json_name = "imageHue"];</code>
-   * @return The count of imageHue.
-   */
-  int getImageHueCount();
-  /**
-   * <code>repeated uint32 image_hue = 10 [json_name = "imageHue"];</code>
-   * @param index The index of the element to return.
-   * @return The imageHue at the given index.
-   */
-  int getImageHue(int index);
-
-  /**
-   * <code>string image_url = 11 [json_name = "imageUrl"];</code>
-   * @return The imageUrl.
-   */
-  java.lang.String getImageUrl();
-  /**
-   * <code>string image_url = 11 [json_name = "imageUrl"];</code>
-   * @return The bytes for imageUrl.
-   */
-  com.google.protobuf.ByteString
-      getImageUrlBytes();
-
-  /**
-   * <code>string variant_color_hex = 12 [json_name = "variantColorHex"];</code>
+   * <code>string variant_color_hex = 5 [json_name = "variantColorHex"];</code>
    * @return The variantColorHex.
    */
   java.lang.String getVariantColorHex();
   /**
-   * <code>string variant_color_hex = 12 [json_name = "variantColorHex"];</code>
+   * <code>string variant_color_hex = 5 [json_name = "variantColorHex"];</code>
    * @return The bytes for variantColorHex.
    */
   com.google.protobuf.ByteString
       getVariantColorHexBytes();
 
   /**
-   * <code>.ecommerce.cart.v1.CartItemStatus status = 13 [json_name = "status"];</code>
+   * <code>int32 quantity = 6 [json_name = "quantity"];</code>
+   * @return The quantity.
+   */
+  int getQuantity();
+
+  /**
+   * <code>string name = 7 [json_name = "name"];</code>
+   * @return The name.
+   */
+  java.lang.String getName();
+  /**
+   * <code>string name = 7 [json_name = "name"];</code>
+   * @return The bytes for name.
+   */
+  com.google.protobuf.ByteString
+      getNameBytes();
+
+  /**
+   * <code>string brand = 8 [json_name = "brand"];</code>
+   * @return The brand.
+   */
+  java.lang.String getBrand();
+  /**
+   * <code>string brand = 8 [json_name = "brand"];</code>
+   * @return The bytes for brand.
+   */
+  com.google.protobuf.ByteString
+      getBrandBytes();
+
+  /**
+   * <code>string category_name = 9 [json_name = "categoryName"];</code>
+   * @return The categoryName.
+   */
+  java.lang.String getCategoryName();
+  /**
+   * <code>string category_name = 9 [json_name = "categoryName"];</code>
+   * @return The bytes for categoryName.
+   */
+  com.google.protobuf.ByteString
+      getCategoryNameBytes();
+
+  /**
+   * <code>.ecommerce.common.v1.Money unit_price = 10 [json_name = "unitPrice"];</code>
+   * @return Whether the unitPrice field is set.
+   */
+  boolean hasUnitPrice();
+  /**
+   * <code>.ecommerce.common.v1.Money unit_price = 10 [json_name = "unitPrice"];</code>
+   * @return The unitPrice.
+   */
+  com.ecommerce.contracts.common.v1.Money getUnitPrice();
+  /**
+   * <code>.ecommerce.common.v1.Money unit_price = 10 [json_name = "unitPrice"];</code>
+   */
+  com.ecommerce.contracts.common.v1.MoneyOrBuilder getUnitPriceOrBuilder();
+
+  /**
+   * <code>.ecommerce.common.v1.Money original_price = 11 [json_name = "originalPrice"];</code>
+   * @return Whether the originalPrice field is set.
+   */
+  boolean hasOriginalPrice();
+  /**
+   * <code>.ecommerce.common.v1.Money original_price = 11 [json_name = "originalPrice"];</code>
+   * @return The originalPrice.
+   */
+  com.ecommerce.contracts.common.v1.Money getOriginalPrice();
+  /**
+   * <code>.ecommerce.common.v1.Money original_price = 11 [json_name = "originalPrice"];</code>
+   */
+  com.ecommerce.contracts.common.v1.MoneyOrBuilder getOriginalPriceOrBuilder();
+
+  /**
+   * <code>string image_emoji = 12 [json_name = "imageEmoji"];</code>
+   * @return The imageEmoji.
+   */
+  java.lang.String getImageEmoji();
+  /**
+   * <code>string image_emoji = 12 [json_name = "imageEmoji"];</code>
+   * @return The bytes for imageEmoji.
+   */
+  com.google.protobuf.ByteString
+      getImageEmojiBytes();
+
+  /**
+   * <code>repeated uint32 image_hue = 13 [json_name = "imageHue"];</code>
+   * @return A list containing the imageHue.
+   */
+  java.util.List<java.lang.Integer> getImageHueList();
+  /**
+   * <code>repeated uint32 image_hue = 13 [json_name = "imageHue"];</code>
+   * @return The count of imageHue.
+   */
+  int getImageHueCount();
+  /**
+   * <code>repeated uint32 image_hue = 13 [json_name = "imageHue"];</code>
+   * @param index The index of the element to return.
+   * @return The imageHue at the given index.
+   */
+  int getImageHue(int index);
+
+  /**
+   * <code>string image_url = 14 [json_name = "imageUrl"];</code>
+   * @return The imageUrl.
+   */
+  java.lang.String getImageUrl();
+  /**
+   * <code>string image_url = 14 [json_name = "imageUrl"];</code>
+   * @return The bytes for imageUrl.
+   */
+  com.google.protobuf.ByteString
+      getImageUrlBytes();
+
+  /**
+   * <code>.ecommerce.cart.v1.CartItemStatus status = 15 [json_name = "status"];</code>
    * @return The enum numeric value on the wire for status.
    */
   int getStatusValue();
   /**
-   * <code>.ecommerce.cart.v1.CartItemStatus status = 13 [json_name = "status"];</code>
+   * <code>.ecommerce.cart.v1.CartItemStatus status = 15 [json_name = "status"];</code>
    * @return The status.
    */
   com.ecommerce.contracts.cart.v1.CartItemStatus getStatus();
 
   /**
-   * <code>int32 available_quantity = 14 [json_name = "availableQuantity"];</code>
+   * <code>int32 available_quantity = 16 [json_name = "availableQuantity"];</code>
    * @return The availableQuantity.
    */
   int getAvailableQuantity();

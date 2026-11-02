@@ -21,19 +21,31 @@ public interface SetStockRequestOrBuilder extends
       getUserIdBytes();
 
   /**
-   * <code>string product_id = 2 [json_name = "productId"];</code>
+   * <code>string sku_id = 2 [json_name = "skuId"];</code>
+   * @return The skuId.
+   */
+  java.lang.String getSkuId();
+  /**
+   * <code>string sku_id = 2 [json_name = "skuId"];</code>
+   * @return The bytes for skuId.
+   */
+  com.google.protobuf.ByteString
+      getSkuIdBytes();
+
+  /**
+   * <code>string product_id = 3 [json_name = "productId"];</code>
    * @return The productId.
    */
   java.lang.String getProductId();
   /**
-   * <code>string product_id = 2 [json_name = "productId"];</code>
+   * <code>string product_id = 3 [json_name = "productId"];</code>
    * @return The bytes for productId.
    */
   com.google.protobuf.ByteString
       getProductIdBytes();
 
   /**
-   * <code>int32 quantity = 3 [json_name = "quantity"];</code>
+   * <code>int32 quantity = 4 [json_name = "quantity"];</code>
    * @return The quantity.
    */
   int getQuantity();

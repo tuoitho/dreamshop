@@ -221,4 +221,19 @@ public interface FavoriteItemOrBuilder extends
    * @return The availableQuantity.
    */
   int getAvailableQuantity();
+
+  /**
+   * <code>.ecommerce.common.v1.Money max_price = 19 [json_name = "maxPrice"];</code>
+   * @return Whether the maxPrice field is set.
+   */
+  boolean hasMaxPrice();
+  /**
+   * <code>.ecommerce.common.v1.Money max_price = 19 [json_name = "maxPrice"];</code>
+   * @return The maxPrice.
+   */
+  com.ecommerce.contracts.common.v1.Money getMaxPrice();
+  /**
+   * <code>.ecommerce.common.v1.Money max_price = 19 [json_name = "maxPrice"];</code>
+   */
+  com.ecommerce.contracts.common.v1.MoneyOrBuilder getMaxPriceOrBuilder();
 }

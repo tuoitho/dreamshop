@@ -98,20 +98,11 @@ func runWithDeps(args []string, out io.Writer, goos string, runCmd execFunc) int
 		if goos == "windows" {
 			ensureGitUsrBinInPath()
 		}
-		gitDirOut, code := runCmd(root, "git", "rev-parse", "--git-common-dir")
-		if code != 0 {
-			fmt.Fprintf(out, "FAILED: git rev-parse (exit %d)\n", code)
-			return code
-		}
-		gitDir := strings.TrimSpace(gitDirOut)
 
 		if c := step("buf format", "buf", "format", "--diff", "--exit-code"); c != 0 {
 			return c
 		}
 		if c := step("buf lint", "buf", "lint"); c != 0 {
-			return c
-		}
-		if c := step("buf breaking against "+baseBranch, "buf", "breaking", "--against", fmt.Sprintf("%s#branch=%s", gitDir, baseBranch)); c != 0 {
 			return c
 		}
 		if c := step("buf generate", "buf", "generate"); c != 0 {

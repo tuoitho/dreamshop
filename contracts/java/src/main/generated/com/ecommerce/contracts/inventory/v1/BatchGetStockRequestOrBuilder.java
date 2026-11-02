@@ -21,27 +21,27 @@ public interface BatchGetStockRequestOrBuilder extends
       getUserIdBytes();
 
   /**
-   * <code>repeated string product_ids = 2 [json_name = "productIds"];</code>
-   * @return A list containing the productIds.
+   * <code>repeated string sku_ids = 2 [json_name = "skuIds"];</code>
+   * @return A list containing the skuIds.
    */
   java.util.List<java.lang.String>
-      getProductIdsList();
+      getSkuIdsList();
   /**
-   * <code>repeated string product_ids = 2 [json_name = "productIds"];</code>
-   * @return The count of productIds.
+   * <code>repeated string sku_ids = 2 [json_name = "skuIds"];</code>
+   * @return The count of skuIds.
    */
-  int getProductIdsCount();
+  int getSkuIdsCount();
   /**
-   * <code>repeated string product_ids = 2 [json_name = "productIds"];</code>
+   * <code>repeated string sku_ids = 2 [json_name = "skuIds"];</code>
    * @param index The index of the element to return.
-   * @return The productIds at the given index.
+   * @return The skuIds at the given index.
    */
-  java.lang.String getProductIds(int index);
+  java.lang.String getSkuIds(int index);
   /**
-   * <code>repeated string product_ids = 2 [json_name = "productIds"];</code>
+   * <code>repeated string sku_ids = 2 [json_name = "skuIds"];</code>
    * @param index The index of the value to return.
-   * @return The bytes of the productIds at the given index.
+   * @return The bytes of the skuIds at the given index.
    */
   com.google.protobuf.ByteString
-      getProductIdsBytes(int index);
+      getSkuIdsBytes(int index);
 }

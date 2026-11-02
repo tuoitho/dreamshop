@@ -193,4 +193,44 @@ public interface ProductSummaryOrBuilder extends
    * @return The imageHue at the given index.
    */
   int getImageHue(int index);
+
+  /**
+   * <code>.ecommerce.common.v1.Money max_price = 17 [json_name = "maxPrice"];</code>
+   * @return Whether the maxPrice field is set.
+   */
+  boolean hasMaxPrice();
+  /**
+   * <code>.ecommerce.common.v1.Money max_price = 17 [json_name = "maxPrice"];</code>
+   * @return The maxPrice.
+   */
+  com.ecommerce.contracts.common.v1.Money getMaxPrice();
+  /**
+   * <code>.ecommerce.common.v1.Money max_price = 17 [json_name = "maxPrice"];</code>
+   */
+  com.ecommerce.contracts.common.v1.MoneyOrBuilder getMaxPriceOrBuilder();
+
+  /**
+   * <code>repeated string sku_ids = 18 [json_name = "skuIds"];</code>
+   * @return A list containing the skuIds.
+   */
+  java.util.List<java.lang.String>
+      getSkuIdsList();
+  /**
+   * <code>repeated string sku_ids = 18 [json_name = "skuIds"];</code>
+   * @return The count of skuIds.
+   */
+  int getSkuIdsCount();
+  /**
+   * <code>repeated string sku_ids = 18 [json_name = "skuIds"];</code>
+   * @param index The index of the element to return.
+   * @return The skuIds at the given index.
+   */
+  java.lang.String getSkuIds(int index);
+  /**
+   * <code>repeated string sku_ids = 18 [json_name = "skuIds"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the skuIds at the given index.
+   */
+  com.google.protobuf.ByteString
+      getSkuIdsBytes(int index);
 }

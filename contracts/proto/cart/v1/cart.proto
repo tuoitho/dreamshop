@@ -27,7 +27,7 @@ message GetCartRequest {
 message AddItemRequest {
   string user_id = 1;
   string product_id = 2;
-  string variant_label = 3;
+  string sku_id = 3;
   int32 quantity = 4;
 }
 
@@ -74,18 +74,20 @@ message ClearCartResponse {
 message CartItem {
   string item_id = 1;
   string product_id = 2;
-  string variant_label = 3;
-  int32 quantity = 4;
-  string name = 5;
-  string brand = 6;
-  string category_name = 7;
-  ecommerce.common.v1.Money unit_price = 8;
-  string image_emoji = 9;
-  repeated uint32 image_hue = 10;
-  string image_url = 11;
-  string variant_color_hex = 12;
-  CartItemStatus status = 13;
-  int32 available_quantity = 14;
+  string sku_id = 3;
+  string variant_label = 4;
+  string variant_color_hex = 5;
+  int32 quantity = 6;
+  string name = 7;
+  string brand = 8;
+  string category_name = 9;
+  ecommerce.common.v1.Money unit_price = 10;
+  ecommerce.common.v1.Money original_price = 11;
+  string image_emoji = 12;
+  repeated uint32 image_hue = 13;
+  string image_url = 14;
+  CartItemStatus status = 15;
+  int32 available_quantity = 16;
 }
 
 enum CartItemStatus {
@@ -136,8 +138,11 @@ message FavoriteList {
 }
 
 message FavoriteVariant {
-  string label = 1;
-  string color_hex = 2;
+  string sku_id = 1;
+  string label = 2;
+  string color_hex = 3;
+  ecommerce.common.v1.Money price = 4;
+  ecommerce.common.v1.Money original_price = 5;
 }
 
 message FavoriteItem {
@@ -159,6 +164,7 @@ message FavoriteItem {
   repeated FavoriteVariant variants = 16;
   FavoriteItemStatus status = 17;
   int32 available_quantity = 18;
+  ecommerce.common.v1.Money max_price = 19;
 }
 
 enum FavoriteItemStatus {

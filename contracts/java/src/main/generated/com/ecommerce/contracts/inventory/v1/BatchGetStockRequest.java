@@ -18,7 +18,7 @@ private static final long serialVersionUID = 0L;
   }
   private BatchGetStockRequest() {
     userId_ = "";
-    productIds_ =
+    skuIds_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
   }
 
@@ -81,41 +81,41 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int PRODUCT_IDS_FIELD_NUMBER = 2;
+  public static final int SKU_IDS_FIELD_NUMBER = 2;
   @SuppressWarnings("serial")
-  private com.google.protobuf.LazyStringArrayList productIds_ =
+  private com.google.protobuf.LazyStringArrayList skuIds_ =
       com.google.protobuf.LazyStringArrayList.emptyList();
   /**
-   * <code>repeated string product_ids = 2 [json_name = "productIds"];</code>
-   * @return A list containing the productIds.
+   * <code>repeated string sku_ids = 2 [json_name = "skuIds"];</code>
+   * @return A list containing the skuIds.
    */
   public com.google.protobuf.ProtocolStringList
-      getProductIdsList() {
-    return productIds_;
+      getSkuIdsList() {
+    return skuIds_;
   }
   /**
-   * <code>repeated string product_ids = 2 [json_name = "productIds"];</code>
-   * @return The count of productIds.
+   * <code>repeated string sku_ids = 2 [json_name = "skuIds"];</code>
+   * @return The count of skuIds.
    */
-  public int getProductIdsCount() {
-    return productIds_.size();
+  public int getSkuIdsCount() {
+    return skuIds_.size();
   }
   /**
-   * <code>repeated string product_ids = 2 [json_name = "productIds"];</code>
+   * <code>repeated string sku_ids = 2 [json_name = "skuIds"];</code>
    * @param index The index of the element to return.
-   * @return The productIds at the given index.
+   * @return The skuIds at the given index.
    */
-  public java.lang.String getProductIds(int index) {
-    return productIds_.get(index);
+  public java.lang.String getSkuIds(int index) {
+    return skuIds_.get(index);
   }
   /**
-   * <code>repeated string product_ids = 2 [json_name = "productIds"];</code>
+   * <code>repeated string sku_ids = 2 [json_name = "skuIds"];</code>
    * @param index The index of the value to return.
-   * @return The bytes of the productIds at the given index.
+   * @return The bytes of the skuIds at the given index.
    */
   public com.google.protobuf.ByteString
-      getProductIdsBytes(int index) {
-    return productIds_.getByteString(index);
+      getSkuIdsBytes(int index) {
+    return skuIds_.getByteString(index);
   }
 
   private byte memoizedIsInitialized = -1;
@@ -135,8 +135,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(userId_)) {
       com.google.protobuf.GeneratedMessageV3.writeString(output, 1, userId_);
     }
-    for (int i = 0; i < productIds_.size(); i++) {
-      com.google.protobuf.GeneratedMessageV3.writeString(output, 2, productIds_.getRaw(i));
+    for (int i = 0; i < skuIds_.size(); i++) {
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 2, skuIds_.getRaw(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -152,11 +152,11 @@ private static final long serialVersionUID = 0L;
     }
     {
       int dataSize = 0;
-      for (int i = 0; i < productIds_.size(); i++) {
-        dataSize += computeStringSizeNoTag(productIds_.getRaw(i));
+      for (int i = 0; i < skuIds_.size(); i++) {
+        dataSize += computeStringSizeNoTag(skuIds_.getRaw(i));
       }
       size += dataSize;
-      size += 1 * getProductIdsList().size();
+      size += 1 * getSkuIdsList().size();
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -175,8 +175,8 @@ private static final long serialVersionUID = 0L;
 
     if (!getUserId()
         .equals(other.getUserId())) return false;
-    if (!getProductIdsList()
-        .equals(other.getProductIdsList())) return false;
+    if (!getSkuIdsList()
+        .equals(other.getSkuIdsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -190,9 +190,9 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + USER_ID_FIELD_NUMBER;
     hash = (53 * hash) + getUserId().hashCode();
-    if (getProductIdsCount() > 0) {
-      hash = (37 * hash) + PRODUCT_IDS_FIELD_NUMBER;
-      hash = (53 * hash) + getProductIdsList().hashCode();
+    if (getSkuIdsCount() > 0) {
+      hash = (37 * hash) + SKU_IDS_FIELD_NUMBER;
+      hash = (53 * hash) + getSkuIdsList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -326,7 +326,7 @@ private static final long serialVersionUID = 0L;
       super.clear();
       bitField0_ = 0;
       userId_ = "";
-      productIds_ =
+      skuIds_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
       return this;
     }
@@ -365,8 +365,8 @@ private static final long serialVersionUID = 0L;
         result.userId_ = userId_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        productIds_.makeImmutable();
-        result.productIds_ = productIds_;
+        skuIds_.makeImmutable();
+        result.skuIds_ = skuIds_;
       }
     }
 
@@ -419,13 +419,13 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000001;
         onChanged();
       }
-      if (!other.productIds_.isEmpty()) {
-        if (productIds_.isEmpty()) {
-          productIds_ = other.productIds_;
+      if (!other.skuIds_.isEmpty()) {
+        if (skuIds_.isEmpty()) {
+          skuIds_ = other.skuIds_;
           bitField0_ |= 0x00000002;
         } else {
-          ensureProductIdsIsMutable();
-          productIds_.addAll(other.productIds_);
+          ensureSkuIdsIsMutable();
+          skuIds_.addAll(other.skuIds_);
         }
         onChanged();
       }
@@ -462,8 +462,8 @@ private static final long serialVersionUID = 0L;
             } // case 10
             case 18: {
               java.lang.String s = input.readStringRequireUtf8();
-              ensureProductIdsIsMutable();
-              productIds_.add(s);
+              ensureSkuIdsIsMutable();
+              skuIds_.add(s);
               break;
             } // case 18
             default: {
@@ -555,112 +555,112 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private com.google.protobuf.LazyStringArrayList productIds_ =
+    private com.google.protobuf.LazyStringArrayList skuIds_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-    private void ensureProductIdsIsMutable() {
-      if (!productIds_.isModifiable()) {
-        productIds_ = new com.google.protobuf.LazyStringArrayList(productIds_);
+    private void ensureSkuIdsIsMutable() {
+      if (!skuIds_.isModifiable()) {
+        skuIds_ = new com.google.protobuf.LazyStringArrayList(skuIds_);
       }
       bitField0_ |= 0x00000002;
     }
     /**
-     * <code>repeated string product_ids = 2 [json_name = "productIds"];</code>
-     * @return A list containing the productIds.
+     * <code>repeated string sku_ids = 2 [json_name = "skuIds"];</code>
+     * @return A list containing the skuIds.
      */
     public com.google.protobuf.ProtocolStringList
-        getProductIdsList() {
-      productIds_.makeImmutable();
-      return productIds_;
+        getSkuIdsList() {
+      skuIds_.makeImmutable();
+      return skuIds_;
     }
     /**
-     * <code>repeated string product_ids = 2 [json_name = "productIds"];</code>
-     * @return The count of productIds.
+     * <code>repeated string sku_ids = 2 [json_name = "skuIds"];</code>
+     * @return The count of skuIds.
      */
-    public int getProductIdsCount() {
-      return productIds_.size();
+    public int getSkuIdsCount() {
+      return skuIds_.size();
     }
     /**
-     * <code>repeated string product_ids = 2 [json_name = "productIds"];</code>
+     * <code>repeated string sku_ids = 2 [json_name = "skuIds"];</code>
      * @param index The index of the element to return.
-     * @return The productIds at the given index.
+     * @return The skuIds at the given index.
      */
-    public java.lang.String getProductIds(int index) {
-      return productIds_.get(index);
+    public java.lang.String getSkuIds(int index) {
+      return skuIds_.get(index);
     }
     /**
-     * <code>repeated string product_ids = 2 [json_name = "productIds"];</code>
+     * <code>repeated string sku_ids = 2 [json_name = "skuIds"];</code>
      * @param index The index of the value to return.
-     * @return The bytes of the productIds at the given index.
+     * @return The bytes of the skuIds at the given index.
      */
     public com.google.protobuf.ByteString
-        getProductIdsBytes(int index) {
-      return productIds_.getByteString(index);
+        getSkuIdsBytes(int index) {
+      return skuIds_.getByteString(index);
     }
     /**
-     * <code>repeated string product_ids = 2 [json_name = "productIds"];</code>
+     * <code>repeated string sku_ids = 2 [json_name = "skuIds"];</code>
      * @param index The index to set the value at.
-     * @param value The productIds to set.
+     * @param value The skuIds to set.
      * @return This builder for chaining.
      */
-    public Builder setProductIds(
+    public Builder setSkuIds(
         int index, java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      ensureProductIdsIsMutable();
-      productIds_.set(index, value);
+      ensureSkuIdsIsMutable();
+      skuIds_.set(index, value);
       bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
     /**
-     * <code>repeated string product_ids = 2 [json_name = "productIds"];</code>
-     * @param value The productIds to add.
+     * <code>repeated string sku_ids = 2 [json_name = "skuIds"];</code>
+     * @param value The skuIds to add.
      * @return This builder for chaining.
      */
-    public Builder addProductIds(
+    public Builder addSkuIds(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      ensureProductIdsIsMutable();
-      productIds_.add(value);
+      ensureSkuIdsIsMutable();
+      skuIds_.add(value);
       bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
     /**
-     * <code>repeated string product_ids = 2 [json_name = "productIds"];</code>
-     * @param values The productIds to add.
+     * <code>repeated string sku_ids = 2 [json_name = "skuIds"];</code>
+     * @param values The skuIds to add.
      * @return This builder for chaining.
      */
-    public Builder addAllProductIds(
+    public Builder addAllSkuIds(
         java.lang.Iterable<java.lang.String> values) {
-      ensureProductIdsIsMutable();
+      ensureSkuIdsIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
-          values, productIds_);
+          values, skuIds_);
       bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
     /**
-     * <code>repeated string product_ids = 2 [json_name = "productIds"];</code>
+     * <code>repeated string sku_ids = 2 [json_name = "skuIds"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearProductIds() {
-      productIds_ =
+    public Builder clearSkuIds() {
+      skuIds_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
       bitField0_ = (bitField0_ & ~0x00000002);;
       onChanged();
       return this;
     }
     /**
-     * <code>repeated string product_ids = 2 [json_name = "productIds"];</code>
-     * @param value The bytes of the productIds to add.
+     * <code>repeated string sku_ids = 2 [json_name = "skuIds"];</code>
+     * @param value The bytes of the skuIds to add.
      * @return This builder for chaining.
      */
-    public Builder addProductIdsBytes(
+    public Builder addSkuIdsBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      ensureProductIdsIsMutable();
-      productIds_.add(value);
+      ensureSkuIdsIsMutable();
+      skuIds_.add(value);
       bitField0_ |= 0x00000002;
       onChanged();
       return this;

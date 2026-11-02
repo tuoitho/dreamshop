@@ -33,16 +33,16 @@ public interface AddItemRequestOrBuilder extends
       getProductIdBytes();
 
   /**
-   * <code>string variant_label = 3 [json_name = "variantLabel"];</code>
-   * @return The variantLabel.
+   * <code>string sku_id = 3 [json_name = "skuId"];</code>
+   * @return The skuId.
    */
-  java.lang.String getVariantLabel();
+  java.lang.String getSkuId();
   /**
-   * <code>string variant_label = 3 [json_name = "variantLabel"];</code>
-   * @return The bytes for variantLabel.
+   * <code>string sku_id = 3 [json_name = "skuId"];</code>
+   * @return The bytes for skuId.
    */
   com.google.protobuf.ByteString
-      getVariantLabelBytes();
+      getSkuIdBytes();
 
   /**
    * <code>int32 quantity = 4 [json_name = "quantity"];</code>

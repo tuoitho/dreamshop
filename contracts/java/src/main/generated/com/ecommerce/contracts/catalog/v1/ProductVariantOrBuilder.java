@@ -9,26 +9,68 @@ public interface ProductVariantOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
-   * <code>string label = 1 [json_name = "label"];</code>
+   * <code>string sku_id = 1 [json_name = "skuId"];</code>
+   * @return The skuId.
+   */
+  java.lang.String getSkuId();
+  /**
+   * <code>string sku_id = 1 [json_name = "skuId"];</code>
+   * @return The bytes for skuId.
+   */
+  com.google.protobuf.ByteString
+      getSkuIdBytes();
+
+  /**
+   * <code>string label = 2 [json_name = "label"];</code>
    * @return The label.
    */
   java.lang.String getLabel();
   /**
-   * <code>string label = 1 [json_name = "label"];</code>
+   * <code>string label = 2 [json_name = "label"];</code>
    * @return The bytes for label.
    */
   com.google.protobuf.ByteString
       getLabelBytes();
 
   /**
-   * <code>string color_hex = 2 [json_name = "colorHex"];</code>
+   * <code>string color_hex = 3 [json_name = "colorHex"];</code>
    * @return The colorHex.
    */
   java.lang.String getColorHex();
   /**
-   * <code>string color_hex = 2 [json_name = "colorHex"];</code>
+   * <code>string color_hex = 3 [json_name = "colorHex"];</code>
    * @return The bytes for colorHex.
    */
   com.google.protobuf.ByteString
       getColorHexBytes();
+
+  /**
+   * <code>.ecommerce.common.v1.Money price = 4 [json_name = "price"];</code>
+   * @return Whether the price field is set.
+   */
+  boolean hasPrice();
+  /**
+   * <code>.ecommerce.common.v1.Money price = 4 [json_name = "price"];</code>
+   * @return The price.
+   */
+  com.ecommerce.contracts.common.v1.Money getPrice();
+  /**
+   * <code>.ecommerce.common.v1.Money price = 4 [json_name = "price"];</code>
+   */
+  com.ecommerce.contracts.common.v1.MoneyOrBuilder getPriceOrBuilder();
+
+  /**
+   * <code>.ecommerce.common.v1.Money original_price = 5 [json_name = "originalPrice"];</code>
+   * @return Whether the originalPrice field is set.
+   */
+  boolean hasOriginalPrice();
+  /**
+   * <code>.ecommerce.common.v1.Money original_price = 5 [json_name = "originalPrice"];</code>
+   * @return The originalPrice.
+   */
+  com.ecommerce.contracts.common.v1.Money getOriginalPrice();
+  /**
+   * <code>.ecommerce.common.v1.Money original_price = 5 [json_name = "originalPrice"];</code>
+   */
+  com.ecommerce.contracts.common.v1.MoneyOrBuilder getOriginalPriceOrBuilder();
 }

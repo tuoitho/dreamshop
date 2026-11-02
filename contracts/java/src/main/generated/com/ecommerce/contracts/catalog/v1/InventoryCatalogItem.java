@@ -25,6 +25,7 @@ private static final long serialVersionUID = 0L;
     imageUrl_ = "";
     emoji_ = "";
     imageHue_ = emptyIntList();
+    variants_ = java.util.Collections.emptyList();
   }
 
   @java.lang.Override
@@ -361,6 +362,47 @@ private static final long serialVersionUID = 0L;
     return deleted_;
   }
 
+  public static final int VARIANTS_FIELD_NUMBER = 10;
+  @SuppressWarnings("serial")
+  private java.util.List<com.ecommerce.contracts.catalog.v1.ProductVariant> variants_;
+  /**
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<com.ecommerce.contracts.catalog.v1.ProductVariant> getVariantsList() {
+    return variants_;
+  }
+  /**
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends com.ecommerce.contracts.catalog.v1.ProductVariantOrBuilder> 
+      getVariantsOrBuilderList() {
+    return variants_;
+  }
+  /**
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+   */
+  @java.lang.Override
+  public int getVariantsCount() {
+    return variants_.size();
+  }
+  /**
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+   */
+  @java.lang.Override
+  public com.ecommerce.contracts.catalog.v1.ProductVariant getVariants(int index) {
+    return variants_.get(index);
+  }
+  /**
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+   */
+  @java.lang.Override
+  public com.ecommerce.contracts.catalog.v1.ProductVariantOrBuilder getVariantsOrBuilder(
+      int index) {
+    return variants_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -406,6 +448,9 @@ private static final long serialVersionUID = 0L;
     }
     if (deleted_ != false) {
       output.writeBool(9, deleted_);
+    }
+    for (int i = 0; i < variants_.size(); i++) {
+      output.writeMessage(10, variants_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -455,6 +500,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(9, deleted_);
     }
+    for (int i = 0; i < variants_.size(); i++) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(10, variants_.get(i));
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -488,6 +537,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getImageHueList())) return false;
     if (getDeleted()
         != other.getDeleted()) return false;
+    if (!getVariantsList()
+        .equals(other.getVariantsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -520,6 +571,10 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + DELETED_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getDeleted());
+    if (getVariantsCount() > 0) {
+      hash = (37 * hash) + VARIANTS_FIELD_NUMBER;
+      hash = (53 * hash) + getVariantsList().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -660,6 +715,13 @@ private static final long serialVersionUID = 0L;
       emoji_ = "";
       imageHue_ = emptyIntList();
       deleted_ = false;
+      if (variantsBuilder_ == null) {
+        variants_ = java.util.Collections.emptyList();
+      } else {
+        variants_ = null;
+        variantsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000200);
       return this;
     }
 
@@ -686,9 +748,22 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public com.ecommerce.contracts.catalog.v1.InventoryCatalogItem buildPartial() {
       com.ecommerce.contracts.catalog.v1.InventoryCatalogItem result = new com.ecommerce.contracts.catalog.v1.InventoryCatalogItem(this);
+      buildPartialRepeatedFields(result);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
+    }
+
+    private void buildPartialRepeatedFields(com.ecommerce.contracts.catalog.v1.InventoryCatalogItem result) {
+      if (variantsBuilder_ == null) {
+        if (((bitField0_ & 0x00000200) != 0)) {
+          variants_ = java.util.Collections.unmodifiableList(variants_);
+          bitField0_ = (bitField0_ & ~0x00000200);
+        }
+        result.variants_ = variants_;
+      } else {
+        result.variants_ = variantsBuilder_.build();
+      }
     }
 
     private void buildPartial0(com.ecommerce.contracts.catalog.v1.InventoryCatalogItem result) {
@@ -816,6 +891,32 @@ private static final long serialVersionUID = 0L;
       if (other.getDeleted() != false) {
         setDeleted(other.getDeleted());
       }
+      if (variantsBuilder_ == null) {
+        if (!other.variants_.isEmpty()) {
+          if (variants_.isEmpty()) {
+            variants_ = other.variants_;
+            bitField0_ = (bitField0_ & ~0x00000200);
+          } else {
+            ensureVariantsIsMutable();
+            variants_.addAll(other.variants_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.variants_.isEmpty()) {
+          if (variantsBuilder_.isEmpty()) {
+            variantsBuilder_.dispose();
+            variantsBuilder_ = null;
+            variants_ = other.variants_;
+            bitField0_ = (bitField0_ & ~0x00000200);
+            variantsBuilder_ = 
+              com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                 getVariantsFieldBuilder() : null;
+          } else {
+            variantsBuilder_.addAllMessages(other.variants_);
+          }
+        }
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -898,6 +999,19 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000100;
               break;
             } // case 72
+            case 82: {
+              com.ecommerce.contracts.catalog.v1.ProductVariant m =
+                  input.readMessage(
+                      com.ecommerce.contracts.catalog.v1.ProductVariant.parser(),
+                      extensionRegistry);
+              if (variantsBuilder_ == null) {
+                ensureVariantsIsMutable();
+                variants_.add(m);
+              } else {
+                variantsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 82
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1533,6 +1647,246 @@ private static final long serialVersionUID = 0L;
       deleted_ = false;
       onChanged();
       return this;
+    }
+
+    private java.util.List<com.ecommerce.contracts.catalog.v1.ProductVariant> variants_ =
+      java.util.Collections.emptyList();
+    private void ensureVariantsIsMutable() {
+      if (!((bitField0_ & 0x00000200) != 0)) {
+        variants_ = new java.util.ArrayList<com.ecommerce.contracts.catalog.v1.ProductVariant>(variants_);
+        bitField0_ |= 0x00000200;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilderV3<
+        com.ecommerce.contracts.catalog.v1.ProductVariant, com.ecommerce.contracts.catalog.v1.ProductVariant.Builder, com.ecommerce.contracts.catalog.v1.ProductVariantOrBuilder> variantsBuilder_;
+
+    /**
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+     */
+    public java.util.List<com.ecommerce.contracts.catalog.v1.ProductVariant> getVariantsList() {
+      if (variantsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(variants_);
+      } else {
+        return variantsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+     */
+    public int getVariantsCount() {
+      if (variantsBuilder_ == null) {
+        return variants_.size();
+      } else {
+        return variantsBuilder_.getCount();
+      }
+    }
+    /**
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+     */
+    public com.ecommerce.contracts.catalog.v1.ProductVariant getVariants(int index) {
+      if (variantsBuilder_ == null) {
+        return variants_.get(index);
+      } else {
+        return variantsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+     */
+    public Builder setVariants(
+        int index, com.ecommerce.contracts.catalog.v1.ProductVariant value) {
+      if (variantsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureVariantsIsMutable();
+        variants_.set(index, value);
+        onChanged();
+      } else {
+        variantsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+     */
+    public Builder setVariants(
+        int index, com.ecommerce.contracts.catalog.v1.ProductVariant.Builder builderForValue) {
+      if (variantsBuilder_ == null) {
+        ensureVariantsIsMutable();
+        variants_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        variantsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+     */
+    public Builder addVariants(com.ecommerce.contracts.catalog.v1.ProductVariant value) {
+      if (variantsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureVariantsIsMutable();
+        variants_.add(value);
+        onChanged();
+      } else {
+        variantsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+     */
+    public Builder addVariants(
+        int index, com.ecommerce.contracts.catalog.v1.ProductVariant value) {
+      if (variantsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureVariantsIsMutable();
+        variants_.add(index, value);
+        onChanged();
+      } else {
+        variantsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+     */
+    public Builder addVariants(
+        com.ecommerce.contracts.catalog.v1.ProductVariant.Builder builderForValue) {
+      if (variantsBuilder_ == null) {
+        ensureVariantsIsMutable();
+        variants_.add(builderForValue.build());
+        onChanged();
+      } else {
+        variantsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+     */
+    public Builder addVariants(
+        int index, com.ecommerce.contracts.catalog.v1.ProductVariant.Builder builderForValue) {
+      if (variantsBuilder_ == null) {
+        ensureVariantsIsMutable();
+        variants_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        variantsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+     */
+    public Builder addAllVariants(
+        java.lang.Iterable<? extends com.ecommerce.contracts.catalog.v1.ProductVariant> values) {
+      if (variantsBuilder_ == null) {
+        ensureVariantsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, variants_);
+        onChanged();
+      } else {
+        variantsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+     */
+    public Builder clearVariants() {
+      if (variantsBuilder_ == null) {
+        variants_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000200);
+        onChanged();
+      } else {
+        variantsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+     */
+    public Builder removeVariants(int index) {
+      if (variantsBuilder_ == null) {
+        ensureVariantsIsMutable();
+        variants_.remove(index);
+        onChanged();
+      } else {
+        variantsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+     */
+    public com.ecommerce.contracts.catalog.v1.ProductVariant.Builder getVariantsBuilder(
+        int index) {
+      return getVariantsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+     */
+    public com.ecommerce.contracts.catalog.v1.ProductVariantOrBuilder getVariantsOrBuilder(
+        int index) {
+      if (variantsBuilder_ == null) {
+        return variants_.get(index);  } else {
+        return variantsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+     */
+    public java.util.List<? extends com.ecommerce.contracts.catalog.v1.ProductVariantOrBuilder> 
+         getVariantsOrBuilderList() {
+      if (variantsBuilder_ != null) {
+        return variantsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(variants_);
+      }
+    }
+    /**
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+     */
+    public com.ecommerce.contracts.catalog.v1.ProductVariant.Builder addVariantsBuilder() {
+      return getVariantsFieldBuilder().addBuilder(
+          com.ecommerce.contracts.catalog.v1.ProductVariant.getDefaultInstance());
+    }
+    /**
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+     */
+    public com.ecommerce.contracts.catalog.v1.ProductVariant.Builder addVariantsBuilder(
+        int index) {
+      return getVariantsFieldBuilder().addBuilder(
+          index, com.ecommerce.contracts.catalog.v1.ProductVariant.getDefaultInstance());
+    }
+    /**
+     * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+     */
+    public java.util.List<com.ecommerce.contracts.catalog.v1.ProductVariant.Builder> 
+         getVariantsBuilderList() {
+      return getVariantsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilderV3<
+        com.ecommerce.contracts.catalog.v1.ProductVariant, com.ecommerce.contracts.catalog.v1.ProductVariant.Builder, com.ecommerce.contracts.catalog.v1.ProductVariantOrBuilder> 
+        getVariantsFieldBuilder() {
+      if (variantsBuilder_ == null) {
+        variantsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+            com.ecommerce.contracts.catalog.v1.ProductVariant, com.ecommerce.contracts.catalog.v1.ProductVariant.Builder, com.ecommerce.contracts.catalog.v1.ProductVariantOrBuilder>(
+                variants_,
+                ((bitField0_ & 0x00000200) != 0),
+                getParentForChildren(),
+                isClean());
+        variants_ = null;
+      }
+      return variantsBuilder_;
     }
     @java.lang.Override
     public final Builder setUnknownFields(

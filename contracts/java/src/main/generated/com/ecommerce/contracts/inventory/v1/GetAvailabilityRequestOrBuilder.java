@@ -9,14 +9,14 @@ public interface GetAvailabilityRequestOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
-   * <code>string product_id = 1 [json_name = "productId"];</code>
-   * @return The productId.
+   * <code>string sku_id = 1 [json_name = "skuId"];</code>
+   * @return The skuId.
    */
-  java.lang.String getProductId();
+  java.lang.String getSkuId();
   /**
-   * <code>string product_id = 1 [json_name = "productId"];</code>
-   * @return The bytes for productId.
+   * <code>string sku_id = 1 [json_name = "skuId"];</code>
+   * @return The bytes for skuId.
    */
   com.google.protobuf.ByteString
-      getProductIdBytes();
+      getSkuIdBytes();
 }

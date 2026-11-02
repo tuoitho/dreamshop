@@ -297,4 +297,19 @@ public interface GetProductResponseOrBuilder extends
    */
   com.google.protobuf.ByteString
       getVideosBytes(int index);
+
+  /**
+   * <code>.ecommerce.common.v1.Money max_price = 23 [json_name = "maxPrice"];</code>
+   * @return Whether the maxPrice field is set.
+   */
+  boolean hasMaxPrice();
+  /**
+   * <code>.ecommerce.common.v1.Money max_price = 23 [json_name = "maxPrice"];</code>
+   * @return The maxPrice.
+   */
+  com.ecommerce.contracts.common.v1.Money getMaxPrice();
+  /**
+   * <code>.ecommerce.common.v1.Money max_price = 23 [json_name = "maxPrice"];</code>
+   */
+  com.ecommerce.contracts.common.v1.MoneyOrBuilder getMaxPriceOrBuilder();
 }

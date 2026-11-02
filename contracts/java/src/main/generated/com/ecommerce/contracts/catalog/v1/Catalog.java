@@ -141,7 +141,7 @@ public final class Catalog {
     java.lang.String[] descriptorData = {
       "\n\030catalog/v1/catalog.proto\022\024ecommerce.ca" +
       "talog.v1\032\026common/v1/common.proto\"#\n\021GetP" +
-      "roductRequest\022\016\n\002id\030\001 \001(\tR\002id\"\324\005\n\022GetPro" +
+      "roductRequest\022\016\n\002id\030\001 \001(\tR\002id\"\215\006\n\022GetPro" +
       "ductResponse\022\016\n\002id\030\001 \001(\tR\002id\022\022\n\004name\030\002 \001" +
       "(\tR\004name\022 \n\013description\030\003 \001(\tR\013descripti" +
       "on\0220\n\005price\030\004 \001(\0132\032.ecommerce.common.v1." +
@@ -159,26 +159,33 @@ public final class Catalog {
       " \003(\rR\010imageHue\022@\n\010variants\030\023 \003(\0132$.ecomm" +
       "erce.catalog.v1.ProductVariantR\010variants" +
       "\022\030\n\007details\030\024 \003(\tR\007details\022\030\n\007deleted\030\025 " +
-      "\001(\010R\007deleted\022\026\n\006videos\030\026 \003(\tR\006videos\"C\n\016" +
-      "ProductVariant\022\024\n\005label\030\001 \001(\tR\005label\022\033\n\t" +
-      "color_hex\030\002 \001(\tR\010colorHex\"]\n\030SoftDeleteP" +
-      "roductRequest\022\016\n\002id\030\001 \001(\tR\002id\022\030\n\007deleted" +
-      "\030\002 \001(\010R\007deleted\022\027\n\007user_id\030\003 \001(\tR\006userId" +
-      "\"E\n\031SoftDeleteProductResponse\022\016\n\002id\030\001 \001(" +
-      "\tR\002id\022\030\n\007deleted\030\002 \001(\010R\007deleted\"\363\003\n\016Prod" +
-      "uctSummary\022\016\n\002id\030\001 \001(\tR\002id\022\022\n\004name\030\002 \001(\t" +
-      "R\004name\022\024\n\005brand\030\003 \001(\tR\005brand\022\037\n\013category" +
-      "_id\030\004 \001(\tR\ncategoryId\022#\n\rcategory_name\030\005" +
-      " \001(\tR\014categoryName\0220\n\005price\030\006 \001(\0132\032.ecom" +
-      "merce.common.v1.MoneyR\005price\022A\n\016original" +
-      "_price\030\007 \001(\0132\032.ecommerce.common.v1.Money" +
-      "R\roriginalPrice\022\026\n\006images\030\010 \003(\tR\006images\022" +
-      "\026\n\006rating\030\t \001(\001R\006rating\022!\n\014review_count\030" +
-      "\n \001(\003R\013reviewCount\022\035\n\nsold_count\030\013 \001(\003R\t" +
-      "soldCount\022\025\n\006is_new\030\014 \001(\010R\005isNew\022\024\n\005badg" +
-      "e\030\r \001(\tR\005badge\022\032\n\010featured\030\016 \001(\010R\010featur" +
-      "ed\022\024\n\005emoji\030\017 \001(\tR\005emoji\022\033\n\timage_hue\030\020 " +
-      "\003(\rR\010imageHue\"\205\002\n\025SearchProductsRequest\022" +
+      "\001(\010R\007deleted\022\026\n\006videos\030\026 \003(\tR\006videos\0227\n\t" +
+      "max_price\030\027 \001(\0132\032.ecommerce.common.v1.Mo" +
+      "neyR\010maxPrice\"\317\001\n\016ProductVariant\022\025\n\006sku_" +
+      "id\030\001 \001(\tR\005skuId\022\024\n\005label\030\002 \001(\tR\005label\022\033\n" +
+      "\tcolor_hex\030\003 \001(\tR\010colorHex\0220\n\005price\030\004 \001(" +
+      "\0132\032.ecommerce.common.v1.MoneyR\005price\022A\n\016" +
+      "original_price\030\005 \001(\0132\032.ecommerce.common." +
+      "v1.MoneyR\roriginalPrice\"]\n\030SoftDeletePro" +
+      "ductRequest\022\016\n\002id\030\001 \001(\tR\002id\022\030\n\007deleted\030\002" +
+      " \001(\010R\007deleted\022\027\n\007user_id\030\003 \001(\tR\006userId\"E" +
+      "\n\031SoftDeleteProductResponse\022\016\n\002id\030\001 \001(\tR" +
+      "\002id\022\030\n\007deleted\030\002 \001(\010R\007deleted\"\305\004\n\016Produc" +
+      "tSummary\022\016\n\002id\030\001 \001(\tR\002id\022\022\n\004name\030\002 \001(\tR\004" +
+      "name\022\024\n\005brand\030\003 \001(\tR\005brand\022\037\n\013category_i" +
+      "d\030\004 \001(\tR\ncategoryId\022#\n\rcategory_name\030\005 \001" +
+      "(\tR\014categoryName\0220\n\005price\030\006 \001(\0132\032.ecomme" +
+      "rce.common.v1.MoneyR\005price\022A\n\016original_p" +
+      "rice\030\007 \001(\0132\032.ecommerce.common.v1.MoneyR\r" +
+      "originalPrice\022\026\n\006images\030\010 \003(\tR\006images\022\026\n" +
+      "\006rating\030\t \001(\001R\006rating\022!\n\014review_count\030\n " +
+      "\001(\003R\013reviewCount\022\035\n\nsold_count\030\013 \001(\003R\tso" +
+      "ldCount\022\025\n\006is_new\030\014 \001(\010R\005isNew\022\024\n\005badge\030" +
+      "\r \001(\tR\005badge\022\032\n\010featured\030\016 \001(\010R\010featured" +
+      "\022\024\n\005emoji\030\017 \001(\tR\005emoji\022\033\n\timage_hue\030\020 \003(" +
+      "\rR\010imageHue\0227\n\tmax_price\030\021 \001(\0132\032.ecommer" +
+      "ce.common.v1.MoneyR\010maxPrice\022\027\n\007sku_ids\030" +
+      "\022 \003(\tR\006skuIds\"\205\002\n\025SearchProductsRequest\022" +
       "\024\n\005query\030\001 \001(\tR\005query\022\037\n\013category_id\030\002 \001" +
       "(\tR\ncategoryId\022\022\n\004sort\030\003 \001(\tR\004sort\022\033\n\tpr" +
       "ice_min\030\004 \001(\003R\010priceMin\022\033\n\tprice_max\030\005 \001" +
@@ -190,7 +197,7 @@ public final class Catalog {
       "tems\022\022\n\004page\030\002 \001(\005R\004page\022\033\n\tpage_size\030\003 " +
       "\001(\005R\010pageSize\022\037\n\013total_items\030\004 \001(\003R\ntota" +
       "lItems\022\037\n\013total_pages\030\005 \001(\005R\ntotalPages\"" +
-      "\226\005\n\023AdminProductSummary\022\016\n\002id\030\001 \001(\tR\002id\022" +
+      "\350\005\n\023AdminProductSummary\022\016\n\002id\030\001 \001(\tR\002id\022" +
       "\022\n\004name\030\002 \001(\tR\004name\022\024\n\005brand\030\003 \001(\tR\005bran" +
       "d\022\037\n\013category_id\030\004 \001(\tR\ncategoryId\022#\n\rca" +
       "tegory_name\030\005 \001(\tR\014categoryName\0220\n\005price" +
@@ -206,117 +213,115 @@ public final class Catalog {
       "\001(\010R\007deleted\022#\n\rvariant_count\030\022 \001(\005R\014var" +
       "iantCount\022\035\n\ncreated_at\030\023 \001(\tR\tcreatedAt" +
       "\022\035\n\nupdated_at\030\024 \001(\tR\tupdatedAt\022\037\n\013video" +
-      "_count\030\025 \001(\005R\nvideoCount\"\210\001\n\016CategoryMet" +
-      "ric\022\037\n\013category_id\030\001 \001(\tR\ncategoryId\022#\n\r" +
-      "category_name\030\002 \001(\tR\014categoryName\0220\n\024act" +
-      "ive_product_count\030\003 \001(\003R\022activeProductCo" +
-      "unt\"\200\002\n\024InventoryCatalogItem\022\016\n\002id\030\001 \001(\t" +
-      "R\002id\022\022\n\004name\030\002 \001(\tR\004name\022\024\n\005brand\030\003 \001(\tR" +
-      "\005brand\022\037\n\013category_id\030\004 \001(\tR\ncategoryId\022" +
-      "#\n\rcategory_name\030\005 \001(\tR\014categoryName\022\033\n\t" +
-      "image_url\030\006 \001(\tR\010imageUrl\022\024\n\005emoji\030\007 \001(\t" +
-      "R\005emoji\022\033\n\timage_hue\030\010 \003(\rR\010imageHue\022\030\n\007" +
-      "deleted\030\t \001(\010R\007deleted\"\307\001\n\030ListAdminProd" +
-      "uctsRequest\022\027\n\007user_id\030\001 \001(\tR\006userId\022\024\n\005" +
-      "query\030\002 \001(\tR\005query\022\037\n\013category_id\030\003 \001(\tR" +
-      "\ncategoryId\022\026\n\006status\030\004 \001(\tR\006status\022\022\n\004s" +
-      "ort\030\005 \001(\tR\004sort\022\022\n\004page\030\006 \001(\005R\004page\022\033\n\tp" +
-      "age_size\030\007 \001(\005R\010pageSize\"\335\002\n\031ListAdminPr" +
-      "oductsResponse\022?\n\005items\030\001 \003(\0132).ecommerc" +
-      "e.catalog.v1.AdminProductSummaryR\005items\022" +
-      "\022\n\004page\030\002 \001(\005R\004page\022\033\n\tpage_size\030\003 \001(\005R\010" +
-      "pageSize\022\037\n\013total_items\030\004 \001(\003R\ntotalItem" +
-      "s\022\037\n\013total_pages\030\005 \001(\005R\ntotalPages\022!\n\014ac" +
-      "tive_count\030\006 \001(\003R\013activeCount\022#\n\rdeleted" +
-      "_count\030\007 \001(\003R\014deletedCount\022D\n\ncategories" +
-      "\030\010 \003(\0132$.ecommerce.catalog.v1.CategoryMe" +
-      "tricR\ncategories\"\233\001\n ListInventoryCatalo" +
-      "gItemsRequest\022\027\n\007user_id\030\001 \001(\tR\006userId\022\024" +
-      "\n\005query\030\002 \001(\tR\005query\022\037\n\013category_id\030\003 \001(" +
-      "\tR\ncategoryId\022\'\n\017include_deleted\030\004 \001(\010R\016" +
-      "includeDeleted\"e\n!ListInventoryCatalogIt" +
-      "emsResponse\022@\n\005items\030\001 \003(\0132*.ecommerce.c" +
-      "atalog.v1.InventoryCatalogItemR\005items\"A\n" +
-      "\026GetAdminProductRequest\022\016\n\002id\030\001 \001(\tR\002id\022" +
-      "\027\n\007user_id\030\002 \001(\tR\006userId\"]\n\027GetAdminProd" +
-      "uctResponse\022B\n\007product\030\001 \001(\0132(.ecommerce" +
-      ".catalog.v1.GetProductResponseR\007product\"" +
-      "[\n\025CreateProductResponse\022B\n\007product\030\001 \001(" +
-      "\0132(.ecommerce.catalog.v1.GetProductRespo" +
-      "nseR\007product\"[\n\025UpdateProductResponse\022B\n" +
-      "\007product\030\001 \001(\0132(.ecommerce.catalog.v1.Ge" +
-      "tProductResponseR\007product\"\230\001\n\037CreateProd" +
-      "uctMediaUploadRequest\022\027\n\007user_id\030\001 \001(\tR\006" +
-      "userId\022\032\n\010filename\030\002 \001(\tR\010filename\022!\n\014co" +
-      "ntent_type\030\003 \001(\tR\013contentType\022\035\n\nsize_by" +
-      "tes\030\004 \001(\003R\tsizeBytes\"\351\001\n CreateProductMe" +
-      "diaUploadResponse\022\033\n\tupload_id\030\001 \001(\tR\010up" +
-      "loadId\022\035\n\nmedia_type\030\002 \001(\tR\tmediaType\022\035\n" +
-      "\nupload_url\030\003 \001(\tR\tuploadUrl\022\035\n\npublic_u" +
-      "rl\030\004 \001(\tR\tpublicUrl\022\035\n\nobject_key\030\005 \001(\tR" +
-      "\tobjectKey\022,\n\022expires_in_seconds\030\006 \001(\005R\020" +
-      "expiresInSeconds\"\373\004\n\024CreateProductReques" +
-      "t\022\027\n\007user_id\030\001 \001(\tR\006userId\022\016\n\002id\030\002 \001(\tR\002" +
-      "id\022\022\n\004name\030\003 \001(\tR\004name\022+\n\021short_descript" +
-      "ion\030\004 \001(\tR\020shortDescription\022 \n\013descripti" +
-      "on\030\005 \001(\tR\013description\022\024\n\005brand\030\006 \001(\tR\005br" +
-      "and\022\037\n\013category_id\030\007 \001(\tR\ncategoryId\022#\n\r" +
-      "category_name\030\010 \001(\tR\014categoryName\0220\n\005pri" +
-      "ce\030\t \001(\0132\032.ecommerce.common.v1.MoneyR\005pr" +
-      "ice\022A\n\016original_price\030\n \001(\0132\032.ecommerce." +
-      "common.v1.MoneyR\roriginalPrice\022\026\n\006images" +
-      "\030\013 \003(\tR\006images\022\025\n\006is_new\030\014 \001(\010R\005isNew\022\024\n" +
-      "\005badge\030\r \001(\tR\005badge\022\032\n\010featured\030\016 \001(\010R\010f" +
-      "eatured\022\024\n\005emoji\030\017 \001(\tR\005emoji\022\033\n\timage_h" +
-      "ue\030\020 \003(\rR\010imageHue\022@\n\010variants\030\021 \003(\0132$.e" +
-      "commerce.catalog.v1.ProductVariantR\010vari" +
-      "ants\022\030\n\007details\030\022 \003(\tR\007details\022\026\n\006videos" +
-      "\030\023 \003(\tR\006videos\"\373\004\n\024UpdateProductRequest\022" +
-      "\027\n\007user_id\030\001 \001(\tR\006userId\022\016\n\002id\030\002 \001(\tR\002id" +
-      "\022\022\n\004name\030\003 \001(\tR\004name\022+\n\021short_descriptio" +
-      "n\030\004 \001(\tR\020shortDescription\022 \n\013description" +
-      "\030\005 \001(\tR\013description\022\024\n\005brand\030\006 \001(\tR\005bran" +
-      "d\022\037\n\013category_id\030\007 \001(\tR\ncategoryId\022#\n\rca" +
-      "tegory_name\030\010 \001(\tR\014categoryName\0220\n\005price" +
-      "\030\t \001(\0132\032.ecommerce.common.v1.MoneyR\005pric" +
-      "e\022A\n\016original_price\030\n \001(\0132\032.ecommerce.co" +
-      "mmon.v1.MoneyR\roriginalPrice\022\026\n\006images\030\013" +
-      " \003(\tR\006images\022\025\n\006is_new\030\014 \001(\010R\005isNew\022\024\n\005b" +
-      "adge\030\r \001(\tR\005badge\022\032\n\010featured\030\016 \001(\010R\010fea" +
-      "tured\022\024\n\005emoji\030\017 \001(\tR\005emoji\022\033\n\timage_hue" +
-      "\030\020 \003(\rR\010imageHue\022@\n\010variants\030\021 \003(\0132$.eco" +
-      "mmerce.catalog.v1.ProductVariantR\010varian" +
-      "ts\022\030\n\007details\030\022 \003(\tR\007details\022\026\n\006videos\030\023" +
-      " \003(\tR\006videos2\251\010\n\016CatalogService\022_\n\nGetPr" +
-      "oduct\022\'.ecommerce.catalog.v1.GetProductR" +
-      "equest\032(.ecommerce.catalog.v1.GetProduct" +
-      "Response\022k\n\016SearchProducts\022+.ecommerce.c" +
-      "atalog.v1.SearchProductsRequest\032,.ecomme" +
-      "rce.catalog.v1.SearchProductsResponse\022t\n" +
-      "\021SoftDeleteProduct\022..ecommerce.catalog.v" +
-      "1.SoftDeleteProductRequest\032/.ecommerce.c" +
-      "atalog.v1.SoftDeleteProductResponse\022t\n\021L" +
-      "istAdminProducts\022..ecommerce.catalog.v1." +
-      "ListAdminProductsRequest\032/.ecommerce.cat" +
-      "alog.v1.ListAdminProductsResponse\022\214\001\n\031Li" +
-      "stInventoryCatalogItems\0226.ecommerce.cata" +
-      "log.v1.ListInventoryCatalogItemsRequest\032" +
-      "7.ecommerce.catalog.v1.ListInventoryCata" +
-      "logItemsResponse\022n\n\017GetAdminProduct\022,.ec" +
-      "ommerce.catalog.v1.GetAdminProductReques" +
-      "t\032-.ecommerce.catalog.v1.GetAdminProduct" +
-      "Response\022h\n\rCreateProduct\022*.ecommerce.ca" +
-      "talog.v1.CreateProductRequest\032+.ecommerc" +
-      "e.catalog.v1.CreateProductResponse\022h\n\rUp" +
-      "dateProduct\022*.ecommerce.catalog.v1.Updat" +
-      "eProductRequest\032+.ecommerce.catalog.v1.U" +
-      "pdateProductResponse\022\211\001\n\030CreateProductMe" +
-      "diaUpload\0225.ecommerce.catalog.v1.CreateP" +
-      "roductMediaUploadRequest\0326.ecommerce.cat" +
-      "alog.v1.CreateProductMediaUploadResponse" +
-      "BY\n\"com.ecommerce.contracts.catalog.v1P\001" +
-      "Z1ecommerce.local/contracts/go/catalog/v" +
-      "1;catalogv1b\006proto3"
+      "_count\030\025 \001(\005R\nvideoCount\0227\n\tmax_price\030\026 " +
+      "\001(\0132\032.ecommerce.common.v1.MoneyR\010maxPric" +
+      "e\022\027\n\007sku_ids\030\027 \003(\tR\006skuIds\"\210\001\n\016CategoryM" +
+      "etric\022\037\n\013category_id\030\001 \001(\tR\ncategoryId\022#" +
+      "\n\rcategory_name\030\002 \001(\tR\014categoryName\0220\n\024a" +
+      "ctive_product_count\030\003 \001(\003R\022activeProduct" +
+      "Count\"\302\002\n\024InventoryCatalogItem\022\016\n\002id\030\001 \001" +
+      "(\tR\002id\022\022\n\004name\030\002 \001(\tR\004name\022\024\n\005brand\030\003 \001(" +
+      "\tR\005brand\022\037\n\013category_id\030\004 \001(\tR\ncategoryI" +
+      "d\022#\n\rcategory_name\030\005 \001(\tR\014categoryName\022\033" +
+      "\n\timage_url\030\006 \001(\tR\010imageUrl\022\024\n\005emoji\030\007 \001" +
+      "(\tR\005emoji\022\033\n\timage_hue\030\010 \003(\rR\010imageHue\022\030" +
+      "\n\007deleted\030\t \001(\010R\007deleted\022@\n\010variants\030\n \003" +
+      "(\0132$.ecommerce.catalog.v1.ProductVariant" +
+      "R\010variants\"\307\001\n\030ListAdminProductsRequest\022" +
+      "\027\n\007user_id\030\001 \001(\tR\006userId\022\024\n\005query\030\002 \001(\tR" +
+      "\005query\022\037\n\013category_id\030\003 \001(\tR\ncategoryId\022" +
+      "\026\n\006status\030\004 \001(\tR\006status\022\022\n\004sort\030\005 \001(\tR\004s" +
+      "ort\022\022\n\004page\030\006 \001(\005R\004page\022\033\n\tpage_size\030\007 \001" +
+      "(\005R\010pageSize\"\335\002\n\031ListAdminProductsRespon" +
+      "se\022?\n\005items\030\001 \003(\0132).ecommerce.catalog.v1" +
+      ".AdminProductSummaryR\005items\022\022\n\004page\030\002 \001(" +
+      "\005R\004page\022\033\n\tpage_size\030\003 \001(\005R\010pageSize\022\037\n\013" +
+      "total_items\030\004 \001(\003R\ntotalItems\022\037\n\013total_p" +
+      "ages\030\005 \001(\005R\ntotalPages\022!\n\014active_count\030\006" +
+      " \001(\003R\013activeCount\022#\n\rdeleted_count\030\007 \001(\003" +
+      "R\014deletedCount\022D\n\ncategories\030\010 \003(\0132$.eco" +
+      "mmerce.catalog.v1.CategoryMetricR\ncatego" +
+      "ries\"\233\001\n ListInventoryCatalogItemsReques" +
+      "t\022\027\n\007user_id\030\001 \001(\tR\006userId\022\024\n\005query\030\002 \001(" +
+      "\tR\005query\022\037\n\013category_id\030\003 \001(\tR\ncategoryI" +
+      "d\022\'\n\017include_deleted\030\004 \001(\010R\016includeDelet" +
+      "ed\"e\n!ListInventoryCatalogItemsResponse\022" +
+      "@\n\005items\030\001 \003(\0132*.ecommerce.catalog.v1.In" +
+      "ventoryCatalogItemR\005items\"A\n\026GetAdminPro" +
+      "ductRequest\022\016\n\002id\030\001 \001(\tR\002id\022\027\n\007user_id\030\002" +
+      " \001(\tR\006userId\"]\n\027GetAdminProductResponse\022" +
+      "B\n\007product\030\001 \001(\0132(.ecommerce.catalog.v1." +
+      "GetProductResponseR\007product\"[\n\025CreatePro" +
+      "ductResponse\022B\n\007product\030\001 \001(\0132(.ecommerc" +
+      "e.catalog.v1.GetProductResponseR\007product" +
+      "\"[\n\025UpdateProductResponse\022B\n\007product\030\001 \001" +
+      "(\0132(.ecommerce.catalog.v1.GetProductResp" +
+      "onseR\007product\"\230\001\n\037CreateProductMediaUplo" +
+      "adRequest\022\027\n\007user_id\030\001 \001(\tR\006userId\022\032\n\010fi" +
+      "lename\030\002 \001(\tR\010filename\022!\n\014content_type\030\003" +
+      " \001(\tR\013contentType\022\035\n\nsize_bytes\030\004 \001(\003R\ts" +
+      "izeBytes\"\351\001\n CreateProductMediaUploadRes" +
+      "ponse\022\033\n\tupload_id\030\001 \001(\tR\010uploadId\022\035\n\nme" +
+      "dia_type\030\002 \001(\tR\tmediaType\022\035\n\nupload_url\030" +
+      "\003 \001(\tR\tuploadUrl\022\035\n\npublic_url\030\004 \001(\tR\tpu" +
+      "blicUrl\022\035\n\nobject_key\030\005 \001(\tR\tobjectKey\022," +
+      "\n\022expires_in_seconds\030\006 \001(\005R\020expiresInSec" +
+      "onds\"\206\004\n\024CreateProductRequest\022\027\n\007user_id" +
+      "\030\001 \001(\tR\006userId\022\016\n\002id\030\002 \001(\tR\002id\022\022\n\004name\030\003" +
+      " \001(\tR\004name\022+\n\021short_description\030\004 \001(\tR\020s" +
+      "hortDescription\022 \n\013description\030\005 \001(\tR\013de" +
+      "scription\022\024\n\005brand\030\006 \001(\tR\005brand\022\037\n\013categ" +
+      "ory_id\030\007 \001(\tR\ncategoryId\022#\n\rcategory_nam" +
+      "e\030\010 \001(\tR\014categoryName\022\026\n\006images\030\t \003(\tR\006i" +
+      "mages\022\025\n\006is_new\030\n \001(\010R\005isNew\022\024\n\005badge\030\013 " +
+      "\001(\tR\005badge\022\032\n\010featured\030\014 \001(\010R\010featured\022\024" +
+      "\n\005emoji\030\r \001(\tR\005emoji\022\033\n\timage_hue\030\016 \003(\rR" +
+      "\010imageHue\022@\n\010variants\030\017 \003(\0132$.ecommerce." +
+      "catalog.v1.ProductVariantR\010variants\022\030\n\007d" +
+      "etails\030\020 \003(\tR\007details\022\026\n\006videos\030\021 \003(\tR\006v" +
+      "ideos\"\206\004\n\024UpdateProductRequest\022\027\n\007user_i" +
+      "d\030\001 \001(\tR\006userId\022\016\n\002id\030\002 \001(\tR\002id\022\022\n\004name\030" +
+      "\003 \001(\tR\004name\022+\n\021short_description\030\004 \001(\tR\020" +
+      "shortDescription\022 \n\013description\030\005 \001(\tR\013d" +
+      "escription\022\024\n\005brand\030\006 \001(\tR\005brand\022\037\n\013cate" +
+      "gory_id\030\007 \001(\tR\ncategoryId\022#\n\rcategory_na" +
+      "me\030\010 \001(\tR\014categoryName\022\026\n\006images\030\t \003(\tR\006" +
+      "images\022\025\n\006is_new\030\n \001(\010R\005isNew\022\024\n\005badge\030\013" +
+      " \001(\tR\005badge\022\032\n\010featured\030\014 \001(\010R\010featured\022" +
+      "\024\n\005emoji\030\r \001(\tR\005emoji\022\033\n\timage_hue\030\016 \003(\r" +
+      "R\010imageHue\022@\n\010variants\030\017 \003(\0132$.ecommerce" +
+      ".catalog.v1.ProductVariantR\010variants\022\030\n\007" +
+      "details\030\020 \003(\tR\007details\022\026\n\006videos\030\021 \003(\tR\006" +
+      "videos2\251\010\n\016CatalogService\022_\n\nGetProduct\022" +
+      "\'.ecommerce.catalog.v1.GetProductRequest" +
+      "\032(.ecommerce.catalog.v1.GetProductRespon" +
+      "se\022k\n\016SearchProducts\022+.ecommerce.catalog" +
+      ".v1.SearchProductsRequest\032,.ecommerce.ca" +
+      "talog.v1.SearchProductsResponse\022t\n\021SoftD" +
+      "eleteProduct\022..ecommerce.catalog.v1.Soft" +
+      "DeleteProductRequest\032/.ecommerce.catalog" +
+      ".v1.SoftDeleteProductResponse\022t\n\021ListAdm" +
+      "inProducts\022..ecommerce.catalog.v1.ListAd" +
+      "minProductsRequest\032/.ecommerce.catalog.v" +
+      "1.ListAdminProductsResponse\022\214\001\n\031ListInve" +
+      "ntoryCatalogItems\0226.ecommerce.catalog.v1" +
+      ".ListInventoryCatalogItemsRequest\0327.ecom" +
+      "merce.catalog.v1.ListInventoryCatalogIte" +
+      "msResponse\022n\n\017GetAdminProduct\022,.ecommerc" +
+      "e.catalog.v1.GetAdminProductRequest\032-.ec" +
+      "ommerce.catalog.v1.GetAdminProductRespon" +
+      "se\022h\n\rCreateProduct\022*.ecommerce.catalog." +
+      "v1.CreateProductRequest\032+.ecommerce.cata" +
+      "log.v1.CreateProductResponse\022h\n\rUpdatePr" +
+      "oduct\022*.ecommerce.catalog.v1.UpdateProdu" +
+      "ctRequest\032+.ecommerce.catalog.v1.UpdateP" +
+      "roductResponse\022\211\001\n\030CreateProductMediaUpl" +
+      "oad\0225.ecommerce.catalog.v1.CreateProduct" +
+      "MediaUploadRequest\0326.ecommerce.catalog.v" +
+      "1.CreateProductMediaUploadResponseBY\n\"co" +
+      "m.ecommerce.contracts.catalog.v1P\001Z1ecom" +
+      "merce.local/contracts/go/catalog/v1;cata" +
+      "logv1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -334,13 +339,13 @@ public final class Catalog {
     internal_static_ecommerce_catalog_v1_GetProductResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_catalog_v1_GetProductResponse_descriptor,
-        new java.lang.String[] { "Id", "Name", "Description", "Price", "ShortDescription", "Brand", "CategoryId", "CategoryName", "OriginalPrice", "Images", "Rating", "ReviewCount", "SoldCount", "IsNew", "Badge", "Featured", "Emoji", "ImageHue", "Variants", "Details", "Deleted", "Videos", });
+        new java.lang.String[] { "Id", "Name", "Description", "Price", "ShortDescription", "Brand", "CategoryId", "CategoryName", "OriginalPrice", "Images", "Rating", "ReviewCount", "SoldCount", "IsNew", "Badge", "Featured", "Emoji", "ImageHue", "Variants", "Details", "Deleted", "Videos", "MaxPrice", });
     internal_static_ecommerce_catalog_v1_ProductVariant_descriptor =
       getDescriptor().getMessageTypes().get(2);
     internal_static_ecommerce_catalog_v1_ProductVariant_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_catalog_v1_ProductVariant_descriptor,
-        new java.lang.String[] { "Label", "ColorHex", });
+        new java.lang.String[] { "SkuId", "Label", "ColorHex", "Price", "OriginalPrice", });
     internal_static_ecommerce_catalog_v1_SoftDeleteProductRequest_descriptor =
       getDescriptor().getMessageTypes().get(3);
     internal_static_ecommerce_catalog_v1_SoftDeleteProductRequest_fieldAccessorTable = new
@@ -358,7 +363,7 @@ public final class Catalog {
     internal_static_ecommerce_catalog_v1_ProductSummary_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_catalog_v1_ProductSummary_descriptor,
-        new java.lang.String[] { "Id", "Name", "Brand", "CategoryId", "CategoryName", "Price", "OriginalPrice", "Images", "Rating", "ReviewCount", "SoldCount", "IsNew", "Badge", "Featured", "Emoji", "ImageHue", });
+        new java.lang.String[] { "Id", "Name", "Brand", "CategoryId", "CategoryName", "Price", "OriginalPrice", "Images", "Rating", "ReviewCount", "SoldCount", "IsNew", "Badge", "Featured", "Emoji", "ImageHue", "MaxPrice", "SkuIds", });
     internal_static_ecommerce_catalog_v1_SearchProductsRequest_descriptor =
       getDescriptor().getMessageTypes().get(6);
     internal_static_ecommerce_catalog_v1_SearchProductsRequest_fieldAccessorTable = new
@@ -376,7 +381,7 @@ public final class Catalog {
     internal_static_ecommerce_catalog_v1_AdminProductSummary_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_catalog_v1_AdminProductSummary_descriptor,
-        new java.lang.String[] { "Id", "Name", "Brand", "CategoryId", "CategoryName", "Price", "OriginalPrice", "Images", "Rating", "ReviewCount", "SoldCount", "IsNew", "Badge", "Featured", "Emoji", "ImageHue", "Deleted", "VariantCount", "CreatedAt", "UpdatedAt", "VideoCount", });
+        new java.lang.String[] { "Id", "Name", "Brand", "CategoryId", "CategoryName", "Price", "OriginalPrice", "Images", "Rating", "ReviewCount", "SoldCount", "IsNew", "Badge", "Featured", "Emoji", "ImageHue", "Deleted", "VariantCount", "CreatedAt", "UpdatedAt", "VideoCount", "MaxPrice", "SkuIds", });
     internal_static_ecommerce_catalog_v1_CategoryMetric_descriptor =
       getDescriptor().getMessageTypes().get(9);
     internal_static_ecommerce_catalog_v1_CategoryMetric_fieldAccessorTable = new
@@ -388,7 +393,7 @@ public final class Catalog {
     internal_static_ecommerce_catalog_v1_InventoryCatalogItem_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_catalog_v1_InventoryCatalogItem_descriptor,
-        new java.lang.String[] { "Id", "Name", "Brand", "CategoryId", "CategoryName", "ImageUrl", "Emoji", "ImageHue", "Deleted", });
+        new java.lang.String[] { "Id", "Name", "Brand", "CategoryId", "CategoryName", "ImageUrl", "Emoji", "ImageHue", "Deleted", "Variants", });
     internal_static_ecommerce_catalog_v1_ListAdminProductsRequest_descriptor =
       getDescriptor().getMessageTypes().get(11);
     internal_static_ecommerce_catalog_v1_ListAdminProductsRequest_fieldAccessorTable = new
@@ -454,13 +459,13 @@ public final class Catalog {
     internal_static_ecommerce_catalog_v1_CreateProductRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_catalog_v1_CreateProductRequest_descriptor,
-        new java.lang.String[] { "UserId", "Id", "Name", "ShortDescription", "Description", "Brand", "CategoryId", "CategoryName", "Price", "OriginalPrice", "Images", "IsNew", "Badge", "Featured", "Emoji", "ImageHue", "Variants", "Details", "Videos", });
+        new java.lang.String[] { "UserId", "Id", "Name", "ShortDescription", "Description", "Brand", "CategoryId", "CategoryName", "Images", "IsNew", "Badge", "Featured", "Emoji", "ImageHue", "Variants", "Details", "Videos", });
     internal_static_ecommerce_catalog_v1_UpdateProductRequest_descriptor =
       getDescriptor().getMessageTypes().get(22);
     internal_static_ecommerce_catalog_v1_UpdateProductRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_catalog_v1_UpdateProductRequest_descriptor,
-        new java.lang.String[] { "UserId", "Id", "Name", "ShortDescription", "Description", "Brand", "CategoryId", "CategoryName", "Price", "OriginalPrice", "Images", "IsNew", "Badge", "Featured", "Emoji", "ImageHue", "Variants", "Details", "Videos", });
+        new java.lang.String[] { "UserId", "Id", "Name", "ShortDescription", "Description", "Brand", "CategoryId", "CategoryName", "Images", "IsNew", "Badge", "Featured", "Emoji", "ImageHue", "Variants", "Details", "Videos", });
     com.ecommerce.contracts.common.v1.Common.getDescriptor();
   }
 

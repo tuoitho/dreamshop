@@ -9,42 +9,54 @@ public interface StockItemOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
-   * <code>string product_id = 1 [json_name = "productId"];</code>
+   * <code>string sku_id = 1 [json_name = "skuId"];</code>
+   * @return The skuId.
+   */
+  java.lang.String getSkuId();
+  /**
+   * <code>string sku_id = 1 [json_name = "skuId"];</code>
+   * @return The bytes for skuId.
+   */
+  com.google.protobuf.ByteString
+      getSkuIdBytes();
+
+  /**
+   * <code>string product_id = 2 [json_name = "productId"];</code>
    * @return The productId.
    */
   java.lang.String getProductId();
   /**
-   * <code>string product_id = 1 [json_name = "productId"];</code>
+   * <code>string product_id = 2 [json_name = "productId"];</code>
    * @return The bytes for productId.
    */
   com.google.protobuf.ByteString
       getProductIdBytes();
 
   /**
-   * <code>int32 quantity = 2 [json_name = "quantity"];</code>
+   * <code>int32 quantity = 3 [json_name = "quantity"];</code>
    * @return The quantity.
    */
   int getQuantity();
 
   /**
-   * <code>int32 reserved = 3 [json_name = "reserved"];</code>
+   * <code>int32 reserved = 4 [json_name = "reserved"];</code>
    * @return The reserved.
    */
   int getReserved();
 
   /**
-   * <code>int32 available_quantity = 4 [json_name = "availableQuantity"];</code>
+   * <code>int32 available_quantity = 5 [json_name = "availableQuantity"];</code>
    * @return The availableQuantity.
    */
   int getAvailableQuantity();
 
   /**
-   * <code>string updated_at = 5 [json_name = "updatedAt"];</code>
+   * <code>string updated_at = 6 [json_name = "updatedAt"];</code>
    * @return The updatedAt.
    */
   java.lang.String getUpdatedAt();
   /**
-   * <code>string updated_at = 5 [json_name = "updatedAt"];</code>
+   * <code>string updated_at = 6 [json_name = "updatedAt"];</code>
    * @return The bytes for updatedAt.
    */
   com.google.protobuf.ByteString

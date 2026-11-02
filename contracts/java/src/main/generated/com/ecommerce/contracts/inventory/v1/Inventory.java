@@ -16,6 +16,11 @@ public final class Inventory {
         (com.google.protobuf.ExtensionRegistryLite) registry);
   }
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_inventory_v1_AvailabilityItem_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_inventory_v1_AvailabilityItem_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ecommerce_inventory_v1_GetAvailabilityRequest_descriptor;
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
@@ -25,6 +30,16 @@ public final class Inventory {
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_ecommerce_inventory_v1_GetAvailabilityResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_inventory_v1_BatchGetAvailabilityRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_inventory_v1_BatchGetAvailabilityRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_inventory_v1_BatchGetAvailabilityResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_inventory_v1_BatchGetAvailabilityResponse_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ecommerce_inventory_v1_StockItem_descriptor;
   static final 
@@ -80,6 +95,16 @@ public final class Inventory {
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_ecommerce_inventory_v1_AdjustStockResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_inventory_v1_DeleteStocksRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_inventory_v1_DeleteStocksRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_inventory_v1_DeleteStocksResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_inventory_v1_DeleteStocksResponse_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -90,137 +115,185 @@ public final class Inventory {
   static {
     java.lang.String[] descriptorData = {
       "\n\034inventory/v1/inventory.proto\022\026ecommerc" +
-      "e.inventory.v1\"7\n\026GetAvailabilityRequest" +
-      "\022\035\n\nproduct_id\030\001 \001(\tR\tproductId\"g\n\027GetAv" +
-      "ailabilityResponse\022\035\n\nproduct_id\030\001 \001(\tR\t" +
-      "productId\022-\n\022available_quantity\030\002 \001(\005R\021a" +
-      "vailableQuantity\"\260\001\n\tStockItem\022\035\n\nproduc" +
-      "t_id\030\001 \001(\tR\tproductId\022\032\n\010quantity\030\002 \001(\005R" +
-      "\010quantity\022\032\n\010reserved\030\003 \001(\005R\010reserved\022-\n" +
-      "\022available_quantity\030\004 \001(\005R\021availableQuan" +
-      "tity\022\035\n\nupdated_at\030\005 \001(\tR\tupdatedAt\"I\n\017G" +
-      "etStockRequest\022\027\n\007user_id\030\001 \001(\tR\006userId\022" +
-      "\035\n\nproduct_id\030\002 \001(\tR\tproductId\"K\n\020GetSto" +
-      "ckResponse\0227\n\005stock\030\001 \001(\0132!.ecommerce.in" +
-      "ventory.v1.StockItemR\005stock\"P\n\024BatchGetS" +
-      "tockRequest\022\027\n\007user_id\030\001 \001(\tR\006userId\022\037\n\013" +
-      "product_ids\030\002 \003(\tR\nproductIds\"P\n\025BatchGe" +
-      "tStockResponse\0227\n\005items\030\001 \003(\0132!.ecommerc" +
-      "e.inventory.v1.StockItemR\005items\",\n\021ListS" +
-      "tocksRequest\022\027\n\007user_id\030\001 \001(\tR\006userId\"M\n" +
-      "\022ListStocksResponse\0227\n\005items\030\001 \003(\0132!.eco" +
-      "mmerce.inventory.v1.StockItemR\005items\"e\n\017" +
-      "SetStockRequest\022\027\n\007user_id\030\001 \001(\tR\006userId" +
-      "\022\035\n\nproduct_id\030\002 \001(\tR\tproductId\022\032\n\010quant" +
-      "ity\030\003 \001(\005R\010quantity\"K\n\020SetStockResponse\022" +
-      "7\n\005stock\030\001 \001(\0132!.ecommerce.inventory.v1." +
-      "StockItemR\005stock\"b\n\022AdjustStockRequest\022\027" +
-      "\n\007user_id\030\001 \001(\tR\006userId\022\035\n\nproduct_id\030\002 " +
-      "\001(\tR\tproductId\022\024\n\005delta\030\003 \001(\005R\005delta\"N\n\023" +
-      "AdjustStockResponse\0227\n\005stock\030\001 \001(\0132!.eco" +
-      "mmerce.inventory.v1.StockItemR\005stock2\377\004\n" +
-      "\020InventoryService\022r\n\017GetAvailability\022..e" +
-      "commerce.inventory.v1.GetAvailabilityReq" +
-      "uest\032/.ecommerce.inventory.v1.GetAvailab" +
-      "ilityResponse\022]\n\010GetStock\022\'.ecommerce.in" +
-      "ventory.v1.GetStockRequest\032(.ecommerce.i" +
-      "nventory.v1.GetStockResponse\022l\n\rBatchGet" +
-      "Stock\022,.ecommerce.inventory.v1.BatchGetS" +
-      "tockRequest\032-.ecommerce.inventory.v1.Bat" +
-      "chGetStockResponse\022c\n\nListStocks\022).ecomm" +
-      "erce.inventory.v1.ListStocksRequest\032*.ec" +
-      "ommerce.inventory.v1.ListStocksResponse\022" +
-      "]\n\010SetStock\022\'.ecommerce.inventory.v1.Set" +
-      "StockRequest\032(.ecommerce.inventory.v1.Se" +
-      "tStockResponse\022f\n\013AdjustStock\022*.ecommerc" +
-      "e.inventory.v1.AdjustStockRequest\032+.ecom" +
-      "merce.inventory.v1.AdjustStockResponseB_" +
-      "\n$com.ecommerce.contracts.inventory.v1P\001" +
-      "Z5ecommerce.local/contracts/go/inventory" +
-      "/v1;inventoryv1b\006proto3"
+      "e.inventory.v1\"w\n\020AvailabilityItem\022\025\n\006sk" +
+      "u_id\030\001 \001(\tR\005skuId\022\035\n\nproduct_id\030\002 \001(\tR\tp" +
+      "roductId\022-\n\022available_quantity\030\003 \001(\005R\021av" +
+      "ailableQuantity\"/\n\026GetAvailabilityReques" +
+      "t\022\025\n\006sku_id\030\001 \001(\tR\005skuId\"~\n\027GetAvailabil" +
+      "ityResponse\022\025\n\006sku_id\030\001 \001(\tR\005skuId\022\035\n\npr" +
+      "oduct_id\030\002 \001(\tR\tproductId\022-\n\022available_q" +
+      "uantity\030\003 \001(\005R\021availableQuantity\"6\n\033Batc" +
+      "hGetAvailabilityRequest\022\027\n\007sku_ids\030\001 \003(\t" +
+      "R\006skuIds\"^\n\034BatchGetAvailabilityResponse" +
+      "\022>\n\005items\030\001 \003(\0132(.ecommerce.inventory.v1" +
+      ".AvailabilityItemR\005items\"\307\001\n\tStockItem\022\025" +
+      "\n\006sku_id\030\001 \001(\tR\005skuId\022\035\n\nproduct_id\030\002 \001(" +
+      "\tR\tproductId\022\032\n\010quantity\030\003 \001(\005R\010quantity" +
+      "\022\032\n\010reserved\030\004 \001(\005R\010reserved\022-\n\022availabl" +
+      "e_quantity\030\005 \001(\005R\021availableQuantity\022\035\n\nu" +
+      "pdated_at\030\006 \001(\tR\tupdatedAt\"A\n\017GetStockRe" +
+      "quest\022\027\n\007user_id\030\001 \001(\tR\006userId\022\025\n\006sku_id" +
+      "\030\002 \001(\tR\005skuId\"K\n\020GetStockResponse\0227\n\005sto" +
+      "ck\030\001 \001(\0132!.ecommerce.inventory.v1.StockI" +
+      "temR\005stock\"H\n\024BatchGetStockRequest\022\027\n\007us" +
+      "er_id\030\001 \001(\tR\006userId\022\027\n\007sku_ids\030\002 \003(\tR\006sk" +
+      "uIds\"P\n\025BatchGetStockResponse\0227\n\005items\030\001" +
+      " \003(\0132!.ecommerce.inventory.v1.StockItemR" +
+      "\005items\",\n\021ListStocksRequest\022\027\n\007user_id\030\001" +
+      " \001(\tR\006userId\"M\n\022ListStocksResponse\0227\n\005it" +
+      "ems\030\001 \003(\0132!.ecommerce.inventory.v1.Stock" +
+      "ItemR\005items\"|\n\017SetStockRequest\022\027\n\007user_i" +
+      "d\030\001 \001(\tR\006userId\022\025\n\006sku_id\030\002 \001(\tR\005skuId\022\035" +
+      "\n\nproduct_id\030\003 \001(\tR\tproductId\022\032\n\010quantit" +
+      "y\030\004 \001(\005R\010quantity\"K\n\020SetStockResponse\0227\n" +
+      "\005stock\030\001 \001(\0132!.ecommerce.inventory.v1.St" +
+      "ockItemR\005stock\"y\n\022AdjustStockRequest\022\027\n\007" +
+      "user_id\030\001 \001(\tR\006userId\022\025\n\006sku_id\030\002 \001(\tR\005s" +
+      "kuId\022\035\n\nproduct_id\030\003 \001(\tR\tproductId\022\024\n\005d" +
+      "elta\030\004 \001(\005R\005delta\"N\n\023AdjustStockResponse" +
+      "\0227\n\005stock\030\001 \001(\0132!.ecommerce.inventory.v1" +
+      ".StockItemR\005stock\"`\n\023DeleteStocksRequest" +
+      "\022\027\n\007user_id\030\001 \001(\tR\006userId\022\027\n\007sku_ids\030\002 \003" +
+      "(\tR\006skuIds\022\027\n\007dry_run\030\003 \001(\010R\006dryRun\"\026\n\024D" +
+      "eleteStocksResponse2\356\006\n\020InventoryService" +
+      "\022r\n\017GetAvailability\022..ecommerce.inventor" +
+      "y.v1.GetAvailabilityRequest\032/.ecommerce." +
+      "inventory.v1.GetAvailabilityResponse\022\201\001\n" +
+      "\024BatchGetAvailability\0223.ecommerce.invent" +
+      "ory.v1.BatchGetAvailabilityRequest\0324.eco" +
+      "mmerce.inventory.v1.BatchGetAvailability" +
+      "Response\022]\n\010GetStock\022\'.ecommerce.invento" +
+      "ry.v1.GetStockRequest\032(.ecommerce.invent" +
+      "ory.v1.GetStockResponse\022l\n\rBatchGetStock" +
+      "\022,.ecommerce.inventory.v1.BatchGetStockR" +
+      "equest\032-.ecommerce.inventory.v1.BatchGet" +
+      "StockResponse\022c\n\nListStocks\022).ecommerce." +
+      "inventory.v1.ListStocksRequest\032*.ecommer" +
+      "ce.inventory.v1.ListStocksResponse\022]\n\010Se" +
+      "tStock\022\'.ecommerce.inventory.v1.SetStock" +
+      "Request\032(.ecommerce.inventory.v1.SetStoc" +
+      "kResponse\022f\n\013AdjustStock\022*.ecommerce.inv" +
+      "entory.v1.AdjustStockRequest\032+.ecommerce" +
+      ".inventory.v1.AdjustStockResponse\022i\n\014Del" +
+      "eteStocks\022+.ecommerce.inventory.v1.Delet" +
+      "eStocksRequest\032,.ecommerce.inventory.v1." +
+      "DeleteStocksResponseB_\n$com.ecommerce.co" +
+      "ntracts.inventory.v1P\001Z5ecommerce.local/" +
+      "contracts/go/inventory/v1;inventoryv1b\006p" +
+      "roto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
         });
-    internal_static_ecommerce_inventory_v1_GetAvailabilityRequest_descriptor =
+    internal_static_ecommerce_inventory_v1_AvailabilityItem_descriptor =
       getDescriptor().getMessageTypes().get(0);
+    internal_static_ecommerce_inventory_v1_AvailabilityItem_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_inventory_v1_AvailabilityItem_descriptor,
+        new java.lang.String[] { "SkuId", "ProductId", "AvailableQuantity", });
+    internal_static_ecommerce_inventory_v1_GetAvailabilityRequest_descriptor =
+      getDescriptor().getMessageTypes().get(1);
     internal_static_ecommerce_inventory_v1_GetAvailabilityRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_inventory_v1_GetAvailabilityRequest_descriptor,
-        new java.lang.String[] { "ProductId", });
+        new java.lang.String[] { "SkuId", });
     internal_static_ecommerce_inventory_v1_GetAvailabilityResponse_descriptor =
-      getDescriptor().getMessageTypes().get(1);
+      getDescriptor().getMessageTypes().get(2);
     internal_static_ecommerce_inventory_v1_GetAvailabilityResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_inventory_v1_GetAvailabilityResponse_descriptor,
-        new java.lang.String[] { "ProductId", "AvailableQuantity", });
+        new java.lang.String[] { "SkuId", "ProductId", "AvailableQuantity", });
+    internal_static_ecommerce_inventory_v1_BatchGetAvailabilityRequest_descriptor =
+      getDescriptor().getMessageTypes().get(3);
+    internal_static_ecommerce_inventory_v1_BatchGetAvailabilityRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_inventory_v1_BatchGetAvailabilityRequest_descriptor,
+        new java.lang.String[] { "SkuIds", });
+    internal_static_ecommerce_inventory_v1_BatchGetAvailabilityResponse_descriptor =
+      getDescriptor().getMessageTypes().get(4);
+    internal_static_ecommerce_inventory_v1_BatchGetAvailabilityResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_inventory_v1_BatchGetAvailabilityResponse_descriptor,
+        new java.lang.String[] { "Items", });
     internal_static_ecommerce_inventory_v1_StockItem_descriptor =
-      getDescriptor().getMessageTypes().get(2);
+      getDescriptor().getMessageTypes().get(5);
     internal_static_ecommerce_inventory_v1_StockItem_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_inventory_v1_StockItem_descriptor,
-        new java.lang.String[] { "ProductId", "Quantity", "Reserved", "AvailableQuantity", "UpdatedAt", });
+        new java.lang.String[] { "SkuId", "ProductId", "Quantity", "Reserved", "AvailableQuantity", "UpdatedAt", });
     internal_static_ecommerce_inventory_v1_GetStockRequest_descriptor =
-      getDescriptor().getMessageTypes().get(3);
+      getDescriptor().getMessageTypes().get(6);
     internal_static_ecommerce_inventory_v1_GetStockRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_inventory_v1_GetStockRequest_descriptor,
-        new java.lang.String[] { "UserId", "ProductId", });
+        new java.lang.String[] { "UserId", "SkuId", });
     internal_static_ecommerce_inventory_v1_GetStockResponse_descriptor =
-      getDescriptor().getMessageTypes().get(4);
+      getDescriptor().getMessageTypes().get(7);
     internal_static_ecommerce_inventory_v1_GetStockResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_inventory_v1_GetStockResponse_descriptor,
         new java.lang.String[] { "Stock", });
     internal_static_ecommerce_inventory_v1_BatchGetStockRequest_descriptor =
-      getDescriptor().getMessageTypes().get(5);
+      getDescriptor().getMessageTypes().get(8);
     internal_static_ecommerce_inventory_v1_BatchGetStockRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_inventory_v1_BatchGetStockRequest_descriptor,
-        new java.lang.String[] { "UserId", "ProductIds", });
+        new java.lang.String[] { "UserId", "SkuIds", });
     internal_static_ecommerce_inventory_v1_BatchGetStockResponse_descriptor =
-      getDescriptor().getMessageTypes().get(6);
+      getDescriptor().getMessageTypes().get(9);
     internal_static_ecommerce_inventory_v1_BatchGetStockResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_inventory_v1_BatchGetStockResponse_descriptor,
         new java.lang.String[] { "Items", });
     internal_static_ecommerce_inventory_v1_ListStocksRequest_descriptor =
-      getDescriptor().getMessageTypes().get(7);
+      getDescriptor().getMessageTypes().get(10);
     internal_static_ecommerce_inventory_v1_ListStocksRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_inventory_v1_ListStocksRequest_descriptor,
         new java.lang.String[] { "UserId", });
     internal_static_ecommerce_inventory_v1_ListStocksResponse_descriptor =
-      getDescriptor().getMessageTypes().get(8);
+      getDescriptor().getMessageTypes().get(11);
     internal_static_ecommerce_inventory_v1_ListStocksResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_inventory_v1_ListStocksResponse_descriptor,
         new java.lang.String[] { "Items", });
     internal_static_ecommerce_inventory_v1_SetStockRequest_descriptor =
-      getDescriptor().getMessageTypes().get(9);
+      getDescriptor().getMessageTypes().get(12);
     internal_static_ecommerce_inventory_v1_SetStockRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_inventory_v1_SetStockRequest_descriptor,
-        new java.lang.String[] { "UserId", "ProductId", "Quantity", });
+        new java.lang.String[] { "UserId", "SkuId", "ProductId", "Quantity", });
     internal_static_ecommerce_inventory_v1_SetStockResponse_descriptor =
-      getDescriptor().getMessageTypes().get(10);
+      getDescriptor().getMessageTypes().get(13);
     internal_static_ecommerce_inventory_v1_SetStockResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_inventory_v1_SetStockResponse_descriptor,
         new java.lang.String[] { "Stock", });
     internal_static_ecommerce_inventory_v1_AdjustStockRequest_descriptor =
-      getDescriptor().getMessageTypes().get(11);
+      getDescriptor().getMessageTypes().get(14);
     internal_static_ecommerce_inventory_v1_AdjustStockRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_inventory_v1_AdjustStockRequest_descriptor,
-        new java.lang.String[] { "UserId", "ProductId", "Delta", });
+        new java.lang.String[] { "UserId", "SkuId", "ProductId", "Delta", });
     internal_static_ecommerce_inventory_v1_AdjustStockResponse_descriptor =
-      getDescriptor().getMessageTypes().get(12);
+      getDescriptor().getMessageTypes().get(15);
     internal_static_ecommerce_inventory_v1_AdjustStockResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_inventory_v1_AdjustStockResponse_descriptor,
         new java.lang.String[] { "Stock", });
+    internal_static_ecommerce_inventory_v1_DeleteStocksRequest_descriptor =
+      getDescriptor().getMessageTypes().get(16);
+    internal_static_ecommerce_inventory_v1_DeleteStocksRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_inventory_v1_DeleteStocksRequest_descriptor,
+        new java.lang.String[] { "UserId", "SkuIds", "DryRun", });
+    internal_static_ecommerce_inventory_v1_DeleteStocksResponse_descriptor =
+      getDescriptor().getMessageTypes().get(17);
+    internal_static_ecommerce_inventory_v1_DeleteStocksResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_inventory_v1_DeleteStocksResponse_descriptor,
+        new java.lang.String[] { });
   }
 
   // @@protoc_insertion_point(outer_class_scope)

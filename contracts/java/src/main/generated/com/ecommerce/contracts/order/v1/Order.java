@@ -40,22 +40,22 @@ public final class Order {
   static {
     java.lang.String[] descriptorData = {
       "\n\024order/v1/order.proto\022\022ecommerce.order." +
-      "v1\032\026common/v1/common.proto\"\201\001\n\tOrderItem" +
-      "\022\035\n\nproduct_id\030\001 \001(\tR\tproductId\022\032\n\010quant" +
-      "ity\030\002 \001(\005R\010quantity\0229\n\nunit_price\030\003 \001(\0132" +
-      "\032.ecommerce.common.v1.MoneyR\tunitPrice\"b" +
-      "\n\022CreateOrderRequest\022\027\n\007user_id\030\001 \001(\tR\006u" +
-      "serId\0223\n\005items\030\002 \003(\0132\035.ecommerce.order.v" +
-      "1.OrderItemR\005items\"\207\001\n\023CreateOrderRespon" +
-      "se\022\031\n\010order_id\030\001 \001(\tR\007orderId\022\026\n\006status\030" +
-      "\002 \001(\tR\006status\022=\n\014total_amount\030\003 \001(\0132\032.ec" +
-      "ommerce.common.v1.MoneyR\013totalAmount2n\n\014" +
-      "OrderService\022^\n\013CreateOrder\022&.ecommerce." +
-      "order.v1.CreateOrderRequest\032\'.ecommerce." +
-      "order.v1.CreateOrderResponseBS\n com.ecom" +
-      "merce.contracts.order.v1P\001Z-ecommerce.lo" +
-      "cal/contracts/go/order/v1;orderv1b\006proto" +
-      "3"
+      "v1\032\026common/v1/common.proto\"\230\001\n\tOrderItem" +
+      "\022\035\n\nproduct_id\030\001 \001(\tR\tproductId\022\025\n\006sku_i" +
+      "d\030\002 \001(\tR\005skuId\022\032\n\010quantity\030\003 \001(\005R\010quanti" +
+      "ty\0229\n\nunit_price\030\004 \001(\0132\032.ecommerce.commo" +
+      "n.v1.MoneyR\tunitPrice\"b\n\022CreateOrderRequ" +
+      "est\022\027\n\007user_id\030\001 \001(\tR\006userId\0223\n\005items\030\002 " +
+      "\003(\0132\035.ecommerce.order.v1.OrderItemR\005item" +
+      "s\"\207\001\n\023CreateOrderResponse\022\031\n\010order_id\030\001 " +
+      "\001(\tR\007orderId\022\026\n\006status\030\002 \001(\tR\006status\022=\n\014" +
+      "total_amount\030\003 \001(\0132\032.ecommerce.common.v1" +
+      ".MoneyR\013totalAmount2n\n\014OrderService\022^\n\013C" +
+      "reateOrder\022&.ecommerce.order.v1.CreateOr" +
+      "derRequest\032\'.ecommerce.order.v1.CreateOr" +
+      "derResponseBS\n com.ecommerce.contracts.o" +
+      "rder.v1P\001Z-ecommerce.local/contracts/go/" +
+      "order/v1;orderv1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -67,7 +67,7 @@ public final class Order {
     internal_static_ecommerce_order_v1_OrderItem_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_order_v1_OrderItem_descriptor,
-        new java.lang.String[] { "ProductId", "Quantity", "UnitPrice", });
+        new java.lang.String[] { "ProductId", "SkuId", "Quantity", "UnitPrice", });
     internal_static_ecommerce_order_v1_CreateOrderRequest_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_ecommerce_order_v1_CreateOrderRequest_fieldAccessorTable = new

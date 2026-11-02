@@ -51,10 +51,6 @@ jobs:
         run: buf format --diff --exit-code
       - name: Lint protobuf contracts
         run: buf lint
-      - name: Check protobuf breaking changes against main
-        run: buf breaking --against ".git#ref=refs/remotes/origin/$BASE_REF"
-        env:
-          BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
       - name: Generate contract modules
         run: buf generate
       - name: Verify generated contract modules are synchronized

@@ -24,8 +24,6 @@ message GetProductRequest {
   string id = 1;
 }
 
-// Full product detail. Fields 1-4 are the original contract; new fields are
-// additive and consumers must tolerate their absence.
 message GetProductResponse {
   string id = 1;
   string name = 2;
@@ -49,11 +47,15 @@ message GetProductResponse {
   repeated string details = 20;
   bool deleted = 21;
   repeated string videos = 22;
+  ecommerce.common.v1.Money max_price = 23;
 }
 
 message ProductVariant {
-  string label = 1;
-  string color_hex = 2;
+  string sku_id = 1;
+  string label = 2;
+  string color_hex = 3;
+  ecommerce.common.v1.Money price = 4;
+  ecommerce.common.v1.Money original_price = 5;
 }
 
 message SoftDeleteProductRequest {
@@ -67,7 +69,6 @@ message SoftDeleteProductResponse {
   bool deleted = 2;
 }
 
-// Search result summary shown in product lists and cards.
 message ProductSummary {
   string id = 1;
   string name = 2;
@@ -85,6 +86,8 @@ message ProductSummary {
   bool featured = 14;
   string emoji = 15;
   repeated uint32 image_hue = 16;
+  ecommerce.common.v1.Money max_price = 17;
+  repeated string sku_ids = 18;
 }
 
 message SearchProductsRequest {
@@ -132,6 +135,8 @@ message AdminProductSummary {
   string created_at = 19;
   string updated_at = 20;
   int32 video_count = 21;
+  ecommerce.common.v1.Money max_price = 22;
+  repeated string sku_ids = 23;
 }
 
 message CategoryMetric {
@@ -150,6 +155,7 @@ message InventoryCatalogItem {
   string emoji = 7;
   repeated uint32 image_hue = 8;
   bool deleted = 9;
+  repeated ProductVariant variants = 10;
 }
 
 message ListAdminProductsRequest {
@@ -226,17 +232,15 @@ message CreateProductRequest {
   string brand = 6;
   string category_id = 7;
   string category_name = 8;
-  ecommerce.common.v1.Money price = 9;
-  ecommerce.common.v1.Money original_price = 10;
-  repeated string images = 11;
-  bool is_new = 12;
-  string badge = 13;
-  bool featured = 14;
-  string emoji = 15;
-  repeated uint32 image_hue = 16;
-  repeated ProductVariant variants = 17;
-  repeated string details = 18;
-  repeated string videos = 19;
+  repeated string images = 9;
+  bool is_new = 10;
+  string badge = 11;
+  bool featured = 12;
+  string emoji = 13;
+  repeated uint32 image_hue = 14;
+  repeated ProductVariant variants = 15;
+  repeated string details = 16;
+  repeated string videos = 17;
 }
 
 message UpdateProductRequest {
@@ -248,15 +252,13 @@ message UpdateProductRequest {
   string brand = 6;
   string category_id = 7;
   string category_name = 8;
-  ecommerce.common.v1.Money price = 9;
-  ecommerce.common.v1.Money original_price = 10;
-  repeated string images = 11;
-  bool is_new = 12;
-  string badge = 13;
-  bool featured = 14;
-  string emoji = 15;
-  repeated uint32 image_hue = 16;
-  repeated ProductVariant variants = 17;
-  repeated string details = 18;
-  repeated string videos = 19;
+  repeated string images = 9;
+  bool is_new = 10;
+  string badge = 11;
+  bool featured = 12;
+  string emoji = 13;
+  repeated uint32 image_hue = 14;
+  repeated ProductVariant variants = 15;
+  repeated string details = 16;
+  repeated string videos = 17;
 }

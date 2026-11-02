@@ -105,54 +105,24 @@ public interface UpdateProductRequestOrBuilder extends
       getCategoryNameBytes();
 
   /**
-   * <code>.ecommerce.common.v1.Money price = 9 [json_name = "price"];</code>
-   * @return Whether the price field is set.
-   */
-  boolean hasPrice();
-  /**
-   * <code>.ecommerce.common.v1.Money price = 9 [json_name = "price"];</code>
-   * @return The price.
-   */
-  com.ecommerce.contracts.common.v1.Money getPrice();
-  /**
-   * <code>.ecommerce.common.v1.Money price = 9 [json_name = "price"];</code>
-   */
-  com.ecommerce.contracts.common.v1.MoneyOrBuilder getPriceOrBuilder();
-
-  /**
-   * <code>.ecommerce.common.v1.Money original_price = 10 [json_name = "originalPrice"];</code>
-   * @return Whether the originalPrice field is set.
-   */
-  boolean hasOriginalPrice();
-  /**
-   * <code>.ecommerce.common.v1.Money original_price = 10 [json_name = "originalPrice"];</code>
-   * @return The originalPrice.
-   */
-  com.ecommerce.contracts.common.v1.Money getOriginalPrice();
-  /**
-   * <code>.ecommerce.common.v1.Money original_price = 10 [json_name = "originalPrice"];</code>
-   */
-  com.ecommerce.contracts.common.v1.MoneyOrBuilder getOriginalPriceOrBuilder();
-
-  /**
-   * <code>repeated string images = 11 [json_name = "images"];</code>
+   * <code>repeated string images = 9 [json_name = "images"];</code>
    * @return A list containing the images.
    */
   java.util.List<java.lang.String>
       getImagesList();
   /**
-   * <code>repeated string images = 11 [json_name = "images"];</code>
+   * <code>repeated string images = 9 [json_name = "images"];</code>
    * @return The count of images.
    */
   int getImagesCount();
   /**
-   * <code>repeated string images = 11 [json_name = "images"];</code>
+   * <code>repeated string images = 9 [json_name = "images"];</code>
    * @param index The index of the element to return.
    * @return The images at the given index.
    */
   java.lang.String getImages(int index);
   /**
-   * <code>repeated string images = 11 [json_name = "images"];</code>
+   * <code>repeated string images = 9 [json_name = "images"];</code>
    * @param index The index of the value to return.
    * @return The bytes of the images at the given index.
    */
@@ -160,101 +130,101 @@ public interface UpdateProductRequestOrBuilder extends
       getImagesBytes(int index);
 
   /**
-   * <code>bool is_new = 12 [json_name = "isNew"];</code>
+   * <code>bool is_new = 10 [json_name = "isNew"];</code>
    * @return The isNew.
    */
   boolean getIsNew();
 
   /**
-   * <code>string badge = 13 [json_name = "badge"];</code>
+   * <code>string badge = 11 [json_name = "badge"];</code>
    * @return The badge.
    */
   java.lang.String getBadge();
   /**
-   * <code>string badge = 13 [json_name = "badge"];</code>
+   * <code>string badge = 11 [json_name = "badge"];</code>
    * @return The bytes for badge.
    */
   com.google.protobuf.ByteString
       getBadgeBytes();
 
   /**
-   * <code>bool featured = 14 [json_name = "featured"];</code>
+   * <code>bool featured = 12 [json_name = "featured"];</code>
    * @return The featured.
    */
   boolean getFeatured();
 
   /**
-   * <code>string emoji = 15 [json_name = "emoji"];</code>
+   * <code>string emoji = 13 [json_name = "emoji"];</code>
    * @return The emoji.
    */
   java.lang.String getEmoji();
   /**
-   * <code>string emoji = 15 [json_name = "emoji"];</code>
+   * <code>string emoji = 13 [json_name = "emoji"];</code>
    * @return The bytes for emoji.
    */
   com.google.protobuf.ByteString
       getEmojiBytes();
 
   /**
-   * <code>repeated uint32 image_hue = 16 [json_name = "imageHue"];</code>
+   * <code>repeated uint32 image_hue = 14 [json_name = "imageHue"];</code>
    * @return A list containing the imageHue.
    */
   java.util.List<java.lang.Integer> getImageHueList();
   /**
-   * <code>repeated uint32 image_hue = 16 [json_name = "imageHue"];</code>
+   * <code>repeated uint32 image_hue = 14 [json_name = "imageHue"];</code>
    * @return The count of imageHue.
    */
   int getImageHueCount();
   /**
-   * <code>repeated uint32 image_hue = 16 [json_name = "imageHue"];</code>
+   * <code>repeated uint32 image_hue = 14 [json_name = "imageHue"];</code>
    * @param index The index of the element to return.
    * @return The imageHue at the given index.
    */
   int getImageHue(int index);
 
   /**
-   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
    */
   java.util.List<com.ecommerce.contracts.catalog.v1.ProductVariant> 
       getVariantsList();
   /**
-   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
    */
   com.ecommerce.contracts.catalog.v1.ProductVariant getVariants(int index);
   /**
-   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
    */
   int getVariantsCount();
   /**
-   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
    */
   java.util.List<? extends com.ecommerce.contracts.catalog.v1.ProductVariantOrBuilder> 
       getVariantsOrBuilderList();
   /**
-   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 17 [json_name = "variants"];</code>
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 15 [json_name = "variants"];</code>
    */
   com.ecommerce.contracts.catalog.v1.ProductVariantOrBuilder getVariantsOrBuilder(
       int index);
 
   /**
-   * <code>repeated string details = 18 [json_name = "details"];</code>
+   * <code>repeated string details = 16 [json_name = "details"];</code>
    * @return A list containing the details.
    */
   java.util.List<java.lang.String>
       getDetailsList();
   /**
-   * <code>repeated string details = 18 [json_name = "details"];</code>
+   * <code>repeated string details = 16 [json_name = "details"];</code>
    * @return The count of details.
    */
   int getDetailsCount();
   /**
-   * <code>repeated string details = 18 [json_name = "details"];</code>
+   * <code>repeated string details = 16 [json_name = "details"];</code>
    * @param index The index of the element to return.
    * @return The details at the given index.
    */
   java.lang.String getDetails(int index);
   /**
-   * <code>repeated string details = 18 [json_name = "details"];</code>
+   * <code>repeated string details = 16 [json_name = "details"];</code>
    * @param index The index of the value to return.
    * @return The bytes of the details at the given index.
    */
@@ -262,24 +232,24 @@ public interface UpdateProductRequestOrBuilder extends
       getDetailsBytes(int index);
 
   /**
-   * <code>repeated string videos = 19 [json_name = "videos"];</code>
+   * <code>repeated string videos = 17 [json_name = "videos"];</code>
    * @return A list containing the videos.
    */
   java.util.List<java.lang.String>
       getVideosList();
   /**
-   * <code>repeated string videos = 19 [json_name = "videos"];</code>
+   * <code>repeated string videos = 17 [json_name = "videos"];</code>
    * @return The count of videos.
    */
   int getVideosCount();
   /**
-   * <code>repeated string videos = 19 [json_name = "videos"];</code>
+   * <code>repeated string videos = 17 [json_name = "videos"];</code>
    * @param index The index of the element to return.
    * @return The videos at the given index.
    */
   java.lang.String getVideos(int index);
   /**
-   * <code>repeated string videos = 19 [json_name = "videos"];</code>
+   * <code>repeated string videos = 17 [json_name = "videos"];</code>
    * @param index The index of the value to return.
    * @return The bytes of the videos at the given index.
    */

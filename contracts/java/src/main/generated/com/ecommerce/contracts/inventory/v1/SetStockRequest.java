@@ -18,6 +18,7 @@ private static final long serialVersionUID = 0L;
   }
   private SetStockRequest() {
     userId_ = "";
+    skuId_ = "";
     productId_ = "";
   }
 
@@ -80,11 +81,50 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int PRODUCT_ID_FIELD_NUMBER = 2;
+  public static final int SKU_ID_FIELD_NUMBER = 2;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object skuId_ = "";
+  /**
+   * <code>string sku_id = 2 [json_name = "skuId"];</code>
+   * @return The skuId.
+   */
+  @java.lang.Override
+  public java.lang.String getSkuId() {
+    java.lang.Object ref = skuId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      skuId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <code>string sku_id = 2 [json_name = "skuId"];</code>
+   * @return The bytes for skuId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getSkuIdBytes() {
+    java.lang.Object ref = skuId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      skuId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int PRODUCT_ID_FIELD_NUMBER = 3;
   @SuppressWarnings("serial")
   private volatile java.lang.Object productId_ = "";
   /**
-   * <code>string product_id = 2 [json_name = "productId"];</code>
+   * <code>string product_id = 3 [json_name = "productId"];</code>
    * @return The productId.
    */
   @java.lang.Override
@@ -101,7 +141,7 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
-   * <code>string product_id = 2 [json_name = "productId"];</code>
+   * <code>string product_id = 3 [json_name = "productId"];</code>
    * @return The bytes for productId.
    */
   @java.lang.Override
@@ -119,10 +159,10 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int QUANTITY_FIELD_NUMBER = 3;
+  public static final int QUANTITY_FIELD_NUMBER = 4;
   private int quantity_ = 0;
   /**
-   * <code>int32 quantity = 3 [json_name = "quantity"];</code>
+   * <code>int32 quantity = 4 [json_name = "quantity"];</code>
    * @return The quantity.
    */
   @java.lang.Override
@@ -147,11 +187,14 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(userId_)) {
       com.google.protobuf.GeneratedMessageV3.writeString(output, 1, userId_);
     }
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(skuId_)) {
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 2, skuId_);
+    }
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(productId_)) {
-      com.google.protobuf.GeneratedMessageV3.writeString(output, 2, productId_);
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 3, productId_);
     }
     if (quantity_ != 0) {
-      output.writeInt32(3, quantity_);
+      output.writeInt32(4, quantity_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -165,12 +208,15 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(userId_)) {
       size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, userId_);
     }
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(skuId_)) {
+      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, skuId_);
+    }
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(productId_)) {
-      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, productId_);
+      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, productId_);
     }
     if (quantity_ != 0) {
       size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(3, quantity_);
+        .computeInt32Size(4, quantity_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -189,6 +235,8 @@ private static final long serialVersionUID = 0L;
 
     if (!getUserId()
         .equals(other.getUserId())) return false;
+    if (!getSkuId()
+        .equals(other.getSkuId())) return false;
     if (!getProductId()
         .equals(other.getProductId())) return false;
     if (getQuantity()
@@ -206,6 +254,8 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + USER_ID_FIELD_NUMBER;
     hash = (53 * hash) + getUserId().hashCode();
+    hash = (37 * hash) + SKU_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getSkuId().hashCode();
     hash = (37 * hash) + PRODUCT_ID_FIELD_NUMBER;
     hash = (53 * hash) + getProductId().hashCode();
     hash = (37 * hash) + QUANTITY_FIELD_NUMBER;
@@ -342,6 +392,7 @@ private static final long serialVersionUID = 0L;
       super.clear();
       bitField0_ = 0;
       userId_ = "";
+      skuId_ = "";
       productId_ = "";
       quantity_ = 0;
       return this;
@@ -381,9 +432,12 @@ private static final long serialVersionUID = 0L;
         result.userId_ = userId_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.productId_ = productId_;
+        result.skuId_ = skuId_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.productId_ = productId_;
+      }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
         result.quantity_ = quantity_;
       }
     }
@@ -437,9 +491,14 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000001;
         onChanged();
       }
+      if (!other.getSkuId().isEmpty()) {
+        skuId_ = other.skuId_;
+        bitField0_ |= 0x00000002;
+        onChanged();
+      }
       if (!other.getProductId().isEmpty()) {
         productId_ = other.productId_;
-        bitField0_ |= 0x00000002;
+        bitField0_ |= 0x00000004;
         onChanged();
       }
       if (other.getQuantity() != 0) {
@@ -477,15 +536,20 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 10
             case 18: {
-              productId_ = input.readStringRequireUtf8();
+              skuId_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000002;
               break;
             } // case 18
-            case 24: {
-              quantity_ = input.readInt32();
+            case 26: {
+              productId_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000004;
               break;
-            } // case 24
+            } // case 26
+            case 32: {
+              quantity_ = input.readInt32();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 32
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -575,9 +639,81 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
+    private java.lang.Object skuId_ = "";
+    /**
+     * <code>string sku_id = 2 [json_name = "skuId"];</code>
+     * @return The skuId.
+     */
+    public java.lang.String getSkuId() {
+      java.lang.Object ref = skuId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        skuId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <code>string sku_id = 2 [json_name = "skuId"];</code>
+     * @return The bytes for skuId.
+     */
+    public com.google.protobuf.ByteString
+        getSkuIdBytes() {
+      java.lang.Object ref = skuId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        skuId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <code>string sku_id = 2 [json_name = "skuId"];</code>
+     * @param value The skuId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSkuId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      skuId_ = value;
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string sku_id = 2 [json_name = "skuId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearSkuId() {
+      skuId_ = getDefaultInstance().getSkuId();
+      bitField0_ = (bitField0_ & ~0x00000002);
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string sku_id = 2 [json_name = "skuId"];</code>
+     * @param value The bytes for skuId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSkuIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      skuId_ = value;
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+
     private java.lang.Object productId_ = "";
     /**
-     * <code>string product_id = 2 [json_name = "productId"];</code>
+     * <code>string product_id = 3 [json_name = "productId"];</code>
      * @return The productId.
      */
     public java.lang.String getProductId() {
@@ -593,7 +729,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>string product_id = 2 [json_name = "productId"];</code>
+     * <code>string product_id = 3 [json_name = "productId"];</code>
      * @return The bytes for productId.
      */
     public com.google.protobuf.ByteString
@@ -610,7 +746,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>string product_id = 2 [json_name = "productId"];</code>
+     * <code>string product_id = 3 [json_name = "productId"];</code>
      * @param value The productId to set.
      * @return This builder for chaining.
      */
@@ -618,22 +754,22 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       productId_ = value;
-      bitField0_ |= 0x00000002;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
     /**
-     * <code>string product_id = 2 [json_name = "productId"];</code>
+     * <code>string product_id = 3 [json_name = "productId"];</code>
      * @return This builder for chaining.
      */
     public Builder clearProductId() {
       productId_ = getDefaultInstance().getProductId();
-      bitField0_ = (bitField0_ & ~0x00000002);
+      bitField0_ = (bitField0_ & ~0x00000004);
       onChanged();
       return this;
     }
     /**
-     * <code>string product_id = 2 [json_name = "productId"];</code>
+     * <code>string product_id = 3 [json_name = "productId"];</code>
      * @param value The bytes for productId to set.
      * @return This builder for chaining.
      */
@@ -642,14 +778,14 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       productId_ = value;
-      bitField0_ |= 0x00000002;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
 
     private int quantity_ ;
     /**
-     * <code>int32 quantity = 3 [json_name = "quantity"];</code>
+     * <code>int32 quantity = 4 [json_name = "quantity"];</code>
      * @return The quantity.
      */
     @java.lang.Override
@@ -657,23 +793,23 @@ private static final long serialVersionUID = 0L;
       return quantity_;
     }
     /**
-     * <code>int32 quantity = 3 [json_name = "quantity"];</code>
+     * <code>int32 quantity = 4 [json_name = "quantity"];</code>
      * @param value The quantity to set.
      * @return This builder for chaining.
      */
     public Builder setQuantity(int value) {
 
       quantity_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
     /**
-     * <code>int32 quantity = 3 [json_name = "quantity"];</code>
+     * <code>int32 quantity = 4 [json_name = "quantity"];</code>
      * @return This builder for chaining.
      */
     public Builder clearQuantity() {
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000008);
       quantity_ = 0;
       onChanged();
       return this;

@@ -114,4 +114,28 @@ public interface InventoryCatalogItemOrBuilder extends
    * @return The deleted.
    */
   boolean getDeleted();
+
+  /**
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+   */
+  java.util.List<com.ecommerce.contracts.catalog.v1.ProductVariant> 
+      getVariantsList();
+  /**
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+   */
+  com.ecommerce.contracts.catalog.v1.ProductVariant getVariants(int index);
+  /**
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+   */
+  int getVariantsCount();
+  /**
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+   */
+  java.util.List<? extends com.ecommerce.contracts.catalog.v1.ProductVariantOrBuilder> 
+      getVariantsOrBuilderList();
+  /**
+   * <code>repeated .ecommerce.catalog.v1.ProductVariant variants = 10 [json_name = "variants"];</code>
+   */
+  com.ecommerce.contracts.catalog.v1.ProductVariantOrBuilder getVariantsOrBuilder(
+      int index);
 }

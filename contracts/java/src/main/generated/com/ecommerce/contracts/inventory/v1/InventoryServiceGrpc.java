@@ -46,6 +46,37 @@ public final class InventoryServiceGrpc {
     return getGetAvailabilityMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityRequest,
+      com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityResponse> getBatchGetAvailabilityMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "BatchGetAvailability",
+      requestType = com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityRequest.class,
+      responseType = com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityRequest,
+      com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityResponse> getBatchGetAvailabilityMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityRequest, com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityResponse> getBatchGetAvailabilityMethod;
+    if ((getBatchGetAvailabilityMethod = InventoryServiceGrpc.getBatchGetAvailabilityMethod) == null) {
+      synchronized (InventoryServiceGrpc.class) {
+        if ((getBatchGetAvailabilityMethod = InventoryServiceGrpc.getBatchGetAvailabilityMethod) == null) {
+          InventoryServiceGrpc.getBatchGetAvailabilityMethod = getBatchGetAvailabilityMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityRequest, com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "BatchGetAvailability"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new InventoryServiceMethodDescriptorSupplier("BatchGetAvailability"))
+              .build();
+        }
+      }
+    }
+    return getBatchGetAvailabilityMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.inventory.v1.GetStockRequest,
       com.ecommerce.contracts.inventory.v1.GetStockResponse> getGetStockMethod;
 
@@ -201,6 +232,37 @@ public final class InventoryServiceGrpc {
     return getAdjustStockMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.inventory.v1.DeleteStocksRequest,
+      com.ecommerce.contracts.inventory.v1.DeleteStocksResponse> getDeleteStocksMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "DeleteStocks",
+      requestType = com.ecommerce.contracts.inventory.v1.DeleteStocksRequest.class,
+      responseType = com.ecommerce.contracts.inventory.v1.DeleteStocksResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.inventory.v1.DeleteStocksRequest,
+      com.ecommerce.contracts.inventory.v1.DeleteStocksResponse> getDeleteStocksMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.inventory.v1.DeleteStocksRequest, com.ecommerce.contracts.inventory.v1.DeleteStocksResponse> getDeleteStocksMethod;
+    if ((getDeleteStocksMethod = InventoryServiceGrpc.getDeleteStocksMethod) == null) {
+      synchronized (InventoryServiceGrpc.class) {
+        if ((getDeleteStocksMethod = InventoryServiceGrpc.getDeleteStocksMethod) == null) {
+          InventoryServiceGrpc.getDeleteStocksMethod = getDeleteStocksMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.inventory.v1.DeleteStocksRequest, com.ecommerce.contracts.inventory.v1.DeleteStocksResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "DeleteStocks"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.inventory.v1.DeleteStocksRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.inventory.v1.DeleteStocksResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new InventoryServiceMethodDescriptorSupplier("DeleteStocks"))
+              .build();
+        }
+      }
+    }
+    return getDeleteStocksMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -258,6 +320,13 @@ public final class InventoryServiceGrpc {
 
     /**
      */
+    default void batchGetAvailability(com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getBatchGetAvailabilityMethod(), responseObserver);
+    }
+
+    /**
+     */
     default void getStock(com.ecommerce.contracts.inventory.v1.GetStockRequest request,
         io.grpc.stub.StreamObserver<com.ecommerce.contracts.inventory.v1.GetStockResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetStockMethod(), responseObserver);
@@ -289,6 +358,13 @@ public final class InventoryServiceGrpc {
     default void adjustStock(com.ecommerce.contracts.inventory.v1.AdjustStockRequest request,
         io.grpc.stub.StreamObserver<com.ecommerce.contracts.inventory.v1.AdjustStockResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getAdjustStockMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void deleteStocks(com.ecommerce.contracts.inventory.v1.DeleteStocksRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.inventory.v1.DeleteStocksResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDeleteStocksMethod(), responseObserver);
     }
   }
 
@@ -325,6 +401,14 @@ public final class InventoryServiceGrpc {
         io.grpc.stub.StreamObserver<com.ecommerce.contracts.inventory.v1.GetAvailabilityResponse> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetAvailabilityMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void batchGetAvailability(com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getBatchGetAvailabilityMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -366,6 +450,14 @@ public final class InventoryServiceGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getAdjustStockMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     */
+    public void deleteStocks(com.ecommerce.contracts.inventory.v1.DeleteStocksRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.inventory.v1.DeleteStocksResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getDeleteStocksMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -389,6 +481,13 @@ public final class InventoryServiceGrpc {
     public com.ecommerce.contracts.inventory.v1.GetAvailabilityResponse getAvailability(com.ecommerce.contracts.inventory.v1.GetAvailabilityRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetAvailabilityMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityResponse batchGetAvailability(com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getBatchGetAvailabilityMethod(), getCallOptions(), request);
     }
 
     /**
@@ -425,6 +524,13 @@ public final class InventoryServiceGrpc {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getAdjustStockMethod(), getCallOptions(), request);
     }
+
+    /**
+     */
+    public com.ecommerce.contracts.inventory.v1.DeleteStocksResponse deleteStocks(com.ecommerce.contracts.inventory.v1.DeleteStocksRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getDeleteStocksMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -449,6 +555,14 @@ public final class InventoryServiceGrpc {
         com.ecommerce.contracts.inventory.v1.GetAvailabilityRequest request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetAvailabilityMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityResponse> batchGetAvailability(
+        com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getBatchGetAvailabilityMethod(), getCallOptions()), request);
     }
 
     /**
@@ -490,14 +604,24 @@ public final class InventoryServiceGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getAdjustStockMethod(), getCallOptions()), request);
     }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.inventory.v1.DeleteStocksResponse> deleteStocks(
+        com.ecommerce.contracts.inventory.v1.DeleteStocksRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getDeleteStocksMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET_AVAILABILITY = 0;
-  private static final int METHODID_GET_STOCK = 1;
-  private static final int METHODID_BATCH_GET_STOCK = 2;
-  private static final int METHODID_LIST_STOCKS = 3;
-  private static final int METHODID_SET_STOCK = 4;
-  private static final int METHODID_ADJUST_STOCK = 5;
+  private static final int METHODID_BATCH_GET_AVAILABILITY = 1;
+  private static final int METHODID_GET_STOCK = 2;
+  private static final int METHODID_BATCH_GET_STOCK = 3;
+  private static final int METHODID_LIST_STOCKS = 4;
+  private static final int METHODID_SET_STOCK = 5;
+  private static final int METHODID_ADJUST_STOCK = 6;
+  private static final int METHODID_DELETE_STOCKS = 7;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -520,6 +644,10 @@ public final class InventoryServiceGrpc {
           serviceImpl.getAvailability((com.ecommerce.contracts.inventory.v1.GetAvailabilityRequest) request,
               (io.grpc.stub.StreamObserver<com.ecommerce.contracts.inventory.v1.GetAvailabilityResponse>) responseObserver);
           break;
+        case METHODID_BATCH_GET_AVAILABILITY:
+          serviceImpl.batchGetAvailability((com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityResponse>) responseObserver);
+          break;
         case METHODID_GET_STOCK:
           serviceImpl.getStock((com.ecommerce.contracts.inventory.v1.GetStockRequest) request,
               (io.grpc.stub.StreamObserver<com.ecommerce.contracts.inventory.v1.GetStockResponse>) responseObserver);
@@ -539,6 +667,10 @@ public final class InventoryServiceGrpc {
         case METHODID_ADJUST_STOCK:
           serviceImpl.adjustStock((com.ecommerce.contracts.inventory.v1.AdjustStockRequest) request,
               (io.grpc.stub.StreamObserver<com.ecommerce.contracts.inventory.v1.AdjustStockResponse>) responseObserver);
+          break;
+        case METHODID_DELETE_STOCKS:
+          serviceImpl.deleteStocks((com.ecommerce.contracts.inventory.v1.DeleteStocksRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.inventory.v1.DeleteStocksResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -565,6 +697,13 @@ public final class InventoryServiceGrpc {
               com.ecommerce.contracts.inventory.v1.GetAvailabilityRequest,
               com.ecommerce.contracts.inventory.v1.GetAvailabilityResponse>(
                 service, METHODID_GET_AVAILABILITY)))
+        .addMethod(
+          getBatchGetAvailabilityMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityRequest,
+              com.ecommerce.contracts.inventory.v1.BatchGetAvailabilityResponse>(
+                service, METHODID_BATCH_GET_AVAILABILITY)))
         .addMethod(
           getGetStockMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -600,6 +739,13 @@ public final class InventoryServiceGrpc {
               com.ecommerce.contracts.inventory.v1.AdjustStockRequest,
               com.ecommerce.contracts.inventory.v1.AdjustStockResponse>(
                 service, METHODID_ADJUST_STOCK)))
+        .addMethod(
+          getDeleteStocksMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.inventory.v1.DeleteStocksRequest,
+              com.ecommerce.contracts.inventory.v1.DeleteStocksResponse>(
+                service, METHODID_DELETE_STOCKS)))
         .build();
   }
 
@@ -649,11 +795,13 @@ public final class InventoryServiceGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new InventoryServiceFileDescriptorSupplier())
               .addMethod(getGetAvailabilityMethod())
+              .addMethod(getBatchGetAvailabilityMethod())
               .addMethod(getGetStockMethod())
               .addMethod(getBatchGetStockMethod())
               .addMethod(getListStocksMethod())
               .addMethod(getSetStockMethod())
               .addMethod(getAdjustStockMethod())
+              .addMethod(getDeleteStocksMethod())
               .build();
         }
       }
