@@ -49,21 +49,21 @@ func (s *Store) ListItems(ctx context.Context, cartID string) ([]domain.Line, er
 	lines := make([]domain.Line, 0, len(items))
 	for _, item := range items {
 		lines = append(lines, domain.Line{
-			ID:           item.ID,
-			ProductID:    item.ProductID,
-			VariantLabel: item.VariantLabel,
-			Quantity:     item.Quantity,
+			ID:        item.ID,
+			ProductID: item.ProductID,
+			SkuID:     item.SkuID,
+			Quantity:  item.Quantity,
 		})
 	}
 	return lines, nil
 }
 
-func (s *Store) AddItem(ctx context.Context, cartID, productID, variantLabel string, quantity int32) error {
+func (s *Store) AddItem(ctx context.Context, cartID, productID, skuID string, quantity int32) error {
 	if err := s.queries.AddItem(ctx, db.AddItemParams{
-		CartID:       cartID,
-		ProductID:    productID,
-		VariantLabel: variantLabel,
-		Quantity:     quantity,
+		CartID:    cartID,
+		ProductID: productID,
+		SkuID:     skuID,
+		Quantity:  quantity,
 	}); err != nil {
 		return fmt.Errorf("add cart item: %w", err)
 	}

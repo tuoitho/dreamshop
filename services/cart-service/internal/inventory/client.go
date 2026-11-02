@@ -12,7 +12,7 @@ import (
 )
 
 type Client interface {
-	GetAvailability(context.Context, string) (*inventoryv1.GetAvailabilityResponse, error)
+	BatchGetAvailability(context.Context, []string) ([]*inventoryv1.AvailabilityItem, error)
 }
 
 type client struct {
@@ -37,10 +37,17 @@ func (c *client) Close() error {
 	return c.conn.Close()
 }
 
-func (c *client) GetAvailability(ctx context.Context, productID string) (*inventoryv1.GetAvailabilityResponse, error) {
+func (c *client) BatchGetAvailability(ctx context.Context, skuIDs []string) ([]*inventoryv1.AvailabilityItem, error) {
+	if len(skuIDs) == 0 {
+		return nil, nil
+	}
 	callCtx, cancel := c.withTimeout(ctx)
 	defer cancel()
-	return c.service.GetAvailability(callCtx, &inventoryv1.GetAvailabilityRequest{ProductId: productID})
+	resp, err := c.service.BatchGetAvailability(callCtx, &inventoryv1.BatchGetAvailabilityRequest{SkuIds: skuIDs})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetItems(), nil
 }
 
 func (c *client) withTimeout(ctx context.Context) (context.Context, context.CancelFunc) {

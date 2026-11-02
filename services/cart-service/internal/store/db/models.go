@@ -16,13 +16,13 @@ type Cart struct {
 }
 
 type CartItem struct {
-	ID           string             `json:"id"`
-	CartID       string             `json:"cart_id"`
-	ProductID    string             `json:"product_id"`
-	VariantLabel string             `json:"variant_label"`
-	Quantity     int32              `json:"quantity"`
-	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	ID        string             `json:"id"`
+	CartID    string             `json:"cart_id"`
+	ProductID string             `json:"product_id"`
+	Quantity  int32              `json:"quantity"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	SkuID     string             `json:"sku_id"`
 }
 
 type FavoriteItem struct {

@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 	"log/slog"
-	"sync"
+	"strings"
 
 	"ecommerce.local/cart-service/internal/domain"
 	cartv1 "ecommerce.local/contracts/go/cart/v1"
@@ -157,101 +157,65 @@ func (s *Server) getFavorites(ctx context.Context, userID string, preloaded map[
 	if len(records) == 0 {
 		return list, nil
 	}
-	enrichments := s.enrichFavoriteProducts(ctx, records, preloaded)
+
+	productIDs := make([]string, 0, len(records))
+	seenProducts := make(map[string]struct{}, len(records))
 	for _, record := range records {
-		item, degraded := enrichFavoriteRecord(record, enrichments[record.ProductID])
+		if _, ok := seenProducts[record.ProductID]; ok {
+			continue
+		}
+		seenProducts[record.ProductID] = struct{}{}
+		productIDs = append(productIDs, record.ProductID)
+	}
+	catalogResults := s.fetchCatalogProducts(ctx, productIDs, preloaded)
+
+	allSkuIDs := make([]string, 0, len(productIDs)*2)
+	seenSkus := make(map[string]struct{}, len(productIDs)*2)
+	for _, productID := range productIDs {
+		lookup := catalogResults[productID]
+		if lookup.err != nil || lookup.product == nil || lookup.product.GetDeleted() || len(lookup.product.GetVariants()) == 0 {
+			continue
+		}
+		for _, variant := range lookup.product.GetVariants() {
+			skuID := strings.TrimSpace(variant.GetSkuId())
+			if skuID == "" {
+				continue
+			}
+			if _, ok := seenSkus[skuID]; ok {
+				continue
+			}
+			seenSkus[skuID] = struct{}{}
+			allSkuIDs = append(allSkuIDs, skuID)
+		}
+	}
+
+	availabilityBySku, inventoryErr := s.fetchSkuAvailability(ctx, allSkuIDs)
+	for _, record := range records {
+		item, degraded := enrichFavoriteRecord(record, catalogResults[record.ProductID], availabilityBySku, inventoryErr)
 		list.Items = append(list.Items, item)
 		list.Degraded = list.Degraded || degraded
 	}
 	return list, nil
 }
 
-func (s *Server) enrichFavoriteProducts(
-	ctx context.Context,
-	records []domain.FavoriteRecord,
-	preloaded map[string]*catalogv1.GetProductResponse,
-) map[string]productEnrichment {
-	productIDs := make([]string, 0, len(records))
-	seen := make(map[string]struct{}, len(records))
-	for _, record := range records {
-		if _, ok := seen[record.ProductID]; ok {
-			continue
-		}
-		seen[record.ProductID] = struct{}{}
-		productIDs = append(productIDs, record.ProductID)
-	}
-	if len(productIDs) == 0 {
-		return map[string]productEnrichment{}
-	}
-
-	results := make([]productEnrichment, len(productIDs))
-	jobs := make(chan int)
-	workers := enrichmentConcurrency
-	if len(productIDs) < workers {
-		workers = len(productIDs)
-	}
-	var waitGroup sync.WaitGroup
-	waitGroup.Add(workers)
-	for i := 0; i < workers; i++ {
-		go func() {
-			defer waitGroup.Done()
-			for index := range jobs {
-				productID := productIDs[index]
-				results[index] = s.enrichFavoriteProduct(ctx, productID, preloaded[productID])
-			}
-		}()
-	}
-	for index := range productIDs {
-		jobs <- index
-	}
-	close(jobs)
-	waitGroup.Wait()
-
-	enrichments := make(map[string]productEnrichment, len(productIDs))
-	for index, productID := range productIDs {
-		enrichments[productID] = results[index]
-	}
-	return enrichments
-}
-
-func (s *Server) enrichFavoriteProduct(ctx context.Context, productID string, preloaded *catalogv1.GetProductResponse) productEnrichment {
-	product := preloaded
-	if product == nil {
-		if s.catalog == nil {
-			return productEnrichment{catalogErr: status.Error(codes.Unavailable, "catalog service is unavailable")}
-		}
-		var err error
-		product, err = s.catalog.GetProduct(ctx, productID)
-		if err != nil {
-			return productEnrichment{catalogErr: err}
-		}
-	}
-	if product == nil || product.GetDeleted() || len(product.GetVariants()) == 0 {
-		return productEnrichment{product: product}
-	}
-	if s.inventory == nil {
-		return productEnrichment{
-			product:      product,
-			inventoryErr: status.Error(codes.Unavailable, "inventory service is unavailable"),
-		}
-	}
-	availability, err := s.inventory.GetAvailability(ctx, productID)
-	return productEnrichment{product: product, availability: availability, inventoryErr: err}
-}
-
-func enrichFavoriteRecord(record domain.FavoriteRecord, enrichment productEnrichment) (*cartv1.FavoriteItem, bool) {
+func enrichFavoriteRecord(
+	record domain.FavoriteRecord,
+	lookup catalogLookupResult,
+	availabilityBySku map[string]int32,
+	inventoryErr error,
+) (*cartv1.FavoriteItem, bool) {
 	item := &cartv1.FavoriteItem{
 		ItemId:    record.ID,
 		ProductId: record.ProductID,
 		Status:    cartv1.FavoriteItemStatus_FAVORITE_ITEM_STATUS_UNAVAILABLE,
 	}
-	if enrichment.catalogErr != nil {
-		if status.Code(enrichment.catalogErr) == codes.NotFound {
+	if lookup.err != nil {
+		if status.Code(lookup.err) == codes.NotFound {
 			return item, false
 		}
 		return item, true
 	}
-	product := enrichment.product
+	product := lookup.product
 	if product == nil {
 		return item, false
 	}
@@ -262,6 +226,7 @@ func enrichFavoriteRecord(record domain.FavoriteRecord, enrichment productEnrich
 	item.CategoryName = product.GetCategoryName()
 	item.Price = product.GetPrice()
 	item.OriginalPrice = product.GetOriginalPrice()
+	item.MaxPrice = product.GetMaxPrice()
 	item.Rating = product.GetRating()
 	item.ReviewCount = product.GetReviewCount()
 	item.SoldCount = product.GetSoldCount()
@@ -273,8 +238,11 @@ func enrichFavoriteRecord(record domain.FavoriteRecord, enrichment productEnrich
 	variants := make([]*cartv1.FavoriteVariant, 0, len(product.GetVariants()))
 	for _, variant := range product.GetVariants() {
 		variants = append(variants, &cartv1.FavoriteVariant{
-			Label:    variant.GetLabel(),
-			ColorHex: variant.GetColorHex(),
+			SkuId:         variant.GetSkuId(),
+			Label:         variant.GetLabel(),
+			ColorHex:      variant.GetColorHex(),
+			Price:         variant.GetPrice(),
+			OriginalPrice: variant.GetOriginalPrice(),
 		})
 	}
 	item.Variants = variants
@@ -283,10 +251,12 @@ func enrichFavoriteRecord(record domain.FavoriteRecord, enrichment productEnrich
 		return item, false
 	}
 
-	inventoryDegraded := enrichment.inventoryErr != nil || enrichment.availability == nil
+	inventoryDegraded := inventoryErr != nil
 	var available int32
 	if !inventoryDegraded {
-		available = enrichment.availability.GetAvailableQuantity()
+		for _, variant := range product.GetVariants() {
+			available += availabilityBySku[variant.GetSkuId()]
+		}
 	}
 	resolved := domain.ResolveFavoriteStatus(true, false, len(variants), inventoryDegraded, available)
 	item.Status = favoriteStatusToProto(resolved)

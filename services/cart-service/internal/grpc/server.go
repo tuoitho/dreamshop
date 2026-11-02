@@ -51,7 +51,7 @@ type catalogClient interface {
 }
 
 type inventoryClient interface {
-	GetAvailability(context.Context, string) (*inventoryv1.GetAvailabilityResponse, error)
+	BatchGetAvailability(context.Context, []string) ([]*inventoryv1.AvailabilityItem, error)
 }
 
 type authorizationClient interface {
@@ -101,7 +101,7 @@ func (s *Server) AddItem(ctx context.Context, req *cartv1.AddItemRequest) (*cart
 	if err != nil {
 		return nil, err
 	}
-	variantLabel, err := required(req.GetVariantLabel(), "variant_label")
+	skuID, err := required(req.GetSkuId(), "sku_id")
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func (s *Server) AddItem(ctx context.Context, req *cartv1.AddItemRequest) (*cart
 	if err != nil {
 		return nil, internalError("ensure cart", err)
 	}
-	if err := s.store.AddItem(ctx, cartID, productID, variantLabel, req.GetQuantity()); err != nil {
+	if err := s.store.AddItem(ctx, cartID, productID, skuID, req.GetQuantity()); err != nil {
 		return nil, mutationError(err)
 	}
 	cart, err := s.getCart(ctx, cartID)
@@ -256,10 +256,42 @@ func (s *Server) getCart(ctx context.Context, cartID string) (*cartv1.Cart, erro
 	if err != nil {
 		return nil, internalError("list cart items", err)
 	}
-	enrichments := s.enrichProducts(ctx, lines)
 	cart := &cartv1.Cart{Items: make([]*cartv1.CartItem, 0, len(lines))}
+	if len(lines) == 0 {
+		return cart, nil
+	}
+
+	productIDs := make([]string, 0, len(lines))
+	seenProducts := make(map[string]struct{}, len(lines))
 	for _, line := range lines {
-		item, degraded := enrichLine(line, enrichments[line.ProductID])
+		if _, ok := seenProducts[line.ProductID]; ok {
+			continue
+		}
+		seenProducts[line.ProductID] = struct{}{}
+		productIDs = append(productIDs, line.ProductID)
+	}
+	catalogResults := s.fetchCatalogProducts(ctx, productIDs, nil)
+
+	skuIDs := make([]string, 0, len(lines))
+	seenSkus := make(map[string]struct{}, len(lines))
+	for _, line := range lines {
+		lookup := catalogResults[line.ProductID]
+		if lookup.err != nil || lookup.product == nil || lookup.product.GetDeleted() {
+			continue
+		}
+		if findVariantBySku(lookup.product, line.SkuID) == nil {
+			continue
+		}
+		if _, ok := seenSkus[line.SkuID]; ok {
+			continue
+		}
+		seenSkus[line.SkuID] = struct{}{}
+		skuIDs = append(skuIDs, line.SkuID)
+	}
+
+	availabilityBySku, inventoryErr := s.fetchSkuAvailability(ctx, skuIDs)
+	for _, line := range lines {
+		item, degraded := enrichLine(line, catalogResults[line.ProductID], availabilityBySku, inventoryErr)
 		cart.Items = append(cart.Items, item)
 		cart.Degraded = cart.Degraded || degraded
 	}
@@ -268,30 +300,21 @@ func (s *Server) getCart(ctx context.Context, cartID string) (*cartv1.Cart, erro
 
 const enrichmentConcurrency = 8
 
-type productEnrichment struct {
-	product      *catalogv1.GetProductResponse
-	availability *inventoryv1.GetAvailabilityResponse
-	catalogErr   error
-	inventoryErr error
+type catalogLookupResult struct {
+	product *catalogv1.GetProductResponse
+	err     error
 }
 
-func (s *Server) enrichProducts(ctx context.Context, lines []domain.Line) map[string]productEnrichment {
-	productIDs := make([]string, 0, len(lines))
-	seen := make(map[string]struct{}, len(lines))
-	variantLabels := make(map[string][]string, len(lines))
-	for _, line := range lines {
-		variantLabels[line.ProductID] = append(variantLabels[line.ProductID], line.VariantLabel)
-		if _, ok := seen[line.ProductID]; ok {
-			continue
-		}
-		seen[line.ProductID] = struct{}{}
-		productIDs = append(productIDs, line.ProductID)
-	}
+func (s *Server) fetchCatalogProducts(
+	ctx context.Context,
+	productIDs []string,
+	preloaded map[string]*catalogv1.GetProductResponse,
+) map[string]catalogLookupResult {
 	if len(productIDs) == 0 {
-		return map[string]productEnrichment{}
+		return map[string]catalogLookupResult{}
 	}
 
-	results := make([]productEnrichment, len(productIDs))
+	results := make([]catalogLookupResult, len(productIDs))
 	jobs := make(chan int)
 	workers := enrichmentConcurrency
 	if len(productIDs) < workers {
@@ -304,7 +327,18 @@ func (s *Server) enrichProducts(ctx context.Context, lines []domain.Line) map[st
 			defer waitGroup.Done()
 			for index := range jobs {
 				productID := productIDs[index]
-				results[index] = s.enrichProduct(ctx, productID, variantLabels[productID])
+				if preloaded != nil {
+					if cached := preloaded[productID]; cached != nil {
+						results[index] = catalogLookupResult{product: cached}
+						continue
+					}
+				}
+				if s.catalog == nil {
+					results[index] = catalogLookupResult{err: status.Error(codes.Unavailable, "catalog service is unavailable")}
+					continue
+				}
+				product, err := s.catalog.GetProduct(ctx, productID)
+				results[index] = catalogLookupResult{product: product, err: err}
 			}
 		}()
 	}
@@ -314,54 +348,60 @@ func (s *Server) enrichProducts(ctx context.Context, lines []domain.Line) map[st
 	close(jobs)
 	waitGroup.Wait()
 
-	enrichments := make(map[string]productEnrichment, len(productIDs))
+	lookups := make(map[string]catalogLookupResult, len(productIDs))
 	for index, productID := range productIDs {
-		enrichments[productID] = results[index]
+		lookups[productID] = results[index]
 	}
-	return enrichments
+	return lookups
 }
 
-func (s *Server) enrichProduct(ctx context.Context, productID string, requestedLabels []string) productEnrichment {
-	product, err := s.catalog.GetProduct(ctx, productID)
+func (s *Server) fetchSkuAvailability(ctx context.Context, skuIDs []string) (map[string]int32, error) {
+	if len(skuIDs) == 0 {
+		return nil, nil
+	}
+	if s.inventory == nil {
+		return nil, status.Error(codes.Unavailable, "inventory service is unavailable")
+	}
+	items, err := s.inventory.BatchGetAvailability(ctx, skuIDs)
 	if err != nil {
-		return productEnrichment{catalogErr: err}
+		return nil, err
 	}
-	if product == nil || product.GetDeleted() {
-		return productEnrichment{product: product}
+	bySku := make(map[string]int32, len(items))
+	for _, item := range items {
+		bySku[item.GetSkuId()] = item.GetAvailableQuantity()
 	}
-	if !hasRequestedVariant(product, requestedLabels) {
-		return productEnrichment{product: product}
-	}
-	availability, err := s.inventory.GetAvailability(ctx, productID)
-	return productEnrichment{product: product, availability: availability, inventoryErr: err}
+	return bySku, nil
 }
 
-func hasRequestedVariant(product *catalogv1.GetProductResponse, requestedLabels []string) bool {
+func findVariantBySku(product *catalogv1.GetProductResponse, skuID string) *catalogv1.ProductVariant {
 	for _, variant := range product.GetVariants() {
-		for _, requestedLabel := range requestedLabels {
-			if variant.GetLabel() == requestedLabel {
-				return true
-			}
+		if variant.GetSkuId() == skuID {
+			return variant
 		}
 	}
-	return false
+	return nil
 }
 
-func enrichLine(line domain.Line, enrichment productEnrichment) (*cartv1.CartItem, bool) {
+func enrichLine(
+	line domain.Line,
+	lookup catalogLookupResult,
+	availabilityBySku map[string]int32,
+	inventoryErr error,
+) (*cartv1.CartItem, bool) {
 	item := &cartv1.CartItem{
-		ItemId:       line.ID,
-		ProductId:    line.ProductID,
-		VariantLabel: line.VariantLabel,
-		Quantity:     line.Quantity,
-		Status:       cartv1.CartItemStatus_CART_ITEM_STATUS_UNAVAILABLE,
+		ItemId:    line.ID,
+		ProductId: line.ProductID,
+		SkuId:     line.SkuID,
+		Quantity:  line.Quantity,
+		Status:    cartv1.CartItemStatus_CART_ITEM_STATUS_UNAVAILABLE,
 	}
-	if enrichment.catalogErr != nil {
-		if status.Code(enrichment.catalogErr) == codes.NotFound {
+	if lookup.err != nil {
+		if status.Code(lookup.err) == codes.NotFound {
 			return item, false
 		}
 		return item, true
 	}
-	product := enrichment.product
+	product := lookup.product
 	if product == nil {
 		return item, false
 	}
@@ -369,29 +409,25 @@ func enrichLine(line domain.Line, enrichment productEnrichment) (*cartv1.CartIte
 	item.Brand = product.GetBrand()
 	item.CategoryName = product.GetCategoryName()
 	item.UnitPrice = product.GetPrice()
+	item.OriginalPrice = product.GetOriginalPrice()
 	item.ImageEmoji = product.GetEmoji()
 	item.ImageHue = product.GetImageHue()
 	item.ImageUrl = firstString(product.GetImages())
-	var matchedVariant *catalogv1.ProductVariant
-	for _, variant := range product.GetVariants() {
-		if variant.GetLabel() == line.VariantLabel {
-			matchedVariant = variant
-			break
-		}
-	}
+
+	matchedVariant := findVariantBySku(product, line.SkuID)
 	if matchedVariant != nil {
+		item.VariantLabel = matchedVariant.GetLabel()
 		item.VariantColorHex = matchedVariant.GetColorHex()
+		item.UnitPrice = matchedVariant.GetPrice()
+		item.OriginalPrice = matchedVariant.GetOriginalPrice()
 	}
-	if product.GetDeleted() {
+	if product.GetDeleted() || matchedVariant == nil {
 		return item, false
 	}
-	if matchedVariant == nil {
-		return item, false
-	}
-	if enrichment.inventoryErr != nil || enrichment.availability == nil {
+	if inventoryErr != nil {
 		return item, true
 	}
-	available := enrichment.availability.GetAvailableQuantity()
+	available := availabilityBySku[line.SkuID]
 	resolved := domain.ResolveStatus(true, false, true, available, line.Quantity)
 	item.Status = statusToProto(resolved)
 	item.AvailableQuantity = available

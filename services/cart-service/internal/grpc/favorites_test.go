@@ -11,7 +11,6 @@ import (
 	cartv1 "ecommerce.local/contracts/go/cart/v1"
 	catalogv1 "ecommerce.local/contracts/go/catalog/v1"
 	commonv1 "ecommerce.local/contracts/go/common/v1"
-	inventoryv1 "ecommerce.local/contracts/go/inventory/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -26,6 +25,7 @@ func detailedFavoriteProduct(id string) *catalogv1.GetProductResponse {
 		CategoryName:  "Điện thoại",
 		Price:         &commonv1.Money{Currency: "VND", AmountMinor: 26990000},
 		OriginalPrice: &commonv1.Money{Currency: "VND", AmountMinor: 29990000},
+		MaxPrice:      &commonv1.Money{Currency: "VND", AmountMinor: 31990000},
 		Rating:        4.9,
 		ReviewCount:   128,
 		SoldCount:     540,
@@ -34,8 +34,20 @@ func detailedFavoriteProduct(id string) *catalogv1.GetProductResponse {
 		Images:        []string{"https://example.test/iphone.png"},
 		Badge:         "hot",
 		Variants: []*catalogv1.ProductVariant{
-			{Label: "Đen Titan 256GB", ColorHex: "#1c1c1e"},
-			{Label: "Trắng Titan 256GB", ColorHex: "#f5f5f7"},
+			{
+				SkuId:         id + "-v1",
+				Label:         "Đen Titan 256GB",
+				ColorHex:      "#1c1c1e",
+				Price:         &commonv1.Money{Currency: "VND", AmountMinor: 26990000},
+				OriginalPrice: &commonv1.Money{Currency: "VND", AmountMinor: 29990000},
+			},
+			{
+				SkuId:         id + "-v2",
+				Label:         "Trắng Titan 512GB",
+				ColorHex:      "#f5f5f7",
+				Price:         &commonv1.Money{Currency: "VND", AmountMinor: 31990000},
+				OriginalPrice: &commonv1.Money{Currency: "VND", AmountMinor: 34990000},
+			},
 		},
 	}
 }
@@ -123,7 +135,7 @@ func TestFavoriteMethodsEnforceFavoriteManageAuthorization(t *testing.T) {
 		t.Run(rpc.name+" denied", func(t *testing.T) {
 			store := &fakeStore{}
 			catalog := &fakeCatalog{products: map[string]*catalogv1.GetProductResponse{"dt-1": detailedFavoriteProduct("dt-1")}, errors: map[string]error{}}
-			inventory := &fakeInventory{availability: map[string]*inventoryv1.GetAvailabilityResponse{}, errors: map[string]error{}}
+			inventory := &fakeInventory{}
 			auth := &fakeAuthorization{allowed: false}
 			client := newBufconnClient(t, NewServer(store, catalog, inventory, auth))
 
@@ -135,9 +147,9 @@ func TestFavoriteMethodsEnforceFavoriteManageAuthorization(t *testing.T) {
 			if auth.calls != 1 || auth.userID != testUserID || auth.permission != "favorite.manage" {
 				t.Fatalf("auth = calls=%d user=%q perm=%q, want 1/%s/favorite.manage", auth.calls, auth.userID, auth.permission, testUserID)
 			}
-			if len(catalog.called) != 0 || len(inventory.called) != 0 || len(store.addFavoriteArgs) != 0 || len(store.removeFavArgs) != 0 || store.clearFavUserID != "" {
+			if len(catalog.called) != 0 || len(inventory.batches) != 0 || len(store.addFavoriteArgs) != 0 || len(store.removeFavArgs) != 0 || store.clearFavUserID != "" {
 				t.Fatalf("denied RPC caused side effects: catalog=%v inventory=%v add=%v remove=%v clear=%q",
-					catalog.called, inventory.called, store.addFavoriteArgs, store.removeFavArgs, store.clearFavUserID)
+					catalog.called, inventory.batches, store.addFavoriteArgs, store.removeFavArgs, store.clearFavUserID)
 			}
 		})
 
@@ -271,8 +283,7 @@ func TestAddFavoriteVerifiesCatalogAndAllowsOutOfStockWhileBlockingDiscontinued(
 		store := &fakeStore{}
 		catalog := &fakeCatalog{products: map[string]*catalogv1.GetProductResponse{"dt-oos": detailedFavoriteProduct("dt-oos")}, errors: map[string]error{}}
 		inventory := &fakeInventory{
-			availability: map[string]*inventoryv1.GetAvailabilityResponse{"dt-oos": {ProductId: "dt-oos", AvailableQuantity: 0}},
-			errors:       map[string]error{},
+			availability: map[string]int32{"dt-oos-v1": 0, "dt-oos-v2": 0},
 		}
 		client := newBufconnClient(t, NewServer(store, catalog, inventory, &fakeAuthorization{allowed: true}))
 
@@ -293,7 +304,7 @@ func TestAddFavoriteVerifiesCatalogAndAllowsOutOfStockWhileBlockingDiscontinued(
 func TestGetFavoritesEmptyListShortCircuitsDownstreamCalls(t *testing.T) {
 	store := &fakeStore{favorites: nil}
 	catalog := &fakeCatalog{products: map[string]*catalogv1.GetProductResponse{}, errors: map[string]error{}}
-	inventory := &fakeInventory{availability: map[string]*inventoryv1.GetAvailabilityResponse{}, errors: map[string]error{}}
+	inventory := &fakeInventory{}
 	client := newBufconnClient(t, NewServer(store, catalog, inventory, &fakeAuthorization{allowed: true}))
 
 	resp, err := client.GetFavorites(context.Background(), &cartv1.GetFavoritesRequest{UserId: testUserID})
@@ -303,8 +314,8 @@ func TestGetFavoritesEmptyListShortCircuitsDownstreamCalls(t *testing.T) {
 	if resp.GetFavorites() == nil || len(resp.GetFavorites().GetItems()) != 0 || resp.GetFavorites().GetDegraded() {
 		t.Fatalf("empty GetFavorites() = %+v", resp.GetFavorites())
 	}
-	if len(catalog.called) != 0 || len(inventory.called) != 0 {
-		t.Fatalf("downstream calls on empty favorites: catalog=%v inventory=%v", catalog.called, inventory.called)
+	if len(catalog.called) != 0 || len(inventory.batches) != 0 {
+		t.Fatalf("downstream calls on empty favorites: catalog=%v inventory=%v", catalog.called, inventory.batches)
 	}
 }
 
@@ -331,12 +342,14 @@ func TestGetFavoritesEnrichesMetadataStatusesAndGracefulDegradation(t *testing.T
 		errors: map[string]error{},
 	}
 	inventory := &fakeInventory{
-		availability: map[string]*inventoryv1.GetAvailabilityResponse{
-			"p-avail":   {ProductId: "p-avail", AvailableQuantity: 12},
-			"p-limited": {ProductId: "p-limited", AvailableQuantity: 5},
-			"p-oos":     {ProductId: "p-oos", AvailableQuantity: 0},
+		availability: map[string]int32{
+			"p-avail-v1":   2,
+			"p-avail-v2":   4,
+			"p-limited-v1": 5,
+			"p-limited-v2": 0,
+			"p-oos-v1":     0,
+			"p-oos-v2":     0,
 		},
-		errors: map[string]error{},
 	}
 
 	client := newBufconnClient(t, NewServer(store, catalog, inventory, &fakeAuthorization{allowed: true}))
@@ -362,6 +375,7 @@ func TestGetFavoritesEnrichesMetadataStatusesAndGracefulDegradation(t *testing.T
 		first.GetCategoryName() != "Điện thoại" ||
 		first.GetPrice().GetAmountMinor() != 26990000 ||
 		first.GetOriginalPrice().GetAmountMinor() != 29990000 ||
+		first.GetMaxPrice().GetAmountMinor() != 31990000 ||
 		first.GetRating() != 4.9 ||
 		first.GetReviewCount() != 128 ||
 		first.GetSoldCount() != 540 ||
@@ -370,10 +384,15 @@ func TestGetFavoritesEnrichesMetadataStatusesAndGracefulDegradation(t *testing.T
 		len(first.GetImageHue()) != 2 ||
 		first.GetBadge() != "hot" ||
 		len(first.GetVariants()) != 2 ||
+		first.GetVariants()[0].GetSkuId() != "p-avail-v1" ||
 		first.GetVariants()[0].GetLabel() != "Đen Titan 256GB" ||
 		first.GetVariants()[0].GetColorHex() != "#1c1c1e" ||
+		first.GetVariants()[0].GetPrice().GetAmountMinor() != 26990000 ||
+		first.GetVariants()[0].GetOriginalPrice().GetAmountMinor() != 29990000 ||
+		first.GetVariants()[1].GetSkuId() != "p-avail-v2" ||
+		first.GetVariants()[1].GetPrice().GetAmountMinor() != 31990000 ||
 		first.GetStatus() != cartv1.FavoriteItemStatus_FAVORITE_ITEM_STATUS_AVAILABLE ||
-		first.GetAvailableQuantity() != 12 {
+		first.GetAvailableQuantity() != 6 {
 		t.Fatalf("enriched first item mismatch: %+v", first)
 	}
 
@@ -389,8 +408,8 @@ func TestGetFavoritesEnrichesMetadataStatusesAndGracefulDegradation(t *testing.T
 	if items[4].GetStatus() != cartv1.FavoriteItemStatus_FAVORITE_ITEM_STATUS_UNAVAILABLE || items[4].GetProductId() != "p-orphan" || items[4].GetName() != "" {
 		t.Fatalf("orphan hard-deleted item = %+v", items[4])
 	}
-	if len(inventory.called) != 3 {
-		t.Fatalf("inventory calls = %d, want 3 (skipping deleted and orphan)", len(inventory.called))
+	if len(inventory.batches) != 1 || len(inventory.batches[0]) != 6 {
+		t.Fatalf("inventory batches = %v, want 1 batch across 6 active variant SKUs", inventory.batches)
 	}
 }
 
@@ -406,8 +425,7 @@ func TestGetFavoritesMarksDegradedOnCatalogOrInventoryOutage(t *testing.T) {
 		errors:   map[string]error{"p-cat-down": status.Error(codes.Unavailable, "catalog down")},
 	}
 	inventory := &fakeInventory{
-		availability: map[string]*inventoryv1.GetAvailabilityResponse{},
-		errors:       map[string]error{"p-inv-down": status.Error(codes.Unavailable, "inventory down")},
+		batchErr: status.Error(codes.Unavailable, "inventory down"),
 	}
 
 	client := newBufconnClient(t, NewServer(store, catalog, inventory, &fakeAuthorization{allowed: true}))
@@ -435,7 +453,7 @@ func TestGetFavoritesBoundedConcurrencyAndRemoveClearMutations(t *testing.T) {
 	entered := make(chan struct{}, len(records))
 	release := make(chan struct{})
 	catalog := &blockingCatalog{entered: entered, release: release}
-	inventory := &fakeInventory{availability: map[string]*inventoryv1.GetAvailabilityResponse{}, errors: map[string]error{}}
+	inventory := &fakeInventory{availability: map[string]int32{}}
 	store := &fakeStore{favorites: records}
 
 	done := make(chan struct{})
@@ -474,7 +492,7 @@ func TestGetFavoritesBoundedConcurrencyAndRemoveClearMutations(t *testing.T) {
 		favorites: []domain.FavoriteRecord{{ID: "fav-1", ProductID: "dt-1"}},
 	}
 	mutCatalog := &fakeCatalog{products: map[string]*catalogv1.GetProductResponse{"dt-1": detailedFavoriteProduct("dt-1")}, errors: map[string]error{}}
-	mutInv := &fakeInventory{availability: map[string]*inventoryv1.GetAvailabilityResponse{"dt-1": {ProductId: "dt-1", AvailableQuantity: 10}}, errors: map[string]error{}}
+	mutInv := &fakeInventory{availability: map[string]int32{"dt-1-v1": 6, "dt-1-v2": 4}}
 	client := newBufconnClient(t, NewServer(mutationStore, mutCatalog, mutInv, &fakeAuthorization{allowed: true}))
 
 	// Removing an absent product succeeds idempotently and returns current list.

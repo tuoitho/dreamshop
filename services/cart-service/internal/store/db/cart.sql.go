@@ -10,24 +10,24 @@ import (
 )
 
 const addItem = `-- name: AddItem :exec
-INSERT INTO cart_items (cart_id, product_id, variant_label, quantity)
+INSERT INTO cart_items (cart_id, product_id, sku_id, quantity)
 VALUES ($1::uuid, $2, $3, $4)
-ON CONFLICT (cart_id, product_id, variant_label)
+ON CONFLICT (cart_id, sku_id)
 DO UPDATE SET quantity = cart_items.quantity + EXCLUDED.quantity, updated_at = now()
 `
 
 type AddItemParams struct {
-	CartID       string `json:"cart_id"`
-	ProductID    string `json:"product_id"`
-	VariantLabel string `json:"variant_label"`
-	Quantity     int32  `json:"quantity"`
+	CartID    string `json:"cart_id"`
+	ProductID string `json:"product_id"`
+	SkuID     string `json:"sku_id"`
+	Quantity  int32  `json:"quantity"`
 }
 
 func (q *Queries) AddItem(ctx context.Context, arg AddItemParams) error {
 	_, err := q.db.Exec(ctx, addItem,
 		arg.CartID,
 		arg.ProductID,
-		arg.VariantLabel,
+		arg.SkuID,
 		arg.Quantity,
 	)
 	return err
@@ -71,17 +71,17 @@ func (q *Queries) FindCart(ctx context.Context, userID string) (string, error) {
 }
 
 const listItems = `-- name: ListItems :many
-SELECT id, product_id, variant_label, quantity
+SELECT id, product_id, sku_id, quantity
 FROM cart_items
 WHERE cart_id = $1::uuid
 ORDER BY created_at, id
 `
 
 type ListItemsRow struct {
-	ID           string `json:"id"`
-	ProductID    string `json:"product_id"`
-	VariantLabel string `json:"variant_label"`
-	Quantity     int32  `json:"quantity"`
+	ID        string `json:"id"`
+	ProductID string `json:"product_id"`
+	SkuID     string `json:"sku_id"`
+	Quantity  int32  `json:"quantity"`
 }
 
 func (q *Queries) ListItems(ctx context.Context, cartID string) ([]ListItemsRow, error) {
@@ -96,7 +96,7 @@ func (q *Queries) ListItems(ctx context.Context, cartID string) ([]ListItemsRow,
 		if err := rows.Scan(
 			&i.ID,
 			&i.ProductID,
-			&i.VariantLabel,
+			&i.SkuID,
 			&i.Quantity,
 		); err != nil {
 			return nil, err

@@ -68,13 +68,19 @@ func TestStoreIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ensure other cart: %v", err)
 	}
-	if err := store.AddItem(ctx, cartID, "product-1", "red", 2); err != nil {
-		t.Fatalf("add item: %v", err)
+	if err := store.AddItem(ctx, cartID, "dt-1", "dt-1-v1", 2); err != nil {
+		t.Fatalf("add first variant sku: %v", err)
 	}
-	if err := store.AddItem(ctx, cartID, "product-1", "red", 3); err != nil {
-		t.Fatalf("upsert duplicate item: %v", err)
+	if err := store.AddItem(ctx, cartID, "dt-1", "dt-1-v2", 1); err != nil {
+		t.Fatalf("add second variant sku: %v", err)
 	}
-	if err := store.AddItem(ctx, otherCartID, "product-1", "red", 7); err != nil {
+	if err := store.AddItem(ctx, cartID, "dt-1", "dt-1-v1", 3); err != nil {
+		t.Fatalf("upsert duplicate sku item: %v", err)
+	}
+	if err := store.AddItem(ctx, cartID, "dt-1", "   ", 1); err == nil {
+		t.Fatal("expected blank sku_id to violate cart_items_sku_id_nonempty constraint")
+	}
+	if err := store.AddItem(ctx, otherCartID, "dt-1", "dt-1-v1", 7); err != nil {
 		t.Fatalf("add other-cart item: %v", err)
 	}
 
@@ -82,8 +88,14 @@ func TestStoreIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list items: %v", err)
 	}
-	if len(items) != 1 || items[0].Quantity != 5 {
-		t.Fatalf("expected one item with quantity 5, got %+v", items)
+	if len(items) != 2 {
+		t.Fatalf("expected two distinct SKU lines, got %+v", items)
+	}
+	if items[0].ProductID != "dt-1" || items[0].SkuID != "dt-1-v1" || items[0].Quantity != 5 {
+		t.Fatalf("first SKU line = %+v, want dt-1/dt-1-v1 qty 5", items[0])
+	}
+	if items[1].ProductID != "dt-1" || items[1].SkuID != "dt-1-v2" || items[1].Quantity != 1 {
+		t.Fatalf("second SKU line = %+v, want dt-1/dt-1-v2 qty 1", items[1])
 	}
 	itemID := items[0].ID
 

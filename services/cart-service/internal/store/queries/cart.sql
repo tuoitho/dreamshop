@@ -10,15 +10,15 @@ FROM carts
 WHERE user_id = sqlc.arg(user_id)::uuid;
 
 -- name: ListItems :many
-SELECT id, product_id, variant_label, quantity
+SELECT id, product_id, sku_id, quantity
 FROM cart_items
 WHERE cart_id = sqlc.arg(cart_id)::uuid
 ORDER BY created_at, id;
 
 -- name: AddItem :exec
-INSERT INTO cart_items (cart_id, product_id, variant_label, quantity)
-VALUES (sqlc.arg(cart_id)::uuid, sqlc.arg(product_id), sqlc.arg(variant_label), sqlc.arg(quantity))
-ON CONFLICT (cart_id, product_id, variant_label)
+INSERT INTO cart_items (cart_id, product_id, sku_id, quantity)
+VALUES (sqlc.arg(cart_id)::uuid, sqlc.arg(product_id), sqlc.arg(sku_id), sqlc.arg(quantity))
+ON CONFLICT (cart_id, sku_id)
 DO UPDATE SET quantity = cart_items.quantity + EXCLUDED.quantity, updated_at = now();
 
 -- name: UpdateQuantity :execrows

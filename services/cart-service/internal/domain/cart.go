@@ -1,10 +1,10 @@
 package domain
 
 type Line struct {
-	ID           string
-	ProductID    string
-	VariantLabel string
-	Quantity     int32
+	ID        string
+	ProductID string
+	SkuID     string
+	Quantity  int32
 }
 
 type ItemStatus int
