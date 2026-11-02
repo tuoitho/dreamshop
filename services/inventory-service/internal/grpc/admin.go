@@ -12,38 +12,34 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// GetStock returns physical, reserved, and available stock for a single product.
+// GetStock returns physical, reserved, and available stock for a single SKU.
 func (s *Server) GetStock(ctx context.Context, req *inventoryv1.GetStockRequest) (*inventoryv1.GetStockResponse, error) {
-	productID := strings.TrimSpace(req.GetProductId())
-	if productID == "" {
-		return nil, status.Error(codes.InvalidArgument, "product_id is required")
+	skuID := strings.TrimSpace(req.GetSkuId())
+	if skuID == "" {
+		return nil, status.Error(codes.InvalidArgument, "sku_id is required")
 	}
 	if err := s.authorize(ctx, req.GetUserId(), inventoryViewPermission); err != nil {
 		return nil, err
 	}
 
-	st, err := s.repo.Get(ctx, productID)
+	st, err := s.repo.Get(ctx, skuID)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "get stock %q: %v", productID, err)
+		return nil, status.Errorf(codes.Internal, "get stock %q: %v", skuID, err)
 	}
 	return &inventoryv1.GetStockResponse{Stock: stockToProto(st)}, nil
 }
 
-// BatchGetStock returns stock records for up to 200 product IDs.
+// BatchGetStock returns stock records for requested SKU IDs in request order.
 func (s *Server) BatchGetStock(ctx context.Context, req *inventoryv1.BatchGetStockRequest) (*inventoryv1.BatchGetStockResponse, error) {
-	if len(req.GetProductIds()) > maxBatchProductIDs {
-		return nil, status.Errorf(codes.InvalidArgument, "product_ids must not exceed %d entries", maxBatchProductIDs)
-	}
-	cleanIDs := make([]string, 0, len(req.GetProductIds()))
-	for _, raw := range req.GetProductIds() {
-		id := strings.TrimSpace(raw)
-		if id == "" {
-			return nil, status.Error(codes.InvalidArgument, "product_ids entries must not be blank")
-		}
-		cleanIDs = append(cleanIDs, id)
+	cleanIDs, err := sanitizeBatchSkuIDs(req.GetSkuIds())
+	if err != nil {
+		return nil, err
 	}
 	if err := s.authorize(ctx, req.GetUserId(), inventoryViewPermission); err != nil {
 		return nil, err
+	}
+	if len(cleanIDs) == 0 {
+		return &inventoryv1.BatchGetStockResponse{}, nil
 	}
 
 	stocks, err := s.repo.BatchGet(ctx, cleanIDs)
@@ -57,13 +53,13 @@ func (s *Server) BatchGetStock(ctx context.Context, req *inventoryv1.BatchGetSto
 	return &inventoryv1.BatchGetStockResponse{Items: items}, nil
 }
 
-// ListStocks returns all persisted stock rows.
+// ListStocks returns all persisted SKU stock rows.
 func (s *Server) ListStocks(ctx context.Context, req *inventoryv1.ListStocksRequest) (*inventoryv1.ListStocksResponse, error) {
 	if err := s.authorize(ctx, req.GetUserId(), inventoryViewPermission); err != nil {
 		return nil, err
 	}
 
-	stocks, err := s.repo.ListAll(ctx)
+	stocks, err := s.repo.List(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "list stocks: %v", err)
 	}
@@ -74,8 +70,12 @@ func (s *Server) ListStocks(ctx context.Context, req *inventoryv1.ListStocksRequ
 	return &inventoryv1.ListStocksResponse{Items: items}, nil
 }
 
-// SetStock atomically sets physical quantity for a product.
+// SetStock atomically sets physical quantity for a SKU.
 func (s *Server) SetStock(ctx context.Context, req *inventoryv1.SetStockRequest) (*inventoryv1.SetStockResponse, error) {
+	skuID := strings.TrimSpace(req.GetSkuId())
+	if skuID == "" {
+		return nil, status.Error(codes.InvalidArgument, "sku_id is required")
+	}
 	productID := strings.TrimSpace(req.GetProductId())
 	if productID == "" {
 		return nil, status.Error(codes.InvalidArgument, "product_id is required")
@@ -87,18 +87,22 @@ func (s *Server) SetStock(ctx context.Context, req *inventoryv1.SetStockRequest)
 		return nil, err
 	}
 
-	st, err := s.repo.SetQuantity(ctx, productID, req.GetQuantity())
+	st, err := s.repo.SetQuantity(ctx, skuID, productID, req.GetQuantity())
 	if err != nil {
 		if errors.Is(err, domain.ErrStockBelowReserved) {
 			return nil, statusWithReason(codes.FailedPrecondition, "quantity cannot be less than reserved stock", reasonStockBelowReserved)
 		}
-		return nil, status.Errorf(codes.Internal, "set stock %q: %v", productID, err)
+		return nil, status.Errorf(codes.Internal, "set stock %q: %v", skuID, err)
 	}
 	return &inventoryv1.SetStockResponse{Stock: stockToProto(st)}, nil
 }
 
-// AdjustStock atomically adds or subtracts delta from physical stock.
+// AdjustStock atomically adds or subtracts delta from physical stock for a SKU.
 func (s *Server) AdjustStock(ctx context.Context, req *inventoryv1.AdjustStockRequest) (*inventoryv1.AdjustStockResponse, error) {
+	skuID := strings.TrimSpace(req.GetSkuId())
+	if skuID == "" {
+		return nil, status.Error(codes.InvalidArgument, "sku_id is required")
+	}
 	productID := strings.TrimSpace(req.GetProductId())
 	if productID == "" {
 		return nil, status.Error(codes.InvalidArgument, "product_id is required")
@@ -110,14 +114,42 @@ func (s *Server) AdjustStock(ctx context.Context, req *inventoryv1.AdjustStockRe
 		return nil, err
 	}
 
-	st, err := s.repo.AdjustQuantity(ctx, productID, req.GetDelta())
+	st, err := s.repo.AdjustQuantity(ctx, skuID, productID, req.GetDelta())
 	if err != nil {
 		if errors.Is(err, domain.ErrStockBelowReserved) {
 			return nil, statusWithReason(codes.FailedPrecondition, "resulting quantity cannot be less than reserved stock", reasonStockBelowReserved)
 		}
-		return nil, status.Errorf(codes.Internal, "adjust stock %q: %v", productID, err)
+		return nil, status.Errorf(codes.Internal, "adjust stock %q: %v", skuID, err)
 	}
 	return &inventoryv1.AdjustStockResponse{Stock: stockToProto(st)}, nil
+}
+
+// DeleteStocks checks or deletes unreserved SKU stock rows after verifying product.update or inventory.update.
+func (s *Server) DeleteStocks(ctx context.Context, req *inventoryv1.DeleteStocksRequest) (*inventoryv1.DeleteStocksResponse, error) {
+	cleanIDs, err := sanitizeBatchSkuIDs(req.GetSkuIds())
+	if err != nil {
+		return nil, err
+	}
+	if err := s.authorizeAny(ctx, req.GetUserId(), productUpdatePermission, inventoryUpdatePermission); err != nil {
+		return nil, err
+	}
+	if len(cleanIDs) == 0 {
+		return &inventoryv1.DeleteStocksResponse{}, nil
+	}
+
+	if err := s.repo.DeleteUnreserved(ctx, cleanIDs, req.GetDryRun()); err != nil {
+		var resErr *domain.VariantHasReservedStockError
+		if errors.As(err, &resErr) {
+			return nil, statusWithReasonAndMetadata(
+				codes.FailedPrecondition,
+				"cannot delete variant with reserved stock",
+				reasonVariantHasReservedStock,
+				map[string]string{"sku_id": resErr.SkuID},
+			)
+		}
+		return nil, status.Errorf(codes.Internal, "delete stocks: %v", err)
+	}
+	return &inventoryv1.DeleteStocksResponse{}, nil
 }
 
 func stockToProto(st domain.Stock) *inventoryv1.StockItem {
@@ -126,6 +158,7 @@ func stockToProto(st domain.Stock) *inventoryv1.StockItem {
 		updatedAt = st.UpdatedAt.UTC().Format(time.RFC3339)
 	}
 	return &inventoryv1.StockItem{
+		SkuId:             st.SkuID,
 		ProductId:         st.ProductID,
 		Quantity:          st.Quantity,
 		Reserved:          st.Reserved,

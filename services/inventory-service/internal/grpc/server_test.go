@@ -22,30 +22,30 @@ type memoryRepo struct {
 	err    error
 }
 
-func (m *memoryRepo) Get(_ context.Context, productID string) (domain.Stock, error) {
+func (m *memoryRepo) Get(_ context.Context, skuID string) (domain.Stock, error) {
 	if m.err != nil {
 		return domain.Stock{}, m.err
 	}
-	stock, ok := m.stocks[productID]
+	stock, ok := m.stocks[skuID]
 	if !ok {
-		return domain.Stock{ProductID: productID}, nil
+		return domain.Stock{SkuID: skuID}, nil
 	}
 	return stock, nil
 }
 
-func (m *memoryRepo) BatchGet(ctx context.Context, productIDs []string) ([]domain.Stock, error) {
+func (m *memoryRepo) BatchGet(ctx context.Context, skuIDs []string) ([]domain.Stock, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
-	out := make([]domain.Stock, len(productIDs))
-	for i, id := range productIDs {
+	out := make([]domain.Stock, len(skuIDs))
+	for i, id := range skuIDs {
 		st, _ := m.Get(ctx, id)
 		out[i] = st
 	}
 	return out, nil
 }
 
-func (m *memoryRepo) ListAll(_ context.Context) ([]domain.Stock, error) {
+func (m *memoryRepo) List(_ context.Context) ([]domain.Stock, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -53,30 +53,31 @@ func (m *memoryRepo) ListAll(_ context.Context) ([]domain.Stock, error) {
 	for _, st := range m.stocks {
 		out = append(out, st)
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].ProductID < out[j].ProductID })
+	sort.Slice(out, func(i, j int) bool { return out[i].SkuID < out[j].SkuID })
 	return out, nil
 }
 
-func (m *memoryRepo) SetQuantity(_ context.Context, productID string, quantity int32) (domain.Stock, error) {
+func (m *memoryRepo) SetQuantity(_ context.Context, skuID, productID string, quantity int32) (domain.Stock, error) {
 	if m.err != nil {
 		return domain.Stock{}, m.err
 	}
-	cur := m.stocks[productID]
+	cur := m.stocks[skuID]
 	if quantity < 0 || quantity < cur.Reserved {
 		return domain.Stock{}, domain.ErrStockBelowReserved
 	}
+	cur.SkuID = skuID
 	cur.ProductID = productID
 	cur.Quantity = quantity
 	cur.UpdatedAt = time.Now().UTC()
-	m.stocks[productID] = cur
+	m.stocks[skuID] = cur
 	return cur, nil
 }
 
-func (m *memoryRepo) AdjustQuantity(_ context.Context, productID string, delta int32) (domain.Stock, error) {
+func (m *memoryRepo) AdjustQuantity(_ context.Context, skuID, productID string, delta int32) (domain.Stock, error) {
 	if m.err != nil {
 		return domain.Stock{}, m.err
 	}
-	cur, ok := m.stocks[productID]
+	cur, ok := m.stocks[skuID]
 	if !ok && delta < 0 {
 		return domain.Stock{}, domain.ErrStockBelowReserved
 	}
@@ -84,11 +85,31 @@ func (m *memoryRepo) AdjustQuantity(_ context.Context, productID string, delta i
 	if next < cur.Reserved {
 		return domain.Stock{}, domain.ErrStockBelowReserved
 	}
+	cur.SkuID = skuID
 	cur.ProductID = productID
 	cur.Quantity = next
 	cur.UpdatedAt = time.Now().UTC()
-	m.stocks[productID] = cur
+	m.stocks[skuID] = cur
 	return cur, nil
+}
+
+func (m *memoryRepo) DeleteUnreserved(_ context.Context, skuIDs []string, dryRun bool) error {
+	if m.err != nil {
+		return m.err
+	}
+	sorted := append([]string(nil), skuIDs...)
+	sort.Strings(sorted)
+	for _, id := range sorted {
+		if st, ok := m.stocks[id]; ok && st.Reserved > 0 {
+			return &domain.VariantHasReservedStockError{SkuID: id}
+		}
+	}
+	if !dryRun {
+		for _, id := range sorted {
+			delete(m.stocks, id)
+		}
+	}
+	return nil
 }
 
 func newTestClient(t *testing.T, repo domain.Repository) inventoryv1.InventoryServiceClient {
@@ -123,40 +144,44 @@ func newTestClient(t *testing.T, repo domain.Repository) inventoryv1.InventorySe
 
 func TestGetAvailabilityReturnsAvailableQuantity(t *testing.T) {
 	client := newTestClient(t, &memoryRepo{stocks: map[string]domain.Stock{
-		"dt-1": {ProductID: "dt-1", Quantity: 7, Reserved: 2},
+		"dt-1-v1": {SkuID: "dt-1-v1", ProductID: "dt-1", Quantity: 7, Reserved: 2},
 	}})
 
-	resp, err := client.GetAvailability(context.Background(), &inventoryv1.GetAvailabilityRequest{ProductId: "dt-1"})
+	resp, err := client.GetAvailability(context.Background(), &inventoryv1.GetAvailabilityRequest{SkuId: "dt-1-v1"})
 	if err != nil {
 		t.Fatalf("GetAvailability: %v", err)
 	}
-	if resp.GetProductId() != "dt-1" || resp.GetAvailableQuantity() != 5 {
+	if resp.GetSkuId() != "dt-1-v1" || resp.GetProductId() != "dt-1" || resp.GetAvailableQuantity() != 5 {
 		t.Fatalf("unexpected response: %+v", resp)
 	}
 }
 
-func TestGetAvailabilityReturnsZeroForMissingOrFullyReservedStock(t *testing.T) {
+func TestBatchGetAvailabilityPreservesInputOrderWithoutAuth(t *testing.T) {
 	client := newTestClient(t, &memoryRepo{stocks: map[string]domain.Stock{
-		"dt-2": {ProductID: "dt-2", Quantity: 2, Reserved: 4},
+		"dt-1-v1": {SkuID: "dt-1-v1", ProductID: "dt-1", Quantity: 7, Reserved: 2},
+		"dt-1-v3": {SkuID: "dt-1-v3", ProductID: "dt-1", Quantity: 2, Reserved: 2},
 	}})
 
-	for _, productID := range []string{"dt-2", "missing"} {
-		t.Run(productID, func(t *testing.T) {
-			resp, err := client.GetAvailability(context.Background(), &inventoryv1.GetAvailabilityRequest{ProductId: productID})
-			if err != nil {
-				t.Fatalf("GetAvailability: %v", err)
-			}
-			if resp.GetProductId() != productID || resp.GetAvailableQuantity() != 0 {
-				t.Fatalf("unexpected response: %+v", resp)
-			}
-		})
+	resp, err := client.BatchGetAvailability(context.Background(), &inventoryv1.BatchGetAvailabilityRequest{
+		SkuIds: []string{"missing-sku", "dt-1-v1", "dt-1-v3"},
+	})
+	if err != nil {
+		t.Fatalf("BatchGetAvailability: %v", err)
+	}
+	if len(resp.GetItems()) != 3 {
+		t.Fatalf("expected 3 items, got %d", len(resp.GetItems()))
+	}
+	if resp.GetItems()[0].GetSkuId() != "missing-sku" || resp.GetItems()[0].GetAvailableQuantity() != 0 ||
+		resp.GetItems()[1].GetSkuId() != "dt-1-v1" || resp.GetItems()[1].GetProductId() != "dt-1" || resp.GetItems()[1].GetAvailableQuantity() != 5 ||
+		resp.GetItems()[2].GetSkuId() != "dt-1-v3" || resp.GetItems()[2].GetAvailableQuantity() != 0 {
+		t.Fatalf("unexpected BatchGetAvailability items: %+v", resp.GetItems())
 	}
 }
 
-func TestGetAvailabilityRejectsEmptyProductID(t *testing.T) {
+func TestGetAvailabilityRejectsEmptySkuID(t *testing.T) {
 	client := newTestClient(t, &memoryRepo{stocks: map[string]domain.Stock{}})
 
-	_, err := client.GetAvailability(context.Background(), &inventoryv1.GetAvailabilityRequest{ProductId: "  "})
+	_, err := client.GetAvailability(context.Background(), &inventoryv1.GetAvailabilityRequest{SkuId: "  "})
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected codes.InvalidArgument, got %v", err)
 	}
@@ -165,7 +190,7 @@ func TestGetAvailabilityRejectsEmptyProductID(t *testing.T) {
 func TestGetAvailabilityMapsRepositoryErrorToInternal(t *testing.T) {
 	client := newTestClient(t, &memoryRepo{err: errors.New("database unavailable")})
 
-	_, err := client.GetAvailability(context.Background(), &inventoryv1.GetAvailabilityRequest{ProductId: "dt-1"})
+	_, err := client.GetAvailability(context.Background(), &inventoryv1.GetAvailabilityRequest{SkuId: "dt-1-v1"})
 	if status.Code(err) != codes.Internal {
 		t.Fatalf("expected codes.Internal, got %v", err)
 	}

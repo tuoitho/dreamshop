@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"testing"
+	"time"
 
 	identityv1 "ecommerce.local/contracts/go/identity/v1"
 	inventoryv1 "ecommerce.local/contracts/go/inventory/v1"
@@ -16,7 +17,6 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
-	"time"
 )
 
 type fakeAuth struct {
@@ -61,7 +61,7 @@ func newAdminInventoryClient(t *testing.T, repo domain.Repository, auth authoriz
 	return inventoryv1.NewInventoryServiceClient(conn)
 }
 
-func assertInventoryErrorReason(t *testing.T, err error, wantCode codes.Code, wantReason string) {
+func assertInventoryErrorReason(t *testing.T, err error, wantCode codes.Code, wantReason string) *errdetails.ErrorInfo {
 	t.Helper()
 	st, ok := status.FromError(err)
 	if !ok {
@@ -79,15 +79,18 @@ func assertInventoryErrorReason(t *testing.T, err error, wantCode codes.Code, wa
 			if info.GetDomain() != "ecommerce.inventory.v1" || info.GetReason() != wantReason {
 				t.Fatalf("ErrorInfo = domain=%q reason=%q, want ecommerce.inventory.v1 / %q", info.GetDomain(), info.GetReason(), wantReason)
 			}
-			return
+			return info
 		}
 	}
 	t.Fatalf("expected google.rpc.ErrorInfo detail %q on %v", wantReason, err)
+	return nil
 }
 
-func TestAdminInventoryRPCsAuthorizationAndMutations(t *testing.T) {
+func TestAdminInventoryRPCsAuthorizationMutationsAndDeleteStocks(t *testing.T) {
 	repo := &memoryRepo{stocks: map[string]domain.Stock{
-		"dt-1": {ProductID: "dt-1", Quantity: 10, Reserved: 3},
+		"dt-1-v1":      {SkuID: "dt-1-v1", ProductID: "dt-1", Quantity: 10, Reserved: 3},
+		"sku-free":     {SkuID: "sku-free", ProductID: "dt-1", Quantity: 4, Reserved: 0},
+		"sku-reserved": {SkuID: "sku-reserved", ProductID: "dt-1", Quantity: 5, Reserved: 2},
 	}}
 	auth := &fakeAuth{perms: map[string]bool{
 		"inventory.view":   true,
@@ -96,33 +99,33 @@ func TestAdminInventoryRPCsAuthorizationAndMutations(t *testing.T) {
 	client := newAdminInventoryClient(t, repo, auth)
 	ctx := context.Background()
 
-	// GetAvailability remains public (no user_id required, 0 auth calls)
-	avail, err := client.GetAvailability(ctx, &inventoryv1.GetAvailabilityRequest{ProductId: "dt-1"})
+	avail, err := client.GetAvailability(ctx, &inventoryv1.GetAvailabilityRequest{SkuId: "dt-1-v1"})
 	if err != nil || avail.GetAvailableQuantity() != 7 || auth.calls != 0 {
 		t.Fatalf("GetAvailability: err=%v avail=%+v authCalls=%d", err, avail, auth.calls)
 	}
 
-	getResp, err := client.GetStock(ctx, &inventoryv1.GetStockRequest{UserId: "admin-1", ProductId: "dt-1"})
-	if err != nil || getResp.GetStock().GetAvailableQuantity() != 7 {
+	getResp, err := client.GetStock(ctx, &inventoryv1.GetStockRequest{UserId: "admin-1", SkuId: "dt-1-v1"})
+	if err != nil || getResp.GetStock().GetAvailableQuantity() != 7 || getResp.GetStock().GetProductId() != "dt-1" {
 		t.Fatalf("GetStock: %v, %+v", err, getResp)
 	}
 
 	batchResp, err := client.BatchGetStock(ctx, &inventoryv1.BatchGetStockRequest{
-		UserId:     "admin-1",
-		ProductIds: []string{"dt-1", "missing"},
+		UserId: "admin-1",
+		SkuIds: []string{"dt-1-v1", "missing"},
 	})
 	if err != nil || len(batchResp.GetItems()) != 2 || batchResp.GetItems()[1].GetQuantity() != 0 {
 		t.Fatalf("BatchGetStock: %v, %+v", err, batchResp)
 	}
 
 	listResp, err := client.ListStocks(ctx, &inventoryv1.ListStocksRequest{UserId: "admin-1"})
-	if err != nil || len(listResp.GetItems()) != 1 {
+	if err != nil || len(listResp.GetItems()) != 3 {
 		t.Fatalf("ListStocks: %v, %+v", err, listResp)
 	}
 
 	// SetStock below reserved (2 < 3) -> FailedPrecondition STOCK_BELOW_RESERVED
 	_, err = client.SetStock(ctx, &inventoryv1.SetStockRequest{
 		UserId:    "admin-1",
+		SkuId:     "dt-1-v1",
 		ProductId: "dt-1",
 		Quantity:  2,
 	})
@@ -131,6 +134,7 @@ func TestAdminInventoryRPCsAuthorizationAndMutations(t *testing.T) {
 	// SetStock valid
 	setResp, err := client.SetStock(ctx, &inventoryv1.SetStockRequest{
 		UserId:    "admin-1",
+		SkuId:     "dt-1-v1",
 		ProductId: "dt-1",
 		Quantity:  15,
 	})
@@ -141,6 +145,7 @@ func TestAdminInventoryRPCsAuthorizationAndMutations(t *testing.T) {
 	// AdjustStock valid
 	adjResp, err := client.AdjustStock(ctx, &inventoryv1.AdjustStockRequest{
 		UserId:    "admin-1",
+		SkuId:     "dt-1-v1",
 		ProductId: "dt-1",
 		Delta:     -5,
 	})
@@ -148,12 +153,49 @@ func TestAdminInventoryRPCsAuthorizationAndMutations(t *testing.T) {
 		t.Fatalf("AdjustStock: %v, %+v", err, adjResp)
 	}
 
-	// Permission denied
+	// DeleteStocks allows caller with product.update even when inventory.update is false
+	productEditorClient := newAdminInventoryClient(t, repo, &fakeAuth{perms: map[string]bool{"product.update": true}})
+
+	// Reserved SKU rejection carries VARIANT_HAS_RESERVED_STOCK and sku_id metadata
+	_, err = productEditorClient.DeleteStocks(ctx, &inventoryv1.DeleteStocksRequest{
+		UserId: "product-editor-1",
+		SkuIds: []string{"sku-free", "sku-reserved"},
+		DryRun: true,
+	})
+	info := assertInventoryErrorReason(t, err, codes.FailedPrecondition, "VARIANT_HAS_RESERVED_STOCK")
+	if info.GetMetadata()["sku_id"] != "sku-reserved" {
+		t.Fatalf("expected metadata sku_id=sku-reserved, got %v", info.GetMetadata())
+	}
+
+	// DeleteStocks dry_run=true then dry_run=false on unreserved SKU
+	if _, err := productEditorClient.DeleteStocks(ctx, &inventoryv1.DeleteStocksRequest{
+		UserId: "product-editor-1",
+		SkuIds: []string{"sku-free"},
+		DryRun: true,
+	}); err != nil {
+		t.Fatalf("DeleteStocks(dry_run=true): %v", err)
+	}
+	if _, ok := repo.stocks["sku-free"]; !ok {
+		t.Fatal("sku-free was deleted during dry_run=true")
+	}
+
+	if _, err := productEditorClient.DeleteStocks(ctx, &inventoryv1.DeleteStocksRequest{
+		UserId: "product-editor-1",
+		SkuIds: []string{"sku-free"},
+		DryRun: false,
+	}); err != nil {
+		t.Fatalf("DeleteStocks(dry_run=false): %v", err)
+	}
+	if _, ok := repo.stocks["sku-free"]; ok {
+		t.Fatal("sku-free was not deleted during dry_run=false")
+	}
+
+	// Permission denied when caller lacks both product.update and inventory.update
 	deniedClient := newAdminInventoryClient(t, repo, &fakeAuth{perms: map[string]bool{"inventory.view": true}})
-	_, err = deniedClient.SetStock(ctx, &inventoryv1.SetStockRequest{
-		UserId:    "viewer-1",
-		ProductId: "dt-1",
-		Quantity:  20,
+	_, err = deniedClient.DeleteStocks(ctx, &inventoryv1.DeleteStocksRequest{
+		UserId: "viewer-1",
+		SkuIds: []string{"dt-1-v1"},
+		DryRun: true,
 	})
 	assertInventoryErrorReason(t, err, codes.PermissionDenied, "INVENTORY_PERMISSION_DENIED")
 }
