@@ -21,19 +21,26 @@ const (
 )
 
 type setStockRequest struct {
-	Quantity *int32 `json:"quantity"`
+	ProductID string `json:"productId"`
+	Quantity  *int32 `json:"quantity"`
 }
 
 type adjustStockRequest struct {
-	Delta *int32 `json:"delta"`
+	ProductID string `json:"productId"`
+	Delta     *int32 `json:"delta"`
 }
 
 type adminInventoryItem struct {
+	SkuID             string   `json:"skuId"`
 	ProductID         string   `json:"productId"`
 	Name              string   `json:"name"`
+	VariantLabel      string   `json:"variantLabel"`
+	VariantColorHex   string   `json:"variantColorHex,omitempty"`
 	Brand             string   `json:"brand"`
 	CategoryID        string   `json:"categoryId"`
 	CategoryName      string   `json:"categoryName"`
+	Price             int64    `json:"price"`
+	OriginalPrice     int64    `json:"originalPrice"`
 	ImageURL          string   `json:"imageUrl"`
 	Emoji             string   `json:"emoji"`
 	ImageHue          []uint32 `json:"imageHue"`
@@ -47,6 +54,7 @@ type adminInventoryItem struct {
 
 type adminInventorySummary struct {
 	TotalTrackedProducts int64 `json:"totalTrackedProducts"`
+	TotalTrackedSkus     int64 `json:"totalTrackedSkus"`
 	InStockCount         int64 `json:"inStockCount"`
 	LowStockCount        int64 `json:"lowStockCount"`
 	OutOfStockCount      int64 `json:"outOfStockCount"`
@@ -65,6 +73,7 @@ type adminInventoryPageData struct {
 }
 
 type stockMutationData struct {
+	SkuID             string `json:"skuId"`
 	ProductID         string `json:"productId"`
 	Quantity          int32  `json:"quantity"`
 	Reserved          int32  `json:"reserved"`
@@ -86,8 +95,8 @@ func NewAdminInventoryHandler(catalogClient catalog.Client, inventoryClient inve
 
 func (h *AdminInventoryHandler) Register(mux *http.ServeMux) {
 	mux.Handle("GET /api/v1/admin/inventory", correlateTrace(RequireCaller(http.HandlerFunc(h.list))))
-	mux.Handle("PUT /api/v1/admin/inventory/{productId}", correlateTrace(RequireCaller(http.HandlerFunc(h.setStock))))
-	mux.Handle("POST /api/v1/admin/inventory/{productId}/adjust", correlateTrace(RequireCaller(http.HandlerFunc(h.adjustStock))))
+	mux.Handle("PUT /api/v1/admin/inventory/skus/{skuId}", correlateTrace(RequireCaller(http.HandlerFunc(h.setStock))))
+	mux.Handle("POST /api/v1/admin/inventory/skus/{skuId}/adjust", correlateTrace(RequireCaller(http.HandlerFunc(h.adjustStock))))
 }
 
 func (h *AdminInventoryHandler) list(w http.ResponseWriter, r *http.Request) {
@@ -124,9 +133,10 @@ func (h *AdminInventoryHandler) list(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	queryText := strings.TrimSpace(q.Get("q"))
 	catResp, err := h.catalog.ListInventoryCatalogItems(r.Context(), &catalogv1.ListInventoryCatalogItemsRequest{
 		UserId:         userID,
-		Query:          strings.TrimSpace(q.Get("q")),
+		Query:          queryText,
 		CategoryId:     strings.TrimSpace(q.Get("categoryId")),
 		IncludeDeleted: includeDeleted,
 	})
@@ -142,63 +152,88 @@ func (h *AdminInventoryHandler) list(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stockByProduct := make(map[string]*inventoryv1.StockItem, len(stocks))
+	stockBySku := make(map[string]*inventoryv1.StockItem, len(stocks))
 	for _, st := range stocks {
-		stockByProduct[st.GetProductId()] = st
+		stockBySku[st.GetSkuId()] = st
 	}
 
 	var summary adminInventorySummary
+	trackedProducts := make(map[string]struct{}, len(catResp.GetItems()))
 	filtered := make([]adminInventoryItem, 0, len(catResp.GetItems()))
 
 	for _, item := range catResp.GetItems() {
-		var qty, reserved, avail int32
-		var updatedAt string
-		if st, ok := stockByProduct[item.GetId()]; ok {
-			qty = st.GetQuantity()
-			reserved = st.GetReserved()
-			avail = st.GetAvailableQuantity()
-			updatedAt = st.GetUpdatedAt()
-		}
+		productMatched := queryText == "" ||
+			containsFold(item.GetId(), queryText) ||
+			containsFold(item.GetName(), queryText) ||
+			containsFold(item.GetBrand(), queryText) ||
+			containsFold(item.GetCategoryName(), queryText)
 
-		statusLabel := classifyInventoryBucket(avail)
-		summary.TotalTrackedProducts++
-		summary.TotalQuantity += int64(qty)
-		summary.TotalReserved += int64(reserved)
-		summary.TotalAvailable += int64(avail)
-		switch statusLabel {
-		case inventoryStatusInStock:
-			summary.InStockCount++
-		case inventoryStatusLowStock:
-			summary.LowStockCount++
-		default:
-			summary.OutOfStockCount++
-		}
-
-		if filterStatus != "" && filterStatus != "all" {
-			if (filterStatus == "in_stock" && statusLabel != inventoryStatusInStock) ||
-				(filterStatus == "low_stock" && statusLabel != inventoryStatusLowStock) ||
-				(filterStatus == "out_of_stock" && statusLabel != inventoryStatusOutOfStock) {
+		for _, variant := range item.GetVariants() {
+			skuID := strings.TrimSpace(variant.GetSkuId())
+			if skuID == "" {
 				continue
 			}
-		}
+			if !productMatched && !containsFold(skuID, queryText) && !containsFold(variant.GetLabel(), queryText) {
+				continue
+			}
 
-		filtered = append(filtered, adminInventoryItem{
-			ProductID:         item.GetId(),
-			Name:              item.GetName(),
-			Brand:             item.GetBrand(),
-			CategoryID:        item.GetCategoryId(),
-			CategoryName:      item.GetCategoryName(),
-			ImageURL:          item.GetImageUrl(),
-			Emoji:             item.GetEmoji(),
-			ImageHue:          uintsOrEmpty(item.GetImageHue()),
-			Deleted:           item.GetDeleted(),
-			Quantity:          qty,
-			Reserved:          reserved,
-			AvailableQuantity: avail,
-			StockStatus:       statusLabel,
-			UpdatedAt:         updatedAt,
-		})
+			trackedProducts[item.GetId()] = struct{}{}
+
+			var qty, reserved, avail int32
+			var updatedAt string
+			if st, ok := stockBySku[skuID]; ok {
+				qty = st.GetQuantity()
+				reserved = st.GetReserved()
+				avail = st.GetAvailableQuantity()
+				updatedAt = st.GetUpdatedAt()
+			}
+
+			statusLabel := classifyInventoryBucket(avail)
+			summary.TotalTrackedSkus++
+			summary.TotalQuantity += int64(qty)
+			summary.TotalReserved += int64(reserved)
+			summary.TotalAvailable += int64(avail)
+			switch statusLabel {
+			case inventoryStatusInStock:
+				summary.InStockCount++
+			case inventoryStatusLowStock:
+				summary.LowStockCount++
+			default:
+				summary.OutOfStockCount++
+			}
+
+			if filterStatus != "" && filterStatus != "all" {
+				if (filterStatus == "in_stock" && statusLabel != inventoryStatusInStock) ||
+					(filterStatus == "low_stock" && statusLabel != inventoryStatusLowStock) ||
+					(filterStatus == "out_of_stock" && statusLabel != inventoryStatusOutOfStock) {
+					continue
+				}
+			}
+
+			filtered = append(filtered, adminInventoryItem{
+				SkuID:             skuID,
+				ProductID:         item.GetId(),
+				Name:              item.GetName(),
+				VariantLabel:      variant.GetLabel(),
+				VariantColorHex:   variant.GetColorHex(),
+				Brand:             item.GetBrand(),
+				CategoryID:        item.GetCategoryId(),
+				CategoryName:      item.GetCategoryName(),
+				Price:             amountMinor(variant.GetPrice()),
+				OriginalPrice:     amountMinor(variant.GetOriginalPrice()),
+				ImageURL:          item.GetImageUrl(),
+				Emoji:             item.GetEmoji(),
+				ImageHue:          uintsOrEmpty(item.GetImageHue()),
+				Deleted:           item.GetDeleted(),
+				Quantity:          qty,
+				Reserved:          reserved,
+				AvailableQuantity: avail,
+				StockStatus:       statusLabel,
+				UpdatedAt:         updatedAt,
+			})
+		}
 	}
+	summary.TotalTrackedProducts = int64(len(trackedProducts))
 
 	totalItems := int64(len(filtered))
 	totalPages := int32(0)
@@ -225,23 +260,23 @@ func (h *AdminInventoryHandler) list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminInventoryHandler) setStock(w http.ResponseWriter, r *http.Request) {
-	productID := strings.TrimSpace(r.PathValue("productId"))
+	skuID := strings.TrimSpace(r.PathValue("skuId"))
 	var input setStockRequest
 	if err := decodeJSON(r, &input); err != nil || input.Quantity == nil || *input.Quantity < 0 {
-		writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "quantity must be a non-negative integer.", nil)
+		writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "productId and non-negative quantity are required.", nil)
+		return
+	}
+	productID := strings.TrimSpace(input.ProductID)
+	if skuID == "" || productID == "" {
+		writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "skuId and productId are required.", nil)
 		return
 	}
 
-	if _, err := h.catalog.GetProduct(r.Context(), productID); err != nil {
-		if errors.Is(err, catalog.ErrProductNotFound) {
-			writeError(w, r, http.StatusNotFound, "PRODUCT_NOT_FOUND", "Product not found.", nil)
-			return
-		}
-		writeError(w, r, http.StatusBadGateway, "CATALOG_UNAVAILABLE", "Catalog service is unavailable.", nil)
+	if !h.verifyProductOwnsSku(w, r, productID, skuID) {
 		return
 	}
 
-	st, err := h.inventory.SetStock(r.Context(), callerID(r), productID, *input.Quantity)
+	st, err := h.inventory.SetStock(r.Context(), callerID(r), skuID, productID, *input.Quantity)
 	if err != nil {
 		h.writeInventoryError(w, r, err, "You do not have permission to update inventory.")
 		return
@@ -251,29 +286,48 @@ func (h *AdminInventoryHandler) setStock(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *AdminInventoryHandler) adjustStock(w http.ResponseWriter, r *http.Request) {
-	productID := strings.TrimSpace(r.PathValue("productId"))
+	skuID := strings.TrimSpace(r.PathValue("skuId"))
 	var input adjustStockRequest
 	if err := decodeJSON(r, &input); err != nil || input.Delta == nil || *input.Delta == 0 {
-		writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "delta must be a non-zero integer.", nil)
+		writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "productId and non-zero delta are required.", nil)
+		return
+	}
+	productID := strings.TrimSpace(input.ProductID)
+	if skuID == "" || productID == "" {
+		writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "skuId and productId are required.", nil)
 		return
 	}
 
-	if _, err := h.catalog.GetProduct(r.Context(), productID); err != nil {
-		if errors.Is(err, catalog.ErrProductNotFound) {
-			writeError(w, r, http.StatusNotFound, "PRODUCT_NOT_FOUND", "Product not found.", nil)
-			return
-		}
-		writeError(w, r, http.StatusBadGateway, "CATALOG_UNAVAILABLE", "Catalog service is unavailable.", nil)
+	if !h.verifyProductOwnsSku(w, r, productID, skuID) {
 		return
 	}
 
-	st, err := h.inventory.AdjustStock(r.Context(), callerID(r), productID, *input.Delta)
+	st, err := h.inventory.AdjustStock(r.Context(), callerID(r), skuID, productID, *input.Delta)
 	if err != nil {
 		h.writeInventoryError(w, r, err, "You do not have permission to update inventory.")
 		return
 	}
 
 	writeEnvelope(w, http.StatusOK, toStockMutationData(st), "Stock adjusted.")
+}
+
+func (h *AdminInventoryHandler) verifyProductOwnsSku(w http.ResponseWriter, r *http.Request, productID, skuID string) bool {
+	product, err := h.catalog.GetProduct(r.Context(), productID)
+	if err != nil {
+		if errors.Is(err, catalog.ErrProductNotFound) {
+			writeError(w, r, http.StatusNotFound, "PRODUCT_NOT_FOUND", "Product not found.", nil)
+			return false
+		}
+		writeError(w, r, http.StatusBadGateway, "CATALOG_UNAVAILABLE", "Catalog service is unavailable.", nil)
+		return false
+	}
+	for _, v := range product.GetVariants() {
+		if v.GetSkuId() == skuID {
+			return true
+		}
+	}
+	writeError(w, r, http.StatusNotFound, "SKU_NOT_FOUND", "Variant SKU not found on product.", nil)
+	return false
 }
 
 func (h *AdminInventoryHandler) writeInventoryError(w http.ResponseWriter, r *http.Request, err error, forbiddenMsg string) {
@@ -291,6 +345,10 @@ func (h *AdminInventoryHandler) writeInventoryError(w http.ResponseWriter, r *ht
 	}
 }
 
+func containsFold(haystack, needle string) bool {
+	return strings.Contains(strings.ToLower(haystack), strings.ToLower(needle))
+}
+
 func classifyInventoryBucket(avail int32) string {
 	switch {
 	case avail <= 0:
@@ -304,6 +362,7 @@ func classifyInventoryBucket(avail int32) string {
 
 func toStockMutationData(st *inventoryv1.StockItem) stockMutationData {
 	return stockMutationData{
+		SkuID:             st.GetSkuId(),
 		ProductID:         st.GetProductId(),
 		Quantity:          st.GetQuantity(),
 		Reserved:          st.GetReserved(),

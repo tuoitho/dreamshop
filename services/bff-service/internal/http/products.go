@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"sync"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -22,8 +21,7 @@ import (
 )
 
 const (
-	lowStockThreshold       = 5
-	maxInventoryConcurrency = 8
+	lowStockThreshold = 5
 
 	productStatusAvailable   = "AVAILABLE"
 	productStatusLimited     = "LIMITED"
@@ -41,6 +39,7 @@ type productSummary struct {
 	CategoryName      string   `json:"categoryName"`
 	Price             int64    `json:"price"`
 	OriginalPrice     int64    `json:"originalPrice"`
+	MaxPrice          int64    `json:"maxPrice"`
 	Rating            float64  `json:"rating"`
 	ReviewCount       int64    `json:"reviewCount"`
 	SoldCount         int64    `json:"soldCount"`
@@ -56,7 +55,7 @@ type productSummary struct {
 }
 
 // productDetail is the REST shape for the product detail page: the summary
-// fields plus detail-specific fields.
+// fields plus detail-specific fields and per-SKU variant pricing/availability.
 type productDetail struct {
 	productSummary
 	ShortDescription string           `json:"shortDescription"`
@@ -68,8 +67,13 @@ type productDetail struct {
 }
 
 type productVariant struct {
-	Label    string `json:"label"`
-	ColorHex string `json:"colorHex,omitempty"`
+	SkuID             string `json:"skuId"`
+	Label             string `json:"label"`
+	ColorHex          string `json:"colorHex,omitempty"`
+	Price             int64  `json:"price"`
+	OriginalPrice     int64  `json:"originalPrice"`
+	Status            string `json:"status"`
+	AvailableQuantity int32  `json:"availableQuantity"`
 }
 
 // paginatedData is the REST pagination envelope.
@@ -129,17 +133,30 @@ func (h *ProductsHandler) search(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rawItems := resp.GetItems()
-	availabilityByID := h.fetchBatchAvailability(r.Context(), rawItems)
+	availBySku, degraded := h.fetchBatchSkuAvailability(r.Context(), collectSummarySkuIDs(rawItems))
+
 	items := make([]productSummary, 0, len(rawItems))
 	for _, item := range rawItems {
 		summary := newProductSummary(item)
-		avail, ok := availabilityByID[summary.ID]
-		if !ok {
-			avail = degradedAvailability()
+		skuIDs := item.GetSkuIds()
+		switch {
+		case len(skuIDs) == 0:
+			summary.Status = productStatusUnavailable
+			summary.AvailableQuantity = int32Ptr(0)
+		case degraded:
+			avail := degradedAvailability()
+			summary.Status = avail.status
+			summary.AvailableQuantity = avail.quantity
+			summary.InventoryDegraded = avail.degraded
+		default:
+			var total int32
+			for _, skuID := range skuIDs {
+				total += availBySku[skuID]
+			}
+			avail := classifyStock(total)
+			summary.Status = avail.status
+			summary.AvailableQuantity = avail.quantity
 		}
-		summary.Status = avail.status
-		summary.AvailableQuantity = avail.quantity
-		summary.InventoryDegraded = avail.degraded
 		items = append(items, summary)
 	}
 	writeEnvelope(w, http.StatusOK, paginatedData{
@@ -162,11 +179,47 @@ func (h *ProductsHandler) detail(w http.ResponseWriter, r *http.Request) {
 	if resp.GetDeleted() || len(resp.GetVariants()) == 0 {
 		detail.Status = productStatusUnavailable
 		detail.AvailableQuantity = int32Ptr(0)
+		for i := range detail.Variants {
+			detail.Variants[i].Status = productStatusUnavailable
+			detail.Variants[i].AvailableQuantity = 0
+		}
 	} else {
-		avail := h.fetchOneAvailability(r.Context(), resp.GetId())
-		detail.Status = avail.status
-		detail.AvailableQuantity = avail.quantity
-		detail.InventoryDegraded = avail.degraded
+		skuIDs := make([]string, 0, len(resp.GetVariants()))
+		seen := make(map[string]struct{}, len(resp.GetVariants()))
+		for _, v := range resp.GetVariants() {
+			skuID := strings.TrimSpace(v.GetSkuId())
+			if skuID == "" {
+				continue
+			}
+			if _, ok := seen[skuID]; !ok {
+				seen[skuID] = struct{}{}
+				skuIDs = append(skuIDs, skuID)
+			}
+		}
+
+		availBySku, degraded := h.fetchBatchSkuAvailability(r.Context(), skuIDs)
+		if degraded {
+			avail := degradedAvailability()
+			detail.Status = avail.status
+			detail.AvailableQuantity = avail.quantity
+			detail.InventoryDegraded = avail.degraded
+			for i := range detail.Variants {
+				detail.Variants[i].Status = productStatusUnknown
+				detail.Variants[i].AvailableQuantity = 0
+			}
+		} else {
+			var total int32
+			for i := range detail.Variants {
+				vQty := availBySku[detail.Variants[i].SkuID]
+				vAvail := classifyStock(vQty)
+				detail.Variants[i].Status = vAvail.status
+				detail.Variants[i].AvailableQuantity = vQty
+				total += vQty
+			}
+			prodAvail := classifyStock(total)
+			detail.Status = prodAvail.status
+			detail.AvailableQuantity = prodAvail.quantity
+		}
 	}
 	writeEnvelope(w, http.StatusOK, detail, "Product retrieved.")
 }
@@ -203,67 +256,46 @@ func classifyStock(available int32) availabilityInfo {
 	}
 }
 
-func (h *ProductsHandler) fetchOneAvailability(ctx context.Context, productID string) availabilityInfo {
-	if h.inventory == nil || productID == "" {
-		return degradedAvailability()
-	}
-	resp, err := h.inventory.GetAvailability(ctx, productID)
-	if err != nil || resp == nil {
-		traceID, _ := ctx.Value(traceIDKey{}).(string)
-		log.Printf("bff: inventory availability lookup failed for product %s (traceId=%s): %v", productID, traceID, err)
-		return degradedAvailability()
-	}
-	return classifyStock(resp.GetAvailableQuantity())
-}
-
-func (h *ProductsHandler) fetchBatchAvailability(ctx context.Context, items []*catalogv1.ProductSummary) map[string]availabilityInfo {
-	if len(items) == 0 {
-		return nil
-	}
-	uniqueIDs := make([]string, 0, len(items))
-	seen := make(map[string]struct{}, len(items))
+func collectSummarySkuIDs(items []*catalogv1.ProductSummary) []string {
+	var out []string
+	seen := make(map[string]struct{})
 	for _, item := range items {
-		id := item.GetId()
-		if id == "" {
-			continue
-		}
-		if _, exists := seen[id]; !exists {
-			seen[id] = struct{}{}
-			uniqueIDs = append(uniqueIDs, id)
-		}
-	}
-
-	out := make(map[string]availabilityInfo, len(uniqueIDs))
-	if h.inventory == nil {
-		for _, id := range uniqueIDs {
-			out[id] = degradedAvailability()
-		}
-		return out
-	}
-
-	results := make([]availabilityInfo, len(uniqueIDs))
-	sem := make(chan struct{}, maxInventoryConcurrency)
-	var wg sync.WaitGroup
-	for idx, productID := range uniqueIDs {
-		wg.Add(1)
-		go func(i int, id string) {
-			defer wg.Done()
-			select {
-			case sem <- struct{}{}:
-				defer func() { <-sem }()
-			case <-ctx.Done():
-				results[i] = degradedAvailability()
-				return
+		for _, rawSku := range item.GetSkuIds() {
+			skuID := strings.TrimSpace(rawSku)
+			if skuID == "" {
+				continue
 			}
-			results[i] = h.fetchOneAvailability(ctx, id)
-		}(idx, productID)
-	}
-	wg.Wait()
-
-	for idx, id := range uniqueIDs {
-		out[id] = results[idx]
+			if _, exists := seen[skuID]; !exists {
+				seen[skuID] = struct{}{}
+				out = append(out, skuID)
+			}
+		}
 	}
 	return out
+}
+
+func (h *ProductsHandler) fetchBatchSkuAvailability(ctx context.Context, skuIDs []string) (map[string]int32, bool) {
+	if len(skuIDs) == 0 {
+		return map[string]int32{}, false
+	}
+	if h.inventory == nil {
+		return nil, true
+	}
+	items, err := h.inventory.BatchGetAvailability(ctx, skuIDs)
+	if err != nil {
+		traceID, _ := ctx.Value(traceIDKey{}).(string)
+		log.Printf("bff: inventory batch availability lookup failed (skus=%d, traceId=%s): %v", len(skuIDs), traceID, err)
+		return nil, true
+	}
+	availBySku := make(map[string]int32, len(items))
+	for _, item := range items {
+		qty := item.GetAvailableQuantity()
+		if qty < 0 {
+			qty = 0
+		}
+		availBySku[item.GetSkuId()] = qty
+	}
+	return availBySku, false
 }
 
 func int32Ptr(v int32) *int32 {
@@ -411,6 +443,7 @@ func newProductSummary(p *catalogv1.ProductSummary) productSummary {
 		CategoryName:  p.GetCategoryName(),
 		Price:         amountMinor(p.GetPrice()),
 		OriginalPrice: amountMinor(p.GetOriginalPrice()),
+		MaxPrice:      amountMinor(p.GetMaxPrice()),
 		Rating:        p.GetRating(),
 		ReviewCount:   p.GetReviewCount(),
 		SoldCount:     p.GetSoldCount(),
@@ -427,8 +460,11 @@ func newProductDetail(p *catalogv1.GetProductResponse) productDetail {
 	variants := make([]productVariant, 0, len(p.GetVariants()))
 	for _, v := range p.GetVariants() {
 		variants = append(variants, productVariant{
-			Label:    v.GetLabel(),
-			ColorHex: v.GetColorHex(),
+			SkuID:         v.GetSkuId(),
+			Label:         v.GetLabel(),
+			ColorHex:      v.GetColorHex(),
+			Price:         amountMinor(v.GetPrice()),
+			OriginalPrice: amountMinor(v.GetOriginalPrice()),
 		})
 	}
 	return productDetail{
@@ -440,6 +476,7 @@ func newProductDetail(p *catalogv1.GetProductResponse) productDetail {
 			CategoryName:  p.GetCategoryName(),
 			Price:         amountMinor(p.GetPrice()),
 			OriginalPrice: amountMinor(p.GetOriginalPrice()),
+			MaxPrice:      amountMinor(p.GetMaxPrice()),
 			Rating:        p.GetRating(),
 			ReviewCount:   p.GetReviewCount(),
 			SoldCount:     p.GetSoldCount(),

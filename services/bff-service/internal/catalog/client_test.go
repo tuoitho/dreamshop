@@ -137,6 +137,15 @@ func TestClientMapsAdminCreateAndMediaErrors(t *testing.T) {
 		t.Fatalf("CreateProduct(exists) = %v, want ErrProductExists", err)
 	}
 
+	skuConflictSt, _ := status.New(codes.AlreadyExists, "sku exists").WithDetails(&errdetails.ErrorInfo{
+		Domain: "ecommerce.catalog.v1",
+		Reason: "SKU_ALREADY_EXISTS",
+	})
+	clientSkuConflict := newRecordingCatalogClient(t, &recordingCatalogServer{createErr: skuConflictSt.Err()}, time.Second)
+	if _, err := clientSkuConflict.CreateProduct(context.Background(), &catalogv1.CreateProductRequest{UserId: "admin-1", Id: "dt-2"}); !errors.Is(err, ErrSkuConflict) {
+		t.Fatalf("CreateProduct(sku exists) = %v, want ErrSkuConflict", err)
+	}
+
 	attachedSt, _ := status.New(codes.FailedPrecondition, "attached").WithDetails(&errdetails.ErrorInfo{
 		Domain: "ecommerce.catalog.v1",
 		Reason: "MEDIA_ALREADY_ATTACHED",

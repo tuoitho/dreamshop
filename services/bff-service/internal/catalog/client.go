@@ -23,6 +23,7 @@ var (
 	// requested product does not exist.
 	ErrProductNotFound          = errors.New("catalog: product not found")
 	ErrProductExists            = errors.New("catalog: product already exists")
+	ErrSkuConflict              = errors.New("catalog: sku already exists")
 	ErrMediaAlreadyAttached     = errors.New("catalog: media already attached")
 	ErrMediaStorageUnavailable  = errors.New("catalog: media storage unavailable")
 	ErrPermissionDenied         = errors.New("catalog: permission denied")
@@ -179,6 +180,8 @@ func classifyCatalogError(err error, id string) error {
 		return fmt.Errorf("%w: %v", ErrAuthorizationUnavailable, err)
 	case "PRODUCT_ID_EXISTS":
 		return fmt.Errorf("%w: %v", ErrProductExists, err)
+	case "SKU_ALREADY_EXISTS":
+		return fmt.Errorf("%w: %v", ErrSkuConflict, err)
 	case "MEDIA_ALREADY_ATTACHED":
 		return fmt.Errorf("%w: %v", ErrMediaAlreadyAttached, err)
 	case "MEDIA_STORAGE_UNAVAILABLE":

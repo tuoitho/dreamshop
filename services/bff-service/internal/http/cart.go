@@ -22,12 +22,14 @@ type cartData struct {
 type cartItem struct {
 	ItemID            string   `json:"itemId"`
 	ProductID         string   `json:"productId"`
+	SkuID             string   `json:"skuId"`
 	VariantLabel      string   `json:"variantLabel"`
 	Quantity          int32    `json:"quantity"`
 	Name              string   `json:"name"`
 	Brand             string   `json:"brand"`
 	CategoryName      string   `json:"categoryName"`
 	UnitPrice         int64    `json:"unitPrice"`
+	OriginalPrice     int64    `json:"originalPrice"`
 	ImageEmoji        string   `json:"imageEmoji"`
 	ImageHue          []uint32 `json:"imageHue"`
 	ImageURL          string   `json:"imageUrl"`
@@ -37,9 +39,9 @@ type cartItem struct {
 }
 
 type cartMutationRequest struct {
-	ProductID    string          `json:"productId"`
-	VariantLabel string          `json:"variantLabel"`
-	Quantity     requestQuantity `json:"quantity"`
+	ProductID string          `json:"productId"`
+	SkuID     string          `json:"skuId"`
+	Quantity  requestQuantity `json:"quantity"`
 }
 
 type cartQuantityRequest struct {
@@ -100,16 +102,16 @@ func (h *CartHandler) add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	input.ProductID = strings.TrimSpace(input.ProductID)
-	input.VariantLabel = strings.TrimSpace(input.VariantLabel)
+	input.SkuID = strings.TrimSpace(input.SkuID)
 	if input.Quantity <= 0 {
 		writeError(w, r, http.StatusBadRequest, "INVALID_QUANTITY", "Quantity must be positive.", nil)
 		return
 	}
-	if input.ProductID == "" || input.VariantLabel == "" {
-		writeError(w, r, http.StatusBadRequest, "INVALID_PARAMETER", "Product and variant are required.", nil)
+	if input.ProductID == "" || input.SkuID == "" {
+		writeError(w, r, http.StatusBadRequest, "INVALID_PARAMETER", "Product and SKU are required.", nil)
 		return
 	}
-	resp, err := h.cart.AddItem(r.Context(), callerID(r), input.ProductID, input.VariantLabel, int32(input.Quantity))
+	resp, err := h.cart.AddItem(r.Context(), callerID(r), input.ProductID, input.SkuID, int32(input.Quantity))
 	if err != nil {
 		h.writeCartError(w, r, err)
 		return
@@ -197,8 +199,9 @@ func newCartData(cart *cartv1.Cart) cartData {
 
 func newCartItem(item *cartv1.CartItem) cartItem {
 	return cartItem{
-		ItemID: item.GetItemId(), ProductID: item.GetProductId(), VariantLabel: item.GetVariantLabel(), Quantity: item.GetQuantity(),
-		Name: item.GetName(), Brand: item.GetBrand(), CategoryName: item.GetCategoryName(), UnitPrice: amountMinor(item.GetUnitPrice()),
+		ItemID: item.GetItemId(), ProductID: item.GetProductId(), SkuID: item.GetSkuId(), VariantLabel: item.GetVariantLabel(), Quantity: item.GetQuantity(),
+		Name: item.GetName(), Brand: item.GetBrand(), CategoryName: item.GetCategoryName(),
+		UnitPrice: amountMinor(item.GetUnitPrice()), OriginalPrice: amountMinor(item.GetOriginalPrice()),
 		ImageEmoji: item.GetImageEmoji(), ImageHue: uintsOrEmpty(item.GetImageHue()), ImageURL: item.GetImageUrl(), VariantColorHex: item.GetVariantColorHex(),
 		Status: publicCartStatus(item.GetStatus()), AvailableQuantity: item.GetAvailableQuantity(),
 	}

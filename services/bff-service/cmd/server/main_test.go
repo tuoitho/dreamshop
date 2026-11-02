@@ -79,6 +79,9 @@ type fakeInventoryClient struct{}
 func (fakeInventoryClient) GetAvailability(context.Context, string) (*inventoryv1.GetAvailabilityResponse, error) {
 	return &inventoryv1.GetAvailabilityResponse{AvailableQuantity: 10}, nil
 }
+func (fakeInventoryClient) BatchGetAvailability(context.Context, []string) ([]*inventoryv1.AvailabilityItem, error) {
+	return nil, nil
+}
 func (fakeInventoryClient) GetStock(context.Context, string, string) (*inventoryv1.StockItem, error) {
 	return &inventoryv1.StockItem{}, nil
 }
@@ -88,11 +91,14 @@ func (fakeInventoryClient) BatchGetStock(context.Context, string, []string) ([]*
 func (fakeInventoryClient) ListStocks(context.Context, string) ([]*inventoryv1.StockItem, error) {
 	return nil, nil
 }
-func (fakeInventoryClient) SetStock(context.Context, string, string, int32) (*inventoryv1.StockItem, error) {
+func (fakeInventoryClient) SetStock(context.Context, string, string, string, int32) (*inventoryv1.StockItem, error) {
 	return &inventoryv1.StockItem{}, nil
 }
-func (fakeInventoryClient) AdjustStock(context.Context, string, string, int32) (*inventoryv1.StockItem, error) {
+func (fakeInventoryClient) AdjustStock(context.Context, string, string, string, int32) (*inventoryv1.StockItem, error) {
 	return &inventoryv1.StockItem{}, nil
+}
+func (fakeInventoryClient) DeleteStocks(context.Context, string, []string, bool) error {
+	return nil
 }
 
 var _ cart.Client = fakeCartClient{}

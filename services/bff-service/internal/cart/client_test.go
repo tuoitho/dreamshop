@@ -139,7 +139,7 @@ func TestClientForwardsEveryCartRequestField(t *testing.T) {
 	if _, err := client.GetCart(context.Background(), "user-1"); err != nil {
 		t.Fatalf("GetCart() error = %v", err)
 	}
-	if _, err := client.AddItem(context.Background(), "user-1", "product-1", "red", 2); err != nil {
+	if _, err := client.AddItem(context.Background(), "user-1", "product-1", "product-1-v1", 2); err != nil {
 		t.Fatalf("AddItem() error = %v", err)
 	}
 	if _, err := client.UpdateItemQuantity(context.Background(), "user-1", "item-1", 3); err != nil {
@@ -155,7 +155,7 @@ func TestClientForwardsEveryCartRequestField(t *testing.T) {
 	if got := server.getRequest.GetUserId(); got != "user-1" {
 		t.Errorf("GetCart user_id = %q, want user-1", got)
 	}
-	if got := server.addRequest; got.GetUserId() != "user-1" || got.GetProductId() != "product-1" || got.GetVariantLabel() != "red" || got.GetQuantity() != 2 {
+	if got := server.addRequest; got.GetUserId() != "user-1" || got.GetProductId() != "product-1" || got.GetSkuId() != "product-1-v1" || got.GetQuantity() != 2 {
 		t.Errorf("AddItem request = %v", got)
 	}
 	if got := server.updateRequest; got.GetUserId() != "user-1" || got.GetItemId() != "item-1" || got.GetQuantity() != 3 {

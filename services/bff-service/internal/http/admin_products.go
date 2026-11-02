@@ -2,6 +2,7 @@ package http
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 
@@ -38,25 +39,31 @@ type mediaPresignData struct {
 	ExpiresInSeconds int32  `json:"expiresInSeconds"`
 }
 
+type adminProductVariantInput struct {
+	SkuID         string `json:"skuId,omitempty"`
+	Label         string `json:"label"`
+	ColorHex      string `json:"colorHex,omitempty"`
+	Price         int64  `json:"price"`
+	OriginalPrice int64  `json:"originalPrice,omitempty"`
+}
+
 type adminProductMutationRequest struct {
-	ID               string           `json:"id,omitempty"`
-	Name             string           `json:"name"`
-	ShortDescription string           `json:"shortDescription"`
-	Description      string           `json:"description"`
-	Brand            string           `json:"brand"`
-	CategoryID       string           `json:"categoryId"`
-	CategoryName     string           `json:"categoryName"`
-	Price            int64            `json:"price"`
-	OriginalPrice    int64            `json:"originalPrice"`
-	Images           []string         `json:"images"`
-	Videos           []string         `json:"videos"`
-	IsNew            bool             `json:"isNew"`
-	Badge            string           `json:"badge"`
-	Featured         bool             `json:"featured"`
-	Emoji            string           `json:"emoji"`
-	ImageHue         []uint32         `json:"imageHue"`
-	Variants         []productVariant `json:"variants"`
-	Details          []string         `json:"details"`
+	ID               string                     `json:"id,omitempty"`
+	Name             string                     `json:"name"`
+	ShortDescription string                     `json:"shortDescription"`
+	Description      string                     `json:"description"`
+	Brand            string                     `json:"brand"`
+	CategoryID       string                     `json:"categoryId"`
+	CategoryName     string                     `json:"categoryName"`
+	Images           []string                   `json:"images"`
+	Videos           []string                   `json:"videos"`
+	IsNew            bool                       `json:"isNew"`
+	Badge            string                     `json:"badge"`
+	Featured         bool                       `json:"featured"`
+	Emoji            string                     `json:"emoji"`
+	ImageHue         []uint32                   `json:"imageHue"`
+	Variants         []adminProductVariantInput `json:"variants"`
+	Details          []string                   `json:"details"`
 }
 
 type adminStockSnapshot struct {
@@ -80,6 +87,7 @@ type adminProductSummary struct {
 	CategoryName  string              `json:"categoryName"`
 	Price         int64               `json:"price"`
 	OriginalPrice int64               `json:"originalPrice"`
+	MaxPrice      int64               `json:"maxPrice"`
 	Images        []string            `json:"images"`
 	Rating        float64             `json:"rating"`
 	ReviewCount   int64               `json:"reviewCount"`
@@ -109,17 +117,68 @@ type adminProductsPageData struct {
 	StockDegraded bool                  `json:"stockDegraded"`
 }
 
-type adminProductDetail struct {
-	productDetail
-	Videos []string            `json:"videos"`
-	Stock  *adminStockSnapshot `json:"stock"`
+type adminProductVariant struct {
+	SkuID         string              `json:"skuId"`
+	Label         string              `json:"label"`
+	ColorHex      string              `json:"colorHex,omitempty"`
+	Price         int64               `json:"price"`
+	OriginalPrice int64               `json:"originalPrice"`
+	Stock         *adminStockSnapshot `json:"stock"`
 }
 
-func newAdminProductDetail(resp *catalogv1.GetProductResponse, stock *adminStockSnapshot) adminProductDetail {
+type adminProductDetail struct {
+	productSummary
+	ShortDescription string                `json:"shortDescription"`
+	Description      string                `json:"description"`
+	Details          []string              `json:"details"`
+	Videos           []string              `json:"videos"`
+	Variants         []adminProductVariant `json:"variants"`
+	Deleted          bool                  `json:"deleted"`
+	Stock            *adminStockSnapshot   `json:"stock"`
+}
+
+func newAdminProductDetail(resp *catalogv1.GetProductResponse, stockBySku map[string]*inventoryv1.StockItem) adminProductDetail {
+	variants := make([]adminProductVariant, 0, len(resp.GetVariants()))
+	var productStock *adminStockSnapshot
+	if stockBySku != nil {
+		productStock = &adminStockSnapshot{}
+	}
+
+	for _, v := range resp.GetVariants() {
+		var varStock *adminStockSnapshot
+		if stockBySku != nil {
+			if st, ok := stockBySku[v.GetSkuId()]; ok && st != nil {
+				varStock = toAdminStockSnapshot(st)
+				productStock.Quantity += st.GetQuantity()
+				productStock.Reserved += st.GetReserved()
+				productStock.AvailableQuantity += st.GetAvailableQuantity()
+				if st.GetUpdatedAt() > productStock.UpdatedAt {
+					productStock.UpdatedAt = st.GetUpdatedAt()
+				}
+			} else {
+				varStock = &adminStockSnapshot{}
+			}
+		}
+		variants = append(variants, adminProductVariant{
+			SkuID:         v.GetSkuId(),
+			Label:         v.GetLabel(),
+			ColorHex:      v.GetColorHex(),
+			Price:         amountMinor(v.GetPrice()),
+			OriginalPrice: amountMinor(v.GetOriginalPrice()),
+			Stock:         varStock,
+		})
+	}
+
+	base := newProductDetail(resp)
 	return adminProductDetail{
-		productDetail: newProductDetail(resp),
-		Videos:        stringsOrEmpty(resp.GetVideos()),
-		Stock:         stock,
+		productSummary:   base.productSummary,
+		ShortDescription: base.ShortDescription,
+		Description:      base.Description,
+		Details:          base.Details,
+		Videos:           stringsOrEmpty(resp.GetVideos()),
+		Variants:         variants,
+		Deleted:          base.Deleted,
+		Stock:            productStock,
 	}
 }
 
@@ -209,29 +268,30 @@ func (h *AdminProductsHandler) list(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rawItems := resp.GetItems()
-	var stockByID map[string]*adminStockSnapshot
+	var stockBySku map[string]*inventoryv1.StockItem
 	stockDegraded := false
 	if len(rawItems) > 0 && h.inventory != nil {
-		ids := make([]string, 0, len(rawItems))
-		for _, item := range rawItems {
-			ids = append(ids, item.GetId())
-		}
-		stocks, err := h.inventory.BatchGetStock(r.Context(), userID, ids)
-		if err != nil {
-			stockDegraded = true
-		} else {
-			stockByID = make(map[string]*adminStockSnapshot, len(stocks))
-			for _, st := range stocks {
-				stockByID[st.GetProductId()] = toAdminStockSnapshot(st)
+		allSkuIDs := collectAdminSummarySkuIDs(rawItems)
+		if len(allSkuIDs) > 0 {
+			stocks, err := h.inventory.BatchGetStock(r.Context(), userID, allSkuIDs)
+			if err != nil {
+				stockDegraded = true
+			} else {
+				stockBySku = make(map[string]*inventoryv1.StockItem, len(stocks))
+				for _, st := range stocks {
+					stockBySku[st.GetSkuId()] = st
+				}
 			}
+		} else {
+			stockBySku = map[string]*inventoryv1.StockItem{}
 		}
 	}
 
 	items := make([]adminProductSummary, 0, len(rawItems))
 	for _, p := range rawItems {
 		var stock *adminStockSnapshot
-		if stockByID != nil {
-			stock = stockByID[p.GetId()]
+		if stockBySku != nil {
+			stock = rollupProductStock(p.GetSkuIds(), stockBySku)
 		}
 		items = append(items, adminProductSummary{
 			ID:            p.GetId(),
@@ -241,6 +301,7 @@ func (h *AdminProductsHandler) list(w http.ResponseWriter, r *http.Request) {
 			CategoryName:  p.GetCategoryName(),
 			Price:         amountMinor(p.GetPrice()),
 			OriginalPrice: amountMinor(p.GetOriginalPrice()),
+			MaxPrice:      amountMinor(p.GetMaxPrice()),
 			Images:        stringsOrEmpty(p.GetImages()),
 			Rating:        p.GetRating(),
 			ReviewCount:   p.GetReviewCount(),
@@ -291,19 +352,34 @@ func (h *AdminProductsHandler) detail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var stock *adminStockSnapshot
-	if h.inventory != nil {
-		if st, err := h.inventory.GetStock(r.Context(), userID, id); err == nil && st != nil {
-			stock = toAdminStockSnapshot(st)
+	var stockBySku map[string]*inventoryv1.StockItem
+	if h.inventory != nil && len(resp.GetVariants()) > 0 {
+		skuIDs := make([]string, 0, len(resp.GetVariants()))
+		for _, v := range resp.GetVariants() {
+			if skuID := strings.TrimSpace(v.GetSkuId()); skuID != "" {
+				skuIDs = append(skuIDs, skuID)
+			}
+		}
+		if len(skuIDs) > 0 {
+			if stocks, err := h.inventory.BatchGetStock(r.Context(), userID, skuIDs); err == nil {
+				stockBySku = make(map[string]*inventoryv1.StockItem, len(stocks))
+				for _, st := range stocks {
+					stockBySku[st.GetSkuId()] = st
+				}
+			}
 		}
 	}
-	writeEnvelope(w, http.StatusOK, newAdminProductDetail(resp, stock), "Product retrieved.")
+	writeEnvelope(w, http.StatusOK, newAdminProductDetail(resp, stockBySku), "Product retrieved.")
 }
 
 func (h *AdminProductsHandler) create(w http.ResponseWriter, r *http.Request) {
 	var input adminProductMutationRequest
 	if err := decodeJSON(r, &input); err != nil {
 		writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body.", nil)
+		return
+	}
+	if msg := validateAdminVariants(input.Variants); msg != "" {
+		writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", msg, nil)
 		return
 	}
 
@@ -316,8 +392,6 @@ func (h *AdminProductsHandler) create(w http.ResponseWriter, r *http.Request) {
 		Brand:            input.Brand,
 		CategoryId:       input.CategoryID,
 		CategoryName:     input.CategoryName,
-		Price:            &commonv1.Money{Currency: "VND", AmountMinor: input.Price},
-		OriginalPrice:    &commonv1.Money{Currency: "VND", AmountMinor: input.OriginalPrice},
 		Images:           input.Images,
 		Videos:           input.Videos,
 		IsNew:            input.IsNew,
@@ -338,14 +412,34 @@ func (h *AdminProductsHandler) create(w http.ResponseWriter, r *http.Request) {
 
 func (h *AdminProductsHandler) update(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.PathValue("id"))
+	userID := callerID(r)
+
 	var input adminProductMutationRequest
 	if err := decodeJSON(r, &input); err != nil {
 		writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body.", nil)
 		return
 	}
+	if msg := validateAdminVariants(input.Variants); msg != "" {
+		writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", msg, nil)
+		return
+	}
+
+	existing, err := h.catalog.GetAdminProduct(r.Context(), userID, id)
+	if err != nil {
+		h.writeAdminCatalogError(w, r, err, "You do not have permission to update products.")
+		return
+	}
+
+	removedSkuIDs := findRemovedSkuIDs(existing.GetVariants(), input.Variants)
+	if len(removedSkuIDs) > 0 && h.inventory != nil {
+		if err := h.inventory.DeleteStocks(r.Context(), userID, removedSkuIDs, true); err != nil {
+			h.writeVariantRemovalStockError(w, r, err)
+			return
+		}
+	}
 
 	resp, err := h.catalog.UpdateProduct(r.Context(), &catalogv1.UpdateProductRequest{
-		UserId:           callerID(r),
+		UserId:           userID,
 		Id:               id,
 		Name:             input.Name,
 		ShortDescription: input.ShortDescription,
@@ -353,8 +447,6 @@ func (h *AdminProductsHandler) update(w http.ResponseWriter, r *http.Request) {
 		Brand:            input.Brand,
 		CategoryId:       input.CategoryID,
 		CategoryName:     input.CategoryName,
-		Price:            &commonv1.Money{Currency: "VND", AmountMinor: input.Price},
-		OriginalPrice:    &commonv1.Money{Currency: "VND", AmountMinor: input.OriginalPrice},
 		Images:           input.Images,
 		Videos:           input.Videos,
 		IsNew:            input.IsNew,
@@ -368,6 +460,12 @@ func (h *AdminProductsHandler) update(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.writeAdminCatalogError(w, r, err, "You do not have permission to update products.")
 		return
+	}
+
+	if len(removedSkuIDs) > 0 && h.inventory != nil {
+		if err := h.inventory.DeleteStocks(r.Context(), userID, removedSkuIDs, false); err != nil {
+			log.Printf("bff: post-update stock cleanup skipped for product %s (skus=%v, traceId=%s): %v", id, removedSkuIDs, requestTraceID(r), err)
+		}
 	}
 
 	writeEnvelope(w, http.StatusOK, newAdminProductDetail(resp, nil), "Product updated.")
@@ -402,6 +500,8 @@ func (h *AdminProductsHandler) writeAdminCatalogError(w http.ResponseWriter, r *
 		writeError(w, r, http.StatusNotFound, "PRODUCT_NOT_FOUND", "Product not found.", nil)
 	case errors.Is(err, catalog.ErrProductExists):
 		writeError(w, r, http.StatusConflict, "PRODUCT_ID_EXISTS", "A product with this ID already exists.", nil)
+	case errors.Is(err, catalog.ErrSkuConflict):
+		writeError(w, r, http.StatusConflict, "SKU_ALREADY_EXISTS", "A variant with this SKU ID already exists on another product.", nil)
 	case errors.Is(err, catalog.ErrMediaAlreadyAttached):
 		writeError(w, r, http.StatusConflict, "MEDIA_ALREADY_ATTACHED", "One or more media files are already attached to another product.", nil)
 	case status.Code(err) == codes.InvalidArgument:
@@ -411,12 +511,111 @@ func (h *AdminProductsHandler) writeAdminCatalogError(w http.ResponseWriter, r *
 	}
 }
 
-func toProtoVariants(variants []productVariant) []*catalogv1.ProductVariant {
+func (h *AdminProductsHandler) writeVariantRemovalStockError(w http.ResponseWriter, r *http.Request, err error) {
+	var reservedErr *inventory.VariantHasReservedStockError
+	switch {
+	case errors.As(err, &reservedErr):
+		var fields map[string]string
+		if reservedErr.SkuID != "" {
+			fields = map[string]string{"skuId": reservedErr.SkuID}
+		}
+		writeError(w, r, http.StatusConflict, "VARIANT_HAS_RESERVED_STOCK", "Cannot delete a variant while orders still hold reserved stock for it.", fields)
+	case errors.Is(err, inventory.ErrVariantHasReservedStock):
+		writeError(w, r, http.StatusConflict, "VARIANT_HAS_RESERVED_STOCK", "Cannot delete a variant while orders still hold reserved stock for it.", nil)
+	case errors.Is(err, inventory.ErrPermissionDenied):
+		writeError(w, r, http.StatusForbidden, "FORBIDDEN", "You do not have permission to update products.", nil)
+	case errors.Is(err, inventory.ErrAuthorizationUnavailable):
+		writeError(w, r, http.StatusServiceUnavailable, "AUTHORIZATION_SERVICE_UNAVAILABLE", "Authorization service is unavailable.", nil)
+	default:
+		writeError(w, r, http.StatusBadGateway, "INVENTORY_UNAVAILABLE", "Inventory service is unavailable.", nil)
+	}
+}
+
+func validateAdminVariants(variants []adminProductVariantInput) string {
+	if len(variants) == 0 {
+		return "At least one variant is required."
+	}
+	for _, v := range variants {
+		if strings.TrimSpace(v.Label) == "" {
+			return "Every variant must have a non-empty label."
+		}
+		if v.Price <= 0 {
+			return "Every variant must have a positive price."
+		}
+		if v.OriginalPrice != 0 && v.OriginalPrice < v.Price {
+			return "originalPrice must be zero or at least price."
+		}
+	}
+	return ""
+}
+
+func findRemovedSkuIDs(existing []*catalogv1.ProductVariant, next []adminProductVariantInput) []string {
+	retained := make(map[string]struct{}, len(next))
+	for _, v := range next {
+		if skuID := strings.TrimSpace(v.SkuID); skuID != "" {
+			retained[skuID] = struct{}{}
+		}
+	}
+	var removed []string
+	seen := make(map[string]struct{})
+	for _, old := range existing {
+		skuID := strings.TrimSpace(old.GetSkuId())
+		if skuID == "" {
+			continue
+		}
+		if _, keep := retained[skuID]; keep {
+			continue
+		}
+		if _, dup := seen[skuID]; !dup {
+			seen[skuID] = struct{}{}
+			removed = append(removed, skuID)
+		}
+	}
+	return removed
+}
+
+func collectAdminSummarySkuIDs(items []*catalogv1.AdminProductSummary) []string {
+	var out []string
+	seen := make(map[string]struct{})
+	for _, item := range items {
+		for _, raw := range item.GetSkuIds() {
+			skuID := strings.TrimSpace(raw)
+			if skuID == "" {
+				continue
+			}
+			if _, ok := seen[skuID]; !ok {
+				seen[skuID] = struct{}{}
+				out = append(out, skuID)
+			}
+		}
+	}
+	return out
+}
+
+func rollupProductStock(skuIDs []string, stockBySku map[string]*inventoryv1.StockItem) *adminStockSnapshot {
+	snap := &adminStockSnapshot{}
+	for _, skuID := range skuIDs {
+		if st, ok := stockBySku[skuID]; ok && st != nil {
+			snap.Quantity += st.GetQuantity()
+			snap.Reserved += st.GetReserved()
+			snap.AvailableQuantity += st.GetAvailableQuantity()
+			if st.GetUpdatedAt() > snap.UpdatedAt {
+				snap.UpdatedAt = st.GetUpdatedAt()
+			}
+		}
+	}
+	return snap
+}
+
+func toProtoVariants(variants []adminProductVariantInput) []*catalogv1.ProductVariant {
 	out := make([]*catalogv1.ProductVariant, 0, len(variants))
 	for _, v := range variants {
 		out = append(out, &catalogv1.ProductVariant{
-			Label:    v.Label,
-			ColorHex: v.ColorHex,
+			SkuId:         strings.TrimSpace(v.SkuID),
+			Label:         v.Label,
+			ColorHex:      v.ColorHex,
+			Price:         &commonv1.Money{Currency: "VND", AmountMinor: v.Price},
+			OriginalPrice: &commonv1.Money{Currency: "VND", AmountMinor: v.OriginalPrice},
 		})
 	}
 	return out

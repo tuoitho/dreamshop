@@ -25,7 +25,7 @@ var (
 
 type Client interface {
 	GetCart(ctx context.Context, userID string) (*cartv1.GetCartResponse, error)
-	AddItem(ctx context.Context, userID, productID, variantLabel string, quantity int32) (*cartv1.AddItemResponse, error)
+	AddItem(ctx context.Context, userID, productID, skuID string, quantity int32) (*cartv1.AddItemResponse, error)
 	UpdateItemQuantity(ctx context.Context, userID, itemID string, quantity int32) (*cartv1.UpdateItemQuantityResponse, error)
 	RemoveItem(ctx context.Context, userID, itemID string) (*cartv1.RemoveItemResponse, error)
 	ClearCart(ctx context.Context, userID string) (*cartv1.ClearCartResponse, error)
@@ -60,10 +60,10 @@ func (c *client) GetCart(ctx context.Context, userID string) (*cartv1.GetCartRes
 	return resp, c.mapError(err)
 }
 
-func (c *client) AddItem(ctx context.Context, userID, productID, variantLabel string, quantity int32) (*cartv1.AddItemResponse, error) {
+func (c *client) AddItem(ctx context.Context, userID, productID, skuID string, quantity int32) (*cartv1.AddItemResponse, error) {
 	ctx, cancel := c.withTimeout(ctx)
 	defer cancel()
-	resp, err := c.svc.AddItem(ctx, &cartv1.AddItemRequest{UserId: userID, ProductId: productID, VariantLabel: variantLabel, Quantity: quantity})
+	resp, err := c.svc.AddItem(ctx, &cartv1.AddItemRequest{UserId: userID, ProductId: productID, SkuId: skuID, Quantity: quantity})
 	return resp, c.mapError(err)
 }
 

@@ -19,8 +19,11 @@ type favoriteData struct {
 }
 
 type favoriteVariant struct {
-	Label    string `json:"label"`
-	ColorHex string `json:"colorHex,omitempty"`
+	SkuID         string `json:"skuId"`
+	Label         string `json:"label"`
+	ColorHex      string `json:"colorHex,omitempty"`
+	Price         int64  `json:"price"`
+	OriginalPrice int64  `json:"originalPrice"`
 }
 
 type favoriteItem struct {
@@ -32,6 +35,7 @@ type favoriteItem struct {
 	CategoryName      string            `json:"categoryName"`
 	Price             int64             `json:"price"`
 	OriginalPrice     int64             `json:"originalPrice"`
+	MaxPrice          int64             `json:"maxPrice"`
 	Rating            float64           `json:"rating"`
 	ReviewCount       int64             `json:"reviewCount"`
 	SoldCount         int64             `json:"soldCount"`
@@ -154,8 +158,11 @@ func newFavoriteItem(item *cartv1.FavoriteItem) favoriteItem {
 	variants := make([]favoriteVariant, 0, len(item.GetVariants()))
 	for _, variant := range item.GetVariants() {
 		variants = append(variants, favoriteVariant{
-			Label:    variant.GetLabel(),
-			ColorHex: variant.GetColorHex(),
+			SkuID:         variant.GetSkuId(),
+			Label:         variant.GetLabel(),
+			ColorHex:      variant.GetColorHex(),
+			Price:         amountMinor(variant.GetPrice()),
+			OriginalPrice: amountMinor(variant.GetOriginalPrice()),
 		})
 	}
 	return favoriteItem{
@@ -167,6 +174,7 @@ func newFavoriteItem(item *cartv1.FavoriteItem) favoriteItem {
 		CategoryName:      item.GetCategoryName(),
 		Price:             amountMinor(item.GetPrice()),
 		OriginalPrice:     amountMinor(item.GetOriginalPrice()),
+		MaxPrice:          amountMinor(item.GetMaxPrice()),
 		Rating:            item.GetRating(),
 		ReviewCount:       item.GetReviewCount(),
 		SoldCount:         item.GetSoldCount(),

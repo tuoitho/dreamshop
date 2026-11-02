@@ -121,6 +121,8 @@ func sampleSummary() *catalogv1.ProductSummary {
 		CategoryName:  "Điện thoại",
 		Price:         money(18990000),
 		OriginalPrice: money(21990000),
+		MaxPrice:      money(20990000),
+		SkuIds:        []string{"dt-1-v1"},
 		Images:        []string{"https://picsum.photos/seed/dt-1-1/800/800"},
 		Rating:        4.9,
 		ReviewCount:   1284,
@@ -134,20 +136,24 @@ func sampleSummary() *catalogv1.ProductSummary {
 }
 
 type fakeInventoryClient struct {
-	mu          sync.Mutex
-	getFn       func(ctx context.Context, productID string) (*inventoryv1.GetAvailabilityResponse, error)
-	getStockFn  func(ctx context.Context, userID, productID string) (*inventoryv1.StockItem, error)
-	batchGetFn  func(ctx context.Context, userID string, productIDs []string) ([]*inventoryv1.StockItem, error)
-	listStockFn func(ctx context.Context, userID string) ([]*inventoryv1.StockItem, error)
-	setStockFn  func(ctx context.Context, userID, productID string, quantity int32) (*inventoryv1.StockItem, error)
-	adjStockFn  func(ctx context.Context, userID, productID string, delta int32) (*inventoryv1.StockItem, error)
-	called      []string
-	traceID     string
+	mu               sync.Mutex
+	getFn            func(ctx context.Context, skuID string) (*inventoryv1.GetAvailabilityResponse, error)
+	batchAvailFn     func(ctx context.Context, skuIDs []string) ([]*inventoryv1.AvailabilityItem, error)
+	getStockFn       func(ctx context.Context, userID, skuID string) (*inventoryv1.StockItem, error)
+	batchGetFn       func(ctx context.Context, userID string, skuIDs []string) ([]*inventoryv1.StockItem, error)
+	listStockFn      func(ctx context.Context, userID string) ([]*inventoryv1.StockItem, error)
+	setStockFn       func(ctx context.Context, userID, skuID, productID string, quantity int32) (*inventoryv1.StockItem, error)
+	adjStockFn       func(ctx context.Context, userID, skuID, productID string, delta int32) (*inventoryv1.StockItem, error)
+	deleteStocksFn   func(ctx context.Context, userID string, skuIDs []string, dryRun bool) error
+	called           []string
+	batchAvailCalls  int
+	lastBatchSkuIDs  []string
+	traceID          string
 }
 
-func (f *fakeInventoryClient) GetAvailability(ctx context.Context, productID string) (*inventoryv1.GetAvailabilityResponse, error) {
+func (f *fakeInventoryClient) GetAvailability(ctx context.Context, skuID string) (*inventoryv1.GetAvailabilityResponse, error) {
 	f.mu.Lock()
-	f.called = append(f.called, productID)
+	f.called = append(f.called, skuID)
 	if md, ok := metadata.FromOutgoingContext(ctx); ok {
 		if vals := md.Get("x-trace-id"); len(vals) > 0 {
 			f.traceID = vals[0]
@@ -155,25 +161,46 @@ func (f *fakeInventoryClient) GetAvailability(ctx context.Context, productID str
 	}
 	f.mu.Unlock()
 	if f.getFn != nil {
-		return f.getFn(ctx, productID)
+		return f.getFn(ctx, skuID)
 	}
-	return &inventoryv1.GetAvailabilityResponse{ProductId: productID, AvailableQuantity: 20}, nil
+	return &inventoryv1.GetAvailabilityResponse{SkuId: skuID, AvailableQuantity: 20}, nil
 }
 
-func (f *fakeInventoryClient) GetStock(ctx context.Context, userID, productID string) (*inventoryv1.StockItem, error) {
+func (f *fakeInventoryClient) BatchGetAvailability(ctx context.Context, skuIDs []string) ([]*inventoryv1.AvailabilityItem, error) {
+	f.mu.Lock()
+	f.batchAvailCalls++
+	f.lastBatchSkuIDs = append([]string(nil), skuIDs...)
+	f.called = append(f.called, skuIDs...)
+	if md, ok := metadata.FromOutgoingContext(ctx); ok {
+		if vals := md.Get("x-trace-id"); len(vals) > 0 {
+			f.traceID = vals[0]
+		}
+	}
+	f.mu.Unlock()
+	if f.batchAvailFn != nil {
+		return f.batchAvailFn(ctx, skuIDs)
+	}
+	out := make([]*inventoryv1.AvailabilityItem, 0, len(skuIDs))
+	for _, skuID := range skuIDs {
+		out = append(out, &inventoryv1.AvailabilityItem{SkuId: skuID, AvailableQuantity: 20})
+	}
+	return out, nil
+}
+
+func (f *fakeInventoryClient) GetStock(ctx context.Context, userID, skuID string) (*inventoryv1.StockItem, error) {
 	if f.getStockFn != nil {
-		return f.getStockFn(ctx, userID, productID)
+		return f.getStockFn(ctx, userID, skuID)
 	}
-	return &inventoryv1.StockItem{ProductId: productID, Quantity: 10, AvailableQuantity: 10}, nil
+	return &inventoryv1.StockItem{SkuId: skuID, Quantity: 10, AvailableQuantity: 10}, nil
 }
 
-func (f *fakeInventoryClient) BatchGetStock(ctx context.Context, userID string, productIDs []string) ([]*inventoryv1.StockItem, error) {
+func (f *fakeInventoryClient) BatchGetStock(ctx context.Context, userID string, skuIDs []string) ([]*inventoryv1.StockItem, error) {
 	if f.batchGetFn != nil {
-		return f.batchGetFn(ctx, userID, productIDs)
+		return f.batchGetFn(ctx, userID, skuIDs)
 	}
-	out := make([]*inventoryv1.StockItem, 0, len(productIDs))
-	for _, id := range productIDs {
-		out = append(out, &inventoryv1.StockItem{ProductId: id, Quantity: 10, AvailableQuantity: 10})
+	out := make([]*inventoryv1.StockItem, 0, len(skuIDs))
+	for _, skuID := range skuIDs {
+		out = append(out, &inventoryv1.StockItem{SkuId: skuID, Quantity: 10, AvailableQuantity: 10})
 	}
 	return out, nil
 }
@@ -185,18 +212,25 @@ func (f *fakeInventoryClient) ListStocks(ctx context.Context, userID string) ([]
 	return nil, nil
 }
 
-func (f *fakeInventoryClient) SetStock(ctx context.Context, userID, productID string, quantity int32) (*inventoryv1.StockItem, error) {
+func (f *fakeInventoryClient) SetStock(ctx context.Context, userID, skuID, productID string, quantity int32) (*inventoryv1.StockItem, error) {
 	if f.setStockFn != nil {
-		return f.setStockFn(ctx, userID, productID, quantity)
+		return f.setStockFn(ctx, userID, skuID, productID, quantity)
 	}
-	return &inventoryv1.StockItem{ProductId: productID, Quantity: quantity, AvailableQuantity: quantity}, nil
+	return &inventoryv1.StockItem{SkuId: skuID, ProductId: productID, Quantity: quantity, AvailableQuantity: quantity}, nil
 }
 
-func (f *fakeInventoryClient) AdjustStock(ctx context.Context, userID, productID string, delta int32) (*inventoryv1.StockItem, error) {
+func (f *fakeInventoryClient) AdjustStock(ctx context.Context, userID, skuID, productID string, delta int32) (*inventoryv1.StockItem, error) {
 	if f.adjStockFn != nil {
-		return f.adjStockFn(ctx, userID, productID, delta)
+		return f.adjStockFn(ctx, userID, skuID, productID, delta)
 	}
-	return &inventoryv1.StockItem{ProductId: productID, Quantity: delta, AvailableQuantity: delta}, nil
+	return &inventoryv1.StockItem{SkuId: skuID, ProductId: productID, Quantity: delta, AvailableQuantity: delta}, nil
+}
+
+func (f *fakeInventoryClient) DeleteStocks(ctx context.Context, userID string, skuIDs []string, dryRun bool) error {
+	if f.deleteStocksFn != nil {
+		return f.deleteStocksFn(ctx, userID, skuIDs, dryRun)
+	}
+	return nil
 }
 
 func newTestMux(t *testing.T, client catalog.Client) http.Handler {
@@ -253,7 +287,7 @@ func TestSearchProductsHappyPathEnvelope(t *testing.T) {
 		t.Fatalf("expected Content-Type application/json, got %q", ct)
 	}
 
-	want := `{"data":{"items":[{"id":"dt-1","name":"Điện thoại Nova X","brand":"Nova","categoryId":"dien-thoai","categoryName":"Điện thoại","price":18990000,"originalPrice":21990000,"rating":4.9,"reviewCount":1284,"soldCount":2310,"images":["https://picsum.photos/seed/dt-1-1/800/800"],"emoji":"📱","imageHue":[220,260],"isNew":false,"badge":"hot","featured":true,"status":"AVAILABLE","availableQuantity":20}],"page":1,"pageSize":20,"totalItems":1,"totalPages":1},"message":"Products retrieved."}` + "\n"
+	want := `{"data":{"items":[{"id":"dt-1","name":"Điện thoại Nova X","brand":"Nova","categoryId":"dien-thoai","categoryName":"Điện thoại","price":18990000,"originalPrice":21990000,"maxPrice":20990000,"rating":4.9,"reviewCount":1284,"soldCount":2310,"images":["https://picsum.photos/seed/dt-1-1/800/800"],"emoji":"📱","imageHue":[220,260],"isNew":false,"badge":"hot","featured":true,"status":"AVAILABLE","availableQuantity":20}],"page":1,"pageSize":20,"totalItems":1,"totalPages":1},"message":"Products retrieved."}` + "\n"
 	if got := rec.Body.String(); got != want {
 		t.Fatalf("unexpected body\n got: %s\nwant: %s", got, want)
 	}
@@ -479,6 +513,7 @@ func TestGetProductHappyPathEnvelope(t *testing.T) {
 		CategoryId:       "dien-thoai",
 		CategoryName:     "Điện thoại",
 		OriginalPrice:    money(21990000),
+		MaxPrice:         money(20990000),
 		Images:           []string{"https://picsum.photos/seed/dt-1-1/800/800"},
 		Rating:           4.9,
 		ReviewCount:      1284,
@@ -488,9 +523,17 @@ func TestGetProductHappyPathEnvelope(t *testing.T) {
 		Featured:         true,
 		Emoji:            "📱",
 		ImageHue:         []uint32{220, 260},
-		Variants:         []*catalogv1.ProductVariant{{Label: "Đen", ColorHex: "#1f2937"}},
-		Deleted:          true,
-		Details:          []string{"Hỗ trợ 5G", "Pin 5000 mAh"},
+		Variants: []*catalogv1.ProductVariant{
+			{
+				SkuId:         "dt-1-v1",
+				Label:         "Đen",
+				ColorHex:      "#1f2937",
+				Price:         money(18990000),
+				OriginalPrice: money(21990000),
+			},
+		},
+		Deleted: true,
+		Details: []string{"Hỗ trợ 5G", "Pin 5000 mAh"},
 	}
 	client := &fakeCatalogClient{
 		getProductFn: func(ctx context.Context, id string) (*catalogv1.GetProductResponse, error) {
@@ -512,7 +555,7 @@ func TestGetProductHappyPathEnvelope(t *testing.T) {
 		t.Fatalf("expected inventory lookup skipped for soft-deleted product, got %v", inv.called)
 	}
 
-	want := `{"data":{"id":"dt-1","name":"Điện thoại Nova X","brand":"Nova","categoryId":"dien-thoai","categoryName":"Điện thoại","price":18990000,"originalPrice":21990000,"rating":4.9,"reviewCount":1284,"soldCount":2310,"images":["https://picsum.photos/seed/dt-1-1/800/800"],"emoji":"📱","imageHue":[220,260],"isNew":false,"badge":"hot","featured":true,"status":"UNAVAILABLE","availableQuantity":0,"shortDescription":"Mô tả ngắn gọn.","description":"Mô tả chi tiết sản phẩm.","details":["Hỗ trợ 5G","Pin 5000 mAh"],"variants":[{"label":"Đen","colorHex":"#1f2937"}],"deleted":true},"message":"Product retrieved."}` + "\n"
+	want := `{"data":{"id":"dt-1","name":"Điện thoại Nova X","brand":"Nova","categoryId":"dien-thoai","categoryName":"Điện thoại","price":18990000,"originalPrice":21990000,"maxPrice":20990000,"rating":4.9,"reviewCount":1284,"soldCount":2310,"images":["https://picsum.photos/seed/dt-1-1/800/800"],"emoji":"📱","imageHue":[220,260],"isNew":false,"badge":"hot","featured":true,"status":"UNAVAILABLE","availableQuantity":0,"shortDescription":"Mô tả ngắn gọn.","description":"Mô tả chi tiết sản phẩm.","details":["Hỗ trợ 5G","Pin 5000 mAh"],"variants":[{"skuId":"dt-1-v1","label":"Đen","colorHex":"#1f2937","price":18990000,"originalPrice":21990000,"status":"UNAVAILABLE","availableQuantity":0}],"deleted":true},"message":"Product retrieved."}` + "\n"
 	if got := rec.Body.String(); got != want {
 		t.Fatalf("unexpected body\n got: %s\nwant: %s", got, want)
 	}
@@ -592,9 +635,10 @@ func TestLegacyProductsRouteReturnsNotFound(t *testing.T) {
 }
 
 func TestSearchProductsEnrichesAvailabilityAndDegradesPerItem(t *testing.T) {
-	mkSummary := func(id string) *catalogv1.ProductSummary {
+	mkSummary := func(id string, skuIDs ...string) *catalogv1.ProductSummary {
 		s := sampleSummary()
 		s.Id = id
+		s.SkuIds = skuIDs
 		return s
 	}
 
@@ -602,12 +646,12 @@ func TestSearchProductsEnrichesAvailabilityAndDegradesPerItem(t *testing.T) {
 		searchFn: func(ctx context.Context, req *catalogv1.SearchProductsRequest) (*catalogv1.SearchProductsResponse, error) {
 			return &catalogv1.SearchProductsResponse{
 				Items: []*catalogv1.ProductSummary{
-					mkSummary("p-avail"),
-					mkSummary("p-limited"),
-					mkSummary("p-zero"),
-					mkSummary("p-negative"),
-					mkSummary("p-err"),
-					mkSummary("p-avail"), // duplicate ID should only hit inventory once
+					mkSummary("p-avail", "p-avail-v1", "p-avail-v2"),
+					mkSummary("p-limited", "p-limited-v1"),
+					mkSummary("p-zero", "p-zero-v1"),
+					mkSummary("p-negative", "p-neg-v1"),
+					mkSummary("p-no-skus"),
+					mkSummary("p-avail", "p-avail-v1", "p-avail-v2"), // duplicate SKUs only queried once
 				},
 				Page:       1,
 				PageSize:   20,
@@ -618,21 +662,14 @@ func TestSearchProductsEnrichesAvailabilityAndDegradesPerItem(t *testing.T) {
 	}
 
 	inv := &fakeInventoryClient{
-		getFn: func(ctx context.Context, productID string) (*inventoryv1.GetAvailabilityResponse, error) {
-			switch productID {
-			case "p-avail":
-				return &inventoryv1.GetAvailabilityResponse{ProductId: productID, AvailableQuantity: 12}, nil
-			case "p-limited":
-				return &inventoryv1.GetAvailabilityResponse{ProductId: productID, AvailableQuantity: 5}, nil
-			case "p-zero":
-				return &inventoryv1.GetAvailabilityResponse{ProductId: productID, AvailableQuantity: 0}, nil
-			case "p-negative":
-				return &inventoryv1.GetAvailabilityResponse{ProductId: productID, AvailableQuantity: -3}, nil
-			case "p-err":
-				return nil, status.Error(codes.Unavailable, "inventory timeout")
-			default:
-				return nil, fmt.Errorf("unexpected productID %s", productID)
-			}
+		batchAvailFn: func(ctx context.Context, skuIDs []string) ([]*inventoryv1.AvailabilityItem, error) {
+			return []*inventoryv1.AvailabilityItem{
+				{SkuId: "p-avail-v1", AvailableQuantity: 8},
+				{SkuId: "p-avail-v2", AvailableQuantity: 4},
+				{SkuId: "p-limited-v1", AvailableQuantity: 5},
+				{SkuId: "p-zero-v1", AvailableQuantity: 0},
+				{SkuId: "p-neg-v1", AvailableQuantity: -3},
+			}, nil
 		},
 	}
 
@@ -645,8 +682,11 @@ func TestSearchProductsEnrichesAvailabilityAndDegradesPerItem(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	if len(inv.called) != 5 {
-		t.Fatalf("expected 5 unique inventory lookups, got %d (%v)", len(inv.called), inv.called)
+	if inv.batchAvailCalls != 1 {
+		t.Fatalf("expected 1 BatchGetAvailability call, got %d", inv.batchAvailCalls)
+	}
+	if len(inv.lastBatchSkuIDs) != 5 {
+		t.Fatalf("expected 5 unique SKU lookups, got %d (%v)", len(inv.lastBatchSkuIDs), inv.lastBatchSkuIDs)
 	}
 	if inv.traceID != "trace-search-01" {
 		t.Errorf("expected outgoing x-trace-id trace-search-01, got %q", inv.traceID)
@@ -687,15 +727,32 @@ func TestSearchProductsEnrichesAvailabilityAndDegradesPerItem(t *testing.T) {
 	assertItem(1, "LIMITED", &f5, false)
 	assertItem(2, "OUT_OF_STOCK", &f0, false)
 	assertItem(3, "OUT_OF_STOCK", &f0, false)
-	assertItem(4, "UNKNOWN", nil, true)
+	assertItem(4, "UNAVAILABLE", &f0, false)
 	assertItem(5, "AVAILABLE", &f12, false)
+
+	// Verify BatchGetAvailability outage degrades active items cleanly.
+	errInv := &fakeInventoryClient{
+		batchAvailFn: func(ctx context.Context, skuIDs []string) ([]*inventoryv1.AvailabilityItem, error) {
+			return nil, status.Error(codes.Unavailable, "inventory timeout")
+		},
+	}
+	degRec := doRequest(newTestMuxWithInventory(t, cat, errInv), http.MethodGet, "/api/v1/storefront/products")
+	if degRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on degraded batch, got %d", degRec.Code)
+	}
+	degItems := decodeBody(t, degRec)["data"].(map[string]any)["items"].([]any)
+	firstDeg := degItems[0].(map[string]any)
+	if firstDeg["status"] != "UNKNOWN" || firstDeg["inventoryDegraded"] != true {
+		t.Fatalf("expected degraded UNKNOWN item, got %#v", firstDeg)
+	}
 }
 
-func TestSearchProductsBoundsInventoryConcurrencyAndHandlesNilInventory(t *testing.T) {
+func TestSearchProductsBatchesInventoryInSingleCallAndHandlesNilInventory(t *testing.T) {
 	items := make([]*catalogv1.ProductSummary, 0, 20)
 	for i := 0; i < 20; i++ {
 		s := sampleSummary()
 		s.Id = fmt.Sprintf("prod-%02d", i)
+		s.SkuIds = []string{fmt.Sprintf("prod-%02d-v1", i), fmt.Sprintf("prod-%02d-v2", i)}
 		items = append(items, s)
 	}
 	cat := &fakeCatalogClient{
@@ -710,20 +767,16 @@ func TestSearchProductsBoundsInventoryConcurrencyAndHandlesNilInventory(t *testi
 		},
 	}
 
-	var inFlight atomic.Int32
-	var maxSeen atomic.Int32
+	var batchCalls atomic.Int32
 	inv := &fakeInventoryClient{
-		getFn: func(ctx context.Context, productID string) (*inventoryv1.GetAvailabilityResponse, error) {
-			cur := inFlight.Add(1)
-			for {
-				prev := maxSeen.Load()
-				if cur <= prev || maxSeen.CompareAndSwap(prev, cur) {
-					break
-				}
+		batchAvailFn: func(ctx context.Context, skuIDs []string) ([]*inventoryv1.AvailabilityItem, error) {
+			batchCalls.Add(1)
+			time.Sleep(5 * time.Millisecond)
+			out := make([]*inventoryv1.AvailabilityItem, 0, len(skuIDs))
+			for _, skuID := range skuIDs {
+				out = append(out, &inventoryv1.AvailabilityItem{SkuId: skuID, AvailableQuantity: 4})
 			}
-			time.Sleep(10 * time.Millisecond)
-			inFlight.Add(-1)
-			return &inventoryv1.GetAvailabilityResponse{ProductId: productID, AvailableQuantity: 7}, nil
+			return out, nil
 		},
 	}
 
@@ -732,8 +785,8 @@ func TestSearchProductsBoundsInventoryConcurrencyAndHandlesNilInventory(t *testi
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
 	}
-	if peak := maxSeen.Load(); peak > 8 {
-		t.Fatalf("expected inventory concurrency <= 8, saw %d", peak)
+	if calls := batchCalls.Load(); calls != 1 {
+		t.Fatalf("expected single BatchGetAvailability call, saw %d", calls)
 	}
 
 	nilMux := newTestMuxWithInventory(t, cat, nil)
@@ -754,23 +807,45 @@ func TestGetProductAvailabilityStatesAndDegradation(t *testing.T) {
 			Id:       "dt-2",
 			Name:     "Điện thoại Aero",
 			Price:    money(9990000),
+			MaxPrice: money(11990000),
 			Variants: variants,
 			Deleted:  deleted,
 		}
 	}
-	oneVariant := []*catalogv1.ProductVariant{{Label: "Đen"}}
+	oneVariant := []*catalogv1.ProductVariant{{
+		SkuId:         "dt-2-v1",
+		Label:         "Đen",
+		Price:         money(9990000),
+		OriginalPrice: money(10990000),
+	}}
+	twoVariants := []*catalogv1.ProductVariant{
+		{SkuId: "dt-2-v1", Label: "Đen 128GB", ColorHex: "#111827", Price: money(9990000), OriginalPrice: money(10990000)},
+		{SkuId: "dt-2-v2", Label: "Bạc 256GB", ColorHex: "#e5e7eb", Price: money(11990000), OriginalPrice: money(12990000)},
+	}
 
-	t.Run("available", func(t *testing.T) {
+	t.Run("multi-variant per-SKU status and summed product availability", func(t *testing.T) {
 		cat := &fakeCatalogClient{getProductFn: func(context.Context, string) (*catalogv1.GetProductResponse, error) {
-			return baseDetail(false, oneVariant), nil
+			return baseDetail(false, twoVariants), nil
 		}}
-		inv := &fakeInventoryClient{getFn: func(context.Context, string) (*inventoryv1.GetAvailabilityResponse, error) {
-			return &inventoryv1.GetAvailabilityResponse{ProductId: "dt-2", AvailableQuantity: 9}, nil
+		inv := &fakeInventoryClient{batchAvailFn: func(_ context.Context, skuIDs []string) ([]*inventoryv1.AvailabilityItem, error) {
+			return []*inventoryv1.AvailabilityItem{
+				{SkuId: "dt-2-v1", AvailableQuantity: 0},
+				{SkuId: "dt-2-v2", AvailableQuantity: 9},
+			}, nil
 		}}
 		rec := doRequest(newTestMuxWithInventory(t, cat, inv), http.MethodGet, "/api/v1/storefront/products/dt-2")
 		data := decodeBody(t, rec)["data"].(map[string]any)
-		if data["status"] != "AVAILABLE" || data["availableQuantity"].(float64) != 9 {
+		if data["status"] != "AVAILABLE" || data["availableQuantity"].(float64) != 9 || data["maxPrice"].(float64) != 11990000 {
 			t.Fatalf("unexpected data: %#v", data)
+		}
+		variants := data["variants"].([]any)
+		v0 := variants[0].(map[string]any)
+		v1 := variants[1].(map[string]any)
+		if v0["skuId"] != "dt-2-v1" || v0["status"] != "OUT_OF_STOCK" || v0["availableQuantity"].(float64) != 0 || v0["price"].(float64) != 9990000 {
+			t.Fatalf("unexpected variant[0]: %#v", v0)
+		}
+		if v1["skuId"] != "dt-2-v2" || v1["status"] != "AVAILABLE" || v1["availableQuantity"].(float64) != 9 || v1["price"].(float64) != 11990000 {
+			t.Fatalf("unexpected variant[1]: %#v", v1)
 		}
 	})
 
@@ -778,8 +853,8 @@ func TestGetProductAvailabilityStatesAndDegradation(t *testing.T) {
 		cat := &fakeCatalogClient{getProductFn: func(context.Context, string) (*catalogv1.GetProductResponse, error) {
 			return baseDetail(false, oneVariant), nil
 		}}
-		inv := &fakeInventoryClient{getFn: func(context.Context, string) (*inventoryv1.GetAvailabilityResponse, error) {
-			return &inventoryv1.GetAvailabilityResponse{ProductId: "dt-2", AvailableQuantity: 2}, nil
+		inv := &fakeInventoryClient{batchAvailFn: func(context.Context, []string) ([]*inventoryv1.AvailabilityItem, error) {
+			return []*inventoryv1.AvailabilityItem{{SkuId: "dt-2-v1", AvailableQuantity: 2}}, nil
 		}}
 		rec := doRequest(newTestMuxWithInventory(t, cat, inv), http.MethodGet, "/api/v1/storefront/products/dt-2")
 		data := decodeBody(t, rec)["data"].(map[string]any)
@@ -792,8 +867,8 @@ func TestGetProductAvailabilityStatesAndDegradation(t *testing.T) {
 		cat := &fakeCatalogClient{getProductFn: func(context.Context, string) (*catalogv1.GetProductResponse, error) {
 			return baseDetail(false, oneVariant), nil
 		}}
-		inv := &fakeInventoryClient{getFn: func(context.Context, string) (*inventoryv1.GetAvailabilityResponse, error) {
-			return &inventoryv1.GetAvailabilityResponse{ProductId: "dt-2", AvailableQuantity: 0}, nil
+		inv := &fakeInventoryClient{batchAvailFn: func(context.Context, []string) ([]*inventoryv1.AvailabilityItem, error) {
+			return []*inventoryv1.AvailabilityItem{{SkuId: "dt-2-v1", AvailableQuantity: 0}}, nil
 		}}
 		rec := doRequest(newTestMuxWithInventory(t, cat, inv), http.MethodGet, "/api/v1/storefront/products/dt-2")
 		data := decodeBody(t, rec)["data"].(map[string]any)
@@ -826,7 +901,7 @@ func TestGetProductAvailabilityStatesAndDegradation(t *testing.T) {
 		cat := &fakeCatalogClient{getProductFn: func(context.Context, string) (*catalogv1.GetProductResponse, error) {
 			return baseDetail(false, oneVariant), nil
 		}}
-		inv := &fakeInventoryClient{getFn: func(context.Context, string) (*inventoryv1.GetAvailabilityResponse, error) {
+		inv := &fakeInventoryClient{batchAvailFn: func(context.Context, []string) ([]*inventoryv1.AvailabilityItem, error) {
 			return nil, status.Error(codes.DeadlineExceeded, "inventory slow")
 		}}
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/storefront/products/dt-2", nil)

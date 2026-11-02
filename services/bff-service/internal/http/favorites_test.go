@@ -25,22 +25,29 @@ func newFavoritesTestMux(t *testing.T, client cartclient.Client) http.Handler {
 
 func favoriteItemFixture() *cartv1.FavoriteItem {
 	return &cartv1.FavoriteItem{
-		ItemId:            "fav-1",
-		ProductId:         "dt-1",
-		Name:              "iPhone 16 Pro",
-		Brand:             "Apple",
-		CategoryId:        "dien-thoai",
-		CategoryName:      "Điện thoại",
-		Price:             &commonv1.Money{AmountMinor: 26990000},
-		OriginalPrice:     &commonv1.Money{AmountMinor: 29990000},
-		Rating:            4.9,
-		ReviewCount:       128,
-		SoldCount:         540,
-		ImageUrl:          "https://example.test/dt-1.png",
-		ImageEmoji:        "📱",
-		ImageHue:          []uint32{210, 250},
-		Badge:             "hot",
-		Variants:          []*cartv1.FavoriteVariant{{Label: "Đen Titan 256GB", ColorHex: "#1c1c1e"}},
+		ItemId:        "fav-1",
+		ProductId:     "dt-1",
+		Name:          "iPhone 16 Pro",
+		Brand:         "Apple",
+		CategoryId:    "dien-thoai",
+		CategoryName:  "Điện thoại",
+		Price:         &commonv1.Money{AmountMinor: 26990000},
+		OriginalPrice: &commonv1.Money{AmountMinor: 29990000},
+		MaxPrice:      &commonv1.Money{AmountMinor: 31990000},
+		Rating:        4.9,
+		ReviewCount:   128,
+		SoldCount:     540,
+		ImageUrl:      "https://example.test/dt-1.png",
+		ImageEmoji:    "📱",
+		ImageHue:      []uint32{210, 250},
+		Badge:         "hot",
+		Variants: []*cartv1.FavoriteVariant{{
+			SkuId:         "dt-1-v1",
+			Label:         "Đen Titan 256GB",
+			ColorHex:      "#1c1c1e",
+			Price:         &commonv1.Money{AmountMinor: 26990000},
+			OriginalPrice: &commonv1.Money{AmountMinor: 29990000},
+		}},
 		Status:            cartv1.FavoriteItemStatus_FAVORITE_ITEM_STATUS_AVAILABLE,
 		AvailableQuantity: 12,
 	}
@@ -98,6 +105,7 @@ func TestGetFavoritesMapsExactCamelCaseEnvelopeAndStatuses(t *testing.T) {
 		first["categoryName"] != "Điện thoại" ||
 		first["price"] != float64(26990000) ||
 		first["originalPrice"] != float64(29990000) ||
+		first["maxPrice"] != float64(31990000) ||
 		first["rating"] != 4.9 ||
 		first["reviewCount"] != float64(128) ||
 		first["soldCount"] != float64(540) ||
@@ -109,7 +117,13 @@ func TestGetFavoritesMapsExactCamelCaseEnvelopeAndStatuses(t *testing.T) {
 		t.Fatalf("first item JSON mismatch: %#v", first)
 	}
 	variants := first["variants"].([]any)
-	if len(variants) != 1 || variants[0].(map[string]any)["label"] != "Đen Titan 256GB" || variants[0].(map[string]any)["colorHex"] != "#1c1c1e" {
+	v0 := variants[0].(map[string]any)
+	if len(variants) != 1 ||
+		v0["skuId"] != "dt-1-v1" ||
+		v0["label"] != "Đen Titan 256GB" ||
+		v0["colorHex"] != "#1c1c1e" ||
+		v0["price"] != float64(26990000) ||
+		v0["originalPrice"] != float64(29990000) {
 		t.Fatalf("variants JSON mismatch: %#v", variants)
 	}
 	second := items[1].(map[string]any)

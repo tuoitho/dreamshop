@@ -35,8 +35,8 @@ func (f *fakeCartClient) GetCart(ctx context.Context, userID string) (*cartv1.Ge
 	return f.getFn(ctx, userID)
 }
 
-func (f *fakeCartClient) AddItem(ctx context.Context, userID, productID, variantLabel string, quantity int32) (*cartv1.AddItemResponse, error) {
-	return f.addFn(ctx, userID, productID, variantLabel, quantity)
+func (f *fakeCartClient) AddItem(ctx context.Context, userID, productID, skuID string, quantity int32) (*cartv1.AddItemResponse, error) {
+	return f.addFn(ctx, userID, productID, skuID, quantity)
 }
 
 func (f *fakeCartClient) UpdateItemQuantity(ctx context.Context, userID, itemID string, quantity int32) (*cartv1.UpdateItemQuantityResponse, error) {
@@ -80,10 +80,12 @@ func cartResponse(item *cartv1.CartItem) *cartv1.GetCartResponse {
 
 func cartItemFixture() *cartv1.CartItem {
 	return &cartv1.CartItem{
-		ItemId: "item-1", ProductId: "dt-1", VariantLabel: "16GB/512GB", Quantity: 2,
+		ItemId: "item-1", ProductId: "dt-1", SkuId: "dt-1-v2", VariantLabel: "16GB/512GB", Quantity: 2,
 		Name: "Nova X", Brand: "Nova", CategoryName: "Phones",
-		UnitPrice: &commonv1.Money{AmountMinor: 18990000}, ImageEmoji: "📱",
-		ImageHue: []uint32{220, 260}, ImageUrl: "https://example.test/dt-1.png",
+		UnitPrice:     &commonv1.Money{AmountMinor: 18990000},
+		OriginalPrice: &commonv1.Money{AmountMinor: 21990000},
+		ImageEmoji:    "📱",
+		ImageHue:      []uint32{220, 260}, ImageUrl: "https://example.test/dt-1.png",
 		VariantColorHex: "#111111", Status: cartv1.CartItemStatus_CART_ITEM_STATUS_LIMITED,
 		AvailableQuantity: 3,
 	}
@@ -104,7 +106,7 @@ func TestGetCartMapsItemToExactCamelCaseEnvelope(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	want := `{"data":{"items":[{"itemId":"item-1","productId":"dt-1","variantLabel":"16GB/512GB","quantity":2,"name":"Nova X","brand":"Nova","categoryName":"Phones","unitPrice":18990000,"imageEmoji":"📱","imageHue":[220,260],"imageUrl":"https://example.test/dt-1.png","variantColorHex":"#111111","status":"LIMITED","availableQuantity":3}],"degraded":true},"message":"Cart retrieved."}` + "\n"
+	want := `{"data":{"items":[{"itemId":"item-1","productId":"dt-1","skuId":"dt-1-v2","variantLabel":"16GB/512GB","quantity":2,"name":"Nova X","brand":"Nova","categoryName":"Phones","unitPrice":18990000,"originalPrice":21990000,"imageEmoji":"📱","imageHue":[220,260],"imageUrl":"https://example.test/dt-1.png","variantColorHex":"#111111","status":"LIMITED","availableQuantity":3}],"degraded":true},"message":"Cart retrieved."}` + "\n"
 	if got := rec.Body.String(); got != want {
 		t.Fatalf("unexpected body\n got: %s\nwant: %s", got, want)
 	}
@@ -141,14 +143,14 @@ func TestGetCartMapsUnknownStatusesToUnavailable(t *testing.T) {
 
 func TestAddCartItemAcceptsPayloadAndForwardsCallerIdentity(t *testing.T) {
 	called := false
-	client := &fakeCartClient{addFn: func(ctx context.Context, userID, productID, variantLabel string, quantity int32) (*cartv1.AddItemResponse, error) {
+	client := &fakeCartClient{addFn: func(ctx context.Context, userID, productID, skuID string, quantity int32) (*cartv1.AddItemResponse, error) {
 		called = true
-		if userID != "user-1" || productID != "dt-1" || variantLabel != "16GB/512GB" || quantity != 2 {
-			t.Fatalf("unexpected add arguments: %q %q %q %d", userID, productID, variantLabel, quantity)
+		if userID != "user-1" || productID != "dt-1" || skuID != "dt-1-v2" || quantity != 2 {
+			t.Fatalf("unexpected add arguments: %q %q %q %d", userID, productID, skuID, quantity)
 		}
 		return &cartv1.AddItemResponse{Cart: &cartv1.Cart{}}, nil
 	}}
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/cart/items", strings.NewReader(`{"productId":"dt-1","variantLabel":"16GB/512GB","quantity":2}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/cart/items", strings.NewReader(`{"productId":"dt-1","skuId":"dt-1-v2","quantity":2}`))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-User-Id", "user-1")
 	rec := httptest.NewRecorder()
@@ -222,7 +224,7 @@ func TestAddCartItemPropagatesResolvedTraceToCartAndErrorEnvelope(t *testing.T) 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			server := &traceRecordingCartServer{}
-			req := httptest.NewRequest(http.MethodPost, "/api/v1/cart/items", strings.NewReader(`{"productId":"dt-1","variantLabel":"red","quantity":2}`))
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/cart/items", strings.NewReader(`{"productId":"dt-1","skuId":"dt-1-v1","quantity":2}`))
 			req.Header.Set("X-User-Id", "user-1")
 			req.Header.Set("X-Trace-Id", test.requestTrace)
 			rec := httptest.NewRecorder()
@@ -252,7 +254,7 @@ func TestAddCartItemRejectsNonPositiveQuantity(t *testing.T) {
 		t.Fatal("cart client must not be called")
 		return nil, nil
 	}}
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/cart/items", strings.NewReader(`{"productId":"dt-1","variantLabel":"16GB/512GB","quantity":0}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/cart/items", strings.NewReader(`{"productId":"dt-1","skuId":"dt-1-v2","quantity":0}`))
 	req.Header.Set("X-User-Id", "user-1")
 	rec := httptest.NewRecorder()
 	newCartTestMux(t, client).ServeHTTP(rec, req)
@@ -273,9 +275,11 @@ func TestCartMutationRejectsInvalidJSONBodies(t *testing.T) {
 		body   string
 		code   string
 	}{
-		{name: "unknown field", method: http.MethodPost, target: "/api/v1/cart/items", body: `{"productId":"dt-1","variantLabel":"red","quantity":2,"userId":"forged"}`, code: "INVALID_PARAMETER"},
-		{name: "trailing json", method: http.MethodPost, target: "/api/v1/cart/items", body: `{"productId":"dt-1","variantLabel":"red","quantity":2}{}`, code: "INVALID_PARAMETER"},
-		{name: "blank quantity", method: http.MethodPost, target: "/api/v1/cart/items", body: `{"productId":"dt-1","variantLabel":"red","quantity":""}`, code: "INVALID_QUANTITY"},
+		{name: "unknown field", method: http.MethodPost, target: "/api/v1/cart/items", body: `{"productId":"dt-1","skuId":"dt-1-v1","quantity":2,"userId":"forged"}`, code: "INVALID_PARAMETER"},
+		{name: "legacy variantLabel field", method: http.MethodPost, target: "/api/v1/cart/items", body: `{"productId":"dt-1","variantLabel":"red","quantity":2}`, code: "INVALID_PARAMETER"},
+		{name: "missing skuId", method: http.MethodPost, target: "/api/v1/cart/items", body: `{"productId":"dt-1","quantity":2}`, code: "INVALID_PARAMETER"},
+		{name: "trailing json", method: http.MethodPost, target: "/api/v1/cart/items", body: `{"productId":"dt-1","skuId":"dt-1-v1","quantity":2}{}`, code: "INVALID_PARAMETER"},
+		{name: "blank quantity", method: http.MethodPost, target: "/api/v1/cart/items", body: `{"productId":"dt-1","skuId":"dt-1-v1","quantity":""}`, code: "INVALID_QUANTITY"},
 		{name: "omitted quantity", method: http.MethodPatch, target: "/api/v1/cart/items/item-1", body: `{}`, code: "INVALID_QUANTITY"},
 	}
 	for _, tc := range cases {
@@ -436,7 +440,7 @@ func TestCartPermissionDeniedMapsToForbidden(t *testing.T) {
 		body   string
 	}{
 		{http.MethodGet, "/api/v1/cart", ""},
-		{http.MethodPost, "/api/v1/cart/items", `{"productId":"dt-1","variantLabel":"red","quantity":2}`},
+		{http.MethodPost, "/api/v1/cart/items", `{"productId":"dt-1","skuId":"dt-1-v1","quantity":2}`},
 		{http.MethodPatch, "/api/v1/cart/items/item-1", `{"quantity":2}`},
 		{http.MethodDelete, "/api/v1/cart/items/item-1", ""},
 		{http.MethodDelete, "/api/v1/cart", ""},
@@ -470,7 +474,7 @@ func TestCartAuthorizationUnavailableMapsToServiceUnavailable(t *testing.T) {
 		body   string
 	}{
 		{http.MethodGet, "/api/v1/cart", ""},
-		{http.MethodPost, "/api/v1/cart/items", `{"productId":"dt-1","variantLabel":"red","quantity":2}`},
+		{http.MethodPost, "/api/v1/cart/items", `{"productId":"dt-1","skuId":"dt-1-v1","quantity":2}`},
 		{http.MethodPatch, "/api/v1/cart/items/item-1", `{"quantity":2}`},
 		{http.MethodDelete, "/api/v1/cart/items/item-1", ""},
 		{http.MethodDelete, "/api/v1/cart", ""},

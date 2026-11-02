@@ -283,6 +283,8 @@ func TestAdminProductsListPresignCreateUpdateAndStockDegradation(t *testing.T) {
 						CategoryId:   "dien-thoai",
 						CategoryName: "Điện thoại",
 						Price:        money(18990000),
+						MaxPrice:     money(20990000),
+						SkuIds:       []string{"dt-1-v1", "dt-1-v2"},
 						VariantCount: 2,
 						VideoCount:   1,
 					},
@@ -315,28 +317,39 @@ func TestAdminProductsListPresignCreateUpdateAndStockDegradation(t *testing.T) {
 				Brand:        req.GetBrand(),
 				CategoryId:   req.GetCategoryId(),
 				CategoryName: req.GetCategoryName(),
-				Price:        req.GetPrice(),
+				Price:        money(18990000),
+				MaxPrice:     money(20990000),
 				Images:       req.GetImages(),
 				Videos:       req.GetVideos(),
-				Variants:     req.GetVariants(),
+				Variants: []*catalogv1.ProductVariant{
+					{SkuId: "nova-x15-v1", Label: "Đen", ColorHex: "#111827", Price: money(18990000), OriginalPrice: money(21990000)},
+					{SkuId: "nova-x15-v2", Label: "Bạc", ColorHex: "#e5e7eb", Price: money(20990000), OriginalPrice: money(22990000)},
+				},
 			}, nil
 		},
 		updateProductFn: func(_ context.Context, req *catalogv1.UpdateProductRequest) (*catalogv1.GetProductResponse, error) {
 			return &catalogv1.GetProductResponse{
-				Id:     req.GetId(),
-				Name:   req.GetName(),
-				Price:  req.GetPrice(),
-				Images: req.GetImages(),
-				Videos: req.GetVideos(),
+				Id:       req.GetId(),
+				Name:     req.GetName(),
+				Price:    money(18990000),
+				MaxPrice: money(20990000),
+				Images:   req.GetImages(),
+				Videos:   req.GetVideos(),
+				Variants: req.GetVariants(),
 			}, nil
 		},
 		getAdminProductFn: func(_ context.Context, _, id string) (*catalogv1.GetProductResponse, error) {
 			return &catalogv1.GetProductResponse{
-				Id:     id,
-				Name:   "Nova X15",
-				Price:  money(18990000),
-				Images: []string{"/product-media/img.webp"},
-				Videos: []string{"/product-media/vid.mp4"},
+				Id:       id,
+				Name:     "Nova X15",
+				Price:    money(18990000),
+				MaxPrice: money(20990000),
+				Images:   []string{"/product-media/img.webp"},
+				Videos:   []string{"/product-media/vid.mp4"},
+				Variants: []*catalogv1.ProductVariant{
+					{SkuId: "nova-x15-v1", Label: "Đen", ColorHex: "#111827", Price: money(18990000), OriginalPrice: money(21990000)},
+					{SkuId: "nova-x15-v2", Label: "Bạc", ColorHex: "#e5e7eb", Price: money(20990000), OriginalPrice: money(22990000)},
+				},
 			}, nil
 		},
 	}
@@ -363,6 +376,27 @@ func TestAdminProductsListPresignCreateUpdateAndStockDegradation(t *testing.T) {
 	if listData["stockDegraded"] != true {
 		t.Fatalf("expected stockDegraded=true, got %v", listData["stockDegraded"])
 	}
+	firstSummary := listData["items"].([]any)[0].(map[string]any)
+	if firstSummary["maxPrice"].(float64) != 20990000 {
+		t.Fatalf("expected maxPrice=20990000 on admin product summary, got %v", firstSummary["maxPrice"])
+	}
+
+	// 1b. GET /api/v1/admin/products rolls up SKU stock across active sku_ids when inventory succeeds
+	inv.batchGetFn = func(_ context.Context, _ string, skuIDs []string) ([]*inventoryv1.StockItem, error) {
+		return []*inventoryv1.StockItem{
+			{SkuId: "dt-1-v1", ProductId: "dt-1", Quantity: 10, Reserved: 2, AvailableQuantity: 8, UpdatedAt: "2026-11-02T10:00:00Z"},
+			{SkuId: "dt-1-v2", ProductId: "dt-1", Quantity: 5, Reserved: 1, AvailableQuantity: 4, UpdatedAt: "2026-11-02T11:00:00Z"},
+		}, nil
+	}
+	rollupReq := httptest.NewRequest(http.MethodGet, "/api/v1/admin/products", nil)
+	rollupReq.Header.Set("X-User-Id", "admin-1")
+	rollupRec := httptest.NewRecorder()
+	mux.ServeHTTP(rollupRec, rollupReq)
+	rollupItem := decodeBody(t, rollupRec)["data"].(map[string]any)["items"].([]any)[0].(map[string]any)
+	rollupStock := rollupItem["stock"].(map[string]any)
+	if rollupStock["quantity"].(float64) != 15 || rollupStock["reserved"].(float64) != 3 || rollupStock["availableQuantity"].(float64) != 12 {
+		t.Fatalf("unexpected SKU stock rollup: %+v", rollupStock)
+	}
 
 	// 2. POST /api/v1/admin/products/media/presign
 	presignReq := httptest.NewRequest(http.MethodPost, "/api/v1/admin/products/media/presign",
@@ -378,16 +412,18 @@ func TestAdminProductsListPresignCreateUpdateAndStockDegradation(t *testing.T) {
 		t.Fatalf("unexpected presign data: %+v", presignData)
 	}
 
-	// 3. POST /api/v1/admin/products -> 201 Created
+	// 3. POST /api/v1/admin/products -> 201 Created (per-variant pricing, no root price)
 	createBody := `{
 		"name":"Nova X15",
 		"brand":"Nova",
 		"categoryId":"dien-thoai",
 		"categoryName":"Điện thoại",
-		"price":18990000,
 		"images":["/product-media/img.webp"],
 		"videos":["/product-media/vid.mp4"],
-		"variants":[{"label":"Đen","colorHex":"#111827"}]
+		"variants":[
+			{"label":"Đen","colorHex":"#111827","price":18990000,"originalPrice":21990000},
+			{"label":"Bạc","colorHex":"#e5e7eb","price":20990000,"originalPrice":22990000}
+		]
 	}`
 	createReq := httptest.NewRequest(http.MethodPost, "/api/v1/admin/products", strings.NewReader(createBody))
 	createReq.Header.Set("X-User-Id", "admin-1")
@@ -397,8 +433,29 @@ func TestAdminProductsListPresignCreateUpdateAndStockDegradation(t *testing.T) {
 		t.Fatalf("POST /admin/products status = %d: %s", createRec.Code, createRec.Body.String())
 	}
 
+	// 3b. Legacy root price field is rejected with 400
+	legacyReq := httptest.NewRequest(http.MethodPost, "/api/v1/admin/products", strings.NewReader(`{"name":"Nova","price":1000,"variants":[{"label":"Đen","price":1000}]}`))
+	legacyReq.Header.Set("X-User-Id", "admin-1")
+	legacyRec := httptest.NewRecorder()
+	mux.ServeHTTP(legacyRec, legacyReq)
+	if legacyRec.Code != http.StatusBadRequest {
+		t.Fatalf("expected legacy root price to return 400, got %d", legacyRec.Code)
+	}
+
 	// 4. PUT /api/v1/admin/products/{id} -> 200 OK
-	putReq := httptest.NewRequest(http.MethodPut, "/api/v1/admin/products/nova-x15", strings.NewReader(createBody))
+	updateBody := `{
+		"name":"Nova X15",
+		"brand":"Nova",
+		"categoryId":"dien-thoai",
+		"categoryName":"Điện thoại",
+		"images":["/product-media/img.webp"],
+		"videos":["/product-media/vid.mp4"],
+		"variants":[
+			{"skuId":"nova-x15-v1","label":"Đen","colorHex":"#111827","price":18990000,"originalPrice":21990000},
+			{"skuId":"nova-x15-v2","label":"Bạc","colorHex":"#e5e7eb","price":20990000,"originalPrice":22990000}
+		]
+	}`
+	putReq := httptest.NewRequest(http.MethodPut, "/api/v1/admin/products/nova-x15", strings.NewReader(updateBody))
 	putReq.Header.Set("X-User-Id", "admin-1")
 	putRec := httptest.NewRecorder()
 	mux.ServeHTTP(putRec, putReq)
@@ -406,13 +463,27 @@ func TestAdminProductsListPresignCreateUpdateAndStockDegradation(t *testing.T) {
 		t.Fatalf("PUT /admin/products/nova-x15 status = %d: %s", putRec.Code, putRec.Body.String())
 	}
 
-	// 5. GET /api/v1/admin/products/{id} -> 200 OK with videos
+	// 5. GET /api/v1/admin/products/{id} -> 200 OK with per-variant stock and product rollup stock
+	inv.batchGetFn = func(_ context.Context, _ string, skuIDs []string) ([]*inventoryv1.StockItem, error) {
+		return []*inventoryv1.StockItem{
+			{SkuId: "nova-x15-v1", ProductId: "nova-x15", Quantity: 10, Reserved: 2, AvailableQuantity: 8},
+			{SkuId: "nova-x15-v2", ProductId: "nova-x15", Quantity: 4, Reserved: 0, AvailableQuantity: 4},
+		}, nil
+	}
 	detailReq := httptest.NewRequest(http.MethodGet, "/api/v1/admin/products/nova-x15", nil)
 	detailReq.Header.Set("X-User-Id", "admin-1")
 	detailRec := httptest.NewRecorder()
 	mux.ServeHTTP(detailRec, detailReq)
 	if detailRec.Code != http.StatusOK {
 		t.Fatalf("GET /admin/products/nova-x15 status = %d: %s", detailRec.Code, detailRec.Body.String())
+	}
+	detailData := decodeBody(t, detailRec)["data"].(map[string]any)
+	detailVariants := detailData["variants"].([]any)
+	if len(detailVariants) != 2 || detailVariants[0].(map[string]any)["stock"].(map[string]any)["availableQuantity"].(float64) != 8 {
+		t.Fatalf("expected per-variant stock on admin detail, got %+v", detailVariants)
+	}
+	if detailData["stock"].(map[string]any)["availableQuantity"].(float64) != 12 {
+		t.Fatalf("expected summed stock on admin detail, got %+v", detailData["stock"])
 	}
 
 	// 6. Conflict mappings: PRODUCT_ID_EXISTS & MEDIA_STORAGE_UNAVAILABLE
@@ -438,4 +509,163 @@ func TestAdminProductsListPresignCreateUpdateAndStockDegradation(t *testing.T) {
 	if downRec.Code != http.StatusServiceUnavailable || decodeBody(t, downRec)["code"] != "MEDIA_STORAGE_UNAVAILABLE" {
 		t.Fatalf("expected 503 MEDIA_STORAGE_UNAVAILABLE, got %d %s", downRec.Code, downRec.Body.String())
 	}
+}
+
+func TestAdminProductsUpdateSkuConflict(t *testing.T) {
+	cat := &fakeCatalogClient{
+		getAdminProductFn: func(_ context.Context, _, id string) (*catalogv1.GetProductResponse, error) {
+			return &catalogv1.GetProductResponse{
+				Id: id,
+				Variants: []*catalogv1.ProductVariant{
+					{SkuId: "dt-1-v1", Label: "Đen", Price: money(18990000)},
+				},
+			}, nil
+		},
+		updateProductFn: func(context.Context, *catalogv1.UpdateProductRequest) (*catalogv1.GetProductResponse, error) {
+			return nil, catalog.ErrSkuConflict
+		},
+	}
+
+	mux := http.NewServeMux()
+	NewAdminProductsHandler(cat, &fakeInventoryClient{}).Register(mux)
+
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/products/dt-1", strings.NewReader(`{
+		"name":"Nova X15",
+		"brand":"Nova",
+		"categoryId":"dien-thoai",
+		"categoryName":"Điện thoại",
+		"variants":[{"skuId":"dt-2-v1","label":"Đen","price":18990000}]
+	}`))
+	req.Header.Set("X-User-Id", "admin-1")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	body := decodeBody(t, rec)
+	if rec.Code != http.StatusConflict || body["code"] != "SKU_ALREADY_EXISTS" {
+		t.Fatalf("expected 409 SKU_ALREADY_EXISTS, got %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestAdminProductsUpdateBlocksReservedVariantAndPreservesStockOnValidationFailure(t *testing.T) {
+	existingProduct := func(_ context.Context, _, id string) (*catalogv1.GetProductResponse, error) {
+		return &catalogv1.GetProductResponse{
+			Id: id,
+			Variants: []*catalogv1.ProductVariant{
+				{SkuId: "dt-1-v1", Label: "Đen", Price: money(18990000)},
+				{SkuId: "dt-1-v2", Label: "Trắng", Price: money(20990000)},
+			},
+		}, nil
+	}
+	payloadRemovingV2 := `{
+		"name":"Nova X15",
+		"brand":"Nova",
+		"categoryId":"dien-thoai",
+		"categoryName":"Điện thoại",
+		"variants":[{"skuId":"dt-1-v1","label":"Đen","price":18990000}]
+	}`
+
+	t.Run("blocks reserved variant at dryRun precheck before UpdateProduct", func(t *testing.T) {
+		updateCalled := false
+		cat := &fakeCatalogClient{
+			getAdminProductFn: existingProduct,
+			updateProductFn: func(context.Context, *catalogv1.UpdateProductRequest) (*catalogv1.GetProductResponse, error) {
+				updateCalled = true
+				return nil, nil
+			},
+		}
+		var dryRuns []bool
+		inv := &fakeInventoryClient{
+			deleteStocksFn: func(_ context.Context, _ string, skuIDs []string, dryRun bool) error {
+				dryRuns = append(dryRuns, dryRun)
+				if len(skuIDs) != 1 || skuIDs[0] != "dt-1-v2" {
+					t.Fatalf("unexpected removed skuIDs: %v", skuIDs)
+				}
+				return &inventory.VariantHasReservedStockError{SkuID: "dt-1-v2"}
+			},
+		}
+
+		mux := http.NewServeMux()
+		NewAdminProductsHandler(cat, inv).Register(mux)
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/products/dt-1", strings.NewReader(payloadRemovingV2))
+		req.Header.Set("X-User-Id", "admin-1")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		body := decodeBody(t, rec)
+		if rec.Code != http.StatusConflict || body["code"] != "VARIANT_HAS_RESERVED_STOCK" {
+			t.Fatalf("expected 409 VARIANT_HAS_RESERVED_STOCK, got %d %s", rec.Code, rec.Body.String())
+		}
+		if errs, ok := body["errors"].(map[string]any); !ok || errs["skuId"] != "dt-1-v2" {
+			t.Fatalf("expected errors.skuId=dt-1-v2, got %+v", body["errors"])
+		}
+		if updateCalled {
+			t.Fatal("UpdateProduct must not be called when dryRun precheck rejects reserved variant")
+		}
+		if len(dryRuns) != 1 || !dryRuns[0] {
+			t.Fatalf("expected single dryRun=true call, got %v", dryRuns)
+		}
+	})
+
+	t.Run("preserves stock when UpdateProduct fails validation", func(t *testing.T) {
+		cat := &fakeCatalogClient{
+			getAdminProductFn: existingProduct,
+			updateProductFn: func(context.Context, *catalogv1.UpdateProductRequest) (*catalogv1.GetProductResponse, error) {
+				return nil, status.Error(codes.InvalidArgument, "duplicate variant labels")
+			},
+		}
+		var dryRuns []bool
+		inv := &fakeInventoryClient{
+			deleteStocksFn: func(_ context.Context, _ string, _ []string, dryRun bool) error {
+				dryRuns = append(dryRuns, dryRun)
+				return nil
+			},
+		}
+
+		mux := http.NewServeMux()
+		NewAdminProductsHandler(cat, inv).Register(mux)
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/products/dt-1", strings.NewReader(payloadRemovingV2))
+		req.Header.Set("X-User-Id", "admin-1")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("expected 400 on catalog InvalidArgument, got %d %s", rec.Code, rec.Body.String())
+		}
+		if len(dryRuns) != 1 || !dryRuns[0] {
+			t.Fatalf("DeleteStocks(dryRun=false) must not run when UpdateProduct fails; calls=%v", dryRuns)
+		}
+	})
+
+	t.Run("cleans up removed SKU stock after UpdateProduct succeeds", func(t *testing.T) {
+		cat := &fakeCatalogClient{
+			getAdminProductFn: existingProduct,
+			updateProductFn: func(_ context.Context, req *catalogv1.UpdateProductRequest) (*catalogv1.GetProductResponse, error) {
+				return &catalogv1.GetProductResponse{Id: req.GetId(), Name: req.GetName(), Variants: req.GetVariants()}, nil
+			},
+		}
+		var dryRuns []bool
+		inv := &fakeInventoryClient{
+			deleteStocksFn: func(_ context.Context, _ string, skuIDs []string, dryRun bool) error {
+				if len(skuIDs) != 1 || skuIDs[0] != "dt-1-v2" {
+					t.Fatalf("unexpected removed skuIDs: %v", skuIDs)
+				}
+				dryRuns = append(dryRuns, dryRun)
+				return nil
+			},
+		}
+
+		mux := http.NewServeMux()
+		NewAdminProductsHandler(cat, inv).Register(mux)
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/products/dt-1", strings.NewReader(payloadRemovingV2))
+		req.Header.Set("X-User-Id", "admin-1")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK, got %d %s", rec.Code, rec.Body.String())
+		}
+		if len(dryRuns) != 2 || !dryRuns[0] || dryRuns[1] {
+			t.Fatalf("expected [true, false] DeleteStocks sequence, got %v", dryRuns)
+		}
+	})
 }
