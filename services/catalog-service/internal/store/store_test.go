@@ -40,7 +40,7 @@ func testPool(t *testing.T) *pgxpool.Pool {
 // set; point it at a dedicated catalog database because it runs migrations
 // and seeds demo data.
 func TestStoreIntegration(t *testing.T) {
-	pool := testPool(t)
+	pool := isolatedStorePool(t, "catalog_store_integration_test")
 	ctx := context.Background()
 
 	if err := Migrate(ctx, pool); err != nil {
@@ -356,6 +356,7 @@ func TestAdminCatalogAndMediaLifecycle(t *testing.T) {
 		CategoryName:       "Laptop",
 		PriceMinor:         32990000,
 		OriginalPriceMinor: 35990000,
+		MaxPriceMinor:      32990000,
 		Images:             []string{assetImg1.PublicURL, assetImg2.PublicURL},
 		Videos:             []string{assetVid1.PublicURL},
 		IsNew:              true,
@@ -363,7 +364,7 @@ func TestAdminCatalogAndMediaLifecycle(t *testing.T) {
 		Featured:           true,
 		Emoji:              "💻",
 		ImageHue:           []uint32{210, 250},
-		Variants:           []domain.ProductVariant{{Label: "16GB/512GB", ColorHex: "#1e293b"}},
+		Variants:           []domain.ProductVariant{{SkuID: "laptop-pro-m4-v1", Label: "16GB/512GB", ColorHex: "#1e293b", PriceMinor: 32990000, OriginalPriceMinor: 35990000}},
 		Details:            []string{"CPU: M4 10 nhân"},
 	}, 24*time.Hour)
 	if err != nil {
@@ -382,7 +383,8 @@ func TestAdminCatalogAndMediaLifecycle(t *testing.T) {
 		CategoryName:       "Laptop",
 		PriceMinor:         10000,
 		OriginalPriceMinor: 10000,
-		Variants:           []domain.ProductVariant{{Label: "Default"}},
+		MaxPriceMinor:      10000,
+		Variants:           []domain.ProductVariant{{SkuID: "dup-v1", Label: "Default", PriceMinor: 10000, OriginalPriceMinor: 10000}},
 	}, 24*time.Hour)
 	if !errors.Is(err, domain.ErrProductExists) {
 		t.Fatalf("expected ErrProductExists on duplicate ID, got %v", err)
@@ -397,8 +399,9 @@ func TestAdminCatalogAndMediaLifecycle(t *testing.T) {
 		CategoryName:       "Laptop",
 		PriceMinor:         15000000,
 		OriginalPriceMinor: 15000000,
+		MaxPriceMinor:      15000000,
 		Images:             []string{assetImg1.PublicURL},
-		Variants:           []domain.ProductVariant{{Label: "Default"}},
+		Variants:           []domain.ProductVariant{{SkuID: "other-laptop-v1", Label: "Default", PriceMinor: 15000000, OriginalPriceMinor: 15000000}},
 	}, 24*time.Hour)
 	if !errors.Is(err, domain.ErrMediaAlreadyAttached) {
 		t.Fatalf("expected ErrMediaAlreadyAttached, got %v", err)
@@ -413,9 +416,10 @@ func TestAdminCatalogAndMediaLifecycle(t *testing.T) {
 		CategoryName:       "Laptop",
 		PriceMinor:         31990000,
 		OriginalPriceMinor: 35990000,
+		MaxPriceMinor:      31990000,
 		Images:             []string{assetImg1.PublicURL},
 		Videos:             nil,
-		Variants:           []domain.ProductVariant{{Label: "32GB/1TB", ColorHex: "#0f172a"}},
+		Variants:           []domain.ProductVariant{{SkuID: "laptop-pro-m4-v1", Label: "32GB/1TB", ColorHex: "#0f172a", PriceMinor: 31990000, OriginalPriceMinor: 35990000}},
 		Details:            []string{"CPU: M4 Max"},
 	}, 24*time.Hour)
 	if err != nil {
@@ -446,9 +450,10 @@ func TestAdminCatalogAndMediaLifecycle(t *testing.T) {
 		CategoryName:       "Laptop",
 		PriceMinor:         31990000,
 		OriginalPriceMinor: 35990000,
+		MaxPriceMinor:      31990000,
 		Images:             []string{assetImg1.PublicURL},
 		Videos:             []string{assetVid1.PublicURL},
-		Variants:           []domain.ProductVariant{{Label: "32GB/1TB", ColorHex: "#0f172a"}},
+		Variants:           []domain.ProductVariant{{SkuID: "laptop-pro-m4-v1", Label: "32GB/1TB", ColorHex: "#0f172a", PriceMinor: 31990000, OriginalPriceMinor: 35990000}},
 	}, 24*time.Hour)
 	if err != nil || len(reattached.Videos) != 1 {
 		t.Fatalf("Update(reattach vid1): %v, videos=%v", err, reattached.Videos)
@@ -555,8 +560,9 @@ func TestSweepLeaseBlocksConcurrentAttachAndLocksMediaOwnership(t *testing.T) {
 		CategoryName:       "Laptop",
 		PriceMinor:         10000000,
 		OriginalPriceMinor: 10000000,
+		MaxPriceMinor:      10000000,
 		Images:             []string{sweepingAsset.PublicURL},
-		Variants:           []domain.ProductVariant{{Label: "Tiêu chuẩn"}},
+		Variants:           []domain.ProductVariant{{SkuID: "late-attach-v1", Label: "Tiêu chuẩn", PriceMinor: 10000000, OriginalPriceMinor: 10000000}},
 	}, 24*time.Hour)
 	if !errors.Is(attachErr, domain.ErrMediaExpired) {
 		close(releaseRemove)
@@ -606,8 +612,9 @@ func TestSweepLeaseBlocksConcurrentAttachAndLocksMediaOwnership(t *testing.T) {
 				CategoryName:       "Laptop",
 				PriceMinor:         12000000,
 				OriginalPriceMinor: 12000000,
+				MaxPriceMinor:      12000000,
 				Images:             []string{sharedPending.PublicURL},
-				Variants:           []domain.ProductVariant{{Label: "Tiêu chuẩn"}},
+				Variants:           []domain.ProductVariant{{SkuID: productID + "-v1", Label: "Tiêu chuẩn", PriceMinor: 12000000, OriginalPriceMinor: 12000000}},
 			}, 24*time.Hour)
 		}(idx, pid)
 	}
@@ -626,5 +633,145 @@ func TestSweepLeaseBlocksConcurrentAttachAndLocksMediaOwnership(t *testing.T) {
 	}
 	if okCount != 1 || conflictCount != 1 {
 		t.Fatalf("expected 1 success and 1 ErrMediaAlreadyAttached, got ok=%d conflict=%d (errs=%v)", okCount, conflictCount, errs)
+	}
+}
+
+func TestStoreUpdatePreservesAndReordersVariantSkuIDs(t *testing.T) {
+	pool := isolatedStorePool(t, "catalog_variant_reorder_test")
+	ctx := context.Background()
+	if err := Migrate(ctx, pool); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+	repo := New(pool)
+
+	initial, err := domain.ValidateAndPrepareCreate(&domain.Product{
+		ID:           "phone-x",
+		Name:         "Phone X",
+		Brand:        "Nova",
+		CategoryID:   "dien-thoai",
+		CategoryName: "Điện thoại",
+		Variants: []domain.ProductVariant{
+			{SkuID: "phone-x-v1", Label: "128GB", PriceMinor: 12990000, OriginalPriceMinor: 14990000},
+			{SkuID: "phone-x-v2", Label: "256GB", PriceMinor: 14990000, OriginalPriceMinor: 16990000},
+			{SkuID: "phone-x-v3", Label: "512GB", PriceMinor: 17990000, OriginalPriceMinor: 19990000},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ValidateAndPrepareCreate: %v", err)
+	}
+	if _, err := repo.Create(ctx, initial, 24*time.Hour); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	reordered, err := domain.ValidateAndPrepareUpdate(&domain.Product{
+		ID:           "phone-x",
+		Name:         "Phone X Pro",
+		Brand:        "Nova",
+		CategoryID:   "dien-thoai",
+		CategoryName: "Điện thoại",
+		Variants: []domain.ProductVariant{
+			{SkuID: "phone-x-v2", Label: "256GB Special", PriceMinor: 15990000, OriginalPriceMinor: 16990000},
+			{SkuID: "phone-x-v1", Label: "128GB", PriceMinor: 11990000, OriginalPriceMinor: 13990000},
+			{SkuID: "phone-x-v4", Label: "1TB", PriceMinor: 20990000, OriginalPriceMinor: 22990000},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ValidateAndPrepareUpdate: %v", err)
+	}
+	got, err := repo.Update(ctx, reordered, 24*time.Hour)
+	if err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if len(got.Variants) != 3 || got.Variants[0].SkuID != "phone-x-v2" || got.Variants[1].SkuID != "phone-x-v1" || got.Variants[2].SkuID != "phone-x-v4" {
+		t.Fatalf("unexpected variant order/SkuIDs: %+v", got.Variants)
+	}
+	if got.PriceMinor != 11990000 || got.OriginalPriceMinor != 13990000 || got.MaxPriceMinor != 20990000 {
+		t.Fatalf("unexpected synced product prices: %d/%d/%d", got.PriceMinor, got.OriginalPriceMinor, got.MaxPriceMinor)
+	}
+
+	searchRes, err := repo.Search(ctx, domain.SearchFilter{Page: 1, PageSize: 10})
+	if err != nil || len(searchRes.Items) != 1 {
+		t.Fatalf("Search: err=%v res=%+v", err, searchRes)
+	}
+	if searchRes.Items[0].MaxPriceMinor != 20990000 || len(searchRes.Items[0].SkuIDs) != 3 || searchRes.Items[0].SkuIDs[0] != "phone-x-v2" {
+		t.Fatalf("Search summary missing MaxPriceMinor/SkuIDs: %+v", searchRes.Items[0])
+	}
+
+	adminRes, err := repo.ListAdmin(ctx, domain.AdminSearchFilter{Status: "all", Page: 1, PageSize: 10})
+	if err != nil || len(adminRes.Items) != 1 {
+		t.Fatalf("ListAdmin: err=%v res=%+v", err, adminRes)
+	}
+	if adminRes.Items[0].MaxPriceMinor != 20990000 || len(adminRes.Items[0].SkuIDs) != 3 {
+		t.Fatalf("ListAdmin summary missing MaxPriceMinor/SkuIDs: %+v", adminRes.Items[0])
+	}
+}
+
+func TestStoreUpdateRejectsCrossProductSkuCollision(t *testing.T) {
+	pool := isolatedStorePool(t, "catalog_sku_collision_test")
+	ctx := context.Background()
+	if err := Migrate(ctx, pool); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+	repo := New(pool)
+
+	p1, _ := domain.ValidateAndPrepareCreate(&domain.Product{
+		ID: "prod-one", Name: "Prod One", Brand: "BrandA", CategoryID: "laptop", CategoryName: "Laptop",
+		Variants: []domain.ProductVariant{{SkuID: "prod-one-v1", Label: "Base", PriceMinor: 10000000}},
+	})
+	p2, _ := domain.ValidateAndPrepareCreate(&domain.Product{
+		ID: "prod-two", Name: "Prod Two", Brand: "BrandB", CategoryID: "laptop", CategoryName: "Laptop",
+		Variants: []domain.ProductVariant{{SkuID: "prod-two-v1", Label: "Base", PriceMinor: 12000000}},
+	})
+	if _, err := repo.Create(ctx, p1, 24*time.Hour); err != nil {
+		t.Fatalf("Create(p1): %v", err)
+	}
+	if _, err := repo.Create(ctx, p2, 24*time.Hour); err != nil {
+		t.Fatalf("Create(p2): %v", err)
+	}
+
+	// Create collision
+	p3, _ := domain.ValidateAndPrepareCreate(&domain.Product{
+		ID: "prod-three", Name: "Prod Three", Brand: "BrandC", CategoryID: "laptop", CategoryName: "Laptop",
+		Variants: []domain.ProductVariant{{SkuID: "prod-one-v1", Label: "Hijack", PriceMinor: 9000000}},
+	})
+	if _, err := repo.Create(ctx, p3, 24*time.Hour); !errors.Is(err, domain.ErrSkuConflict) {
+		t.Fatalf("expected ErrSkuConflict on Create, got %v", err)
+	}
+
+	// Update collision
+	p2Hijack, _ := domain.ValidateAndPrepareUpdate(&domain.Product{
+		ID: "prod-two", Name: "Prod Two", Brand: "BrandB", CategoryID: "laptop", CategoryName: "Laptop",
+		Variants: []domain.ProductVariant{{SkuID: "prod-one-v1", Label: "Hijack", PriceMinor: 9000000}},
+	})
+	if _, err := repo.Update(ctx, p2Hijack, 24*time.Hour); !errors.Is(err, domain.ErrSkuConflict) {
+		t.Fatalf("expected ErrSkuConflict on Update, got %v", err)
+	}
+
+	stillP1, err := repo.GetByID(ctx, "prod-one")
+	if err != nil || len(stillP1.Variants) != 1 || stillP1.Variants[0].Label != "Base" {
+		t.Fatalf("prod-one variant was corrupted: err=%v p1=%+v", err, stillP1)
+	}
+}
+
+func TestStoreListInventoryItemsMatchesSkuAndVariantLabel(t *testing.T) {
+	pool := isolatedStorePool(t, "catalog_inv_search_test")
+	ctx := context.Background()
+	if err := Migrate(ctx, pool); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+	if err := Seed(ctx, pool); err != nil {
+		t.Fatalf("Seed: %v", err)
+	}
+	repo := New(pool)
+
+	items, err := repo.ListInventoryItems(ctx, domain.InventoryCatalogFilter{Query: "dt-1-v3", IncludeDeleted: true})
+	if err != nil {
+		t.Fatalf("ListInventoryItems(dt-1-v3): %v", err)
+	}
+	if len(items) != 1 || items[0].ID != "dt-1" || len(items[0].Variants) != 3 {
+		t.Fatalf("expected dt-1 with 3 variants, got %+v", items)
+	}
+	if items[0].Variants[2].SkuID != "dt-1-v3" || items[0].Variants[2].PriceMinor <= items[0].Variants[0].PriceMinor {
+		t.Fatalf("expected tiered variant pricing on dt-1, got %+v", items[0].Variants)
 	}
 }

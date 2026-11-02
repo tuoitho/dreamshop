@@ -25,7 +25,7 @@ func New(pool *pgxpool.Pool) *Store {
 
 const productColumns = `
 	id, name, short_description, description, brand, category_id, category_name,
-	price_amount_minor, original_price_amount_minor, rating, review_count,
+	price_amount_minor, original_price_amount_minor, max_price_amount_minor, rating, review_count,
 	sold_count, is_new, badge, featured, emoji, image_hue, deleted_at, created_at, updated_at`
 
 // GetByID loads a full product including images, videos, variants, and details.
@@ -38,7 +38,7 @@ func (s *Store) GetByID(ctx context.Context, id string) (*domain.Product, error)
 	var deletedAt *time.Time
 	err := row.Scan(
 		&p.ID, &p.Name, &p.ShortDescription, &p.Description, &p.Brand,
-		&p.CategoryID, &p.CategoryName, &p.PriceMinor, &p.OriginalPriceMinor,
+		&p.CategoryID, &p.CategoryName, &p.PriceMinor, &p.OriginalPriceMinor, &p.MaxPriceMinor,
 		&p.Rating, &p.ReviewCount, &p.SoldCount, &p.IsNew, &p.Badge,
 		&p.Featured, &p.Emoji, &imageHue, &deletedAt, &p.CreatedAt, &p.UpdatedAt,
 	)
@@ -101,7 +101,8 @@ func (s *Store) loadChildStrings(ctx context.Context, query, id string) ([]strin
 
 func (s *Store) loadVariants(ctx context.Context, id string) ([]domain.ProductVariant, error) {
 	rows, err := s.pool.Query(ctx,
-		"SELECT label, color_hex FROM product_variants WHERE product_id = $1 ORDER BY position", id)
+		`SELECT sku_id, label, color_hex, price_amount_minor, original_price_amount_minor
+		 FROM product_variants WHERE product_id = $1 ORDER BY position`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +112,7 @@ func (s *Store) loadVariants(ctx context.Context, id string) ([]domain.ProductVa
 	for rows.Next() {
 		var v domain.ProductVariant
 		var colorHex *string
-		if err := rows.Scan(&v.Label, &colorHex); err != nil {
+		if err := rows.Scan(&v.SkuID, &v.Label, &colorHex, &v.PriceMinor, &v.OriginalPriceMinor); err != nil {
 			return nil, err
 		}
 		if colorHex != nil {
@@ -157,7 +158,7 @@ func (s *Store) Search(ctx context.Context, filter domain.SearchFilter) (*domain
 
 	query := `
 		SELECT id, name, brand, category_id, category_name, price_amount_minor,
-		       original_price_amount_minor, rating, review_count, sold_count,
+		       original_price_amount_minor, max_price_amount_minor, rating, review_count, sold_count,
 		       is_new, badge, featured, emoji, image_hue
 		FROM products
 		WHERE ` + where + `
@@ -177,7 +178,7 @@ func (s *Store) Search(ctx context.Context, filter domain.SearchFilter) (*domain
 		var imageHue []int16
 		if err := rows.Scan(
 			&s.ID, &s.Name, &s.Brand, &s.CategoryID, &s.CategoryName,
-			&s.PriceMinor, &s.OriginalPriceMinor, &s.Rating, &s.ReviewCount,
+			&s.PriceMinor, &s.OriginalPriceMinor, &s.MaxPriceMinor, &s.Rating, &s.ReviewCount,
 			&s.SoldCount, &s.IsNew, &s.Badge, &s.Featured, &s.Emoji, &imageHue,
 		); err != nil {
 			return nil, fmt.Errorf("scan product row: %w", err)
@@ -194,8 +195,13 @@ func (s *Store) Search(ctx context.Context, filter domain.SearchFilter) (*domain
 	if err != nil {
 		return nil, fmt.Errorf("load page images: %w", err)
 	}
+	skuIDs, err := s.loadSkuIDsFor(ctx, pageIDs)
+	if err != nil {
+		return nil, fmt.Errorf("load page sku_ids: %w", err)
+	}
 	for _, s := range items {
 		s.Images = images[s.ID]
+		s.SkuIDs = skuIDs[s.ID]
 	}
 
 	totalPages := int32(0)
@@ -233,6 +239,58 @@ func (s *Store) loadImagesFor(ctx context.Context, ids []string) (map[string][]s
 			return nil, err
 		}
 		out[productID] = append(out[productID], url)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) loadSkuIDsFor(ctx context.Context, ids []string) (map[string][]string, error) {
+	if len(ids) == 0 {
+		return map[string][]string{}, nil
+	}
+	rows, err := s.pool.Query(ctx,
+		`SELECT product_id, sku_id FROM product_variants
+		 WHERE product_id = ANY($1) ORDER BY product_id, position`, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := make(map[string][]string, len(ids))
+	for rows.Next() {
+		var productID, skuID string
+		if err := rows.Scan(&productID, &skuID); err != nil {
+			return nil, err
+		}
+		out[productID] = append(out[productID], skuID)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) loadVariantsFor(ctx context.Context, ids []string) (map[string][]domain.ProductVariant, error) {
+	if len(ids) == 0 {
+		return map[string][]domain.ProductVariant{}, nil
+	}
+	rows, err := s.pool.Query(ctx,
+		`SELECT product_id, sku_id, label, color_hex, price_amount_minor, original_price_amount_minor
+		 FROM product_variants
+		 WHERE product_id = ANY($1) ORDER BY product_id, position`, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := make(map[string][]domain.ProductVariant, len(ids))
+	for rows.Next() {
+		var productID string
+		var v domain.ProductVariant
+		var colorHex *string
+		if err := rows.Scan(&productID, &v.SkuID, &v.Label, &colorHex, &v.PriceMinor, &v.OriginalPriceMinor); err != nil {
+			return nil, err
+		}
+		if colorHex != nil {
+			v.ColorHex = *colorHex
+		}
+		out[productID] = append(out[productID], v)
 	}
 	return out, rows.Err()
 }

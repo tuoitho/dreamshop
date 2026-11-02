@@ -67,7 +67,7 @@ func (s *Store) ListAdmin(ctx context.Context, filter domain.AdminSearchFilter) 
 
 	query := `
 		SELECT p.id, p.name, p.brand, p.category_id, p.category_name,
-		       p.price_amount_minor, p.original_price_amount_minor,
+		       p.price_amount_minor, p.original_price_amount_minor, p.max_price_amount_minor,
 		       p.rating, p.review_count, p.sold_count, p.is_new, p.badge,
 		       p.featured, p.emoji, p.image_hue, p.deleted_at,
 		       p.created_at, p.updated_at,
@@ -92,7 +92,7 @@ func (s *Store) ListAdmin(ctx context.Context, filter domain.AdminSearchFilter) 
 		var deletedAt *time.Time
 		if err := rows.Scan(
 			&item.ID, &item.Name, &item.Brand, &item.CategoryID, &item.CategoryName,
-			&item.PriceMinor, &item.OriginalPriceMinor, &item.Rating, &item.ReviewCount,
+			&item.PriceMinor, &item.OriginalPriceMinor, &item.MaxPriceMinor, &item.Rating, &item.ReviewCount,
 			&item.SoldCount, &item.IsNew, &item.Badge, &item.Featured, &item.Emoji,
 			&imageHue, &deletedAt, &item.CreatedAt, &item.UpdatedAt,
 			&item.VariantCount, &item.VideoCount,
@@ -112,8 +112,13 @@ func (s *Store) ListAdmin(ctx context.Context, filter domain.AdminSearchFilter) 
 	if err != nil {
 		return nil, fmt.Errorf("load admin page images: %w", err)
 	}
+	skuIDsByProduct, err := s.loadSkuIDsFor(ctx, pageIDs)
+	if err != nil {
+		return nil, fmt.Errorf("load admin page sku_ids: %w", err)
+	}
 	for _, item := range items {
 		item.Images = imagesByProduct[item.ID]
+		item.SkuIDs = skuIDsByProduct[item.ID]
 	}
 
 	totalPages := int32(0)
@@ -147,7 +152,10 @@ func (s *Store) ListInventoryItems(ctx context.Context, filter domain.InventoryC
 	}
 	if q := strings.TrimSpace(filter.Query); q != "" {
 		pat := next("%" + q + "%")
-		clauses = append(clauses, fmt.Sprintf("(p.id ILIKE %s OR p.name ILIKE %s OR p.brand ILIKE %s OR p.category_name ILIKE %s)", pat, pat, pat, pat))
+		clauses = append(clauses, fmt.Sprintf(
+			"(p.id ILIKE %s OR p.name ILIKE %s OR p.brand ILIKE %s OR p.category_name ILIKE %s OR EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = p.id AND (pv.sku_id ILIKE %s OR pv.label ILIKE %s)))",
+			pat, pat, pat, pat, pat, pat,
+		))
 	}
 	if cat := strings.TrimSpace(filter.CategoryID); cat != "" {
 		clauses = append(clauses, "p.category_id = "+next(cat))
@@ -169,6 +177,7 @@ func (s *Store) ListInventoryItems(ctx context.Context, filter domain.InventoryC
 	defer rows.Close()
 
 	var out []*domain.InventoryCatalogItem
+	var itemIDs []string
 	for rows.Next() {
 		item := &domain.InventoryCatalogItem{}
 		var imageHue []int16
@@ -182,8 +191,20 @@ func (s *Store) ListInventoryItems(ctx context.Context, filter domain.InventoryC
 		item.ImageHue = toUint32Hue(imageHue)
 		item.Deleted = deletedAt != nil
 		out = append(out, item)
+		itemIDs = append(itemIDs, item.ID)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	variantsByProduct, err := s.loadVariantsFor(ctx, itemIDs)
+	if err != nil {
+		return nil, fmt.Errorf("load inventory item variants: %w", err)
+	}
+	for _, item := range out {
+		item.Variants = variantsByProduct[item.ID]
+	}
+	return out, nil
 }
 
 // Create inserts a new product, child collections, and reconciles media bindings atomically.
@@ -198,17 +219,18 @@ func (s *Store) Create(ctx context.Context, p *domain.Product, orphanGrace time.
 	if hue == nil {
 		hue = []int16{}
 	}
+	maxPrice := maxPriceMinor(p.PriceMinor, p.MaxPriceMinor)
 
 	_, err = tx.Exec(ctx, `
 		INSERT INTO products (
 			id, name, short_description, description, brand, category_id,
-			category_name, price_amount_minor, original_price_amount_minor,
+			category_name, price_amount_minor, original_price_amount_minor, max_price_amount_minor,
 			rating, review_count, sold_count, is_new, badge, featured, emoji, image_hue,
 			created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 0, 0, 0, $10, $11, $12, $13, $14, now(), now())
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, 0, 0, $11, $12, $13, $14, $15, now(), now())
 	`,
 		p.ID, p.Name, p.ShortDescription, p.Description, p.Brand, p.CategoryID,
-		p.CategoryName, p.PriceMinor, p.OriginalPriceMinor,
+		p.CategoryName, p.PriceMinor, p.OriginalPriceMinor, maxPrice,
 		p.IsNew, p.Badge, p.Featured, p.Emoji, hue,
 	)
 	if err != nil {
@@ -219,7 +241,10 @@ func (s *Store) Create(ctx context.Context, p *domain.Product, orphanGrace time.
 		return nil, fmt.Errorf("insert product %q: %w", p.ID, err)
 	}
 
-	if err := replaceProductChildren(ctx, tx, p); err != nil {
+	if err := replaceNonVariantChildren(ctx, tx, p); err != nil {
+		return nil, err
+	}
+	if err := upsertProductVariants(ctx, tx, p); err != nil {
 		return nil, err
 	}
 	if err := reconcileMediaAssets(ctx, tx, p.ID, p.Images, p.Videos, orphanGrace, false); err != nil {
@@ -232,8 +257,8 @@ func (s *Store) Create(ctx context.Context, p *domain.Product, orphanGrace time.
 	return s.GetByID(ctx, p.ID)
 }
 
-// Update modifies an existing product, replaces child collections, and reconciles
-// attached vs. orphaned media assets atomically.
+// Update modifies an existing product, replaces child collections while preserving
+// retained variant SKU IDs, and reconciles attached vs. orphaned media assets atomically.
 func (s *Store) Update(ctx context.Context, p *domain.Product, orphanGrace time.Duration) (*domain.Product, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
@@ -245,6 +270,7 @@ func (s *Store) Update(ctx context.Context, p *domain.Product, orphanGrace time.
 	if hue == nil {
 		hue = []int16{}
 	}
+	maxPrice := maxPriceMinor(p.PriceMinor, p.MaxPriceMinor)
 
 	tag, err := tx.Exec(ctx, `
 		UPDATE products
@@ -256,16 +282,17 @@ func (s *Store) Update(ctx context.Context, p *domain.Product, orphanGrace time.
 		    category_name = $7,
 		    price_amount_minor = $8,
 		    original_price_amount_minor = $9,
-		    is_new = $10,
-		    badge = $11,
-		    featured = $12,
-		    emoji = $13,
-		    image_hue = $14,
+		    max_price_amount_minor = $10,
+		    is_new = $11,
+		    badge = $12,
+		    featured = $13,
+		    emoji = $14,
+		    image_hue = $15,
 		    updated_at = now()
 		WHERE id = $1
 	`,
 		p.ID, p.Name, p.ShortDescription, p.Description, p.Brand, p.CategoryID,
-		p.CategoryName, p.PriceMinor, p.OriginalPriceMinor,
+		p.CategoryName, p.PriceMinor, p.OriginalPriceMinor, maxPrice,
 		p.IsNew, p.Badge, p.Featured, p.Emoji, hue,
 	)
 	if err != nil {
@@ -275,13 +302,16 @@ func (s *Store) Update(ctx context.Context, p *domain.Product, orphanGrace time.
 		return nil, domain.ErrProductNotFound
 	}
 
-	for _, table := range []string{"product_images", "product_videos", "product_variants", "product_details"} {
+	for _, table := range []string{"product_images", "product_videos", "product_details"} {
 		if _, err := tx.Exec(ctx, "DELETE FROM "+table+" WHERE product_id = $1", p.ID); err != nil {
 			return nil, fmt.Errorf("clear %s for %q: %w", table, p.ID, err)
 		}
 	}
 
-	if err := replaceProductChildren(ctx, tx, p); err != nil {
+	if err := replaceNonVariantChildren(ctx, tx, p); err != nil {
+		return nil, err
+	}
+	if err := upsertProductVariants(ctx, tx, p); err != nil {
 		return nil, err
 	}
 	if err := reconcileMediaAssets(ctx, tx, p.ID, p.Images, p.Videos, orphanGrace, true); err != nil {
@@ -396,7 +426,14 @@ func (s *Store) SweepExpiredMedia(ctx context.Context, batchSize int, removeObje
 	return deleted, nil
 }
 
-func replaceProductChildren(ctx context.Context, tx pgx.Tx, p *domain.Product) error {
+func maxPriceMinor(priceMinor, maxMinor int64) int64 {
+	if maxMinor < priceMinor {
+		return priceMinor
+	}
+	return maxMinor
+}
+
+func replaceNonVariantChildren(ctx context.Context, tx pgx.Tx, p *domain.Product) error {
 	for i, url := range p.Images {
 		if _, err := tx.Exec(ctx,
 			"INSERT INTO product_images (product_id, url, position) VALUES ($1, $2, $3)",
@@ -413,25 +450,76 @@ func replaceProductChildren(ctx context.Context, tx pgx.Tx, p *domain.Product) e
 			return fmt.Errorf("insert video %d: %w", i, err)
 		}
 	}
-	for i, v := range p.Variants {
-		var colorHex *string
-		if v.ColorHex != "" {
-			ch := v.ColorHex
-			colorHex = &ch
-		}
-		if _, err := tx.Exec(ctx,
-			"INSERT INTO product_variants (product_id, label, color_hex, position) VALUES ($1, $2, $3, $4)",
-			p.ID, v.Label, colorHex, i,
-		); err != nil {
-			return fmt.Errorf("insert variant %d: %w", i, err)
-		}
-	}
 	for i, detail := range p.Details {
 		if _, err := tx.Exec(ctx,
 			"INSERT INTO product_details (product_id, detail, position) VALUES ($1, $2, $3)",
 			p.ID, detail, i,
 		); err != nil {
 			return fmt.Errorf("insert detail %d: %w", i, err)
+		}
+	}
+	return nil
+}
+
+func upsertProductVariants(ctx context.Context, tx pgx.Tx, p *domain.Product) error {
+	skuIDs := make([]string, 0, len(p.Variants))
+	for _, v := range p.Variants {
+		skuIDs = append(skuIDs, v.SkuID)
+	}
+
+	if len(skuIDs) > 0 {
+		var crossProductConflict bool
+		if err := tx.QueryRow(ctx, `
+			SELECT EXISTS (
+				SELECT 1 FROM product_variants
+				WHERE sku_id = ANY($1) AND product_id <> $2
+			)
+		`, skuIDs, p.ID).Scan(&crossProductConflict); err != nil {
+			return fmt.Errorf("check cross-product sku_id conflict for %q: %w", p.ID, err)
+		}
+		if crossProductConflict {
+			return domain.ErrSkuConflict
+		}
+	}
+
+	if _, err := tx.Exec(ctx, `
+		DELETE FROM product_variants
+		WHERE product_id = $1 AND NOT (sku_id = ANY($2))
+	`, p.ID, skuIDs); err != nil {
+		return fmt.Errorf("delete removed variants for %q: %w", p.ID, err)
+	}
+
+	for i, v := range p.Variants {
+		var colorHex *string
+		if v.ColorHex != "" {
+			ch := v.ColorHex
+			colorHex = &ch
+		}
+		origMinor := v.OriginalPriceMinor
+		if origMinor < v.PriceMinor {
+			origMinor = v.PriceMinor
+		}
+		tag, err := tx.Exec(ctx, `
+			INSERT INTO product_variants (
+				sku_id, product_id, label, color_hex, price_amount_minor, original_price_amount_minor, position
+			) VALUES ($1, $2, $3, $4, $5, $6, $7)
+			ON CONFLICT (sku_id) DO UPDATE SET
+				position = EXCLUDED.position,
+				label = EXCLUDED.label,
+				color_hex = EXCLUDED.color_hex,
+				price_amount_minor = EXCLUDED.price_amount_minor,
+				original_price_amount_minor = EXCLUDED.original_price_amount_minor
+			WHERE product_variants.product_id = EXCLUDED.product_id
+		`, v.SkuID, p.ID, v.Label, colorHex, v.PriceMinor, origMinor, i)
+		if err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && pgErr.Code == pgUniqueViolation {
+				return domain.ErrSkuConflict
+			}
+			return fmt.Errorf("upsert variant %q (%d): %w", v.SkuID, i, err)
+		}
+		if tag.RowsAffected() == 0 {
+			return domain.ErrSkuConflict
 		}
 	}
 	return nil
@@ -546,7 +634,10 @@ func buildAdminWhere(filter domain.AdminSearchFilter) (string, []any) {
 	}
 	if filter.Query != "" {
 		pat := next("%" + filter.Query + "%")
-		clauses = append(clauses, fmt.Sprintf("(p.id ILIKE %s OR p.name ILIKE %s OR p.brand ILIKE %s OR p.category_name ILIKE %s)", pat, pat, pat, pat))
+		clauses = append(clauses, fmt.Sprintf(
+			"(p.id ILIKE %s OR p.name ILIKE %s OR p.brand ILIKE %s OR p.category_name ILIKE %s OR EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = p.id AND (pv.sku_id ILIKE %s OR pv.label ILIKE %s)))",
+			pat, pat, pat, pat, pat, pat,
+		))
 	}
 	if filter.CategoryID != "" {
 		clauses = append(clauses, "p.category_id = "+next(filter.CategoryID))

@@ -373,6 +373,7 @@ func TestProductSummaryProjection(t *testing.T) {
 		CategoryName:       "Điện thoại",
 		PriceMinor:         18990000,
 		OriginalPriceMinor: 21990000,
+		MaxPriceMinor:      20990000,
 		Images:             []string{"a", "b"},
 		Rating:             4.9,
 		ReviewCount:        1,
@@ -382,15 +383,18 @@ func TestProductSummaryProjection(t *testing.T) {
 		Featured:           true,
 		Emoji:              "📱",
 		ImageHue:           []uint32{220, 260},
-		Variants:           []ProductVariant{{Label: "Đen", ColorHex: "#111827"}},
-		Details:            []string{"detail"},
+		Variants: []ProductVariant{
+			{SkuID: "p-1-v1", Label: "Đen", ColorHex: "#111827", PriceMinor: 18990000, OriginalPriceMinor: 21990000},
+			{SkuID: "p-1-v2", Label: "Bạc", ColorHex: "#cbd5e1", PriceMinor: 20990000, OriginalPriceMinor: 22990000},
+		},
+		Details: []string{"detail"},
 	}
 	s := p.Summary()
-	if s.ID != p.ID || s.PriceMinor != p.PriceMinor || s.Name != p.Name {
+	if s.ID != p.ID || s.PriceMinor != p.PriceMinor || s.MaxPriceMinor != 20990000 || s.Name != p.Name {
 		t.Fatalf("summary did not project core fields: %+v", s)
 	}
-	if len(s.Images) != 2 || len(s.ImageHue) != 2 {
-		t.Fatalf("summary must keep images and imageHue")
+	if len(s.Images) != 2 || len(s.ImageHue) != 2 || !equalStrings(s.SkuIDs, []string{"p-1-v1", "p-1-v2"}) {
+		t.Fatalf("summary must keep images, imageHue, and skuIDs: %+v", s)
 	}
 }
 

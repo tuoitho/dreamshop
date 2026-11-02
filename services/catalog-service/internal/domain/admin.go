@@ -37,6 +37,7 @@ const (
 
 var (
 	productIDRegex = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{1,63}$`)
+	skuIDRegex     = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{1,95}$`)
 	colorHexRegex  = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 )
 
@@ -89,6 +90,7 @@ type AdminSummary struct {
 	CategoryName       string
 	PriceMinor         int64
 	OriginalPriceMinor int64
+	MaxPriceMinor      int64
 	Images             []string
 	Rating             float64
 	ReviewCount        int64
@@ -101,6 +103,7 @@ type AdminSummary struct {
 	Deleted            bool
 	VariantCount       int32
 	VideoCount         int32
+	SkuIDs             []string
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
 }
@@ -123,6 +126,7 @@ type InventoryCatalogItem struct {
 	Emoji        string
 	ImageHue     []uint32
 	Deleted      bool
+	Variants     []ProductVariant
 }
 
 // AdminSearchFilter carries admin list filter criteria.
@@ -297,15 +301,6 @@ func validateCommonFields(p *Product) (*Product, error) {
 	if err := validateLength("category_name", p.CategoryName, 1, 100); err != nil {
 		return nil, err
 	}
-	if p.PriceMinor <= 0 {
-		return nil, &ValidationError{Field: "price", Message: "must be positive"}
-	}
-	if p.OriginalPriceMinor < 0 || (p.OriginalPriceMinor > 0 && p.OriginalPriceMinor < p.PriceMinor) {
-		return nil, &ValidationError{Field: "original_price", Message: "must be 0 or greater than or equal to price"}
-	}
-	if p.OriginalPriceMinor == 0 {
-		p.OriginalPriceMinor = p.PriceMinor
-	}
 	p.Badge = strings.TrimSpace(p.Badge)
 	if utf8.RuneCountInString(p.Badge) > 40 {
 		return nil, &ValidationError{Field: "badge", Message: "must not exceed 40 characters"}
@@ -339,18 +334,72 @@ func validateCommonFields(p *Product) (*Product, error) {
 		return nil, &ValidationError{Field: "variants", Message: "must contain between 1 and 20 variants"}
 	}
 	cleanVariants := make([]ProductVariant, 0, len(p.Variants))
+	seenLabels := make(map[string]struct{}, len(p.Variants))
+	seenSkus := make(map[string]struct{}, len(p.Variants))
 	for _, v := range p.Variants {
 		label := strings.TrimSpace(v.Label)
 		if err := validateLength("variants.label", label, 1, 80); err != nil {
 			return nil, err
 		}
+		lowerLabel := strings.ToLower(label)
+		if _, dup := seenLabels[lowerLabel]; dup {
+			return nil, &ValidationError{Field: "variants.label", Message: "duplicate variant label"}
+		}
+		seenLabels[lowerLabel] = struct{}{}
+
 		hexColor := strings.TrimSpace(v.ColorHex)
 		if hexColor != "" && !colorHexRegex.MatchString(hexColor) {
 			return nil, &ValidationError{Field: "variants.color_hex", Message: "must match ^#[0-9a-fA-F]{6}$"}
 		}
-		cleanVariants = append(cleanVariants, ProductVariant{Label: label, ColorHex: hexColor})
+		if v.PriceMinor <= 0 {
+			return nil, &ValidationError{Field: "variants.price", Message: "must be positive"}
+		}
+		origMinor := v.OriginalPriceMinor
+		if origMinor < 0 || (origMinor > 0 && origMinor < v.PriceMinor) {
+			return nil, &ValidationError{Field: "variants.original_price", Message: "must be 0 or greater than or equal to price"}
+		}
+		if origMinor == 0 {
+			origMinor = v.PriceMinor
+		}
+
+		skuID := strings.TrimSpace(v.SkuID)
+		if skuID == "" {
+			generated, err := generateVariantSkuID(p.ID, seenSkus)
+			if err != nil {
+				return nil, err
+			}
+			skuID = generated
+		} else if !skuIDRegex.MatchString(skuID) {
+			return nil, &ValidationError{Field: "variants.sku_id", Message: "must match ^[a-z0-9][a-z0-9-]{1,95}$"}
+		}
+		if _, dup := seenSkus[skuID]; dup {
+			return nil, &ValidationError{Field: "variants.sku_id", Message: "duplicate variant sku_id"}
+		}
+		seenSkus[skuID] = struct{}{}
+
+		cleanVariants = append(cleanVariants, ProductVariant{
+			SkuID:              skuID,
+			Label:              label,
+			ColorHex:           hexColor,
+			PriceMinor:         v.PriceMinor,
+			OriginalPriceMinor: origMinor,
+		})
 	}
 	p.Variants = cleanVariants
+
+	minIdx := 0
+	maxPrice := cleanVariants[0].PriceMinor
+	for i := 1; i < len(cleanVariants); i++ {
+		if cleanVariants[i].PriceMinor < cleanVariants[minIdx].PriceMinor {
+			minIdx = i
+		}
+		if cleanVariants[i].PriceMinor > maxPrice {
+			maxPrice = cleanVariants[i].PriceMinor
+		}
+	}
+	p.PriceMinor = cleanVariants[minIdx].PriceMinor
+	p.OriginalPriceMinor = cleanVariants[minIdx].OriginalPriceMinor
+	p.MaxPriceMinor = maxPrice
 
 	if len(p.Details) > maxDetailsCount {
 		return nil, &ValidationError{Field: "details", Message: "must not exceed 20 entries"}
@@ -416,6 +465,27 @@ func NewUUIDv4() (string, error) {
 	b[8] = (b[8] & 0x3f) | 0x80
 	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
 		b[0:4], b[4:6], b[6:8], b[8:10], b[10:16]), nil
+}
+
+func generateVariantSkuID(productID string, seen map[string]struct{}) (string, error) {
+	prefix := slugifyVietnamese(productID)
+	if prefix == "" {
+		prefix = "sku"
+	}
+	if len(prefix) > 87 {
+		prefix = strings.TrimRight(prefix[:87], "-")
+	}
+	for range 8 {
+		var suffix [4]byte
+		if _, err := rand.Read(suffix[:]); err != nil {
+			return "", fmt.Errorf("generate sku_id: %w", err)
+		}
+		candidate := prefix + "-" + hex.EncodeToString(suffix[:])
+		if _, exists := seen[candidate]; !exists {
+			return candidate, nil
+		}
+	}
+	return "", fmt.Errorf("generate unique sku_id for %q", productID)
 }
 
 func generateProductSlug(name string) (string, error) {
@@ -499,11 +569,7 @@ func ListAdminProducts(products []*Product, filter AdminSearchFilter) *AdminSear
 		if filter.CategoryID != "" && p.CategoryID != filter.CategoryID {
 			continue
 		}
-		if q != "" &&
-			!strings.Contains(strings.ToLower(p.ID), q) &&
-			!strings.Contains(strings.ToLower(p.Name), q) &&
-			!strings.Contains(strings.ToLower(p.Brand), q) &&
-			!strings.Contains(strings.ToLower(p.CategoryName), q) {
+		if q != "" && !matchesAdminProductQuery(p, q) {
 			continue
 		}
 		matched = append(matched, p)
@@ -555,6 +621,19 @@ func ListAdminProducts(products []*Product, filter AdminSearchFilter) *AdminSear
 
 	items := make([]*AdminSummary, 0, end-offset)
 	for _, p := range matched[offset:end] {
+		maxPrice := p.MaxPriceMinor
+		if maxPrice < p.PriceMinor {
+			maxPrice = p.PriceMinor
+		}
+		var skuIDs []string
+		if len(p.Variants) > 0 {
+			skuIDs = make([]string, 0, len(p.Variants))
+			for _, v := range p.Variants {
+				if v.SkuID != "" {
+					skuIDs = append(skuIDs, v.SkuID)
+				}
+			}
+		}
 		items = append(items, &AdminSummary{
 			ID:                 p.ID,
 			Name:               p.Name,
@@ -563,6 +642,7 @@ func ListAdminProducts(products []*Product, filter AdminSearchFilter) *AdminSear
 			CategoryName:       p.CategoryName,
 			PriceMinor:         p.PriceMinor,
 			OriginalPriceMinor: p.OriginalPriceMinor,
+			MaxPriceMinor:      maxPrice,
 			Images:             p.Images,
 			Rating:             p.Rating,
 			ReviewCount:        p.ReviewCount,
@@ -575,6 +655,7 @@ func ListAdminProducts(products []*Product, filter AdminSearchFilter) *AdminSear
 			Deleted:            p.Deleted,
 			VariantCount:       int32(len(p.Variants)),
 			VideoCount:         int32(len(p.Videos)),
+			SkuIDs:             skuIDs,
 			CreatedAt:          p.CreatedAt,
 			UpdatedAt:          p.UpdatedAt,
 		})
@@ -592,6 +673,22 @@ func ListAdminProducts(products []*Product, filter AdminSearchFilter) *AdminSear
 	}
 }
 
+func matchesAdminProductQuery(p *Product, q string) bool {
+	if strings.Contains(strings.ToLower(p.ID), q) ||
+		strings.Contains(strings.ToLower(p.Name), q) ||
+		strings.Contains(strings.ToLower(p.Brand), q) ||
+		strings.Contains(strings.ToLower(p.CategoryName), q) {
+		return true
+	}
+	for _, v := range p.Variants {
+		if strings.Contains(strings.ToLower(v.SkuID), q) ||
+			strings.Contains(strings.ToLower(v.Label), q) {
+			return true
+		}
+	}
+	return false
+}
+
 // ListInventoryCatalogItems is the pure in-memory reference for ListInventoryItems.
 func ListInventoryCatalogItems(products []*Product, filter InventoryCatalogFilter) []*InventoryCatalogItem {
 	q := strings.ToLower(strings.TrimSpace(filter.Query))
@@ -604,17 +701,15 @@ func ListInventoryCatalogItems(products []*Product, filter InventoryCatalogFilte
 		if catID != "" && p.CategoryID != catID {
 			continue
 		}
-		if q != "" &&
-			!strings.Contains(strings.ToLower(p.ID), q) &&
-			!strings.Contains(strings.ToLower(p.Name), q) &&
-			!strings.Contains(strings.ToLower(p.Brand), q) &&
-			!strings.Contains(strings.ToLower(p.CategoryName), q) {
+		if q != "" && !matchesAdminProductQuery(p, q) {
 			continue
 		}
 		var primaryImg string
 		if len(p.Images) > 0 {
 			primaryImg = p.Images[0]
 		}
+		variants := make([]ProductVariant, len(p.Variants))
+		copy(variants, p.Variants)
 		out = append(out, &InventoryCatalogItem{
 			ID:           p.ID,
 			Name:         p.Name,
@@ -625,6 +720,7 @@ func ListInventoryCatalogItems(products []*Product, filter InventoryCatalogFilte
 			Emoji:        p.Emoji,
 			ImageHue:     p.ImageHue,
 			Deleted:      p.Deleted,
+			Variants:     variants,
 		})
 	}
 	return out

@@ -72,6 +72,10 @@ func (s *Server) ListInventoryCatalogItems(ctx context.Context, req *catalogv1.L
 		Items: make([]*catalogv1.InventoryCatalogItem, 0, len(items)),
 	}
 	for _, item := range items {
+		variants := make([]*catalogv1.ProductVariant, 0, len(item.Variants))
+		for _, v := range item.Variants {
+			variants = append(variants, productVariantToProto(v))
+		}
 		resp.Items = append(resp.Items, &catalogv1.InventoryCatalogItem{
 			Id:           item.ID,
 			Name:         item.Name,
@@ -82,6 +86,7 @@ func (s *Server) ListInventoryCatalogItems(ctx context.Context, req *catalogv1.L
 			Emoji:        item.Emoji,
 			ImageHue:     item.ImageHue,
 			Deleted:      item.Deleted,
+			Variants:     variants,
 		})
 	}
 	return resp, nil
@@ -112,30 +117,28 @@ func (s *Server) CreateProduct(ctx context.Context, req *catalogv1.CreateProduct
 	if strings.TrimSpace(req.GetUserId()) == "" {
 		return nil, status.Error(codes.InvalidArgument, "user_id is required")
 	}
-	priceMinor, origMinor, err := extractMoneyBounds(req.GetPrice(), req.GetOriginalPrice())
+	variants, err := variantsFromProto(req.GetVariants())
 	if err != nil {
 		return nil, err
 	}
 
 	prepared, err := domain.ValidateAndPrepareCreate(&domain.Product{
-		ID:                 req.GetId(),
-		Name:               req.GetName(),
-		ShortDescription:   req.GetShortDescription(),
-		Description:        req.GetDescription(),
-		Brand:              req.GetBrand(),
-		CategoryID:         req.GetCategoryId(),
-		CategoryName:       req.GetCategoryName(),
-		PriceMinor:         priceMinor,
-		OriginalPriceMinor: origMinor,
-		Images:             req.GetImages(),
-		Videos:             req.GetVideos(),
-		IsNew:              req.GetIsNew(),
-		Badge:              req.GetBadge(),
-		Featured:           req.GetFeatured(),
-		Emoji:              req.GetEmoji(),
-		ImageHue:           req.GetImageHue(),
-		Variants:           variantsFromProto(req.GetVariants()),
-		Details:            req.GetDetails(),
+		ID:               req.GetId(),
+		Name:             req.GetName(),
+		ShortDescription: req.GetShortDescription(),
+		Description:      req.GetDescription(),
+		Brand:            req.GetBrand(),
+		CategoryID:       req.GetCategoryId(),
+		CategoryName:     req.GetCategoryName(),
+		Images:           req.GetImages(),
+		Videos:           req.GetVideos(),
+		IsNew:            req.GetIsNew(),
+		Badge:            req.GetBadge(),
+		Featured:         req.GetFeatured(),
+		Emoji:            req.GetEmoji(),
+		ImageHue:         req.GetImageHue(),
+		Variants:         variants,
+		Details:          req.GetDetails(),
 	})
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -149,6 +152,9 @@ func (s *Server) CreateProduct(ctx context.Context, req *catalogv1.CreateProduct
 	if err != nil {
 		if errors.Is(err, domain.ErrProductExists) {
 			return nil, statusWithReason(codes.AlreadyExists, "product id already exists", reasonProductExists)
+		}
+		if errors.Is(err, domain.ErrSkuConflict) {
+			return nil, statusWithReason(codes.AlreadyExists, "variant sku_id already exists", reasonSkuExists)
 		}
 		if errors.Is(err, domain.ErrMediaAlreadyAttached) {
 			return nil, statusWithReason(codes.FailedPrecondition, "media asset is already attached to another product", reasonMediaAlreadyAttached)
@@ -166,30 +172,28 @@ func (s *Server) UpdateProduct(ctx context.Context, req *catalogv1.UpdateProduct
 	if strings.TrimSpace(req.GetUserId()) == "" {
 		return nil, status.Error(codes.InvalidArgument, "user_id is required")
 	}
-	priceMinor, origMinor, err := extractMoneyBounds(req.GetPrice(), req.GetOriginalPrice())
+	variants, err := variantsFromProto(req.GetVariants())
 	if err != nil {
 		return nil, err
 	}
 
 	prepared, err := domain.ValidateAndPrepareUpdate(&domain.Product{
-		ID:                 req.GetId(),
-		Name:               req.GetName(),
-		ShortDescription:   req.GetShortDescription(),
-		Description:        req.GetDescription(),
-		Brand:              req.GetBrand(),
-		CategoryID:         req.GetCategoryId(),
-		CategoryName:       req.GetCategoryName(),
-		PriceMinor:         priceMinor,
-		OriginalPriceMinor: origMinor,
-		Images:             req.GetImages(),
-		Videos:             req.GetVideos(),
-		IsNew:              req.GetIsNew(),
-		Badge:              req.GetBadge(),
-		Featured:           req.GetFeatured(),
-		Emoji:              req.GetEmoji(),
-		ImageHue:           req.GetImageHue(),
-		Variants:           variantsFromProto(req.GetVariants()),
-		Details:            req.GetDetails(),
+		ID:               req.GetId(),
+		Name:             req.GetName(),
+		ShortDescription: req.GetShortDescription(),
+		Description:      req.GetDescription(),
+		Brand:            req.GetBrand(),
+		CategoryID:       req.GetCategoryId(),
+		CategoryName:     req.GetCategoryName(),
+		Images:           req.GetImages(),
+		Videos:           req.GetVideos(),
+		IsNew:            req.GetIsNew(),
+		Badge:            req.GetBadge(),
+		Featured:         req.GetFeatured(),
+		Emoji:            req.GetEmoji(),
+		ImageHue:         req.GetImageHue(),
+		Variants:         variants,
+		Details:          req.GetDetails(),
 	})
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -203,6 +207,9 @@ func (s *Server) UpdateProduct(ctx context.Context, req *catalogv1.UpdateProduct
 	if err != nil {
 		if errors.Is(err, domain.ErrProductNotFound) {
 			return nil, notFoundError(prepared.ID)
+		}
+		if errors.Is(err, domain.ErrSkuConflict) {
+			return nil, statusWithReason(codes.AlreadyExists, "variant sku_id already exists", reasonSkuExists)
 		}
 		if errors.Is(err, domain.ErrMediaAlreadyAttached) {
 			return nil, statusWithReason(codes.FailedPrecondition, "media asset is already attached to another product", reasonMediaAlreadyAttached)
@@ -279,35 +286,42 @@ func (s *Server) CreateProductMediaUpload(ctx context.Context, req *catalogv1.Cr
 	}, nil
 }
 
-func extractMoneyBounds(price, originalPrice *commonv1.Money) (int64, int64, error) {
+func extractVariantMoneyBounds(price, originalPrice *commonv1.Money) (int64, int64, error) {
 	if price == nil {
-		return 0, 0, status.Error(codes.InvalidArgument, "price is required")
+		return 0, 0, status.Error(codes.InvalidArgument, "variants.price is required")
 	}
 	if c := strings.TrimSpace(price.GetCurrency()); c != "" && c != moneyCurrency {
-		return 0, 0, status.Error(codes.InvalidArgument, "currency must be VND")
+		return 0, 0, status.Error(codes.InvalidArgument, "variants.price currency must be VND")
 	}
 	origMinor := int64(0)
 	if originalPrice != nil {
 		if c := strings.TrimSpace(originalPrice.GetCurrency()); c != "" && c != moneyCurrency {
-			return 0, 0, status.Error(codes.InvalidArgument, "original_price currency must be VND")
+			return 0, 0, status.Error(codes.InvalidArgument, "variants.original_price currency must be VND")
 		}
 		origMinor = originalPrice.GetAmountMinor()
 	}
 	return price.GetAmountMinor(), origMinor, nil
 }
 
-func variantsFromProto(in []*catalogv1.ProductVariant) []domain.ProductVariant {
+func variantsFromProto(in []*catalogv1.ProductVariant) ([]domain.ProductVariant, error) {
 	out := make([]domain.ProductVariant, 0, len(in))
 	for _, v := range in {
 		if v == nil {
 			continue
 		}
+		priceMinor, origMinor, err := extractVariantMoneyBounds(v.GetPrice(), v.GetOriginalPrice())
+		if err != nil {
+			return nil, err
+		}
 		out = append(out, domain.ProductVariant{
-			Label:    v.GetLabel(),
-			ColorHex: v.GetColorHex(),
+			SkuID:              v.GetSkuId(),
+			Label:              v.GetLabel(),
+			ColorHex:           v.GetColorHex(),
+			PriceMinor:         priceMinor,
+			OriginalPriceMinor: origMinor,
 		})
 	}
-	return out
+	return out, nil
 }
 
 func adminSummaryToProto(s *domain.AdminSummary) *catalogv1.AdminProductSummary {
@@ -326,6 +340,7 @@ func adminSummaryToProto(s *domain.AdminSummary) *catalogv1.AdminProductSummary 
 		CategoryName:  s.CategoryName,
 		Price:         moneyToProto(s.PriceMinor),
 		OriginalPrice: moneyToProto(s.OriginalPriceMinor),
+		MaxPrice:      moneyToProto(maxPriceProto(s.PriceMinor, s.MaxPriceMinor)),
 		Images:        s.Images,
 		Rating:        s.Rating,
 		ReviewCount:   s.ReviewCount,
@@ -340,5 +355,6 @@ func adminSummaryToProto(s *domain.AdminSummary) *catalogv1.AdminProductSummary 
 		CreatedAt:     createdAt,
 		UpdatedAt:     updatedAt,
 		VideoCount:    s.VideoCount,
+		SkuIds:        s.SkuIDs,
 	}
 }

@@ -67,6 +67,13 @@ func (m *memoryRepo) Create(_ context.Context, product *domain.Product, _ time.D
 		if existing.ID == product.ID {
 			return nil, domain.ErrProductExists
 		}
+		for _, ev := range existing.Variants {
+			for _, nv := range product.Variants {
+				if ev.SkuID == nv.SkuID {
+					return nil, domain.ErrSkuConflict
+				}
+			}
+		}
 	}
 	cp := *product
 	now := time.Now().UTC()
@@ -77,6 +84,18 @@ func (m *memoryRepo) Create(_ context.Context, product *domain.Product, _ time.D
 }
 
 func (m *memoryRepo) Update(_ context.Context, product *domain.Product, _ time.Duration) (*domain.Product, error) {
+	for _, existing := range m.products {
+		if existing.ID == product.ID {
+			continue
+		}
+		for _, ev := range existing.Variants {
+			for _, nv := range product.Variants {
+				if ev.SkuID == nv.SkuID {
+					return nil, domain.ErrSkuConflict
+				}
+			}
+		}
+	}
 	for i, existing := range m.products {
 		if existing.ID == product.ID {
 			cp := *product
@@ -126,6 +145,7 @@ func demoProducts() []*domain.Product {
 			CategoryName:       "Điện thoại",
 			PriceMinor:         18990000,
 			OriginalPriceMinor: 21990000,
+			MaxPriceMinor:      20990000,
 			Images:             []string{"https://picsum.photos/seed/dt-1-1/800/800"},
 			Rating:             4.9,
 			ReviewCount:        1284,
@@ -136,8 +156,8 @@ func demoProducts() []*domain.Product {
 			Emoji:              "📱",
 			ImageHue:           []uint32{220, 260},
 			Variants: []domain.ProductVariant{
-				{Label: "Đen", ColorHex: "#1f2937"},
-				{Label: "Xanh", ColorHex: "#1e40af"},
+				{SkuID: "dt-1-v1", Label: "Đen", ColorHex: "#1f2937", PriceMinor: 18990000, OriginalPriceMinor: 21990000},
+				{SkuID: "dt-1-v2", Label: "Xanh", ColorHex: "#1e40af", PriceMinor: 20990000, OriginalPriceMinor: 22990000},
 			},
 			Details: []string{"Màn hình: 6.8\" AMOLED 144Hz"},
 		},
@@ -149,11 +169,15 @@ func demoProducts() []*domain.Product {
 			CategoryName:       "Điện thoại",
 			PriceMinor:         5490000,
 			OriginalPriceMinor: 6990000,
+			MaxPriceMinor:      5490000,
 			Rating:             4.7,
 			ReviewCount:        3521,
 			SoldCount:          8920,
 			Emoji:              "📲",
 			ImageHue:           []uint32{150, 190},
+			Variants: []domain.ProductVariant{
+				{SkuID: "dt-2-v1", Label: "6GB/128GB", PriceMinor: 5490000, OriginalPriceMinor: 6990000},
+			},
 		},
 	}
 }

@@ -136,17 +136,28 @@ func TestAdminProductCRUDAndAuthorization(t *testing.T) {
 	}
 
 	createResp, err := client.CreateProduct(ctx, &catalogv1.CreateProductRequest{
-		UserId:        "admin-1",
-		Name:          "Tai nghe Studio Pro",
-		Brand:         "SoundLab",
-		CategoryId:    "tai-nghe",
-		CategoryName:  "Tai nghe",
-		Price:         &commonv1.Money{Currency: "VND", AmountMinor: 4990000},
-		OriginalPrice: &commonv1.Money{Currency: "VND", AmountMinor: 5990000},
-		Images:        []string{"/product-media/products/2026/10/studio.webp"},
-		Videos:        []string{"/product-media/products/2026/10/studio.mp4"},
-		Variants:      []*catalogv1.ProductVariant{{Label: "Đen", ColorHex: "#111827"}},
-		Details:       []string{"ANC chủ động"},
+		UserId:       "admin-1",
+		Name:         "Tai nghe Studio Pro",
+		Brand:        "SoundLab",
+		CategoryId:   "tai-nghe",
+		CategoryName: "Tai nghe",
+		Images:       []string{"/product-media/products/2026/10/studio.webp"},
+		Videos:       []string{"/product-media/products/2026/10/studio.mp4"},
+		Variants: []*catalogv1.ProductVariant{
+			{
+				Label:         "Đen",
+				ColorHex:      "#111827",
+				Price:         &commonv1.Money{Currency: "VND", AmountMinor: 4990000},
+				OriginalPrice: &commonv1.Money{Currency: "VND", AmountMinor: 5990000},
+			},
+			{
+				Label:         "Bản Giới Hạn",
+				ColorHex:      "#f59e0b",
+				Price:         &commonv1.Money{Currency: "VND", AmountMinor: 5490000},
+				OriginalPrice: &commonv1.Money{Currency: "VND", AmountMinor: 6490000},
+			},
+		},
+		Details: []string{"ANC chủ động"},
 	})
 	if err != nil {
 		t.Fatalf("CreateProduct: %v", err)
@@ -154,6 +165,13 @@ func TestAdminProductCRUDAndAuthorization(t *testing.T) {
 	createdID := createResp.GetProduct().GetId()
 	if createdID == "" || len(createResp.GetProduct().GetVideos()) != 1 {
 		t.Fatalf("unexpected CreateProduct response: %+v", createResp.GetProduct())
+	}
+	if createResp.GetProduct().GetPrice().GetAmountMinor() != 4990000 || createResp.GetProduct().GetMaxPrice().GetAmountMinor() != 5490000 {
+		t.Fatalf("unexpected derived CreateProduct prices: price=%+v max=%+v", createResp.GetProduct().GetPrice(), createResp.GetProduct().GetMaxPrice())
+	}
+	firstSku := createResp.GetProduct().GetVariants()[0].GetSkuId()
+	if firstSku == "" {
+		t.Fatal("expected generated sku_id on CreatedProduct variant")
 	}
 
 	// Duplicate custom ID -> AlreadyExists (PRODUCT_ID_EXISTS)
@@ -164,10 +182,25 @@ func TestAdminProductCRUDAndAuthorization(t *testing.T) {
 		Brand:        "Nova",
 		CategoryId:   "dien-thoai",
 		CategoryName: "Điện thoại",
-		Price:        &commonv1.Money{Currency: "VND", AmountMinor: 1000000},
-		Variants:     []*catalogv1.ProductVariant{{Label: "Đen"}},
+		Variants: []*catalogv1.ProductVariant{
+			{Label: "Đen", Price: &commonv1.Money{Currency: "VND", AmountMinor: 1000000}},
+		},
 	})
 	assertErrorReason(t, err, codes.AlreadyExists, "PRODUCT_ID_EXISTS")
+
+	// Cross-product SKU collision -> AlreadyExists (SKU_ALREADY_EXISTS)
+	_, err = client.UpdateProduct(ctx, &catalogv1.UpdateProductRequest{
+		UserId:       "admin-1",
+		Id:           createdID,
+		Name:         "Hijack Attempt",
+		Brand:        "SoundLab",
+		CategoryId:   "tai-nghe",
+		CategoryName: "Tai nghe",
+		Variants: []*catalogv1.ProductVariant{
+			{SkuId: "dt-1-v1", Label: "Đen", Price: &commonv1.Money{Currency: "VND", AmountMinor: 4590000}},
+		},
+	})
+	assertErrorReason(t, err, codes.AlreadyExists, "SKU_ALREADY_EXISTS")
 
 	updateResp, err := client.UpdateProduct(ctx, &catalogv1.UpdateProductRequest{
 		UserId:       "admin-1",
@@ -176,16 +209,20 @@ func TestAdminProductCRUDAndAuthorization(t *testing.T) {
 		Brand:        "SoundLab",
 		CategoryId:   "tai-nghe",
 		CategoryName: "Tai nghe",
-		Price:        &commonv1.Money{Currency: "VND", AmountMinor: 4590000},
 		Images:       []string{"/product-media/products/2026/10/studio.webp"},
 		Videos:       nil,
-		Variants:     []*catalogv1.ProductVariant{{Label: "Bạc", ColorHex: "#cbd5e1"}},
+		Variants: []*catalogv1.ProductVariant{
+			{SkuId: firstSku, Label: "Bạc", ColorHex: "#cbd5e1", Price: &commonv1.Money{Currency: "VND", AmountMinor: 4590000}},
+		},
 	})
 	if err != nil {
 		t.Fatalf("UpdateProduct: %v", err)
 	}
 	if updateResp.GetProduct().GetName() != "Tai nghe Studio Pro V2" || len(updateResp.GetProduct().GetVideos()) != 0 {
 		t.Fatalf("unexpected UpdateProduct response: %+v", updateResp.GetProduct())
+	}
+	if updateResp.GetProduct().GetVariants()[0].GetSkuId() != firstSku {
+		t.Fatalf("expected UpdateProduct to preserve sku_id %q, got %q", firstSku, updateResp.GetProduct().GetVariants()[0].GetSkuId())
 	}
 
 	getResp, err := client.GetAdminProduct(ctx, &catalogv1.GetAdminProductRequest{
@@ -200,8 +237,8 @@ func TestAdminProductCRUDAndAuthorization(t *testing.T) {
 		UserId:         "admin-1",
 		IncludeDeleted: true,
 	})
-	if err != nil || len(invResp.GetItems()) != 3 {
-		t.Fatalf("ListInventoryCatalogItems: %v, count=%d", err, len(invResp.GetItems()))
+	if err != nil || len(invResp.GetItems()) != 3 || len(invResp.GetItems()[0].GetVariants()) == 0 {
+		t.Fatalf("ListInventoryCatalogItems: %v, items=%+v", err, invResp.GetItems())
 	}
 }
 

@@ -13,6 +13,9 @@ var (
 	// ErrProductExists is returned when creating a product whose id already exists.
 	ErrProductExists = errors.New("product already exists")
 
+	// ErrSkuConflict is returned when a variant sku_id is already owned by another product.
+	ErrSkuConflict = errors.New("variant sku already exists")
+
 	// ErrMediaAlreadyAttached is returned when attempting to attach a media asset
 	// that is already bound to a different product.
 	ErrMediaAlreadyAttached = errors.New("media asset is already attached to another product")

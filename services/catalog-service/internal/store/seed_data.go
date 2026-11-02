@@ -38,14 +38,59 @@ func (s seedItem) product() *domain.Product {
 	for n := 1; n <= 4; n++ {
 		images = append(images, fmt.Sprintf("https://picsum.photos/seed/%s-%d/800/800", s.id, n))
 	}
+	variants := make([]domain.ProductVariant, len(s.variants))
+	for i, v := range s.variants {
+		skuID := v.SkuID
+		if skuID == "" {
+			skuID = fmt.Sprintf("%s-v%d", s.id, i+1)
+		}
+		priceMinor := v.PriceMinor
+		if priceMinor <= 0 {
+			priceMinor = s.priceMinor
+		}
+		origMinor := v.OriginalPriceMinor
+		if origMinor <= 0 {
+			origMinor = s.originalPriceMinor
+		}
+		if origMinor < priceMinor {
+			origMinor = priceMinor
+		}
+		variants[i] = domain.ProductVariant{
+			SkuID:              skuID,
+			Label:              v.Label,
+			ColorHex:           v.ColorHex,
+			PriceMinor:         priceMinor,
+			OriginalPriceMinor: origMinor,
+		}
+	}
+
+	minPrice := s.priceMinor
+	minOrig := s.originalPriceMinor
+	maxPrice := s.priceMinor
+	if len(variants) > 0 {
+		minIdx := 0
+		maxPrice = variants[0].PriceMinor
+		for i := 1; i < len(variants); i++ {
+			if variants[i].PriceMinor < variants[minIdx].PriceMinor {
+				minIdx = i
+			}
+			if variants[i].PriceMinor > maxPrice {
+				maxPrice = variants[i].PriceMinor
+			}
+		}
+		minPrice = variants[minIdx].PriceMinor
+		minOrig = variants[minIdx].OriginalPriceMinor
+	}
+
 	return &domain.Product{
 		ID:                 s.id,
 		Name:               s.name,
 		Brand:              s.brand,
 		CategoryID:         s.categoryID,
 		CategoryName:       s.categoryName,
-		PriceMinor:         s.priceMinor,
-		OriginalPriceMinor: s.originalPriceMinor,
+		PriceMinor:         minPrice,
+		OriginalPriceMinor: minOrig,
+		MaxPriceMinor:      maxPrice,
 		Images:             images,
 		Rating:             s.rating,
 		ReviewCount:        s.reviewCount,
@@ -56,7 +101,7 @@ func (s seedItem) product() *domain.Product {
 		Featured:           s.featured,
 		Emoji:              s.emoji,
 		ImageHue:           s.imageHue,
-		Variants:           s.variants,
+		Variants:           variants,
 		Details:            s.details,
 	}
 }
@@ -77,9 +122,9 @@ func seedProducts() []*domain.Product {
 				"RAM 16GB + ROM 512GB",
 			},
 			variants: []domain.ProductVariant{
-				{Label: "12GB/256GB"},
-				{Label: "16GB/512GB"},
-				{Label: "16GB/1TB"},
+				{SkuID: "dt-1-v1", Label: "12GB/256GB", PriceMinor: 18990000, OriginalPriceMinor: 21990000},
+				{SkuID: "dt-1-v2", Label: "16GB/512GB", PriceMinor: 20990000, OriginalPriceMinor: 23990000},
+				{SkuID: "dt-1-v3", Label: "16GB/1TB", PriceMinor: 23990000, OriginalPriceMinor: 26990000},
 			},
 			featured: true, badge: "hot", imageHue: []uint32{220, 260},
 		},
@@ -97,8 +142,8 @@ func seedProducts() []*domain.Product {
 				"RAM 6GB + ROM 128GB",
 			},
 			variants: []domain.ProductVariant{
-				{Label: "6GB/128GB"},
-				{Label: "8GB/256GB"},
+				{SkuID: "dt-2-v1", Label: "6GB/128GB", PriceMinor: 5490000, OriginalPriceMinor: 6990000},
+				{SkuID: "dt-2-v2", Label: "8GB/256GB", PriceMinor: 6490000, OriginalPriceMinor: 7990000},
 			},
 			badge: "sale", imageHue: []uint32{150, 190},
 		},
@@ -116,8 +161,8 @@ func seedProducts() []*domain.Product {
 				"Pin: 70Wh, sạc nhanh 65W",
 			},
 			variants: []domain.ProductVariant{
-				{Label: "16GB/1TB"},
-				{Label: "32GB/2TB"},
+				{SkuID: "lt-1-v1", Label: "16GB/1TB", PriceMinor: 26990000, OriginalPriceMinor: 29990000},
+				{SkuID: "lt-1-v2", Label: "32GB/2TB", PriceMinor: 31990000, OriginalPriceMinor: 34990000},
 			},
 			featured: true, imageHue: []uint32{0, 30},
 		},
@@ -135,8 +180,8 @@ func seedProducts() []*domain.Product {
 				"SSD: 1TB NVMe Gen4",
 			},
 			variants: []domain.ProductVariant{
-				{Label: "32GB/1TB"},
-				{Label: "64GB/2TB"},
+				{SkuID: "lt-2-v1", Label: "32GB/1TB", PriceMinor: 44990000, OriginalPriceMinor: 48990000},
+				{SkuID: "lt-2-v2", Label: "64GB/2TB", PriceMinor: 51990000, OriginalPriceMinor: 55990000},
 			},
 			badge: "hot", imageHue: []uint32{330, 360},
 		},
@@ -336,8 +381,8 @@ func seedProducts() []*domain.Product {
 				"Bìa cứng, chữ rõ ràng",
 			},
 			variants: []domain.ProductVariant{
-				{Label: "Bìa cứng", ColorHex: "#b45309"},
-				{Label: "Bìa mềm", ColorHex: "#92400e"},
+				{SkuID: "sach-1-v1", Label: "Bìa cứng", ColorHex: "#b45309", PriceMinor: 119000, OriginalPriceMinor: 145000},
+				{SkuID: "sach-1-v2", Label: "Bìa mềm", ColorHex: "#92400e", PriceMinor: 89000, OriginalPriceMinor: 110000},
 			},
 			badge: "hot", imageHue: []uint32{30, 50},
 		},

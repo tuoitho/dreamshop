@@ -29,6 +29,7 @@ const (
 	inventoryViewPermission        = "inventory.view"
 	reasonNotFound                 = "PRODUCT_NOT_FOUND"
 	reasonProductExists            = "PRODUCT_ID_EXISTS"
+	reasonSkuExists                = "SKU_ALREADY_EXISTS"
 	reasonMediaAlreadyAttached     = "MEDIA_ALREADY_ATTACHED"
 	reasonMediaStorageUnavailable  = "MEDIA_STORAGE_UNAVAILABLE"
 	reasonProductPermissionDenied  = "PRODUCT_PERMISSION_DENIED"
@@ -199,6 +200,7 @@ func productToProto(p *domain.Product) *catalogv1.GetProductResponse {
 		CategoryName:     p.CategoryName,
 		Price:            moneyToProto(p.PriceMinor),
 		OriginalPrice:    moneyToProto(p.OriginalPriceMinor),
+		MaxPrice:         moneyToProto(maxPriceProto(p.PriceMinor, p.MaxPriceMinor)),
 		Images:           p.Images,
 		Videos:           p.Videos,
 		Rating:           p.Rating,
@@ -219,7 +221,24 @@ func productToProto(p *domain.Product) *catalogv1.GetProductResponse {
 }
 
 func productVariantToProto(v domain.ProductVariant) *catalogv1.ProductVariant {
-	return &catalogv1.ProductVariant{Label: v.Label, ColorHex: v.ColorHex}
+	orig := v.OriginalPriceMinor
+	if orig < v.PriceMinor {
+		orig = v.PriceMinor
+	}
+	return &catalogv1.ProductVariant{
+		SkuId:         v.SkuID,
+		Label:         v.Label,
+		ColorHex:      v.ColorHex,
+		Price:         moneyToProto(v.PriceMinor),
+		OriginalPrice: moneyToProto(orig),
+	}
+}
+
+func maxPriceProto(priceMinor, maxMinor int64) int64 {
+	if maxMinor < priceMinor {
+		return priceMinor
+	}
+	return maxMinor
 }
 
 func searchResultToProto(r *domain.SearchResult) *catalogv1.SearchProductsResponse {
@@ -244,6 +263,7 @@ func summaryToProto(s *domain.Summary) *catalogv1.ProductSummary {
 		CategoryName:  s.CategoryName,
 		Price:         moneyToProto(s.PriceMinor),
 		OriginalPrice: moneyToProto(s.OriginalPriceMinor),
+		MaxPrice:      moneyToProto(maxPriceProto(s.PriceMinor, s.MaxPriceMinor)),
 		Images:        s.Images,
 		Rating:        s.Rating,
 		ReviewCount:   s.ReviewCount,
@@ -253,6 +273,7 @@ func summaryToProto(s *domain.Summary) *catalogv1.ProductSummary {
 		Featured:      s.Featured,
 		Emoji:         s.Emoji,
 		ImageHue:      s.ImageHue,
+		SkuIds:        s.SkuIDs,
 	}
 }
 

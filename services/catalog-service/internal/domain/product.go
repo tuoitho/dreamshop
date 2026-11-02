@@ -2,11 +2,14 @@ package domain
 
 import "time"
 
-// ProductVariant is a variant of a product (for example a color or an option
-// group label). Pure domain value.
+// ProductVariant is an independently priced and stocked SKU option of a product.
+// Pure domain value.
 type ProductVariant struct {
-	Label    string
-	ColorHex string
+	SkuID              string
+	Label              string
+	ColorHex           string
+	PriceMinor         int64
+	OriginalPriceMinor int64
 }
 
 // Product is the full catalog product aggregate. Pure domain value: it has no
@@ -22,6 +25,7 @@ type Product struct {
 	CategoryName       string
 	PriceMinor         int64
 	OriginalPriceMinor int64
+	MaxPriceMinor      int64
 	Images             []string
 	Videos             []string
 	Rating             float64
@@ -49,6 +53,7 @@ type Summary struct {
 	CategoryName       string
 	PriceMinor         int64
 	OriginalPriceMinor int64
+	MaxPriceMinor      int64
 	Images             []string
 	Rating             float64
 	ReviewCount        int64
@@ -58,10 +63,24 @@ type Summary struct {
 	Featured           bool
 	Emoji              string
 	ImageHue           []uint32
+	SkuIDs             []string
 }
 
 // Summary projects a Product into its search-result representation.
 func (p *Product) Summary() *Summary {
+	maxPrice := p.MaxPriceMinor
+	if maxPrice < p.PriceMinor {
+		maxPrice = p.PriceMinor
+	}
+	var skuIDs []string
+	if len(p.Variants) > 0 {
+		skuIDs = make([]string, 0, len(p.Variants))
+		for _, v := range p.Variants {
+			if v.SkuID != "" {
+				skuIDs = append(skuIDs, v.SkuID)
+			}
+		}
+	}
 	return &Summary{
 		ID:                 p.ID,
 		Name:               p.Name,
@@ -70,6 +89,7 @@ func (p *Product) Summary() *Summary {
 		CategoryName:       p.CategoryName,
 		PriceMinor:         p.PriceMinor,
 		OriginalPriceMinor: p.OriginalPriceMinor,
+		MaxPriceMinor:      maxPrice,
 		Images:             p.Images,
 		Rating:             p.Rating,
 		ReviewCount:        p.ReviewCount,
@@ -79,5 +99,6 @@ func (p *Product) Summary() *Summary {
 		Featured:           p.Featured,
 		Emoji:              p.Emoji,
 		ImageHue:           p.ImageHue,
+		SkuIDs:             skuIDs,
 	}
 }

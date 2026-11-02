@@ -49,15 +49,16 @@ func Seed(ctx context.Context, pool *pgxpool.Pool) error {
 
 // insertProduct inserts a product and its child rows with stable positions.
 func insertProduct(ctx context.Context, tx pgx.Tx, p *domain.Product) error {
+	maxPrice := maxPriceMinor(p.PriceMinor, p.MaxPriceMinor)
 	tag, err := tx.Exec(ctx, `
 		INSERT INTO products (
 			id, name, short_description, description, brand, category_id,
-			category_name, price_amount_minor, original_price_amount_minor,
+			category_name, price_amount_minor, original_price_amount_minor, max_price_amount_minor,
 			rating, review_count, sold_count, is_new, badge, featured, emoji, image_hue
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
 		ON CONFLICT (id) DO NOTHING`,
 		p.ID, p.Name, p.ShortDescription, p.Description, p.Brand, p.CategoryID,
-		p.CategoryName, p.PriceMinor, p.OriginalPriceMinor, p.Rating, p.ReviewCount,
+		p.CategoryName, p.PriceMinor, p.OriginalPriceMinor, maxPrice, p.Rating, p.ReviewCount,
 		p.SoldCount, p.IsNew, p.Badge, p.Featured, p.Emoji, toInt16Hue(p.ImageHue),
 	)
 	if err != nil {
@@ -77,9 +78,22 @@ func insertProduct(ctx context.Context, tx pgx.Tx, p *domain.Product) error {
 	}
 
 	for i, v := range p.Variants {
-		if _, err := tx.Exec(ctx,
-			"INSERT INTO product_variants (product_id, label, color_hex, position) VALUES ($1, $2, $3, $4) ON CONFLICT (product_id, position) DO NOTHING",
-			p.ID, v.Label, v.ColorHex, i,
+		var colorHex *string
+		if v.ColorHex != "" {
+			ch := v.ColorHex
+			colorHex = &ch
+		}
+		origMinor := v.OriginalPriceMinor
+		if origMinor < v.PriceMinor {
+			origMinor = v.PriceMinor
+		}
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO product_variants (
+				sku_id, product_id, label, color_hex, price_amount_minor, original_price_amount_minor, position
+			) VALUES ($1, $2, $3, $4, $5, $6, $7)
+			ON CONFLICT (sku_id) DO NOTHING
+		`,
+			v.SkuID, p.ID, v.Label, colorHex, v.PriceMinor, origMinor, i,
 		); err != nil {
 			return fmt.Errorf("insert variant %d: %w", i, err)
 		}
