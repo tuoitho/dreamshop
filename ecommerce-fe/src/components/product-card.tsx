@@ -135,6 +135,9 @@ export function ProductCard({ product, className }: ProductCardProps) {
                 availability.purchasable ? "text-red-600" : "text-muted-foreground"
               )}
             >
+              {product.maxPrice && product.maxPrice > product.price && (
+                <span className="mr-1 text-xs font-normal text-muted-foreground">Từ</span>
+              )}
               {formatVND(product.price)}
             </span>
           </div>

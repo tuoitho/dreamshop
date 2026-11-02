@@ -43,12 +43,14 @@ function item(overrides: Partial<CartItem> = {}): CartItem {
   return {
     itemId: "item-1",
     productId: "product-1",
+    skuId: "product-1-v1",
     variantLabel: "16GB/512GB",
     quantity: 2,
     name: "Nova X15 Pro",
     brand: "Nova",
     categoryName: "Điện thoại",
     unitPrice: 100000,
+    originalPrice: 120000,
     imageEmoji: "📱",
     imageHue: [220, 260],
     imageUrl: "",
@@ -98,7 +100,7 @@ function Consumer() {
       <output data-testid="selected-total">{selectedTotal}</output>
       <output data-testid="selected-count">{selectedCount}</output>
       <output data-testid="forbidden">{String(Boolean(forbidden))}</output>
-      <button onClick={() => void addItem("product-1", "Red", 2)}>Add</button>
+      <button onClick={() => void addItem("product-1", "product-1-v2", 2)}>Add</button>
       <button onClick={() => toggleSelected("item-1")}>Toggle first</button>
       <button onClick={() => selectOnly("item-1")}>Select only first</button>
       <button onClick={() => void removeSelected()}>Remove selected</button>
@@ -179,15 +181,15 @@ describe("CartProvider", () => {
     expect(screen.getByTestId("selected-total")).toHaveTextContent("200000")
   })
 
-  it("forwards variantLabel to addItem and displays the API response", async () => {
-    const response = cart([item({ itemId: "item-2", variantLabel: "Red", quantity: 2, unitPrice: 125000 })])
+  it("forwards skuId to addItem and displays the API response", async () => {
+    const response = cart([item({ itemId: "item-2", skuId: "product-1-v2", variantLabel: "Red", quantity: 2, unitPrice: 125000 })])
     vi.mocked(addCartItem).mockResolvedValue(response)
     renderCart()
 
     await userEvent.click(screen.getByRole("button", { name: "Add" }))
 
     await waitFor(() => expect(screen.getByTestId("items")).toHaveTextContent("item-2:2"))
-    expect(addCartItem).toHaveBeenCalledWith({ productId: "product-1", variantLabel: "Red", quantity: 2 })
+    expect(addCartItem).toHaveBeenCalledWith({ productId: "product-1", skuId: "product-1-v2", quantity: 2 })
   })
 
   it("removes each selected item through the API", async () => {

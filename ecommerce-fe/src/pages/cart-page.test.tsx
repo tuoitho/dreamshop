@@ -30,6 +30,7 @@ const USER: CurrentUser = {
 const ITEM: CartItem = {
   itemId: "item-1",
   productId: "product-1",
+  skuId: "product-1-v1",
   variantLabel: "Red",
   quantity: 1,
   name: "Nova X15 Pro",
@@ -301,6 +302,7 @@ describe("CartPage availability and selection", () => {
     const orphanItem: CartItem = {
       itemId: "item-orphan",
       productId: "deleted-forever",
+      skuId: "deleted-forever-v1",
       variantLabel: "",
       quantity: 1,
       name: "",
@@ -340,5 +342,21 @@ describe("CartPage availability and selection", () => {
 
     expect(value.removeItem).toHaveBeenCalledTimes(1)
     expect(value.removeItem).toHaveBeenCalledWith(OUT_OF_STOCK_ITEM.itemId)
+  })
+
+  it("renders strikethrough originalPrice when discounted and caps quantity increase at SKU availableQuantity", () => {
+    renderWithCart([
+      {
+        ...ITEM,
+        quantity: 4,
+        availableQuantity: 4,
+        unitPrice: 100000,
+        originalPrice: 135000,
+      },
+    ])
+
+    const strikeEl = screen.getByText(/135\.000/)
+    expect(strikeEl).toHaveClass("line-through")
+    expect(screen.getByRole("button", { name: `Tăng số lượng ${ITEM.name}` })).toBeDisabled()
   })
 })

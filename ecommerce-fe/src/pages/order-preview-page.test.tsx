@@ -26,6 +26,7 @@ function expectCurrency(value: number) {
 const AVAILABLE_ITEM: CartItem = {
   itemId: "item-available",
   productId: "product-available",
+  skuId: "product-available-v1",
   variantLabel: "Black",
   quantity: 2,
   name: "Available camera",
@@ -204,5 +205,17 @@ describe("OrderPreviewPage", () => {
       "href",
       "/profile"
     )
+  })
+
+  it("renders strikethrough originalPrice when originalPrice exceeds unitPrice", () => {
+    const discountedItem: CartItem = {
+      ...AVAILABLE_ITEM,
+      unitPrice: 100000,
+      originalPrice: 140000,
+    }
+    renderPage([discountedItem], [discountedItem])
+
+    const strikeEl = screen.getByText(/140\.000/)
+    expect(strikeEl).toHaveClass("line-through")
   })
 })

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest"
-import { formatRating, resolveProductAvailability } from "./product-availability"
-import type { ProductDetail, ProductSummary } from "./types"
+import {
+  formatRating,
+  resolveProductAvailability,
+  resolveVariantAvailability,
+} from "./product-availability"
+import type { ProductDetail, ProductSummary, ProductVariant } from "./types"
 
 const BASE_SUMMARY: ProductSummary = {
   id: "dt-1",
@@ -15,11 +19,21 @@ const BASE_SUMMARY: ProductSummary = {
   soldCount: 2310,
 }
 
+const BASE_VARIANT: ProductVariant = {
+  skuId: "dt-1-v1",
+  label: "Đen",
+  colorHex: "#1f2937",
+  price: 18990000,
+  originalPrice: 21990000,
+  status: "AVAILABLE",
+  availableQuantity: 10,
+}
+
 const BASE_DETAIL: ProductDetail = {
   ...BASE_SUMMARY,
   description: "Mô tả đầy đủ.",
   details: ["5G"],
-  variants: [{ label: "Đen", colorHex: "#1f2937" }],
+  variants: [BASE_VARIANT],
   deleted: false,
 }
 
@@ -133,6 +147,52 @@ describe("product-availability", () => {
       purchasable: true,
       maxQuantity: 10,
       inventoryDegraded: true,
+    })
+  })
+
+  it("resolves variant-level availability independently per SKU", () => {
+    expect(resolveVariantAvailability({ deleted: true }, BASE_VARIANT)).toMatchObject({
+      status: "UNAVAILABLE",
+      purchasable: false,
+      maxQuantity: 0,
+      ctaLabel: "Ngừng kinh doanh",
+    })
+
+    expect(
+      resolveVariantAvailability(
+        { deleted: false },
+        { ...BASE_VARIANT, status: "OUT_OF_STOCK", availableQuantity: 0 }
+      )
+    ).toMatchObject({
+      status: "OUT_OF_STOCK",
+      purchasable: false,
+      maxQuantity: 0,
+      ctaLabel: "Tạm hết hàng",
+    })
+
+    expect(
+      resolveVariantAvailability(
+        { deleted: false },
+        { ...BASE_VARIANT, status: "LIMITED", availableQuantity: 3 }
+      )
+    ).toMatchObject({
+      status: "LIMITED",
+      purchasable: true,
+      maxQuantity: 3,
+      availableQuantity: 3,
+      detailLabel: "Sắp hết — Chỉ còn 3 sản phẩm",
+    })
+
+    expect(
+      resolveVariantAvailability(
+        { deleted: false },
+        { ...BASE_VARIANT, status: "AVAILABLE", availableQuantity: 25 }
+      )
+    ).toMatchObject({
+      status: "AVAILABLE",
+      purchasable: true,
+      maxQuantity: 10,
+      availableQuantity: 25,
     })
   })
 })

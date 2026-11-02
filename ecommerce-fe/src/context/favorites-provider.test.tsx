@@ -59,7 +59,15 @@ function makeFavoriteItem(productId: string): FavoriteItem {
     imageEmoji: "📱",
     imageHue: [210, 250],
     badge: "hot",
-    variants: [{ label: "Đen 256GB", colorHex: "#111111" }],
+    variants: [
+      {
+        skuId: `${productId}-v1`,
+        label: "Đen 256GB",
+        colorHex: "#111111",
+        price: 20000000,
+        originalPrice: 22000000,
+      },
+    ],
     status: "AVAILABLE",
     availableQuantity: 10,
   }

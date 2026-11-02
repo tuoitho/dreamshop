@@ -170,8 +170,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return queued
   }, [applyCart, currentSession, identity, isAuthenticated, ready, user])
 
-  const addItem = useCallback((productId: string, variantLabel: string, quantity: number) =>
-    runMutation(() => addCartItem({ productId, variantLabel, quantity })), [runMutation])
+  const addItem = useCallback((productId: string, skuId: string, quantity: number) =>
+    runMutation(() => addCartItem({ productId, skuId, quantity })), [runMutation])
 
   const updateQuantity = useCallback((itemId: string, quantity: number) =>
     runMutation(() => updateCartItemQuantity(itemId, quantity)), [runMutation])

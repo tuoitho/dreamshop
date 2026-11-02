@@ -69,9 +69,24 @@ export interface HealthResponse {
   components?: Record<string, unknown>
 }
 
-export interface ProductVariant {
+export type ProductAvailabilityStatus =
+  | "AVAILABLE"
+  | "LIMITED"
+  | "OUT_OF_STOCK"
+  | "UNAVAILABLE"
+  | "UNKNOWN"
+
+export interface FavoriteVariant {
+  skuId: string
   label: string
   colorHex?: string
+  price: number
+  originalPrice?: number
+}
+
+export interface ProductVariant extends FavoriteVariant {
+  status: ProductAvailabilityStatus
+  availableQuantity: number
 }
 
 export type CartItemStatus = "AVAILABLE" | "LIMITED" | "OUT_OF_STOCK" | "UNAVAILABLE"
@@ -79,12 +94,14 @@ export type CartItemStatus = "AVAILABLE" | "LIMITED" | "OUT_OF_STOCK" | "UNAVAIL
 export interface CartItem {
   itemId: string
   productId: string
+  skuId: string
   variantLabel: string
   quantity: number
   name: string
   brand: string
   categoryName: string
   unitPrice: number
+  originalPrice?: number
   imageEmoji: string
   imageHue: [number, number] | number[]
   imageUrl: string
@@ -114,6 +131,7 @@ export interface FavoriteItem {
   categoryName: string
   price: number
   originalPrice: number
+  maxPrice?: number
   rating: number
   reviewCount: number
   soldCount: number
@@ -121,7 +139,7 @@ export interface FavoriteItem {
   imageEmoji: string
   imageHue: [number, number] | number[]
   badge: string
-  variants: ProductVariant[]
+  variants: FavoriteVariant[]
   status: FavoriteItemStatus
   availableQuantity: number
 }
@@ -131,13 +149,6 @@ export interface FavoriteData {
   degraded: boolean
 }
 
-export type ProductAvailabilityStatus =
-  | "AVAILABLE"
-  | "LIMITED"
-  | "OUT_OF_STOCK"
-  | "UNAVAILABLE"
-  | "UNKNOWN"
-
 export interface ProductSummary {
   id: string
   name: string
@@ -146,6 +157,7 @@ export interface ProductSummary {
   categoryName: string
   price: number
   originalPrice: number
+  maxPrice?: number
   rating: number
   reviewCount: number
   soldCount: number

@@ -72,7 +72,7 @@ function FavoriteItemCard({
   item: FavoriteItem
   pending: boolean
   onRemove: (productId: string) => Promise<void>
-  onAddToCart: (productId: string, variantLabel: string) => Promise<void>
+  onAddToCart: (productId: string, skuId: string) => Promise<void>
 }) {
   const [imageError, setImageError] = useState(false)
   const [addingToCart, setAddingToCart] = useState(false)
@@ -95,7 +95,7 @@ function FavoriteItemCard({
     if (!purchasable || item.variants.length !== 1 || addingToCart) return
     setAddingToCart(true)
     try {
-      await onAddToCart(item.productId, item.variants[0].label)
+      await onAddToCart(item.productId, item.variants[0].skuId)
     } catch {
       // Mutation error notification is displayed by the HTTP response interceptor.
     } finally {
@@ -240,6 +240,9 @@ function FavoriteItemCard({
                   purchasable ? "text-red-600" : "text-muted-foreground"
                 )}
               >
+                {item.maxPrice && item.maxPrice > item.price && (
+                  <span className="mr-1 text-xs font-normal text-muted-foreground">Từ</span>
+                )}
                 {formatVND(item.price)}
               </span>
             </div>
@@ -467,7 +470,7 @@ export default function FavoritesPage() {
                   item={item}
                   pending={isPending(item.productId)}
                   onRemove={removeFavorite}
-                  onAddToCart={(productId, variantLabel) => addItem(productId, variantLabel, 1)}
+                  onAddToCart={(productId, skuId) => addItem(productId, skuId, 1)}
                 />
               ))}
             </div>

@@ -52,7 +52,15 @@ function makeItem(overrides: Partial<FavoriteItem> = {}): FavoriteItem {
     imageEmoji: "📱",
     imageHue: [210, 250],
     badge: "hot",
-    variants: [{ label: "Đen Titan 256GB", colorHex: "#1c1c1e" }],
+    variants: [
+      {
+        skuId: "dt-1-v1",
+        label: "Đen Titan 256GB",
+        colorHex: "#1c1c1e",
+        price: 26990000,
+        originalPrice: 29990000,
+      },
+    ],
     status: "AVAILABLE",
     availableQuantity: 12,
     ...overrides,
@@ -125,7 +133,7 @@ describe("FavoritesPage", () => {
         itemId: "fav-single",
         productId: "dt-single",
         name: "Tai nghe AirPods 4",
-        variants: [{ label: "Trắng tiêu chuẩn" }],
+        variants: [{ skuId: "dt-single-v1", label: "Trắng tiêu chuẩn", price: 3990000 }],
         status: "LIMITED",
         availableQuantity: 3,
       }),
@@ -133,9 +141,11 @@ describe("FavoritesPage", () => {
         itemId: "fav-multi",
         productId: "dt-multi",
         name: "MacBook Pro M4",
+        price: 39990000,
+        maxPrice: 49990000,
         variants: [
-          { label: "Đen 16GB/512GB" },
-          { label: "Bạc 24GB/1TB" },
+          { skuId: "dt-multi-v1", label: "Đen 16GB/512GB", price: 39990000 },
+          { skuId: "dt-multi-v2", label: "Bạc 24GB/1TB", price: 49990000 },
         ],
         status: "AVAILABLE",
         availableQuantity: 10,
@@ -178,9 +188,10 @@ describe("FavoritesPage", () => {
     expect(screen.queryByRole("link", { name: "Sản phẩm không còn tồn tại" })).not.toBeInTheDocument()
     expect(screen.queryByText(/^0\s*₫$/)).not.toBeInTheDocument()
 
-    // 1-variant item adds directly to cart
+    // 1-variant item adds directly to cart with skuId, multi-variant item shows 'Từ' prefix
+    expect(screen.getByText("Từ")).toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Thêm vào giỏ" }))
-    expect(addItem).toHaveBeenCalledWith("dt-single", "Trắng tiêu chuẩn", 1)
+    expect(addItem).toHaveBeenCalledWith("dt-single", "dt-single-v1", 1)
 
     // Multi-variant item links to /san-pham/:id
     expect(screen.getByRole("link", { name: "Chọn phân loại" })).toHaveAttribute(

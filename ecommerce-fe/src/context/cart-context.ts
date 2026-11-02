@@ -8,7 +8,7 @@ export interface CartLoadError {
 
 export interface CartContextValue {
   items: CartItem[]
-  addItem: (productId: string, variantLabel: string, quantity: number) => Promise<void>
+  addItem: (productId: string, skuId: string, quantity: number) => Promise<void>
   updateQuantity: (itemId: string, quantity: number) => Promise<void>
   removeItem: (itemId: string) => Promise<void>
   removeSelected: () => Promise<void>

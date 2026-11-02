@@ -15,7 +15,11 @@ import {
   Truck,
 } from "lucide-react"
 import { getProduct, searchProducts, toErrorInfo } from "@/lib/api"
-import { formatRating, resolveProductAvailability } from "@/lib/product-availability"
+import {
+  formatRating,
+  resolveProductAvailability,
+  resolveVariantAvailability,
+} from "@/lib/product-availability"
 import type { ProductDetail, ProductSummary } from "@/lib/types"
 import { cn, formatVND } from "@/lib/utils"
 import { ProductCard } from "@/components/product-card"
@@ -31,7 +35,7 @@ import { toast } from "sonner"
 
 interface PendingCartMutation {
   productId: string
-  variantLabel: string
+  skuId: string
   quantity: number
   generation: number
 }
@@ -118,11 +122,21 @@ export default function ProductDetailPage() {
     getProduct(id, controller.signal)
       .then((data) => {
         if (active && mountedRef.current && productGenerationRef.current === generation) {
-          const nextAvailability = resolveProductAvailability(data)
+          const firstPurchasableIndex = data.variants.findIndex(
+            (variant) => resolveVariantAvailability(data, variant).purchasable
+          )
+          const initialIndex = firstPurchasableIndex >= 0 ? firstPurchasableIndex : 0
+          const nextAvailability = resolveVariantAvailability(
+            data,
+            data.variants[initialIndex]
+          )
+          setVariantIndex(initialIndex)
           if (nextAvailability.purchasable) {
             setQuantity((current) =>
               Math.max(1, Math.min(current, nextAvailability.maxQuantity))
             )
+          } else {
+            setQuantity(1)
           }
           setProduct(data)
           setLoading(false)
@@ -152,14 +166,14 @@ export default function ProductDetailPage() {
     ) {
       return
     }
-    const { generation, productId, variantLabel: targetVariant } = addRequest
+    const { generation, productId, skuId: targetSkuId } = addRequest
     setAddRequest(null)
     setAddResponseReady(false)
     setAddPending(false)
 
     if (!degraded) {
       const matching = items.find(
-        (entry) => entry.productId === productId && entry.variantLabel === targetVariant
+        (entry) => entry.productId === productId && entry.skuId === targetSkuId
       )
       if (matching?.status === "OUT_OF_STOCK") {
         toast.error("Sản phẩm vừa tạm hết hàng")
@@ -192,7 +206,7 @@ export default function ProductDetailPage() {
     ) {
       return
     }
-    const { productId, variantLabel: targetVariant } = buyNowRequest
+    const { productId, skuId: targetSkuId } = buyNowRequest
     setBuyNowRequest(null)
     setBuyNowResponseReady(false)
     setBuyNowPending(false)
@@ -203,7 +217,7 @@ export default function ProductDetailPage() {
     }
 
     const matching = items.find(
-      (entry) => entry.productId === productId && entry.variantLabel === targetVariant
+      (entry) => entry.productId === productId && entry.skuId === targetSkuId
     )
     if (matching?.status === "OUT_OF_STOCK") {
       toast.error("Sản phẩm vừa tạm hết hàng")
@@ -299,14 +313,18 @@ export default function ProductDetailPage() {
 
   if (!product) return null
 
-  const availability = resolveProductAvailability(product)
+  const productAvailability = resolveProductAvailability(product)
+  const selectedVariant = product.variants[variantIndex] ?? product.variants[0]
+  const availability = resolveVariantAvailability(product, selectedVariant)
   const effectiveQuantity = availability.purchasable
     ? Math.max(1, Math.min(quantity, availability.maxQuantity))
     : 1
 
+  const displayPrice = selectedVariant?.price ?? product.price
+  const displayOriginalPrice = selectedVariant?.originalPrice ?? product.originalPrice
   const discount =
-    product.originalPrice > product.price
-      ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    displayOriginalPrice > displayPrice
+      ? Math.round(((displayOriginalPrice - displayPrice) / displayOriginalPrice) * 100)
       : 0
 
   const images = product.images ?? []
@@ -335,12 +353,12 @@ export default function ProductDetailPage() {
   }
 
   const handleAddToCart = async () => {
-    if (!availability.purchasable) return
+    if (!availability.purchasable || !selectedVariant) return
     if (!requireAuthentication()) return
     if (addPending || buyNowPending) return
     const request: PendingCartMutation = {
       productId: product.id,
-      variantLabel,
+      skuId: selectedVariant.skuId,
       quantity: effectiveQuantity,
       generation: productGenerationRef.current,
     }
@@ -348,7 +366,7 @@ export default function ProductDetailPage() {
     setAddResponseReady(false)
     setAddPending(true)
     try {
-      await addItem(request.productId, request.variantLabel, request.quantity)
+      await addItem(request.productId, request.skuId, request.quantity)
       if (
         !mountedRef.current ||
         productGenerationRef.current !== request.generation ||
@@ -373,12 +391,12 @@ export default function ProductDetailPage() {
   }
 
   const handleBuyNow = async () => {
-    if (!availability.purchasable) return
+    if (!availability.purchasable || !selectedVariant) return
     if (!requireAuthentication()) return
     if (addPending || buyNowPending) return
     const request: PendingCartMutation = {
       productId: product.id,
-      variantLabel,
+      skuId: selectedVariant.skuId,
       quantity: effectiveQuantity,
       generation: productGenerationRef.current,
     }
@@ -386,7 +404,7 @@ export default function ProductDetailPage() {
     setBuyNowResponseReady(false)
     setBuyNowPending(true)
     try {
-      await addItem(request.productId, request.variantLabel, request.quantity)
+      await addItem(request.productId, request.skuId, request.quantity)
       if (
         !mountedRef.current ||
         productGenerationRef.current !== request.generation ||
@@ -412,7 +430,8 @@ export default function ProductDetailPage() {
 
   const favorited = isFavorite(product.id)
   const favoritePending = isFavoritePending(product.id)
-  const favoriteDisabled = favoritePending || (!favorited && availability.status === "UNAVAILABLE")
+  const favoriteDisabled =
+    favoritePending || (!favorited && productAvailability.status === "UNAVAILABLE")
 
   const handleToggleFavorite = async () => {
     if (!requireAuthentication()) return
@@ -457,7 +476,7 @@ export default function ProductDetailPage() {
         <span className="line-clamp-1 max-w-60">{product.name}</span>
       </nav>
 
-      {availability.status === "UNAVAILABLE" ? (
+      {productAvailability.status === "UNAVAILABLE" ? (
         <div
           role="status"
           className="mt-4 flex items-start gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-950 dark:text-amber-200"
@@ -614,11 +633,11 @@ export default function ProductDetailPage() {
                   availability.purchasable ? "text-red-600" : "text-muted-foreground"
                 )}
               >
-                {formatVND(product.price)}
+                {formatVND(displayPrice)}
               </span>
-              {product.originalPrice > product.price && (
+              {displayOriginalPrice > displayPrice && (
                 <span className="mb-1 text-sm text-muted-foreground line-through">
-                  {formatVND(product.originalPrice)}
+                  {formatVND(displayOriginalPrice)}
                 </span>
               )}
             </div>
@@ -641,29 +660,44 @@ export default function ProductDetailPage() {
                 <span className="font-normal text-muted-foreground">{variantLabel}</span>
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
-                {product.variants.map((variant, index) => (
-                  <button
-                    key={variant.label}
-                    type="button"
-                    disabled={!availability.purchasable}
-                    onClick={() => setVariantIndex(index)}
-                    className={cn(
-                      "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-                      variantIndex === index
-                        ? "border-primary bg-primary/5 text-primary"
-                        : "border-border hover:border-primary/40"
-                    )}
-                    aria-pressed={variantIndex === index}
-                  >
-                    {variant.colorHex && (
-                      <span
-                        className="size-4 rounded-full border border-black/10"
-                        style={{ backgroundColor: variant.colorHex }}
-                      />
-                    )}
-                    {variant.label}
-                  </button>
-                ))}
+                {product.variants.map((variant, index) => {
+                  const itemAvailability = resolveVariantAvailability(product, variant)
+                  const isVariantOutOfStock = itemAvailability.status === "OUT_OF_STOCK"
+                  return (
+                    <button
+                      key={variant.skuId}
+                      type="button"
+                      disabled={productAvailability.status === "UNAVAILABLE"}
+                      onClick={() => {
+                        setVariantIndex(index)
+                        if (itemAvailability.purchasable) {
+                          setQuantity((current) =>
+                            Math.max(1, Math.min(current, itemAvailability.maxQuantity))
+                          )
+                        }
+                      }}
+                      className={cn(
+                        "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                        variantIndex === index
+                          ? "border-primary bg-primary/5 text-primary"
+                          : "border-border hover:border-primary/40",
+                        isVariantOutOfStock && "border-dashed opacity-75"
+                      )}
+                      aria-pressed={variantIndex === index}
+                    >
+                      {variant.colorHex && (
+                        <span
+                          className="size-4 rounded-full border border-black/10"
+                          style={{ backgroundColor: variant.colorHex }}
+                        />
+                      )}
+                      {variant.label}
+                      {isVariantOutOfStock && (
+                        <span className="text-xs text-muted-foreground">(Hết hàng)</span>
+                      )}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           )}

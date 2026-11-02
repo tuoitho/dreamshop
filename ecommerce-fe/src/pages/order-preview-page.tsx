@@ -212,8 +212,13 @@ export default function OrderPreviewPage() {
                             {item.variantLabel}
                           </p>
                         )}
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {formatVND(item.unitPrice)} × {item.quantity}
+                        <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                          {(item.originalPrice ?? 0) > item.unitPrice && (
+                            <span className="line-through">{formatVND(item.originalPrice!)}</span>
+                          )}
+                          <span>
+                            {formatVND(item.unitPrice)} × {item.quantity}
+                          </span>
                         </p>
                         {overStock ? (
                           <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-300">

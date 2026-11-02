@@ -170,22 +170,33 @@ function CartItemRow({
               variant="outline"
               size="icon-sm"
               aria-label={`Tăng số lượng ${displayName}`}
-              disabled={unavailable || (limited && item.quantity >= item.availableQuantity)}
+              disabled={
+                unavailable ||
+                (item.availableQuantity > 0 && item.quantity >= item.availableQuantity)
+              }
               onClick={() => onUpdateQuantity(item.itemId, item.quantity + 1)}
             >
               <Plus />
             </Button>
           </div>
-          <span
-            className={cn(
-              "text-sm font-bold",
-              isOrphanDeleted && item.unitPrice <= 0 ? "text-muted-foreground" : "text-red-600"
+          <div className="flex flex-col items-end">
+            {!isOrphanDeleted && (item.originalPrice ?? 0) > item.unitPrice && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="line-through">{formatVND(item.originalPrice!)}</span>
+                {item.quantity > 1 && <span>· {formatVND(item.unitPrice)} / sp</span>}
+              </div>
             )}
-          >
-            {isOrphanDeleted && item.unitPrice <= 0
-              ? "—"
-              : formatVND(item.unitPrice * item.quantity)}
-          </span>
+            <span
+              className={cn(
+                "text-sm font-bold",
+                isOrphanDeleted && item.unitPrice <= 0 ? "text-muted-foreground" : "text-red-600"
+              )}
+            >
+              {isOrphanDeleted && item.unitPrice <= 0
+                ? "—"
+                : formatVND(item.unitPrice * item.quantity)}
+            </span>
+          </div>
         </div>
       </div>
     </div>

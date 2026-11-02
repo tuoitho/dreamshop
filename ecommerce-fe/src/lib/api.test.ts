@@ -399,7 +399,17 @@ describe("storefront product adapters", () => {
       shortDescription: "Chip mạnh, pin trâu.",
       description: "Mô tả đầy đủ sản phẩm.",
       details: ["Màn hình 6.8 inch"],
-      variants: [{ label: "Đen", colorHex: "#1f2937" }],
+      variants: [
+        {
+          skuId: "dt-1-v1",
+          label: "Đen",
+          colorHex: "#1f2937",
+          price: 18990000,
+          originalPrice: 21990000,
+          status: "AVAILABLE",
+          availableQuantity: 10,
+        },
+      ],
     }
     const adapter = vi.fn(async (config) => ({
       data: { data: detail, message: "Product loaded." },
@@ -467,7 +477,7 @@ describe("cart adapters", () => {
     }))
     http.defaults.adapter = adapter as never
 
-    await addCartItem({ productId: "p-1", variantLabel: "16GB/512GB", quantity: 2 })
+    await addCartItem({ productId: "p-1", skuId: "p-1-v1", quantity: 2 })
     await updateCartItemQuantity("item-1", 3)
     await removeCartItem("item-1")
     await clearCart()
@@ -480,7 +490,7 @@ describe("cart adapters", () => {
         data: typeof request.data === "string" ? JSON.parse(request.data) : request.data,
       }
     })).toEqual([
-      { url: "/cart/items", method: "post", data: { productId: "p-1", variantLabel: "16GB/512GB", quantity: 2 } },
+      { url: "/cart/items", method: "post", data: { productId: "p-1", skuId: "p-1-v1", quantity: 2 } },
       { url: "/cart/items/item-1", method: "patch", data: { quantity: 3 } },
       { url: "/cart/items/item-1", method: "delete", data: undefined },
       { url: "/cart", method: "delete", data: undefined },
@@ -512,7 +522,7 @@ describe("cart adapters", () => {
       axiosError(409, { code: "CART_ITEM_LIMITED", message: "Only 1 item remains", traceId: "cart-t-1" })
     )
 
-    const error = await addCartItem({ productId: "p-1", variantLabel: "Red", quantity: 2 }).catch((value) => value)
+    const error = await addCartItem({ productId: "p-1", skuId: "p-1-v1", quantity: 2 }).catch((value) => value)
 
     expect(error).toBeInstanceOf(ApiClientError)
     expect(error.status).toBe(409)
@@ -530,12 +540,14 @@ describe("cart adapters", () => {
             {
               itemId: "item-1",
               productId: "p-1",
+              skuId: "p-1-v1",
               variantLabel: "Đen",
               quantity: 1,
               name: "Nova X",
               brand: "Nova",
               categoryName: "Điện thoại",
               unitPrice: 1000000,
+              originalPrice: 1200000,
               imageEmoji: "📱",
               imageHue: [200, 240],
               imageUrl: "",
@@ -552,7 +564,7 @@ describe("cart adapters", () => {
       config,
     })) as never
 
-    await addCartItem({ productId: "p-1", variantLabel: "Đen", quantity: 1 })
+    await addCartItem({ productId: "p-1", skuId: "p-1-v1", quantity: 1 })
     expect(toast.success).not.toHaveBeenCalled()
   })
 
@@ -565,12 +577,14 @@ describe("cart adapters", () => {
             {
               itemId: "item-1",
               productId: "p-1",
+              skuId: "p-1-v1",
               variantLabel: "Đen",
               quantity: 1,
               name: "Nova X",
               brand: "Nova",
               categoryName: "Điện thoại",
               unitPrice: 1000000,
+              originalPrice: 1200000,
               imageEmoji: "📱",
               imageHue: [200, 240],
               imageUrl: "",
@@ -587,7 +601,7 @@ describe("cart adapters", () => {
       config,
     })) as never
 
-    await addCartItem({ productId: "p-1", variantLabel: "Đen", quantity: 1 })
+    await addCartItem({ productId: "p-1", skuId: "p-1-v1", quantity: 1 })
     expect(toast.success).toHaveBeenCalledWith("Item added to cart.")
   })
 })

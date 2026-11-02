@@ -41,23 +41,22 @@ function shouldSuppressMutationSuccessToast(response: {
   if (!cart || cart.degraded !== false || !Array.isArray(cart.items)) {
     return false
   }
-  let reqBody: { productId?: string; variantLabel?: string } | undefined
+  let reqBody: { productId?: string; skuId?: string } | undefined
   const rawData = response.config?.data
   if (typeof rawData === "string") {
     try {
-      reqBody = JSON.parse(rawData) as { productId?: string; variantLabel?: string }
+      reqBody = JSON.parse(rawData) as { productId?: string; skuId?: string }
     } catch {
       return false
     }
   } else if (rawData && typeof rawData === "object") {
-    reqBody = rawData as { productId?: string; variantLabel?: string }
+    reqBody = rawData as { productId?: string; skuId?: string }
   }
-  if (!reqBody?.productId) {
+  if (!reqBody?.productId || !reqBody?.skuId) {
     return false
   }
-  const variantLabel = reqBody.variantLabel ?? ""
   const target = cart.items.find(
-    (item) => item.productId === reqBody.productId && item.variantLabel === variantLabel
+    (item) => item.productId === reqBody.productId && item.skuId === reqBody.skuId
   )
   return target?.status === "OUT_OF_STOCK" || target?.status === "UNAVAILABLE"
 }
@@ -266,7 +265,7 @@ export async function getCart(): Promise<CartData> {
   }
 }
 
-export async function addCartItem(payload: { productId: string; variantLabel: string; quantity: number }): Promise<CartData> {
+export async function addCartItem(payload: { productId: string; skuId: string; quantity: number }): Promise<CartData> {
   try {
     const { data } = await http.post<ApiResponse<CartData>>("/cart/items", payload)
     return data.data

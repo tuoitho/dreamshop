@@ -59,6 +59,15 @@ describe("ProductCard", () => {
     expect(screen.getByText("Chỉ còn 2")).toBeInTheDocument()
   })
 
+  it("displays 'Từ' prefix before representative price only when maxPrice exceeds price", () => {
+    const { unmount } = renderCard({ price: 18990000, maxPrice: 20990000 })
+    expect(screen.getByText("Từ")).toBeInTheDocument()
+    unmount()
+
+    renderCard({ price: 18990000, maxPrice: 18990000 })
+    expect(screen.queryByText("Từ")).not.toBeInTheDocument()
+  })
+
   it("redirects unauthenticated clicks on favorite button to /login with return location", async () => {
     function LoginProbe() {
       const location = useLocation()

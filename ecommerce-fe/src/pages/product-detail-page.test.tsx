@@ -56,6 +56,7 @@ const DETAIL: ProductDetail = {
   categoryName: "Điện thoại",
   price: 18990000,
   originalPrice: 21990000,
+  maxPrice: 20990000,
   rating: 4.9,
   reviewCount: 1284,
   soldCount: 2310,
@@ -70,20 +71,36 @@ const DETAIL: ProductDetail = {
   description: "Mô tả chi tiết sản phẩm Nova X15 Pro.",
   details: ['Màn hình: 6.8" AMOLED 144Hz', "Pin: 5500mAh, sạc nhanh 120W"],
   variants: [
-    { label: "16GB/512GB" },
-    { label: "32GB/1TB" },
+    {
+      skuId: "dt-1-v1",
+      label: "16GB/512GB",
+      price: 18990000,
+      originalPrice: 21990000,
+      status: "AVAILABLE",
+      availableQuantity: 12,
+    },
+    {
+      skuId: "dt-1-v2",
+      label: "32GB/1TB",
+      price: 20990000,
+      originalPrice: 23990000,
+      status: "AVAILABLE",
+      availableQuantity: 8,
+    },
   ],
 }
 
 const CART_ITEM: CartItem = {
   itemId: "cart-item-1",
   productId: DETAIL.id,
+  skuId: "dt-1-v1",
   variantLabel: "16GB/512GB",
   quantity: 1,
   name: DETAIL.name,
   brand: DETAIL.brand,
   categoryName: DETAIL.categoryName,
   unitPrice: DETAIL.price,
+  originalPrice: DETAIL.originalPrice,
   imageEmoji: DETAIL.emoji!,
   imageHue: DETAIL.imageHue!,
   imageUrl: DETAIL.images![0],
@@ -95,6 +112,7 @@ const OTHER_CART_ITEM: CartItem = {
   ...CART_ITEM,
   itemId: "cart-item-other",
   productId: "other-product",
+  skuId: "other-product-v1",
   variantLabel: "Other",
   name: "Other product",
 }
@@ -396,7 +414,17 @@ describe("ProductDetailPage", () => {
   it("shows a color swatch when a variant provides colorHex", async () => {
     vi.mocked(getProduct).mockResolvedValue({
       ...DETAIL,
-      variants: [{ label: "Đen", colorHex: "#1f2937" }],
+      variants: [
+        {
+          skuId: "dt-1-v1",
+          label: "Đen",
+          colorHex: "#1f2937",
+          price: 18990000,
+          originalPrice: 21990000,
+          status: "AVAILABLE",
+          availableQuantity: 5,
+        },
+      ],
     })
     renderDetail()
 
@@ -412,6 +440,60 @@ describe("ProductDetailPage", () => {
     const variantButton = screen.getByRole("button", { name: "16GB/512GB" })
     expect(variantButton).toHaveTextContent("16GB/512GB")
     expect(variantButton.querySelector("span")).not.toBeInTheDocument()
+  })
+
+  it("selects first purchasable variant and allows switching to out-of-stock variant", async () => {
+    vi.mocked(getProduct).mockResolvedValue({
+      ...DETAIL,
+      status: "AVAILABLE",
+      availableQuantity: 5,
+      variants: [
+        {
+          skuId: "dt-1-v1",
+          label: "16GB/512GB",
+          price: 18990000,
+          originalPrice: 21990000,
+          status: "OUT_OF_STOCK",
+          availableQuantity: 0,
+        },
+        {
+          skuId: "dt-1-v2",
+          label: "32GB/1TB",
+          price: 20990000,
+          originalPrice: 23990000,
+          status: "AVAILABLE",
+          availableQuantity: 5,
+        },
+      ],
+    })
+    vi.mocked(addCartItem).mockResolvedValue({
+      items: [cartItem({ skuId: "dt-1-v2", variantLabel: "32GB/1TB", unitPrice: 20990000 })],
+      degraded: false,
+    })
+    renderDetail()
+
+    expect(await screen.findByRole("heading", { level: 1, name: DETAIL.name })).toBeInTheDocument()
+    const secondVariantBtn = screen.getByRole("button", { name: "32GB/1TB" })
+    expect(secondVariantBtn).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByText(/20\.990\.000/)).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole("button", { name: "Thêm vào giỏ" }))
+    await waitFor(() =>
+      expect(addCartItem).toHaveBeenCalledWith({
+        productId: "dt-1",
+        skuId: "dt-1-v2",
+        quantity: 1,
+      })
+    )
+
+    const firstVariantBtn = screen.getByRole("button", { name: /16GB\/512GB/ })
+    expect(firstVariantBtn).not.toBeDisabled()
+    await userEvent.click(firstVariantBtn)
+
+    expect(firstVariantBtn).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByText(/18\.990\.000/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Tạm hết hàng" })).toBeDisabled()
+    expect(secondVariantBtn).not.toBeDisabled()
   })
 
   it("redirects unauthenticated add-to-cart attempts to login with the product origin", async () => {
@@ -432,7 +514,7 @@ describe("ProductDetailPage", () => {
 
     await waitFor(() => expect(addCartItem).toHaveBeenCalledWith({
       productId: "dt-1",
-      variantLabel: "16GB/512GB",
+      skuId: "dt-1-v1",
       quantity: 1,
     }))
     expect(await screen.findByRole("button", { name: "Đã thêm vào giỏ" })).toBeInTheDocument()
@@ -442,7 +524,7 @@ describe("ProductDetailPage", () => {
     vi.mocked(getProduct).mockResolvedValue(DETAIL)
     vi.mocked(getCart).mockResolvedValue({ items: [OTHER_CART_ITEM], degraded: false })
     const limitedRequested = cartItem({ itemId: "cart-item-limited", status: "LIMITED", availableQuantity: 2 })
-    const sameProductDistractor = cartItem({ itemId: "cart-item-distractor", variantLabel: "32GB/1TB" })
+    const sameProductDistractor = cartItem({ itemId: "cart-item-distractor", skuId: "dt-1-v2", variantLabel: "32GB/1TB" })
     vi.mocked(addCartItem).mockResolvedValue({
       items: [OTHER_CART_ITEM, sameProductDistractor, limitedRequested],
       degraded: false,
@@ -456,7 +538,7 @@ describe("ProductDetailPage", () => {
     expect(screen.getByTestId("checkout-items")).not.toHaveTextContent("cart-item-distractor")
     expect(addCartItem).toHaveBeenCalledWith({
       productId: "dt-1",
-      variantLabel: "16GB/512GB",
+      skuId: "dt-1-v1",
       quantity: 1,
     })
   })
@@ -475,7 +557,7 @@ describe("ProductDetailPage", () => {
     expect(await screen.findByTestId("checkout-items")).toHaveTextContent("cart-item-1")
     expect(addCartItem).toHaveBeenCalledWith({
       productId: "dt-1",
-      variantLabel: "16GB/512GB",
+      skuId: "dt-1-v1",
       quantity: 1,
     })
   })
@@ -645,6 +727,11 @@ describe("ProductDetailPage", () => {
       ...DETAIL,
       status: "OUT_OF_STOCK",
       availableQuantity: 0,
+      variants: DETAIL.variants.map((variant) => ({
+        ...variant,
+        status: "OUT_OF_STOCK",
+        availableQuantity: 0,
+      })),
     })
     renderDetail()
 
@@ -659,6 +746,11 @@ describe("ProductDetailPage", () => {
       ...DETAIL,
       status: "LIMITED",
       availableQuantity: 2,
+      variants: DETAIL.variants.map((variant) => ({
+        ...variant,
+        status: "LIMITED",
+        availableQuantity: 2,
+      })),
     })
     renderDetail()
 
@@ -679,7 +771,16 @@ describe("ProductDetailPage", () => {
   it("handles mid-action Add to Cart race for OUT_OF_STOCK and UNAVAILABLE vs degraded inventory", async () => {
     vi.mocked(getProduct)
       .mockResolvedValueOnce({ ...DETAIL, status: "AVAILABLE", availableQuantity: 8 })
-      .mockResolvedValueOnce({ ...DETAIL, status: "OUT_OF_STOCK", availableQuantity: 0 })
+      .mockResolvedValueOnce({
+        ...DETAIL,
+        status: "OUT_OF_STOCK",
+        availableQuantity: 0,
+        variants: DETAIL.variants.map((variant) => ({
+          ...variant,
+          status: "OUT_OF_STOCK",
+          availableQuantity: 0,
+        })),
+      })
     vi.mocked(addCartItem).mockResolvedValueOnce({
       items: [cartItem({ status: "OUT_OF_STOCK", availableQuantity: 0 })],
       degraded: false,
@@ -696,7 +797,16 @@ describe("ProductDetailPage", () => {
     vi.clearAllMocks()
     vi.mocked(getCart).mockResolvedValue({ items: [], degraded: false })
     vi.mocked(searchProducts).mockResolvedValue({ items: [], page: 1, pageSize: 20, totalItems: 0, totalPages: 0 })
-    vi.mocked(getProduct).mockResolvedValue({ ...DETAIL, status: "UNKNOWN", inventoryDegraded: true })
+    vi.mocked(getProduct).mockResolvedValue({
+      ...DETAIL,
+      status: "UNKNOWN",
+      inventoryDegraded: true,
+      variants: DETAIL.variants.map((variant) => ({
+        ...variant,
+        status: "UNKNOWN",
+        availableQuantity: 0,
+      })),
+    })
     vi.mocked(addCartItem).mockResolvedValueOnce({
       items: [cartItem({ status: "UNAVAILABLE", availableQuantity: 0 })],
       degraded: true,
@@ -748,7 +858,16 @@ describe("ProductDetailPage", () => {
     unmountForbidden()
 
     vi.mocked(getFavorites).mockResolvedValueOnce({ items: [], degraded: false })
-    vi.mocked(getProduct).mockResolvedValue({ ...DETAIL, status: "OUT_OF_STOCK", availableQuantity: 0 })
+    vi.mocked(getProduct).mockResolvedValue({
+      ...DETAIL,
+      status: "OUT_OF_STOCK",
+      availableQuantity: 0,
+      variants: DETAIL.variants.map((variant) => ({
+        ...variant,
+        status: "OUT_OF_STOCK",
+        availableQuantity: 0,
+      })),
+    })
     const { unmount: unmountOos } = renderDetail()
     const oosFavBtn = await screen.findByRole("button", { name: "Thêm vào yêu thích" })
     expect(oosFavBtn).not.toBeDisabled()
