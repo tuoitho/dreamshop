@@ -307,14 +307,15 @@ export async function listAdminInventory(
   }
 }
 
-export async function setProductStock(
+export async function setSkuStock(
+  skuId: string,
   productId: string,
   quantity: number
 ): Promise<StockMutationResult> {
   try {
     const { data } = await http.put<ApiResponse<StockMutationResult>>(
-      `/admin/inventory/${encodeURIComponent(productId)}`,
-      { quantity }
+      `/admin/inventory/skus/${encodeURIComponent(skuId)}`,
+      { productId, quantity }
     )
     return data.data
   } catch (error) {
@@ -322,14 +323,15 @@ export async function setProductStock(
   }
 }
 
-export async function adjustProductStock(
+export async function adjustSkuStock(
+  skuId: string,
   productId: string,
   delta: number
 ): Promise<StockMutationResult> {
   try {
     const { data } = await http.post<ApiResponse<StockMutationResult>>(
-      `/admin/inventory/${encodeURIComponent(productId)}/adjust`,
-      { delta }
+      `/admin/inventory/skus/${encodeURIComponent(skuId)}/adjust`,
+      { productId, delta }
     )
     return data.data
   } catch (error) {

@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { AuthContext, type AuthContextValue } from "@/context/auth-context"
@@ -29,7 +30,7 @@ describe("OverviewPage", () => {
     vi.restoreAllMocks()
   })
 
-  it("renders permitted KPI cards, category metrics, and low-stock watchlist", async () => {
+  it("renders permitted KPI cards, deduplicates low-stock watchlist by skuId across variants of the same product, and opens StockDialog for that SKU", async () => {
     vi.spyOn(api, "listAdminProducts").mockResolvedValue({
       items: [],
       page: 1,
@@ -50,14 +51,19 @@ describe("OverviewPage", () => {
         params?.stockStatus === "out_of_stock"
           ? [
               {
-                productId: "p-airpods-out",
-                name: "AirPods Pro 2 USB-C",
-                brand: "Apple",
+                skuId: "p-sony-v1",
+                productId: "p-sony",
+                name: "Tai nghe Sony WH-1000XM5",
+                variantLabel: "Đen Khói",
+                variantColorHex: "#1c1c1e",
+                brand: "Sony",
                 categoryId: "tai-nghe",
                 categoryName: "Tai nghe",
+                price: 6990000,
+                originalPrice: 7990000,
                 imageUrl: "",
                 emoji: "🎧",
-                imageHue: [200, 30],
+                imageHue: [160, 40],
                 deleted: false,
                 quantity: 2,
                 reserved: 2,
@@ -67,11 +73,16 @@ describe("OverviewPage", () => {
             ]
           : [
               {
+                skuId: "p-sony-v2",
                 productId: "p-sony",
                 name: "Tai nghe Sony WH-1000XM5",
+                variantLabel: "Bạc Platinum",
+                variantColorHex: "#cbd5e1",
                 brand: "Sony",
                 categoryId: "tai-nghe",
                 categoryName: "Tai nghe",
+                price: 7190000,
+                originalPrice: 7990000,
                 imageUrl: "",
                 emoji: "🎧",
                 imageHue: [160, 40],
@@ -88,7 +99,8 @@ describe("OverviewPage", () => {
       totalPages: 1,
       summary: {
         totalTrackedProducts: 42,
-        inStockCount: 35,
+        totalTrackedSkus: 64,
+        inStockCount: 57,
         lowStockCount: 5,
         outOfStockCount: 2,
         totalQuantity: 820,
@@ -96,6 +108,14 @@ describe("OverviewPage", () => {
         totalAvailable: 780,
       },
     }))
+
+    const setStockSpy = vi.spyOn(api, "setSkuStock").mockResolvedValue({
+      skuId: "p-sony-v2",
+      productId: "p-sony",
+      quantity: 12,
+      reserved: 3,
+      availableQuantity: 9,
+    })
 
     vi.spyOn(api, "listAdminUsers").mockResolvedValue({
       items: [],
@@ -131,15 +151,24 @@ describe("OverviewPage", () => {
     render(
       <MemoryRouter>
         <AuthContext.Provider
-          value={makeAuth(["product.view", "inventory.view", "user.view", "rbac.view"])}
+          value={makeAuth([
+            "product.view",
+            "inventory.view",
+            "inventory.update",
+            "user.view",
+            "rbac.view",
+          ])}
         >
           <OverviewPage />
         </AuthContext.Provider>
       </MemoryRouter>
     )
 
-    expect(await screen.findByText("Tai nghe Sony WH-1000XM5")).toBeInTheDocument()
-    expect(screen.getByText("AirPods Pro 2 USB-C")).toBeInTheDocument()
+    // Both SKUs of the same productId ("p-sony") appear in watchlist
+    expect(await screen.findByText("Đen Khói")).toBeInTheDocument()
+    expect(screen.getByText("Bạc Platinum")).toBeInTheDocument()
+    expect(screen.getByText(/p-sony-v1/)).toBeInTheDocument()
+    expect(screen.getByText(/p-sony-v2/)).toBeInTheDocument()
     expect(invSpy).toHaveBeenCalledWith(
       expect.objectContaining({ stockStatus: "out_of_stock" }),
       expect.anything()
@@ -150,6 +179,15 @@ describe("OverviewPage", () => {
     )
     expect(screen.getByText("780")).toBeInTheDocument()
     expect(screen.getByText("120")).toBeInTheDocument()
+
+    // Open StockDialog specifically for the second SKU (p-sony-v2)
+    const adjustButtons = screen.getAllByRole("button", { name: /điều chỉnh tồn/i })
+    await userEvent.click(adjustButtons[1]!)
+    const qtyInput = await screen.findByLabelText(/tổng tồn kho mới/i)
+    await userEvent.clear(qtyInput)
+    await userEvent.type(qtyInput, "12")
+    await userEvent.click(screen.getByRole("button", { name: /xác nhận cập nhật/i }))
+    await waitFor(() => expect(setStockSpy).toHaveBeenCalledWith("p-sony-v2", "p-sony", 12))
   })
 
   it("skips unauthorized endpoints when operator only holds inventory.view", async () => {
@@ -164,7 +202,8 @@ describe("OverviewPage", () => {
       totalPages: 0,
       summary: {
         totalTrackedProducts: 10,
-        inStockCount: 9,
+        totalTrackedSkus: 15,
+        inStockCount: 14,
         lowStockCount: 1,
         outOfStockCount: 0,
         totalQuantity: 100,
@@ -204,7 +243,8 @@ describe("OverviewPage", () => {
       totalPages: 0,
       summary: {
         totalTrackedProducts: 16,
-        inStockCount: 10,
+        totalTrackedSkus: 24,
+        inStockCount: 18,
         lowStockCount: 5,
         outOfStockCount: 1,
         totalQuantity: 120,

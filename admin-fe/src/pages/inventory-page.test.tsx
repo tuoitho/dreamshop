@@ -29,27 +29,36 @@ function makeAuth(permissions: string[]): AuthContextValue {
 const sampleInventoryPage: AdminInventoryPage = {
   items: [
     {
+      skuId: "p-iphone-v1",
       productId: "p-iphone",
-      name: "iPhone 16 Pro 256GB",
+      name: "iPhone 16 Pro",
+      variantLabel: "Đen Titan · 256GB",
+      variantColorHex: "#1c1c1e",
       brand: "Apple",
       categoryId: "dien-thoai",
       categoryName: "Điện thoại",
+      price: 28990000,
+      originalPrice: 30990000,
       imageUrl: "",
       emoji: "📱",
       imageHue: [215, 25],
       deleted: false,
-      quantity: 12,
+      quantity: 9,
       reserved: 5,
-      availableQuantity: 7,
+      availableQuantity: 4,
       stockStatus: "LOW_STOCK",
       updatedAt: "2026-10-26T08:00:00Z",
     },
     {
+      skuId: "p-archived-v1",
       productId: "p-archived",
       name: "Áo khoác Gió Cũ",
+      variantLabel: "Xanh rêu · L",
       brand: "S-Wear",
       categoryId: "thoi-trang",
       categoryName: "Thời trang",
+      price: 590000,
+      originalPrice: 590000,
       imageUrl: "",
       emoji: "👕",
       imageHue: [140, 20],
@@ -66,12 +75,13 @@ const sampleInventoryPage: AdminInventoryPage = {
   totalPages: 1,
   summary: {
     totalTrackedProducts: 2,
+    totalTrackedSkus: 2,
     inStockCount: 0,
     lowStockCount: 1,
     outOfStockCount: 1,
-    totalQuantity: 12,
+    totalQuantity: 9,
     totalReserved: 5,
-    totalAvailable: 7,
+    totalAvailable: 4,
   },
 }
 
@@ -80,7 +90,7 @@ describe("InventoryPage & StockDialog", () => {
     vi.restoreAllMocks()
   })
 
-  it("renders enriched stock rows including soft-deleted badge and filters by Sắp hết", async () => {
+  it("renders SKU stock rows with skuId, variantLabel, price, soft-deleted badge, and filters by Sắp hết", async () => {
     const listSpy = vi.spyOn(api, "listAdminInventory").mockResolvedValue(sampleInventoryPage)
 
     render(
@@ -91,7 +101,10 @@ describe("InventoryPage & StockDialog", () => {
       </MemoryRouter>
     )
 
-    expect(await screen.findByText("iPhone 16 Pro 256GB")).toBeInTheDocument()
+    expect(await screen.findByText("iPhone 16 Pro")).toBeInTheDocument()
+    expect(screen.getByText("Đen Titan · 256GB")).toBeInTheDocument()
+    expect(screen.getByText(/p-iphone-v1/)).toBeInTheDocument()
+    expect(screen.getByText(/28\.990\.000/)).toBeInTheDocument()
     expect(screen.getByText("Áo khoác Gió Cũ")).toBeInTheDocument()
     expect(screen.getByText("Đã ẩn")).toBeInTheDocument()
 
@@ -104,10 +117,10 @@ describe("InventoryPage & StockDialog", () => {
     )
   })
 
-  it("surfaces inline 409 STOCK_BELOW_RESERVED conflict on SetStock and submits AdjustStock (+/-)", async () => {
+  it("surfaces inline 409 STOCK_BELOW_RESERVED conflict on setSkuStock and submits adjustSkuStock (+/-)", async () => {
     vi.spyOn(api, "listAdminInventory").mockResolvedValue(sampleInventoryPage)
     const setStockSpy = vi
-      .spyOn(api, "setProductStock")
+      .spyOn(api, "setSkuStock")
       .mockRejectedValueOnce(
         new api.ApiClientError(
           409,
@@ -115,11 +128,12 @@ describe("InventoryPage & StockDialog", () => {
           "STOCK_BELOW_RESERVED"
         )
       )
-    const adjustStockSpy = vi.spyOn(api, "adjustProductStock").mockResolvedValue({
+    const adjustStockSpy = vi.spyOn(api, "adjustSkuStock").mockResolvedValue({
+      skuId: "p-iphone-v1",
       productId: "p-iphone",
-      quantity: 22,
+      quantity: 19,
       reserved: 5,
-      availableQuantity: 17,
+      availableQuantity: 14,
     })
 
     render(
@@ -130,15 +144,17 @@ describe("InventoryPage & StockDialog", () => {
       </MemoryRouter>
     )
 
-    await screen.findByText("iPhone 16 Pro 256GB")
-    await userEvent.click(screen.getByRole("button", { name: /điều chỉnh tồn iphone 16 pro 256gb/i }))
+    await screen.findByText("iPhone 16 Pro")
+    await userEvent.click(
+      screen.getByRole("button", { name: /điều chỉnh tồn iphone 16 pro/i })
+    )
 
     const quantityInput = await screen.findByLabelText(/tổng tồn kho mới/i)
     await userEvent.clear(quantityInput)
     await userEvent.type(quantityInput, "3")
     await userEvent.click(screen.getByRole("button", { name: /xác nhận cập nhật/i }))
 
-    await waitFor(() => expect(setStockSpy).toHaveBeenCalledWith("p-iphone", 3))
+    await waitFor(() => expect(setStockSpy).toHaveBeenCalledWith("p-iphone-v1", "p-iphone", 3))
     expect(
       await screen.findByText(/không thể nhỏ hơn số lượng đang giữ chỗ/i)
     ).toBeInTheDocument()
@@ -149,6 +165,8 @@ describe("InventoryPage & StockDialog", () => {
     await userEvent.type(deltaInput, "10")
     await userEvent.click(screen.getByRole("button", { name: /xác nhận cập nhật/i }))
 
-    await waitFor(() => expect(adjustStockSpy).toHaveBeenCalledWith("p-iphone", 10))
+    await waitFor(() =>
+      expect(adjustStockSpy).toHaveBeenCalledWith("p-iphone-v1", "p-iphone", 10)
+    )
   })
 })

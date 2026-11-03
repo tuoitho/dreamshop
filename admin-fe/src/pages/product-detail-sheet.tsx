@@ -218,14 +218,22 @@ export function ProductDetailSheet({
 
                 <div className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-background p-4 sm:grid-cols-3">
                   <div>
-                    <div className="text-xs text-muted-foreground">Giá bán</div>
+                    <div className="text-xs text-muted-foreground">Giá bán đại diện</div>
                     <div className="mt-0.5 font-mono text-base font-semibold text-foreground tabular-nums">
-                      {formatCurrencyVnd(detail.price)}
+                      {(detail.maxPrice ?? detail.price) > detail.price
+                        ? `Từ ${formatCurrencyVnd(detail.price)}`
+                        : formatCurrencyVnd(detail.price)}
                     </div>
-                    {detail.originalPrice > detail.price && (
-                      <div className="font-mono text-xs text-muted-foreground line-through tabular-nums">
-                        {formatCurrencyVnd(detail.originalPrice)}
+                    {(detail.maxPrice ?? detail.price) > detail.price ? (
+                      <div className="font-mono text-xs text-muted-foreground tabular-nums">
+                        {detail.variants?.length ?? 0} phân loại SKU
                       </div>
+                    ) : (
+                      detail.originalPrice > detail.price && (
+                        <div className="font-mono text-xs text-muted-foreground line-through tabular-nums">
+                          {formatCurrencyVnd(detail.originalPrice)}
+                        </div>
+                      )
                     )}
                   </div>
 
@@ -253,23 +261,65 @@ export function ProductDetailSheet({
                 {detail.variants && detail.variants.length > 0 && (
                   <div className="space-y-2">
                     <div className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-                      Phân loại / Biến thể ({detail.variants.length})
+                      Bảng phân loại & Tồn kho SKU ({detail.variants.length})
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {detail.variants.map((variant, idx) => (
-                        <span
-                          key={`${variant.label}-${idx}`}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-xs"
-                        >
-                          {variant.colorHex && (
-                            <span
-                              className="size-2.5 rounded-full border border-black/15"
-                              style={{ backgroundColor: variant.colorHex }}
-                            />
-                          )}
-                          <span>{variant.label}</span>
-                        </span>
-                      ))}
+                    <div className="overflow-hidden rounded-xl border border-border bg-background">
+                      <table className="w-full text-left text-xs">
+                        <thead className="border-b border-border bg-muted/50 text-[11px] font-medium text-muted-foreground">
+                          <tr>
+                            <th className="px-3 py-2">Mã SKU & Phân loại</th>
+                            <th className="px-3 py-2 text-right">Giá bán</th>
+                            <th className="px-3 py-2 text-right">Tồn kho</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {detail.variants.map((variant, idx) => (
+                            <tr key={variant.skuId ?? `${variant.label}-${idx}`}>
+                              <td className="px-3 py-2.5">
+                                <div className="flex items-center gap-1.5 font-medium text-foreground">
+                                  {variant.colorHex && (
+                                    <span
+                                      className="size-2.5 shrink-0 rounded-full border border-black/15"
+                                      style={{ backgroundColor: variant.colorHex }}
+                                    />
+                                  )}
+                                  <span>{variant.label}</span>
+                                </div>
+                                {variant.skuId && (
+                                  <div className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                                    {variant.skuId}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                                <div className="font-semibold text-foreground">
+                                  {formatCurrencyVnd(variant.price)}
+                                </div>
+                                {(variant.originalPrice ?? 0) > variant.price && (
+                                  <div className="text-[11px] text-muted-foreground line-through">
+                                    {formatCurrencyVnd(variant.originalPrice ?? 0)}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                                {variant.stock ? (
+                                  <>
+                                    <div className="font-semibold text-foreground">
+                                      Khả dụng {formatNumber(variant.stock.availableQuantity)}
+                                    </div>
+                                    <div className="text-[11px] text-muted-foreground">
+                                      Tổng {formatNumber(variant.stock.quantity)} · Giữ chỗ{" "}
+                                      {formatNumber(variant.stock.reserved)}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 )}

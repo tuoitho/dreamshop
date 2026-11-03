@@ -23,7 +23,7 @@ import {
 import { useAuth } from "@/hooks/use-auth"
 import { listAdminInventory, toClientError } from "@/lib/api"
 import { CATEGORY_PRESETS } from "@/lib/categories"
-import { formatDateTime, formatNumber } from "@/lib/format"
+import { formatCurrencyVnd, formatDateTime, formatNumber } from "@/lib/format"
 import type { AdminInventoryItem, AdminInventoryPage } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { StockDialog, type StockDialogTarget } from "./stock-dialog"
@@ -92,11 +92,11 @@ export function InventoryPage() {
     () => [
       {
         accessorKey: "name",
-        header: "Sản phẩm",
+        header: "Sản phẩm & Phân loại SKU",
         cell: ({ row }) => {
           const item = row.original
           return (
-            <div className="flex min-w-[230px] items-center gap-3">
+            <div className="flex min-w-[250px] items-center gap-3">
               {item.imageUrl ? (
                 <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-background p-0.5">
                   <img
@@ -110,13 +110,22 @@ export function InventoryPage() {
                   {item.emoji || "📦"}
                 </div>
               )}
-              <div className="min-w-0">
+              <div className="min-w-0 space-y-0.5">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span className="truncate font-medium text-foreground">{item.name}</span>
                   {item.deleted && <Badge variant="secondary">Đã ẩn</Badge>}
                 </div>
-                <div className="font-mono text-xs text-muted-foreground">
-                  {item.brand} · {item.productId}
+                <div className="flex flex-wrap items-center gap-1.5 text-xs text-foreground/85">
+                  {item.variantColorHex && (
+                    <span
+                      className="size-2.5 shrink-0 rounded-full border border-black/15"
+                      style={{ backgroundColor: item.variantColorHex }}
+                    />
+                  )}
+                  <span>{item.variantLabel}</span>
+                </div>
+                <div className="font-mono text-[11px] text-muted-foreground">
+                  {item.skuId} · {item.brand} · {item.productId}
                 </div>
               </div>
             </div>
@@ -130,6 +139,22 @@ export function InventoryPage() {
           <Badge variant="outline">
             {row.original.categoryName || row.original.categoryId}
           </Badge>
+        ),
+      },
+      {
+        accessorKey: "price",
+        header: () => <div className="text-right">Giá bán</div>,
+        cell: ({ row }) => (
+          <div className="text-right font-mono tabular-nums">
+            <div className="font-semibold text-foreground">
+              {formatCurrencyVnd(row.original.price)}
+            </div>
+            {(row.original.originalPrice ?? 0) > row.original.price && (
+              <div className="text-[11px] text-muted-foreground line-through">
+                {formatCurrencyVnd(row.original.originalPrice ?? 0)}
+              </div>
+            )}
+          </div>
         ),
       },
       {
@@ -195,11 +220,13 @@ export function InventoryPage() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      aria-label={`Điều chỉnh tồn ${item.name}`}
+                      aria-label={`Điều chỉnh tồn ${item.name} ${item.variantLabel}`.trim()}
                       onClick={() =>
                         setStockTarget({
+                          skuId: item.skuId,
                           productId: item.productId,
                           name: item.name,
+                          variantLabel: item.variantLabel,
                           brand: item.brand,
                           quantity: item.quantity,
                           reserved: item.reserved,
@@ -233,10 +260,11 @@ export function InventoryPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Kiểm kê & Điều phối tồn kho
+            Kiểm kê & Điều phối tồn kho SKU
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Theo dõi tồn thực tế, lượng giữ chỗ đơn hàng và cập nhật nguyên tử mức tồn kho.
+            Theo dõi tồn vật lý, lượng giữ chỗ đơn hàng và cập nhật nguyên tử theo từng mã SKU phân
+            loại.
           </p>
         </div>
 
@@ -281,7 +309,7 @@ export function InventoryPage() {
           </div>
         </div>
         <div className="rounded-xl border border-border bg-card px-5 py-4">
-          <div className="text-xs font-medium text-muted-foreground">Cảnh báo kho</div>
+          <div className="text-xs font-medium text-muted-foreground">Cảnh báo SKU</div>
           <div className="mt-1 font-mono text-2xl font-semibold text-red-700 tabular-nums">
             {formatNumber((summary?.lowStockCount ?? 0) + (summary?.outOfStockCount ?? 0))}
           </div>
@@ -296,7 +324,7 @@ export function InventoryPage() {
                 {
                   key: "all",
                   label: "Tất cả",
-                  count: summary?.totalTrackedProducts ?? 0,
+                  count: summary?.totalTrackedSkus ?? summary?.totalTrackedProducts ?? 0,
                 },
                 { key: "in_stock", label: "Còn hàng", count: summary?.inStockCount ?? 0 },
                 { key: "low_stock", label: "Sắp hết", count: summary?.lowStockCount ?? 0 },
@@ -360,7 +388,7 @@ export function InventoryPage() {
                 <Input
                   value={searchDraft}
                   onChange={(e) => setSearchDraft(e.target.value)}
-                  placeholder="Tìm sản phẩm hoặc mã…"
+                  placeholder="Tìm sản phẩm, phân loại hoặc SKU…"
                   className="w-48 pl-8 text-xs sm:w-56"
                 />
               </div>
@@ -408,7 +436,7 @@ export function InventoryPage() {
             </Table>
           ) : (
             <div className="px-6 py-12 text-center text-sm text-muted-foreground">
-              Không có bản ghi tồn kho phù hợp.
+              Không có bản ghi tồn kho SKU phù hợp.
             </div>
           )}
 
@@ -417,7 +445,7 @@ export function InventoryPage() {
               <span>
                 Trang <span className="font-mono font-semibold text-foreground">{data.page}</span> /{" "}
                 <span className="font-mono">{data.totalPages}</span> ({formatNumber(data.totalItems)}{" "}
-                mã hàng)
+                SKU)
               </span>
               <div className="flex items-center gap-1.5">
                 <Button

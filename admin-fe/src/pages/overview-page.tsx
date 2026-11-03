@@ -118,10 +118,10 @@ export function OverviewPage() {
         if (lowStockRes || outOfStockRes) {
           setInventoryData(lowStockRes ?? outOfStockRes)
           const combinedWatchlist: AdminInventoryItem[] = []
-          const seenIds = new Set<string>()
+          const seenSkuIds = new Set<string>()
           for (const item of [...(outOfStockRes?.items ?? []), ...(lowStockRes?.items ?? [])]) {
-            if (seenIds.has(item.productId)) continue
-            seenIds.add(item.productId)
+            if (seenSkuIds.has(item.skuId)) continue
+            seenSkuIds.add(item.skuId)
             combinedWatchlist.push(item)
           }
           setWatchlistItems(combinedWatchlist.slice(0, 8))
@@ -153,6 +153,7 @@ export function OverviewPage() {
   const roleCount = rbacItems.filter((item) => item.type === "ROLE").length
   const permissionCount = rbacItems.filter((item) => item.type === "PERMISSION").length
   const stockSummary = inventoryData?.summary
+  const trackedSkus = stockSummary?.totalTrackedSkus ?? stockSummary?.totalTrackedProducts ?? 0
 
   const stockChartData = stockSummary
     ? [
@@ -164,8 +165,10 @@ export function OverviewPage() {
 
   const openStockModal = (row: AdminInventoryItem) => {
     setStockTarget({
+      skuId: row.skuId,
       productId: row.productId,
       name: row.name,
+      variantLabel: row.variantLabel,
       brand: row.brand,
       quantity: row.quantity,
       reserved: row.reserved,
@@ -181,7 +184,8 @@ export function OverviewPage() {
             Tổng quan vận hành
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Giám sát trực tiếp sức khỏe danh mục, tồn kho khả dụng, tài khoản và phân quyền hệ thống.
+            Giám sát trực tiếp sức khỏe danh mục, tồn kho SKU khả dụng, tài khoản và phân quyền hệ
+            thống.
           </p>
         </div>
         <Button
@@ -366,11 +370,12 @@ export function OverviewPage() {
               <CardHeader>
                 <CardTitle>Tỷ trọng sức khỏe tồn kho</CardTitle>
                 <CardDescription>
-                  Theo dõi {formatNumber(stockSummary?.totalTrackedProducts ?? 0)} mã sản phẩm
+                  Theo dõi {formatNumber(trackedSkus)} mã SKU (
+                  {formatNumber(stockSummary?.totalTrackedProducts ?? 0)} sản phẩm)
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {stockSummary && stockSummary.totalTrackedProducts > 0 ? (
+                {stockSummary && trackedSkus > 0 ? (
                   <div className="grid items-center gap-4 sm:grid-cols-[170px_1fr]">
                     <div className="mx-auto h-40 w-40">
                       <ResponsiveContainer width="100%" height="100%">
@@ -394,9 +399,7 @@ export function OverviewPage() {
                     <div className="space-y-3">
                       {stockChartData.map((bucket) => {
                         const pct =
-                          stockSummary.totalTrackedProducts > 0
-                            ? Math.round((bucket.value / stockSummary.totalTrackedProducts) * 100)
-                            : 0
+                          trackedSkus > 0 ? Math.round((bucket.value / trackedSkus) * 100) : 0
                         return (
                           <div key={bucket.name} className="space-y-1">
                             <div className="flex items-center justify-between text-xs">
@@ -442,10 +445,10 @@ export function OverviewPage() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <AlertTriangle className="size-4 text-amber-600" />
-                Danh sách cảnh báo tồn kho cần nhập bổ sung
+                Danh sách cảnh báo SKU cần nhập bổ sung
               </CardTitle>
               <CardDescription>
-                Các mã hàng đã hết (0) hoặc sắp hết (từ 1 đến 5 đơn vị khả dụng) cần ưu tiên xử lý
+                Các SKU đã hết (0) hoặc sắp hết (từ 1 đến 5 đơn vị khả dụng) cần ưu tiên xử lý
               </CardDescription>
             </div>
             <Button asChild variant="outline" size="sm">
@@ -460,7 +463,7 @@ export function OverviewPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Sản phẩm</TableHead>
+                    <TableHead>Sản phẩm & Phân loại</TableHead>
                     <TableHead>Danh mục</TableHead>
                     <TableHead className="text-right">Tổng tồn</TableHead>
                     <TableHead className="text-right">Giữ chỗ</TableHead>
@@ -470,11 +473,20 @@ export function OverviewPage() {
                 </TableHeader>
                 <TableBody>
                   {watchlistItems.map((row) => (
-                    <TableRow key={row.productId}>
+                    <TableRow key={row.skuId}>
                       <TableCell>
                         <div className="font-medium text-foreground">{row.name}</div>
-                        <div className="font-mono text-xs text-muted-foreground">
-                          {row.productId}
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs text-foreground/85">
+                          {row.variantColorHex && (
+                            <span
+                              className="size-2.5 shrink-0 rounded-full border border-black/15"
+                              style={{ backgroundColor: row.variantColorHex }}
+                            />
+                          )}
+                          <span>{row.variantLabel}</span>
+                        </div>
+                        <div className="font-mono text-[11px] text-muted-foreground">
+                          {row.skuId} · {row.productId}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -502,6 +514,7 @@ export function OverviewPage() {
                             type="button"
                             variant="outline"
                             size="sm"
+                            aria-label={`Điều chỉnh tồn ${row.name} ${row.variantLabel}`.trim()}
                             onClick={() => openStockModal(row)}
                           >
                             <SlidersHorizontal className="size-3.5" />
@@ -515,7 +528,7 @@ export function OverviewPage() {
               </Table>
             ) : (
               <div className="px-6 py-10 text-center text-sm text-muted-foreground">
-                Không có mã hàng nào đang hết hàng hoặc ở ngưỡng cảnh báo sắp hết.
+                Không có SKU nào đang hết hàng hoặc ở ngưỡng cảnh báo sắp hết.
               </div>
             )}
           </CardContent>

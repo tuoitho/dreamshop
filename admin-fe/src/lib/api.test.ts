@@ -2,13 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { AxiosHeaders, type InternalAxiosRequestConfig } from "axios"
 import {
   ApiClientError,
+  adjustSkuStock,
   fetchCurrentUser,
   fetchMyPermissions,
   http,
   listAdminInventory,
   listAdminProducts,
   refreshHttp,
-  setProductStock,
+  setSkuStock,
 } from "./api"
 import { clearAccessToken, setAccessToken } from "./auth-session"
 
@@ -149,6 +150,7 @@ describe("admin api client", () => {
             totalPages: 0,
             summary: {
               totalTrackedProducts: 0,
+              totalTrackedSkus: 0,
               inStockCount: 0,
               lowStockCount: 0,
               outOfStockCount: 0,
@@ -193,11 +195,58 @@ describe("admin api client", () => {
       })
     }
 
-    await expect(setProductStock("dt-1", 2)).rejects.toMatchObject({
+    await expect(setSkuStock("dt-1-v1", "dt-1", 2)).rejects.toMatchObject({
       name: "ApiClientError",
       status: 409,
       code: "STOCK_BELOW_RESERVED",
       traceId: "trace-abc-123",
     } satisfies Partial<ApiClientError>)
+  })
+
+  it("sends SKU-scoped PUT and POST /adjust requests with productId in the request body", async () => {
+    setAccessToken("valid-token")
+    const calls: Array<{ method?: string; url?: string; body: unknown }> = []
+
+    http.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
+      calls.push({
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        body: typeof config.data === "string" ? JSON.parse(config.data) : config.data,
+      })
+      return {
+        data: {
+          data: {
+            skuId: "dt-1-v1",
+            productId: "dt-1",
+            quantity: config.url?.endsWith("/adjust") ? 22 : 25,
+            reserved: 2,
+            availableQuantity: config.url?.endsWith("/adjust") ? 20 : 23,
+          },
+          message: "Stock updated.",
+        },
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        config,
+      }
+    }
+
+    const setRes = await setSkuStock("dt-1-v1", "dt-1", 25)
+    const adjustRes = await adjustSkuStock("dt-1-v1", "dt-1", -3)
+
+    expect(calls).toEqual([
+      {
+        method: "PUT",
+        url: "/admin/inventory/skus/dt-1-v1",
+        body: { productId: "dt-1", quantity: 25 },
+      },
+      {
+        method: "POST",
+        url: "/admin/inventory/skus/dt-1-v1/adjust",
+        body: { productId: "dt-1", delta: -3 },
+      },
+    ])
+    expect(setRes).toMatchObject({ skuId: "dt-1-v1", productId: "dt-1", quantity: 25 })
+    expect(adjustRes).toMatchObject({ skuId: "dt-1-v1", productId: "dt-1", quantity: 22 })
   })
 })

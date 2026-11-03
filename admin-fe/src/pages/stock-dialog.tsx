@@ -12,12 +12,14 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { adjustProductStock, setProductStock, toClientError } from "@/lib/api"
+import { adjustSkuStock, setSkuStock, toClientError } from "@/lib/api"
 import { formatNumber } from "@/lib/format"
 
 export interface StockDialogTarget {
+  skuId: string
   productId: string
   name: string
+  variantLabel?: string
   brand?: string
   quantity: number
   reserved: number
@@ -71,7 +73,7 @@ export function StockDialog({ open, onOpenChange, item, onSaved }: StockDialogPr
       }
       setSubmitting(true)
       try {
-        await setProductStock(item.productId, parsedSetQty)
+        await setSkuStock(item.skuId, item.productId, parsedSetQty)
         onSaved()
         onOpenChange(false)
       } catch (error) {
@@ -89,7 +91,7 @@ export function StockDialog({ open, onOpenChange, item, onSaved }: StockDialogPr
 
     setSubmitting(true)
     try {
-      await adjustProductStock(item.productId, parsedDelta)
+      await adjustSkuStock(item.skuId, item.productId, parsedDelta)
       onSaved()
       onOpenChange(false)
     } catch (error) {
@@ -105,7 +107,9 @@ export function StockDialog({ open, onOpenChange, item, onSaved }: StockDialogPr
         <DialogHeader>
           <DialogTitle>Điều phối tồn kho</DialogTitle>
           <DialogDescription>
-            {item.name} · <span className="font-mono">{item.productId}</span>
+            {item.name}
+            {item.variantLabel ? ` · ${item.variantLabel}` : ""} · SKU{" "}
+            <span className="font-mono">{item.skuId}</span>
           </DialogDescription>
         </DialogHeader>
 

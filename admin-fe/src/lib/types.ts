@@ -30,16 +30,28 @@ export interface CurrentUser {
   roles: string[]
 }
 
-export interface ProductVariant {
-  label: string
-  colorHex?: string
-}
-
 export interface AdminStockSnapshot {
   quantity: number
   reserved: number
   availableQuantity: number
   updatedAt?: string
+}
+
+export interface ProductVariant {
+  skuId?: string
+  label: string
+  colorHex?: string
+  price: number
+  originalPrice?: number
+  stock?: AdminStockSnapshot | null
+}
+
+export interface AdminProductVariantPayload {
+  skuId?: string
+  label: string
+  colorHex?: string
+  price: number
+  originalPrice?: number
 }
 
 export interface AdminCategoryMetric {
@@ -56,6 +68,7 @@ export interface AdminProductSummary {
   categoryName: string
   price: number
   originalPrice: number
+  maxPrice?: number
   images: string[]
   rating: number
   reviewCount: number
@@ -95,6 +108,7 @@ export interface AdminProductDetail {
   categoryName: string
   price: number
   originalPrice: number
+  maxPrice?: number
   images: string[]
   videos: string[]
   rating: number
@@ -119,8 +133,6 @@ export interface AdminProductMutationPayload {
   brand: string
   categoryId: string
   categoryName: string
-  price: number
-  originalPrice: number
   images: string[]
   videos: string[]
   isNew: boolean
@@ -128,7 +140,7 @@ export interface AdminProductMutationPayload {
   featured: boolean
   emoji: string
   imageHue: number[]
-  variants: ProductVariant[]
+  variants: AdminProductVariantPayload[]
   details: string[]
 }
 
@@ -161,11 +173,16 @@ export interface MediaPresignData {
 export type InventoryStockBucket = "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK"
 
 export interface AdminInventoryItem {
+  skuId: string
   productId: string
   name: string
+  variantLabel: string
+  variantColorHex?: string
   brand: string
   categoryId: string
   categoryName: string
+  price: number
+  originalPrice?: number
   imageUrl: string
   emoji: string
   imageHue: number[]
@@ -179,6 +196,7 @@ export interface AdminInventoryItem {
 
 export interface AdminInventorySummary {
   totalTrackedProducts: number
+  totalTrackedSkus: number
   inStockCount: number
   lowStockCount: number
   outOfStockCount: number
@@ -206,6 +224,7 @@ export interface ListAdminInventoryParams {
 }
 
 export interface StockMutationResult {
+  skuId: string
   productId: string
   quantity: number
   reserved: number

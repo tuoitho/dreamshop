@@ -197,18 +197,29 @@ export function ProductsPage() {
       {
         accessorKey: "price",
         header: () => <div className="text-right">Giá bán</div>,
-        cell: ({ row }) => (
-          <div className="text-right">
-            <div className="font-mono font-semibold text-foreground tabular-nums">
-              {formatCurrencyVnd(row.original.price)}
-            </div>
-            {row.original.originalPrice > row.original.price && (
-              <div className="font-mono text-[11px] text-muted-foreground line-through tabular-nums">
-                {formatCurrencyVnd(row.original.originalPrice)}
+        cell: ({ row }) => {
+          const item = row.original
+          const maxPrice = item.maxPrice ?? item.price
+          const hasRange = maxPrice > item.price
+          return (
+            <div className="text-right">
+              <div className="font-mono font-semibold text-foreground tabular-nums">
+                {hasRange ? `Từ ${formatCurrencyVnd(item.price)}` : formatCurrencyVnd(item.price)}
               </div>
-            )}
-          </div>
-        ),
+              {hasRange ? (
+                <div className="font-mono text-[11px] text-muted-foreground tabular-nums">
+                  đến {formatCurrencyVnd(maxPrice)}
+                </div>
+              ) : (
+                item.originalPrice > item.price && (
+                  <div className="font-mono text-[11px] text-muted-foreground line-through tabular-nums">
+                    {formatCurrencyVnd(item.originalPrice)}
+                  </div>
+                )
+              )}
+            </div>
+          )
+        },
       },
       {
         id: "stock",
