@@ -92,13 +92,13 @@ func (s *Server) ListInventoryCatalogItems(ctx context.Context, req *catalogv1.L
 	return resp, nil
 }
 
-// GetAdminProduct returns full product detail (including soft-deleted items) after verifying product.view.
+// GetAdminProduct returns full product detail (including soft-deleted items) after verifying product.view, product.update, or inventory.update.
 func (s *Server) GetAdminProduct(ctx context.Context, req *catalogv1.GetAdminProductRequest) (*catalogv1.GetAdminProductResponse, error) {
 	id := strings.TrimSpace(req.GetId())
 	if id == "" {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
-	if err := s.authorize(ctx, req.GetUserId(), productViewPermission); err != nil {
+	if err := s.authorizeAny(ctx, req.GetUserId(), productViewPermission, productUpdatePermission, inventoryUpdatePermission); err != nil {
 		return nil, err
 	}
 

@@ -45,7 +45,7 @@ behavior as domain/contract semantics rather than transport defaults.
   `GRPC_ADDR`, `DATABASE_URL`, `IDENTITY_GRPC_ADDR`, `IDENTITY_GRPC_TIMEOUT`,
   `SEED_DEMO_DATA`).
 - `internal/authorization/`: private gRPC client to Identity authorization (`inventory.view`, `inventory.update`, plus `product.update` or `inventory.update` for `DeleteStocks`).
-- `internal/domain/`: SKU-keyed stock (`SkuID`, `ProductID`) and availability domain rules (`Quantity - Reserved`, `ErrStockBelowReserved`, `VariantReservedError`).
+- `internal/domain/`: SKU-keyed stock (`SkuID`, `ProductID`) and availability domain rules (`Quantity - Reserved`, `ErrStockBelowReserved`, `VariantHasReservedStockError`).
 - `internal/store/`: embedded SQL migrations (`000001_create_stock.up.sql`, `000002_refactor_stock_to_sku.up.sql`),
   seed data, and PostgreSQL store adapter.
 - `internal/grpc/`: `InventoryServiceServer` (`GetAvailability`, `BatchGetAvailability`, `GetStock`, `BatchGetStock`, `ListStocks`, `SetStock`, `AdjustStock`, `DeleteStocks`) gRPC handler.

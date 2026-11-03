@@ -75,9 +75,6 @@ func TestVerifyServiceJavaAndFrontendAndContracts(t *testing.T) {
 	execMock := func(dir, name string, args ...string) (string, int) {
 		cmd := name + " " + strings.Join(args, " ")
 		recorded = append(recorded, cmd)
-		if cmd == "git rev-parse --git-common-dir" {
-			return ".git\n", 0
-		}
 		return "", 0
 	}
 
@@ -91,8 +88,11 @@ func TestVerifyServiceJavaAndFrontendAndContracts(t *testing.T) {
 	if code := runWithDeps([]string{"-root", root, "-service", "admin-fe"}, &out, "linux", execMock); code != 0 {
 		t.Fatalf("admin-fe failed: %d; out:\n%s", code, out.String())
 	}
-	if code := runWithDeps([]string{"-root", root, "-service", "contracts", "-base-branch", "develop"}, &out, "linux", execMock); code != 0 {
+	if code := runWithDeps([]string{"-root", root, "-service", "contracts"}, &out, "linux", execMock); code != 0 {
 		t.Fatalf("contracts failed: %d", code)
+	}
+	if code := runWithDeps([]string{"-root", root, "-service", "contracts", "-base-branch", "develop"}, &out, "linux", execMock); code == 0 {
+		t.Fatal("expected removed -base-branch flag to fail flag parsing")
 	}
 
 	want := []string{

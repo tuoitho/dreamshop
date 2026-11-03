@@ -312,13 +312,18 @@ func (h *AdminInventoryHandler) adjustStock(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *AdminInventoryHandler) verifyProductOwnsSku(w http.ResponseWriter, r *http.Request, productID, skuID string) bool {
-	product, err := h.catalog.GetProduct(r.Context(), productID)
+	product, err := h.catalog.GetAdminProduct(r.Context(), callerID(r), productID)
 	if err != nil {
-		if errors.Is(err, catalog.ErrProductNotFound) {
+		switch {
+		case errors.Is(err, catalog.ErrPermissionDenied):
+			writeError(w, r, http.StatusForbidden, "FORBIDDEN", "You do not have permission to update inventory.", nil)
+		case errors.Is(err, catalog.ErrAuthorizationUnavailable):
+			writeError(w, r, http.StatusServiceUnavailable, "AUTHORIZATION_SERVICE_UNAVAILABLE", "Authorization service is unavailable.", nil)
+		case errors.Is(err, catalog.ErrProductNotFound):
 			writeError(w, r, http.StatusNotFound, "PRODUCT_NOT_FOUND", "Product not found.", nil)
-			return false
+		default:
+			writeError(w, r, http.StatusBadGateway, "CATALOG_UNAVAILABLE", "Catalog service is unavailable.", nil)
 		}
-		writeError(w, r, http.StatusBadGateway, "CATALOG_UNAVAILABLE", "Catalog service is unavailable.", nil)
 		return false
 	}
 	for _, v := range product.GetVariants() {
@@ -339,7 +344,7 @@ func (h *AdminInventoryHandler) writeInventoryError(w http.ResponseWriter, r *ht
 	case errors.Is(err, inventory.ErrStockBelowReserved):
 		writeError(w, r, http.StatusConflict, "STOCK_BELOW_RESERVED", "Physical stock quantity cannot be less than currently reserved units.", nil)
 	case status.Code(err) == codes.InvalidArgument:
-		writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", status.Convert(err).Message(), nil)
+		writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", normalizeUpstreamInvalidArgument(status.Convert(err).Message()), nil)
 	default:
 		writeError(w, r, http.StatusBadGateway, "INVENTORY_UNAVAILABLE", "Inventory service is unavailable.", nil)
 	}

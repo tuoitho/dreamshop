@@ -13,7 +13,7 @@ const addItem = `-- name: AddItem :exec
 INSERT INTO cart_items (cart_id, product_id, sku_id, quantity)
 VALUES ($1::uuid, $2, $3, $4)
 ON CONFLICT (cart_id, sku_id)
-DO UPDATE SET quantity = cart_items.quantity + EXCLUDED.quantity, updated_at = now()
+DO UPDATE SET product_id = EXCLUDED.product_id, quantity = cart_items.quantity + EXCLUDED.quantity, updated_at = now()
 `
 
 type AddItemParams struct {

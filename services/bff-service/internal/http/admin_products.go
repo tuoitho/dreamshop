@@ -505,10 +505,30 @@ func (h *AdminProductsHandler) writeAdminCatalogError(w http.ResponseWriter, r *
 	case errors.Is(err, catalog.ErrMediaAlreadyAttached):
 		writeError(w, r, http.StatusConflict, "MEDIA_ALREADY_ATTACHED", "One or more media files are already attached to another product.", nil)
 	case status.Code(err) == codes.InvalidArgument:
-		writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", status.Convert(err).Message(), nil)
+		writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", normalizeUpstreamInvalidArgument(status.Convert(err).Message()), nil)
 	default:
 		writeError(w, r, http.StatusBadGateway, "CATALOG_UNAVAILABLE", "Catalog service is unavailable.", nil)
 	}
+}
+
+var upstreamFieldReplacer = strings.NewReplacer(
+	"short_description", "shortDescription",
+	"original_price", "originalPrice",
+	"category_name", "categoryName",
+	"category_id", "categoryId",
+	"content_type", "contentType",
+	"image_hue", "imageHue",
+	"size_bytes", "sizeBytes",
+	"color_hex", "colorHex",
+	"product_id", "productId",
+	"user_id", "userId",
+	"sku_ids", "skuIds",
+	"sku_id", "skuId",
+	"is_new", "isNew",
+)
+
+func normalizeUpstreamInvalidArgument(msg string) string {
+	return upstreamFieldReplacer.Replace(msg)
 }
 
 func (h *AdminProductsHandler) writeVariantRemovalStockError(w http.ResponseWriter, r *http.Request, err error) {

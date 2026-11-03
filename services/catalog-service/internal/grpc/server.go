@@ -27,6 +27,7 @@ const (
 	productCreatePermission        = "product.create"
 	productUpdatePermission        = "product.update"
 	inventoryViewPermission        = "inventory.view"
+	inventoryUpdatePermission      = "inventory.update"
 	reasonNotFound                 = "PRODUCT_NOT_FOUND"
 	reasonProductExists            = "PRODUCT_ID_EXISTS"
 	reasonSkuExists                = "SKU_ALREADY_EXISTS"

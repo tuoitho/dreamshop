@@ -306,3 +306,26 @@ func TestCreateProductMediaUploadAuthorizationAndStorageHandling(t *testing.T) {
 	})
 	assertErrorReason(t, err, codes.PermissionDenied, "PRODUCT_PERMISSION_DENIED")
 }
+
+func TestGetAdminProductAllowsUpdateOrInventoryWriteAndDeniesCustomer(t *testing.T) {
+	repo := &memoryRepo{products: demoProducts()}
+	ctx := context.Background()
+
+	for _, perm := range []string{"product.view", "product.update", "inventory.update"} {
+		client := newAdminTestClient(t, repo, &mapAuthorization{perms: map[string]bool{perm: true}})
+		resp, err := client.GetAdminProduct(ctx, &catalogv1.GetAdminProductRequest{
+			UserId: "operator-1",
+			Id:     "dt-1",
+		})
+		if err != nil || resp.GetProduct().GetId() != "dt-1" {
+			t.Fatalf("GetAdminProduct with %s failed: err=%v resp=%+v", perm, err, resp)
+		}
+	}
+
+	customerClient := newAdminTestClient(t, repo, &mapAuthorization{perms: map[string]bool{}})
+	_, err := customerClient.GetAdminProduct(ctx, &catalogv1.GetAdminProductRequest{
+		UserId: "customer-1",
+		Id:     "nonexistent-product",
+	})
+	assertErrorReason(t, err, codes.PermissionDenied, "PRODUCT_PERMISSION_DENIED")
+}

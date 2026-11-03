@@ -321,7 +321,9 @@ export default function ProductDetailPage() {
     : 1
 
   const displayPrice = selectedVariant?.price ?? product.price
-  const displayOriginalPrice = selectedVariant?.originalPrice ?? product.originalPrice
+  const displayOriginalPrice = selectedVariant
+    ? (selectedVariant.originalPrice ?? 0)
+    : product.originalPrice
   const discount =
     displayOriginalPrice > displayPrice
       ? Math.round(((displayOriginalPrice - displayPrice) / displayOriginalPrice) * 100)

@@ -47,11 +47,9 @@ func defaultExec(out io.Writer) execFunc {
 func runWithDeps(args []string, out io.Writer, goos string, runCmd execFunc) int {
 	fs := flag.NewFlagSet("verify-service", flag.ContinueOnError)
 	fs.SetOutput(out)
-	var service, baseBranch, root string
+	var service, root string
 	fs.StringVar(&service, "service", "", "surface to verify")
 	fs.StringVar(&service, "Service", "", "surface to verify")
-	fs.StringVar(&baseBranch, "base-branch", "main", "base branch for buf breaking")
-	fs.StringVar(&baseBranch, "BaseBranch", "main", "base branch for buf breaking")
 	fs.StringVar(&root, "root", "", "repository root directory")
 	if err := fs.Parse(args); err != nil {
 		return 1

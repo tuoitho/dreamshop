@@ -40,7 +40,7 @@
   - Modify: `services/identity-service/src/test/java/com/ecommerce/identity/user/persistence/IdentityDatabaseMigrationTest.java`, `services/identity-service/src/test/java/com/ecommerce/identity/rbac/persistence/RbacPersistenceTest.java`
 - **Catalog Product Version (`Task 3`):**
   - Create: `services/catalog-service/internal/store/migrations/000006_add_product_version.up.sql`
-  - Modify: `services/catalog-service/internal/domain/product.go`, `services/catalog-service/internal/store/store.go`, `services/catalog-service/internal/store/admin_store.go`, `services/catalog-service/internal/grpc/server.go` (+ adjacent `*_test.go`)
+  - Modify: `services/catalog-service/internal/domain/product.go`, `services/catalog-service/internal/domain/admin.go`, `services/catalog-service/internal/store/store.go`, `services/catalog-service/internal/store/admin.go`, `services/catalog-service/internal/grpc/server.go`, `services/catalog-service/internal/grpc/admin.go` (+ adjacent `*_test.go`)
 - **Inventory Reservations, Tombstone & Event Consumer (`Task 4`):**
   - Create: `services/inventory-service/internal/store/migrations/000003_create_stock_reservations.up.sql`, `services/inventory-service/internal/store/reservation_store.go`, `services/inventory-service/internal/store/reservation_store_test.go`, `services/inventory-service/internal/events/consumer.go`, `services/inventory-service/internal/events/consumer_test.go`
   - Modify: `services/inventory-service/go.mod`, `services/inventory-service/internal/config/config.go`, `services/inventory-service/internal/domain/stock.go`, `services/inventory-service/internal/grpc/server.go`, `services/inventory-service/internal/grpc/server_test.go`, `services/inventory-service/cmd/server/main.go`
@@ -175,16 +175,18 @@
 **Files:**
 - Create: `services/catalog-service/internal/store/migrations/000006_add_product_version.up.sql`
 - Modify: `services/catalog-service/internal/domain/product.go`
+- Modify: `services/catalog-service/internal/domain/admin.go`
 - Modify: `services/catalog-service/internal/store/store.go`
-- Modify: `services/catalog-service/internal/store/admin_store.go`
+- Modify: `services/catalog-service/internal/store/admin.go`
 - Modify: `services/catalog-service/internal/store/store_test.go`
 - Modify: `services/catalog-service/internal/grpc/server.go`
+- Modify: `services/catalog-service/internal/grpc/admin.go`
 - Modify: `services/catalog-service/internal/grpc/server_test.go`
 
 **Interfaces:**
 - Consumes: `catalogv1` `version` fields from Task 1.
 - Produces:
-  - `domain.Product.Version int64`, `domain.ProductSummary.Version int64`, `domain.AdminProductSummary.Version int64` (initialized to `1` on insert, incremented `version = version + 1` on `UpdateProduct` and `SoftDelete`).
+  - `domain.Product.Version int64`, `domain.Summary.Version int64`, `domain.AdminSummary.Version int64` (initialized to `1` on insert, incremented `version = version + 1` on `UpdateProduct` and `SoftDelete`).
   - `CatalogService.GetProduct`, `GetAdminProduct`, `CreateProduct`, `UpdateProduct`, `SearchProducts`, `ListAdminProducts` populate `version`.
 
 - [ ] **Step 1: Write failing store & gRPC tests for `version` lifecycle**
@@ -197,9 +199,9 @@
 
 - [ ] **Step 3: Add `000006_add_product_version.up.sql` and wire `version` across domain, store, and gRPC**
   - Migration SQL: `ALTER TABLE products ADD COLUMN version bigint NOT NULL DEFAULT 1;`
-  - Add `Version int64` to `domain.Product`, `domain.ProductSummary`, `domain.AdminProductSummary` (default `1` in in-memory seed/fixtures if `0`).
-  - Include `version` in `productColumns`, `Search` `SELECT`, and `ListAdmin` `SELECT`; increment `version = version + 1` inside `SoftDelete` (`store.go`) and `UpdateProduct` (`admin_store.go`).
-  - Map `Version` in `internal/grpc/server.go` (`toProtoProduct`, `toProtoSummary`, `toProtoAdminSummary`).
+  - Add `Version int64` to `domain.Product`, `domain.Summary`, `domain.AdminSummary` (default `1` in in-memory seed/fixtures if `0`).
+  - Include `version` in `productColumns`, `Search` `SELECT`, and `ListAdmin` `SELECT`; increment `version = version + 1` inside `SoftDelete` (`store.go`) and `UpdateProduct` (`admin.go`).
+  - Map `Version` in `internal/grpc/server.go` (`productToProto`, `summaryToProto`) and `internal/grpc/admin.go` (`adminSummaryToProto`).
 
 - [ ] **Step 4: Run `catalog-service` verification gate**
   - Run: `go run ./scripts/verify-service -service catalog-service`

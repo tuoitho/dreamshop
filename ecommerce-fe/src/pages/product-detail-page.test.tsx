@@ -915,4 +915,40 @@ describe("ProductDetailPage", () => {
       })
     }
   })
+
+  it("does not inherit representative product originalPrice when selecting an undiscounted variant without originalPrice", async () => {
+    vi.mocked(getProduct).mockResolvedValueOnce({
+      ...DETAIL,
+      price: 18990000,
+      originalPrice: 21990000,
+      maxPrice: 19990000,
+      variants: [
+        {
+          skuId: "dt-1-v1",
+          label: "Đen",
+          colorHex: "#111827",
+          price: 18990000,
+          originalPrice: 21990000,
+          availableQuantity: 5,
+          status: "AVAILABLE",
+        },
+        {
+          skuId: "dt-1-v2",
+          label: "Trắng",
+          colorHex: "#f3f4f6",
+          price: 19990000,
+          originalPrice: undefined,
+          availableQuantity: 5,
+          status: "AVAILABLE",
+        },
+      ],
+    })
+
+    renderDetail()
+    expect(await screen.findByText("-14%")).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole("button", { name: /Trắng/i }))
+    expect(screen.queryByText("-9%")).not.toBeInTheDocument()
+    expect(screen.queryByText(/21\.990\.000/)).not.toBeInTheDocument()
+  })
 })

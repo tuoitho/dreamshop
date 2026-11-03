@@ -610,7 +610,7 @@ func TestAdminProductsUpdateBlocksReservedVariantAndPreservesStockOnValidationFa
 		cat := &fakeCatalogClient{
 			getAdminProductFn: existingProduct,
 			updateProductFn: func(context.Context, *catalogv1.UpdateProductRequest) (*catalogv1.GetProductResponse, error) {
-				return nil, status.Error(codes.InvalidArgument, "duplicate variant labels")
+				return nil, status.Error(codes.InvalidArgument, "variants.sku_id: duplicate variant sku_id")
 			},
 		}
 		var dryRuns []bool
@@ -628,8 +628,9 @@ func TestAdminProductsUpdateBlocksReservedVariantAndPreservesStockOnValidationFa
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 
-		if rec.Code != http.StatusBadRequest {
-			t.Fatalf("expected 400 on catalog InvalidArgument, got %d %s", rec.Code, rec.Body.String())
+		body := decodeBody(t, rec)
+		if rec.Code != http.StatusBadRequest || body["message"] != "variants.skuId: duplicate variant skuId" {
+			t.Fatalf("expected 400 with camelCase message on catalog InvalidArgument, got %d %s", rec.Code, rec.Body.String())
 		}
 		if len(dryRuns) != 1 || !dryRuns[0] {
 			t.Fatalf("DeleteStocks(dryRun=false) must not run when UpdateProduct fails; calls=%v", dryRuns)

@@ -24,4 +24,7 @@ Previously, `ProductVariant` in `catalog-service` only carried display labels (`
 ## Consequences
 
 - **Benefits**: Independent pricing and physical/reserved stock per variant, single-RPC batch availability lookups per page/cart, preserved SKU links across product edits, and `O(1)` catalog search filtering without runtime `JOIN`s.
-- **Costs & trade-offs**: Removing a variant from a product requires a two-step coordination in `bff-service` (`DeleteStocks(dry_run=true)` pre-check -> `CatalogService.UpdateProduct` -> `DeleteStocks(dry_run=false)` cleanup) rather than a foreign-key cascade across separate service databases.
+- **Costs & trade-offs**:
+  - Removing a variant from a product requires a two-step coordination in `bff-service` (`DeleteStocks(dry_run=true)` pre-check -> `CatalogService.UpdateProduct` -> `DeleteStocks(dry_run=false)` cleanup) rather than a foreign-key cascade across separate service databases.
+  - Because this pre-production cutover removes legacy `product_id` inventory RPCs and reuses `v1` protobuf wire tags with `sku_id` types, mixed pre-cutover and post-cutover `v1` instances cannot run side-by-side; `catalog-service`, `inventory-service`, `cart-service`, `bff-service`, `ecommerce-fe`, and `admin-fe` must deploy together in a single coordinated cutover alongside their database migrations.
+  - `buf breaking` was removed during this cutover branch because `main` still carried the pre-SKU `v1` schemas; once this pure-SKU baseline lands on `main`, subsequent additive changes (such as `ADR-014` Order Checkout Saga) must preserve wire compatibility and may re-enable `buf breaking` against the updated `main` baseline.

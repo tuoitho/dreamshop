@@ -11,6 +11,8 @@ import (
 	"ecommerce.local/bff-service/internal/inventory"
 	catalogv1 "ecommerce.local/contracts/go/catalog/v1"
 	inventoryv1 "ecommerce.local/contracts/go/inventory/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestAdminInventoryListMergeSummaryAndMutations(t *testing.T) {
@@ -40,7 +42,14 @@ func TestAdminInventoryListMergeSummaryAndMutations(t *testing.T) {
 				},
 			}, nil
 		},
-		getProductFn: func(_ context.Context, id string) (*catalogv1.GetProductResponse, error) {
+		getProductFn: func(_ context.Context, _ string) (*catalogv1.GetProductResponse, error) {
+			t.Fatal("public GetProduct must not be called on admin inventory mutations")
+			return nil, nil
+		},
+		getAdminProductFn: func(_ context.Context, userID, id string) (*catalogv1.GetProductResponse, error) {
+			if userID == "" {
+				t.Fatal("expected caller userID on GetAdminProduct")
+			}
 			if id == "missing" {
 				return nil, catalog.ErrProductNotFound
 			}
@@ -207,5 +216,60 @@ func TestAdminInventoryListFiltersVariantBySkuQuery(t *testing.T) {
 	brandItems := decodeBody(t, brandRec)["data"].(map[string]any)["items"].([]any)
 	if len(brandItems) != 2 {
 		t.Fatalf("expected ?q=Apex to return all 2 variants of Apex, got %+v", brandItems)
+	}
+}
+
+func TestAdminInventoryMutationsFailClosedBeforeProductProbingAndNormalizeErrors(t *testing.T) {
+	cat := &fakeCatalogClient{
+		getAdminProductFn: func(_ context.Context, userID, _ string) (*catalogv1.GetProductResponse, error) {
+			if userID == "customer-1" {
+				return nil, catalog.ErrPermissionDenied
+			}
+			if userID == "auth-down" {
+				return nil, catalog.ErrAuthorizationUnavailable
+			}
+			return &catalogv1.GetProductResponse{
+				Id: "dt-1",
+				Variants: []*catalogv1.ProductVariant{
+					{SkuId: "dt-1-v1", Label: "Đen", Price: money(18990000)},
+				},
+			}, nil
+		},
+	}
+	inv := &fakeInventoryClient{
+		setStockFn: func(_ context.Context, _, _, _ string, _ int32) (*inventoryv1.StockItem, error) {
+			return nil, status.Error(codes.InvalidArgument, "sku_id and product_id are required")
+		},
+	}
+
+	mux := http.NewServeMux()
+	NewAdminInventoryHandler(cat, inv).Register(mux)
+
+	// Unprivileged customer probing a missing product gets 403 FORBIDDEN, never 404 PRODUCT_NOT_FOUND
+	custReq := httptest.NewRequest(http.MethodPut, "/api/v1/admin/inventory/skus/dt-1-v1", strings.NewReader(`{"productId":"missing","quantity":10}`))
+	custReq.Header.Set("X-User-Id", "customer-1")
+	custRec := httptest.NewRecorder()
+	mux.ServeHTTP(custRec, custReq)
+	if custRec.Code != http.StatusForbidden || decodeBody(t, custRec)["code"] != "FORBIDDEN" {
+		t.Fatalf("expected 403 FORBIDDEN for unprivileged caller, got %d %s", custRec.Code, custRec.Body.String())
+	}
+
+	// Authorization unavailable fails closed with 503 AUTHORIZATION_SERVICE_UNAVAILABLE
+	authDownReq := httptest.NewRequest(http.MethodPost, "/api/v1/admin/inventory/skus/dt-1-v1/adjust", strings.NewReader(`{"productId":"missing","delta":2}`))
+	authDownReq.Header.Set("X-User-Id", "auth-down")
+	authDownRec := httptest.NewRecorder()
+	mux.ServeHTTP(authDownRec, authDownReq)
+	if authDownRec.Code != http.StatusServiceUnavailable || decodeBody(t, authDownRec)["code"] != "AUTHORIZATION_SERVICE_UNAVAILABLE" {
+		t.Fatalf("expected 503 AUTHORIZATION_SERVICE_UNAVAILABLE, got %d %s", authDownRec.Code, authDownRec.Body.String())
+	}
+
+	// Upstream snake_case InvalidArgument identifiers are normalized to camelCase
+	invErrReq := httptest.NewRequest(http.MethodPut, "/api/v1/admin/inventory/skus/dt-1-v1", strings.NewReader(`{"productId":"dt-1","quantity":10}`))
+	invErrReq.Header.Set("X-User-Id", "admin-1")
+	invErrRec := httptest.NewRecorder()
+	mux.ServeHTTP(invErrRec, invErrReq)
+	invErrBody := decodeBody(t, invErrRec)
+	if invErrRec.Code != http.StatusBadRequest || invErrBody["message"] != "skuId and productId are required" {
+		t.Fatalf("expected camelCase INVALID_REQUEST message, got %d %s", invErrRec.Code, invErrRec.Body.String())
 	}
 }

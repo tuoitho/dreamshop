@@ -19,7 +19,7 @@ ORDER BY created_at, id;
 INSERT INTO cart_items (cart_id, product_id, sku_id, quantity)
 VALUES (sqlc.arg(cart_id)::uuid, sqlc.arg(product_id), sqlc.arg(sku_id), sqlc.arg(quantity))
 ON CONFLICT (cart_id, sku_id)
-DO UPDATE SET quantity = cart_items.quantity + EXCLUDED.quantity, updated_at = now();
+DO UPDATE SET product_id = EXCLUDED.product_id, quantity = cart_items.quantity + EXCLUDED.quantity, updated_at = now();
 
 -- name: UpdateQuantity :execrows
 UPDATE cart_items
