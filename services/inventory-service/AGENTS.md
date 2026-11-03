@@ -44,11 +44,11 @@ behavior as domain/contract semantics rather than transport defaults.
 - `internal/config/`: environment-backed configuration (`HTTP_ADDR`,
   `GRPC_ADDR`, `DATABASE_URL`, `IDENTITY_GRPC_ADDR`, `IDENTITY_GRPC_TIMEOUT`,
   `SEED_DEMO_DATA`).
-- `internal/authorization/`: private gRPC client to Identity authorization (`inventory.view`, `inventory.update`).
-- `internal/domain/`: stock and availability domain rules (`Quantity - Reserved`, `ErrStockBelowReserved`).
-- `internal/store/`: embedded SQL migrations (`000001_create_stock.up.sql`),
+- `internal/authorization/`: private gRPC client to Identity authorization (`inventory.view`, `inventory.update`, plus `product.update` or `inventory.update` for `DeleteStocks`).
+- `internal/domain/`: SKU-keyed stock (`SkuID`, `ProductID`) and availability domain rules (`Quantity - Reserved`, `ErrStockBelowReserved`, `VariantReservedError`).
+- `internal/store/`: embedded SQL migrations (`000001_create_stock.up.sql`, `000002_refactor_stock_to_sku.up.sql`),
   seed data, and PostgreSQL store adapter.
-- `internal/grpc/`: `InventoryServiceServer` (`GetAvailability`, `GetStock`, `BatchGetStock`, `ListStocks`, `SetStock`, `AdjustStock`) gRPC handler.
+- `internal/grpc/`: `InventoryServiceServer` (`GetAvailability`, `BatchGetAvailability`, `GetStock`, `BatchGetStock`, `ListStocks`, `SetStock`, `AdjustStock`, `DeleteStocks`) gRPC handler.
 - `internal/http/`: `/healthz` HTTP readiness/liveness handler.
 
 As reservation and event capabilities are added, keep domain/application rules
@@ -60,7 +60,7 @@ failures into stable application outcomes.
 
 - Use generated types from `contracts/go/`; do not edit generated files.
 - Prefer additive protobuf/event changes and inspect `cart-service` (current
-  `GetAvailability` consumer) plus future Order or BFF consumers.
+  `BatchGetAvailability` consumer) plus future Order or BFF consumers.
 - Keep Inventory persistence/schema/migrations private to this service.
 - A local product reference is a read-model key, not ownership of Catalog data.
 - Preserve event metadata, correlation, and stable error reasons at boundaries.

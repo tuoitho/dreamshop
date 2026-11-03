@@ -31,7 +31,7 @@ This service does not own:
   `0.0.0.0:50053` on the internal container network); do not expose Cart
   directly through Kong.
 - Persist only cart-owned identifiers (`user_id`, `product_id`,
-  `variant_label`) and quantities in `cart_db`. Never copy or join Catalog or
+  `sku_id`) and quantities in `cart_db`. Never copy or join Catalog or
   Inventory tables.
 - Call Catalog (`127.0.0.1:50051`), Inventory (`127.0.0.1:50052`), and Identity
   authorization (`127.0.0.1:50054`, default `500ms` timeout) over direct

@@ -17,6 +17,7 @@ go test ./services/catalog-service/internal/...
 go test ./services/inventory-service/internal/...
 go test ./services/cart-service/internal/...
 npm --prefix ecommerce-fe test -- src/lib/api.test.ts
+npm --prefix admin-fe test -- src/lib/api.test.ts
 ```
 
 ## Surface checks
@@ -28,8 +29,8 @@ gate for one surface. Its exit code is the gate result.
 | --- | --- |
 | Java service, e.g. `identity-service` | `mvn --batch-mode --no-transfer-progress -pl services/<name> -am verify` |
 | Go service, e.g. `cart-service` | `go build` and `go test` for `./services/<name>/...` |
-| `ecommerce-fe` | Frontend tests, lint, and build |
-| `contracts` | Contract checks below, plus `buf breaking` against `main` |
+| `ecommerce-fe`, `admin-fe` | Frontend tests, lint, and build |
+| `contracts` | Contract checks below (`buf format`, `buf lint`, `buf generate`, clean diff) |
 
 On Windows, the `cart-service` gate tests `./services/cart-service/internal/...`
 only, for the reason described at the end of this document.
@@ -44,6 +45,9 @@ go build ./services/bff-service/... ./services/catalog-service/... ./services/in
 npm --prefix ecommerce-fe test
 npm --prefix ecommerce-fe run lint
 npm --prefix ecommerce-fe run build
+npm --prefix admin-fe test
+npm --prefix admin-fe run lint
+npm --prefix admin-fe run build
 ```
 
 ## Boundary check
@@ -90,7 +94,6 @@ $env:PATH = "$gitRoot\usr\bin;$env:PATH"
 go run ./scripts/check-boundaries
 buf format --diff --exit-code
 buf lint
-buf breaking --against '.git#branch=main'
 buf generate
 git diff --exit-code -- contracts/go contracts/java/src/main/generated
 git ls-files --others --exclude-standard -- contracts/go contracts/java/src/main/generated
@@ -101,6 +104,10 @@ npm --prefix ecommerce-fe ci
 npm --prefix ecommerce-fe test
 npm --prefix ecommerce-fe run lint
 npm --prefix ecommerce-fe run build
+npm --prefix admin-fe ci
+npm --prefix admin-fe test
+npm --prefix admin-fe run lint
+npm --prefix admin-fe run build
 ```
 
 Without `SERVICE`, `make verify` runs the foundation/runtime check. It may

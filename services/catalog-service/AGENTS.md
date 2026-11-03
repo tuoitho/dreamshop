@@ -47,8 +47,8 @@ semantics.
   `SEED_DEMO_DATA`, `MINIO_*`, `MEDIA_*`).
 - `internal/authorization/`: private gRPC client to Identity authorization.
 - `internal/media/`: S3 SigV4 MinIO presigner/object remover and background orphan sweeper (`ADR-012`).
-- `internal/domain/`: catalog search, filtering, media validation, and product rules.
-- `internal/store/`: PostgreSQL migrations (`products`, `product_images`, `product_videos`, `product_media_assets`), seed data, and repository adapter.
+- `internal/domain/`: catalog search, filtering, per-variant SKU pricing & representative price derivation, media validation, and product rules.
+- `internal/store/`: PostgreSQL migrations (`products`, `product_variants` keyed on `sku_id`, `product_images`, `product_videos`, `product_media_assets`), seed data, and repository adapter.
 - `internal/grpc/`: `CatalogServiceServer` gRPC handler implementation.
 - `internal/http/`: health and HTTP transport concerns.
 
