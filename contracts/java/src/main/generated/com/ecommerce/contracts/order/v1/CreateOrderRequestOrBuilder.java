@@ -43,4 +43,55 @@ public interface CreateOrderRequestOrBuilder extends
    */
   com.ecommerce.contracts.order.v1.OrderItemOrBuilder getItemsOrBuilder(
       int index);
+
+  /**
+   * <code>string idempotency_key = 3 [json_name = "idempotencyKey"];</code>
+   * @return The idempotencyKey.
+   */
+  java.lang.String getIdempotencyKey();
+  /**
+   * <code>string idempotency_key = 3 [json_name = "idempotencyKey"];</code>
+   * @return The bytes for idempotencyKey.
+   */
+  com.google.protobuf.ByteString
+      getIdempotencyKeyBytes();
+
+  /**
+   * <code>.ecommerce.order.v1.ShippingAddressSnapshot shipping_address = 4 [json_name = "shippingAddress"];</code>
+   * @return Whether the shippingAddress field is set.
+   */
+  boolean hasShippingAddress();
+  /**
+   * <code>.ecommerce.order.v1.ShippingAddressSnapshot shipping_address = 4 [json_name = "shippingAddress"];</code>
+   * @return The shippingAddress.
+   */
+  com.ecommerce.contracts.order.v1.ShippingAddressSnapshot getShippingAddress();
+  /**
+   * <code>.ecommerce.order.v1.ShippingAddressSnapshot shipping_address = 4 [json_name = "shippingAddress"];</code>
+   */
+  com.ecommerce.contracts.order.v1.ShippingAddressSnapshotOrBuilder getShippingAddressOrBuilder();
+
+  /**
+   * <code>string payment_method = 5 [json_name = "paymentMethod"];</code>
+   * @return The paymentMethod.
+   */
+  java.lang.String getPaymentMethod();
+  /**
+   * <code>string payment_method = 5 [json_name = "paymentMethod"];</code>
+   * @return The bytes for paymentMethod.
+   */
+  com.google.protobuf.ByteString
+      getPaymentMethodBytes();
+
+  /**
+   * <code>string note = 6 [json_name = "note"];</code>
+   * @return The note.
+   */
+  java.lang.String getNote();
+  /**
+   * <code>string note = 6 [json_name = "note"];</code>
+   * @return The bytes for note.
+   */
+  com.google.protobuf.ByteString
+      getNoteBytes();
 }

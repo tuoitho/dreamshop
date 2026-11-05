@@ -46,6 +46,99 @@ public final class OrderServiceGrpc {
     return getCreateOrderMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.GetOrderRequest,
+      com.ecommerce.contracts.order.v1.GetOrderResponse> getGetOrderMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "GetOrder",
+      requestType = com.ecommerce.contracts.order.v1.GetOrderRequest.class,
+      responseType = com.ecommerce.contracts.order.v1.GetOrderResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.GetOrderRequest,
+      com.ecommerce.contracts.order.v1.GetOrderResponse> getGetOrderMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.GetOrderRequest, com.ecommerce.contracts.order.v1.GetOrderResponse> getGetOrderMethod;
+    if ((getGetOrderMethod = OrderServiceGrpc.getGetOrderMethod) == null) {
+      synchronized (OrderServiceGrpc.class) {
+        if ((getGetOrderMethod = OrderServiceGrpc.getGetOrderMethod) == null) {
+          OrderServiceGrpc.getGetOrderMethod = getGetOrderMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.order.v1.GetOrderRequest, com.ecommerce.contracts.order.v1.GetOrderResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "GetOrder"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.order.v1.GetOrderRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.order.v1.GetOrderResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new OrderServiceMethodDescriptorSupplier("GetOrder"))
+              .build();
+        }
+      }
+    }
+    return getGetOrderMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.ListOrdersRequest,
+      com.ecommerce.contracts.order.v1.ListOrdersResponse> getListOrdersMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "ListOrders",
+      requestType = com.ecommerce.contracts.order.v1.ListOrdersRequest.class,
+      responseType = com.ecommerce.contracts.order.v1.ListOrdersResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.ListOrdersRequest,
+      com.ecommerce.contracts.order.v1.ListOrdersResponse> getListOrdersMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.ListOrdersRequest, com.ecommerce.contracts.order.v1.ListOrdersResponse> getListOrdersMethod;
+    if ((getListOrdersMethod = OrderServiceGrpc.getListOrdersMethod) == null) {
+      synchronized (OrderServiceGrpc.class) {
+        if ((getListOrdersMethod = OrderServiceGrpc.getListOrdersMethod) == null) {
+          OrderServiceGrpc.getListOrdersMethod = getListOrdersMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.order.v1.ListOrdersRequest, com.ecommerce.contracts.order.v1.ListOrdersResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "ListOrders"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.order.v1.ListOrdersRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.order.v1.ListOrdersResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new OrderServiceMethodDescriptorSupplier("ListOrders"))
+              .build();
+        }
+      }
+    }
+    return getListOrdersMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.CancelOrderRequest,
+      com.ecommerce.contracts.order.v1.CancelOrderResponse> getCancelOrderMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "CancelOrder",
+      requestType = com.ecommerce.contracts.order.v1.CancelOrderRequest.class,
+      responseType = com.ecommerce.contracts.order.v1.CancelOrderResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.CancelOrderRequest,
+      com.ecommerce.contracts.order.v1.CancelOrderResponse> getCancelOrderMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.CancelOrderRequest, com.ecommerce.contracts.order.v1.CancelOrderResponse> getCancelOrderMethod;
+    if ((getCancelOrderMethod = OrderServiceGrpc.getCancelOrderMethod) == null) {
+      synchronized (OrderServiceGrpc.class) {
+        if ((getCancelOrderMethod = OrderServiceGrpc.getCancelOrderMethod) == null) {
+          OrderServiceGrpc.getCancelOrderMethod = getCancelOrderMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.order.v1.CancelOrderRequest, com.ecommerce.contracts.order.v1.CancelOrderResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "CancelOrder"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.order.v1.CancelOrderRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.order.v1.CancelOrderResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new OrderServiceMethodDescriptorSupplier("CancelOrder"))
+              .build();
+        }
+      }
+    }
+    return getCancelOrderMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -100,6 +193,27 @@ public final class OrderServiceGrpc {
         io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.CreateOrderResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCreateOrderMethod(), responseObserver);
     }
+
+    /**
+     */
+    default void getOrder(com.ecommerce.contracts.order.v1.GetOrderRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.GetOrderResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetOrderMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void listOrders(com.ecommerce.contracts.order.v1.ListOrdersRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.ListOrdersResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListOrdersMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void cancelOrder(com.ecommerce.contracts.order.v1.CancelOrderRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.CancelOrderResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCancelOrderMethod(), responseObserver);
+    }
   }
 
   /**
@@ -136,6 +250,30 @@ public final class OrderServiceGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getCreateOrderMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     */
+    public void getOrder(com.ecommerce.contracts.order.v1.GetOrderRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.GetOrderResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetOrderMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void listOrders(com.ecommerce.contracts.order.v1.ListOrdersRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.ListOrdersResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListOrdersMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void cancelOrder(com.ecommerce.contracts.order.v1.CancelOrderRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.CancelOrderResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getCancelOrderMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -159,6 +297,27 @@ public final class OrderServiceGrpc {
     public com.ecommerce.contracts.order.v1.CreateOrderResponse createOrder(com.ecommerce.contracts.order.v1.CreateOrderRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getCreateOrderMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.order.v1.GetOrderResponse getOrder(com.ecommerce.contracts.order.v1.GetOrderRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetOrderMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.order.v1.ListOrdersResponse listOrders(com.ecommerce.contracts.order.v1.ListOrdersRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListOrdersMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.order.v1.CancelOrderResponse cancelOrder(com.ecommerce.contracts.order.v1.CancelOrderRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getCancelOrderMethod(), getCallOptions(), request);
     }
   }
 
@@ -185,9 +344,36 @@ public final class OrderServiceGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getCreateOrderMethod(), getCallOptions()), request);
     }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.order.v1.GetOrderResponse> getOrder(
+        com.ecommerce.contracts.order.v1.GetOrderRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetOrderMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.order.v1.ListOrdersResponse> listOrders(
+        com.ecommerce.contracts.order.v1.ListOrdersRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListOrdersMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.order.v1.CancelOrderResponse> cancelOrder(
+        com.ecommerce.contracts.order.v1.CancelOrderRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getCancelOrderMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_CREATE_ORDER = 0;
+  private static final int METHODID_GET_ORDER = 1;
+  private static final int METHODID_LIST_ORDERS = 2;
+  private static final int METHODID_CANCEL_ORDER = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -209,6 +395,18 @@ public final class OrderServiceGrpc {
         case METHODID_CREATE_ORDER:
           serviceImpl.createOrder((com.ecommerce.contracts.order.v1.CreateOrderRequest) request,
               (io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.CreateOrderResponse>) responseObserver);
+          break;
+        case METHODID_GET_ORDER:
+          serviceImpl.getOrder((com.ecommerce.contracts.order.v1.GetOrderRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.GetOrderResponse>) responseObserver);
+          break;
+        case METHODID_LIST_ORDERS:
+          serviceImpl.listOrders((com.ecommerce.contracts.order.v1.ListOrdersRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.ListOrdersResponse>) responseObserver);
+          break;
+        case METHODID_CANCEL_ORDER:
+          serviceImpl.cancelOrder((com.ecommerce.contracts.order.v1.CancelOrderRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.CancelOrderResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -235,6 +433,27 @@ public final class OrderServiceGrpc {
               com.ecommerce.contracts.order.v1.CreateOrderRequest,
               com.ecommerce.contracts.order.v1.CreateOrderResponse>(
                 service, METHODID_CREATE_ORDER)))
+        .addMethod(
+          getGetOrderMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.order.v1.GetOrderRequest,
+              com.ecommerce.contracts.order.v1.GetOrderResponse>(
+                service, METHODID_GET_ORDER)))
+        .addMethod(
+          getListOrdersMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.order.v1.ListOrdersRequest,
+              com.ecommerce.contracts.order.v1.ListOrdersResponse>(
+                service, METHODID_LIST_ORDERS)))
+        .addMethod(
+          getCancelOrderMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.order.v1.CancelOrderRequest,
+              com.ecommerce.contracts.order.v1.CancelOrderResponse>(
+                service, METHODID_CANCEL_ORDER)))
         .build();
   }
 
@@ -284,6 +503,9 @@ public final class OrderServiceGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new OrderServiceFileDescriptorSupplier())
               .addMethod(getCreateOrderMethod())
+              .addMethod(getGetOrderMethod())
+              .addMethod(getListOrdersMethod())
+              .addMethod(getCancelOrderMethod())
               .build();
         }
       }

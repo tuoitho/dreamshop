@@ -562,6 +562,17 @@ private static final long serialVersionUID = 0L;
     return skuIds_.getByteString(index);
   }
 
+  public static final int VERSION_FIELD_NUMBER = 19;
+  private long version_ = 0L;
+  /**
+   * <code>int64 version = 19 [json_name = "version"];</code>
+   * @return The version.
+   */
+  @java.lang.Override
+  public long getVersion() {
+    return version_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -634,6 +645,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < skuIds_.size(); i++) {
       com.google.protobuf.GeneratedMessageV3.writeString(output, 18, skuIds_.getRaw(i));
+    }
+    if (version_ != 0L) {
+      output.writeInt64(19, version_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -727,6 +741,10 @@ private static final long serialVersionUID = 0L;
       size += dataSize;
       size += 2 * getSkuIdsList().size();
     }
+    if (version_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(19, version_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -788,6 +806,8 @@ private static final long serialVersionUID = 0L;
     }
     if (!getSkuIdsList()
         .equals(other.getSkuIdsList())) return false;
+    if (getVersion()
+        != other.getVersion()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -852,6 +872,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + SKU_IDS_FIELD_NUMBER;
       hash = (53 * hash) + getSkuIdsList().hashCode();
     }
+    hash = (37 * hash) + VERSION_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getVersion());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1023,6 +1046,7 @@ private static final long serialVersionUID = 0L;
       }
       skuIds_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
+      version_ = 0L;
       return this;
     }
 
@@ -1122,6 +1146,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00020000) != 0)) {
         skuIds_.makeImmutable();
         result.skuIds_ = skuIds_;
+      }
+      if (((from_bitField0_ & 0x00040000) != 0)) {
+        result.version_ = version_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1260,6 +1287,9 @@ private static final long serialVersionUID = 0L;
         }
         onChanged();
       }
+      if (other.getVersion() != 0L) {
+        setVersion(other.getVersion());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1395,6 +1425,11 @@ private static final long serialVersionUID = 0L;
               skuIds_.add(s);
               break;
             } // case 146
+            case 152: {
+              version_ = input.readInt64();
+              bitField0_ |= 0x00040000;
+              break;
+            } // case 152
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2741,6 +2776,38 @@ private static final long serialVersionUID = 0L;
       ensureSkuIdsIsMutable();
       skuIds_.add(value);
       bitField0_ |= 0x00020000;
+      onChanged();
+      return this;
+    }
+
+    private long version_ ;
+    /**
+     * <code>int64 version = 19 [json_name = "version"];</code>
+     * @return The version.
+     */
+    @java.lang.Override
+    public long getVersion() {
+      return version_;
+    }
+    /**
+     * <code>int64 version = 19 [json_name = "version"];</code>
+     * @param value The version to set.
+     * @return This builder for chaining.
+     */
+    public Builder setVersion(long value) {
+
+      version_ = value;
+      bitField0_ |= 0x00040000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>int64 version = 19 [json_name = "version"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearVersion() {
+      bitField0_ = (bitField0_ & ~0x00040000);
+      version_ = 0L;
       onChanged();
       return this;
     }

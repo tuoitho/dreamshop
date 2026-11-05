@@ -16,6 +16,11 @@ public final class Order {
         (com.google.protobuf.ExtensionRegistryLite) registry);
   }
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_order_v1_ShippingAddressSnapshot_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_order_v1_ShippingAddressSnapshot_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ecommerce_order_v1_OrderItem_descriptor;
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
@@ -26,10 +31,45 @@ public final class Order {
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_ecommerce_order_v1_CreateOrderRequest_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_order_v1_OrderDetail_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_order_v1_OrderDetail_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ecommerce_order_v1_CreateOrderResponse_descriptor;
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_ecommerce_order_v1_CreateOrderResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_order_v1_GetOrderRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_order_v1_GetOrderRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_order_v1_GetOrderResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_order_v1_GetOrderResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_order_v1_ListOrdersRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_order_v1_ListOrdersRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_order_v1_ListOrdersResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_order_v1_ListOrdersResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_order_v1_CancelOrderRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_order_v1_CancelOrderRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_order_v1_CancelOrderResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_order_v1_CancelOrderResponse_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -40,46 +80,159 @@ public final class Order {
   static {
     java.lang.String[] descriptorData = {
       "\n\024order/v1/order.proto\022\022ecommerce.order." +
-      "v1\032\026common/v1/common.proto\"\230\001\n\tOrderItem" +
-      "\022\035\n\nproduct_id\030\001 \001(\tR\tproductId\022\025\n\006sku_i" +
-      "d\030\002 \001(\tR\005skuId\022\032\n\010quantity\030\003 \001(\005R\010quanti" +
-      "ty\0229\n\nunit_price\030\004 \001(\0132\032.ecommerce.commo" +
-      "n.v1.MoneyR\tunitPrice\"b\n\022CreateOrderRequ" +
-      "est\022\027\n\007user_id\030\001 \001(\tR\006userId\0223\n\005items\030\002 " +
-      "\003(\0132\035.ecommerce.order.v1.OrderItemR\005item" +
-      "s\"\207\001\n\023CreateOrderResponse\022\031\n\010order_id\030\001 " +
+      "v1\032\026common/v1/common.proto\"\223\002\n\027ShippingA" +
+      "ddressSnapshot\022%\n\016recipient_name\030\001 \001(\tR\r" +
+      "recipientName\022\024\n\005phone\030\002 \001(\tR\005phone\022#\n\rp" +
+      "rovince_code\030\003 \001(\tR\014provinceCode\022#\n\rprov" +
+      "ince_name\030\004 \001(\tR\014provinceName\022\033\n\tward_co" +
+      "de\030\005 \001(\tR\010wardCode\022\033\n\tward_name\030\006 \001(\tR\010w" +
+      "ardName\022!\n\014address_line\030\007 \001(\tR\013addressLi" +
+      "ne\022\024\n\005label\030\010 \001(\tR\005label\"\273\004\n\tOrderItem\022\035" +
+      "\n\nproduct_id\030\001 \001(\tR\tproductId\022\025\n\006sku_id\030" +
+      "\002 \001(\tR\005skuId\022\032\n\010quantity\030\003 \001(\005R\010quantity" +
+      "\0229\n\nunit_price\030\004 \001(\0132\032.ecommerce.common." +
+      "v1.MoneyR\tunitPrice\022 \n\014cart_item_id\030\005 \001(" +
+      "\tR\ncartItemId\022#\n\rvariant_label\030\006 \001(\tR\014va" +
+      "riantLabel\022#\n\rexpected_name\030\007 \001(\tR\014expec" +
+      "tedName\0228\n\030expected_product_version\030\010 \001(" +
+      "\003R\026expectedProductVersion\022*\n\021variant_col" +
+      "or_hex\030\t \001(\tR\017variantColorHex\022\033\n\timage_u" +
+      "rl\030\n \001(\tR\010imageUrl\022\024\n\005brand\030\013 \001(\tR\005brand" +
+      "\022#\n\rcategory_name\030\014 \001(\tR\014categoryName\022\037\n" +
+      "\013image_emoji\030\r \001(\tR\nimageEmoji\022\033\n\timage_" +
+      "hue\030\016 \003(\rR\010imageHue\0229\n\nline_total\030\017 \001(\0132" +
+      "\032.ecommerce.common.v1.MoneyR\tlineTotal\"\236" +
+      "\002\n\022CreateOrderRequest\022\027\n\007user_id\030\001 \001(\tR\006" +
+      "userId\0223\n\005items\030\002 \003(\0132\035.ecommerce.order." +
+      "v1.OrderItemR\005items\022\'\n\017idempotency_key\030\003" +
+      " \001(\tR\016idempotencyKey\022V\n\020shipping_address" +
+      "\030\004 \001(\0132+.ecommerce.order.v1.ShippingAddr" +
+      "essSnapshotR\017shippingAddress\022%\n\016payment_" +
+      "method\030\005 \001(\tR\rpaymentMethod\022\022\n\004note\030\006 \001(" +
+      "\tR\004note\"\307\005\n\013OrderDetail\022\031\n\010order_id\030\001 \001(" +
+      "\tR\007orderId\022\035\n\norder_code\030\002 \001(\tR\torderCod" +
+      "e\022\027\n\007user_id\030\003 \001(\tR\006userId\022\026\n\006status\030\004 \001" +
+      "(\tR\006status\022%\n\016payment_method\030\005 \001(\tR\rpaym" +
+      "entMethod\022%\n\016payment_status\030\006 \001(\tR\rpayme" +
+      "ntStatus\022V\n\020shipping_address\030\007 \001(\0132+.eco" +
+      "mmerce.order.v1.ShippingAddressSnapshotR" +
+      "\017shippingAddress\0223\n\005items\030\010 \003(\0132\035.ecomme" +
+      "rce.order.v1.OrderItemR\005items\0226\n\010subtota" +
+      "l\030\t \001(\0132\032.ecommerce.common.v1.MoneyR\010sub" +
+      "total\022=\n\014shipping_fee\030\n \001(\0132\032.ecommerce." +
+      "common.v1.MoneyR\013shippingFee\022=\n\014total_am" +
+      "ount\030\013 \001(\0132\032.ecommerce.common.v1.MoneyR\013" +
+      "totalAmount\022\022\n\004note\030\014 \001(\tR\004note\022\027\n\007pay_u" +
+      "rl\030\r \001(\tR\006payUrl\022#\n\rcancel_reason\030\016 \001(\tR" +
+      "\014cancelReason\022,\n\022payment_expires_at\030\017 \001(" +
+      "\tR\020paymentExpiresAt\022\035\n\ncreated_at\030\020 \001(\tR" +
+      "\tcreatedAt\022\035\n\nupdated_at\030\021 \001(\tR\tupdatedA" +
+      "t\"\327\001\n\023CreateOrderResponse\022\031\n\010order_id\030\001 " +
       "\001(\tR\007orderId\022\026\n\006status\030\002 \001(\tR\006status\022=\n\014" +
       "total_amount\030\003 \001(\0132\032.ecommerce.common.v1" +
-      ".MoneyR\013totalAmount2n\n\014OrderService\022^\n\013C" +
-      "reateOrder\022&.ecommerce.order.v1.CreateOr" +
-      "derRequest\032\'.ecommerce.order.v1.CreateOr" +
-      "derResponseBS\n com.ecommerce.contracts.o" +
-      "rder.v1P\001Z-ecommerce.local/contracts/go/" +
-      "order/v1;orderv1b\006proto3"
+      ".MoneyR\013totalAmount\0225\n\005order\030\004 \001(\0132\037.eco" +
+      "mmerce.order.v1.OrderDetailR\005order\022\027\n\007pa" +
+      "y_url\030\005 \001(\tR\006payUrl\"E\n\017GetOrderRequest\022\027" +
+      "\n\007user_id\030\001 \001(\tR\006userId\022\031\n\010order_id\030\002 \001(" +
+      "\tR\007orderId\"I\n\020GetOrderResponse\0225\n\005order\030" +
+      "\001 \001(\0132\037.ecommerce.order.v1.OrderDetailR\005" +
+      "order\"u\n\021ListOrdersRequest\022\027\n\007user_id\030\001 " +
+      "\001(\tR\006userId\022\026\n\006status\030\002 \001(\tR\006status\022\022\n\004p" +
+      "age\030\003 \001(\005R\004page\022\033\n\tpage_size\030\004 \001(\005R\010page" +
+      "Size\"\276\001\n\022ListOrdersResponse\0225\n\005items\030\001 \003" +
+      "(\0132\037.ecommerce.order.v1.OrderDetailR\005ite" +
+      "ms\022\022\n\004page\030\002 \001(\005R\004page\022\033\n\tpage_size\030\003 \001(" +
+      "\005R\010pageSize\022\037\n\013total_items\030\004 \001(\003R\ntotalI" +
+      "tems\022\037\n\013total_pages\030\005 \001(\005R\ntotalPages\"`\n" +
+      "\022CancelOrderRequest\022\027\n\007user_id\030\001 \001(\tR\006us" +
+      "erId\022\031\n\010order_id\030\002 \001(\tR\007orderId\022\026\n\006reaso" +
+      "n\030\003 \001(\tR\006reason\"L\n\023CancelOrderResponse\0225" +
+      "\n\005order\030\001 \001(\0132\037.ecommerce.order.v1.Order" +
+      "DetailR\005order2\202\003\n\014OrderService\022^\n\013Create" +
+      "Order\022&.ecommerce.order.v1.CreateOrderRe" +
+      "quest\032\'.ecommerce.order.v1.CreateOrderRe" +
+      "sponse\022U\n\010GetOrder\022#.ecommerce.order.v1." +
+      "GetOrderRequest\032$.ecommerce.order.v1.Get" +
+      "OrderResponse\022[\n\nListOrders\022%.ecommerce." +
+      "order.v1.ListOrdersRequest\032&.ecommerce.o" +
+      "rder.v1.ListOrdersResponse\022^\n\013CancelOrde" +
+      "r\022&.ecommerce.order.v1.CancelOrderReques" +
+      "t\032\'.ecommerce.order.v1.CancelOrderRespon" +
+      "seBS\n com.ecommerce.contracts.order.v1P\001" +
+      "Z-ecommerce.local/contracts/go/order/v1;" +
+      "orderv1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           com.ecommerce.contracts.common.v1.Common.getDescriptor(),
         });
-    internal_static_ecommerce_order_v1_OrderItem_descriptor =
+    internal_static_ecommerce_order_v1_ShippingAddressSnapshot_descriptor =
       getDescriptor().getMessageTypes().get(0);
+    internal_static_ecommerce_order_v1_ShippingAddressSnapshot_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_order_v1_ShippingAddressSnapshot_descriptor,
+        new java.lang.String[] { "RecipientName", "Phone", "ProvinceCode", "ProvinceName", "WardCode", "WardName", "AddressLine", "Label", });
+    internal_static_ecommerce_order_v1_OrderItem_descriptor =
+      getDescriptor().getMessageTypes().get(1);
     internal_static_ecommerce_order_v1_OrderItem_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_order_v1_OrderItem_descriptor,
-        new java.lang.String[] { "ProductId", "SkuId", "Quantity", "UnitPrice", });
+        new java.lang.String[] { "ProductId", "SkuId", "Quantity", "UnitPrice", "CartItemId", "VariantLabel", "ExpectedName", "ExpectedProductVersion", "VariantColorHex", "ImageUrl", "Brand", "CategoryName", "ImageEmoji", "ImageHue", "LineTotal", });
     internal_static_ecommerce_order_v1_CreateOrderRequest_descriptor =
-      getDescriptor().getMessageTypes().get(1);
+      getDescriptor().getMessageTypes().get(2);
     internal_static_ecommerce_order_v1_CreateOrderRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_order_v1_CreateOrderRequest_descriptor,
-        new java.lang.String[] { "UserId", "Items", });
+        new java.lang.String[] { "UserId", "Items", "IdempotencyKey", "ShippingAddress", "PaymentMethod", "Note", });
+    internal_static_ecommerce_order_v1_OrderDetail_descriptor =
+      getDescriptor().getMessageTypes().get(3);
+    internal_static_ecommerce_order_v1_OrderDetail_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_order_v1_OrderDetail_descriptor,
+        new java.lang.String[] { "OrderId", "OrderCode", "UserId", "Status", "PaymentMethod", "PaymentStatus", "ShippingAddress", "Items", "Subtotal", "ShippingFee", "TotalAmount", "Note", "PayUrl", "CancelReason", "PaymentExpiresAt", "CreatedAt", "UpdatedAt", });
     internal_static_ecommerce_order_v1_CreateOrderResponse_descriptor =
-      getDescriptor().getMessageTypes().get(2);
+      getDescriptor().getMessageTypes().get(4);
     internal_static_ecommerce_order_v1_CreateOrderResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_order_v1_CreateOrderResponse_descriptor,
-        new java.lang.String[] { "OrderId", "Status", "TotalAmount", });
+        new java.lang.String[] { "OrderId", "Status", "TotalAmount", "Order", "PayUrl", });
+    internal_static_ecommerce_order_v1_GetOrderRequest_descriptor =
+      getDescriptor().getMessageTypes().get(5);
+    internal_static_ecommerce_order_v1_GetOrderRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_order_v1_GetOrderRequest_descriptor,
+        new java.lang.String[] { "UserId", "OrderId", });
+    internal_static_ecommerce_order_v1_GetOrderResponse_descriptor =
+      getDescriptor().getMessageTypes().get(6);
+    internal_static_ecommerce_order_v1_GetOrderResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_order_v1_GetOrderResponse_descriptor,
+        new java.lang.String[] { "Order", });
+    internal_static_ecommerce_order_v1_ListOrdersRequest_descriptor =
+      getDescriptor().getMessageTypes().get(7);
+    internal_static_ecommerce_order_v1_ListOrdersRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_order_v1_ListOrdersRequest_descriptor,
+        new java.lang.String[] { "UserId", "Status", "Page", "PageSize", });
+    internal_static_ecommerce_order_v1_ListOrdersResponse_descriptor =
+      getDescriptor().getMessageTypes().get(8);
+    internal_static_ecommerce_order_v1_ListOrdersResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_order_v1_ListOrdersResponse_descriptor,
+        new java.lang.String[] { "Items", "Page", "PageSize", "TotalItems", "TotalPages", });
+    internal_static_ecommerce_order_v1_CancelOrderRequest_descriptor =
+      getDescriptor().getMessageTypes().get(9);
+    internal_static_ecommerce_order_v1_CancelOrderRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_order_v1_CancelOrderRequest_descriptor,
+        new java.lang.String[] { "UserId", "OrderId", "Reason", });
+    internal_static_ecommerce_order_v1_CancelOrderResponse_descriptor =
+      getDescriptor().getMessageTypes().get(10);
+    internal_static_ecommerce_order_v1_CancelOrderResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_order_v1_CancelOrderResponse_descriptor,
+        new java.lang.String[] { "Order", });
     com.ecommerce.contracts.common.v1.Common.getDescriptor();
   }
 

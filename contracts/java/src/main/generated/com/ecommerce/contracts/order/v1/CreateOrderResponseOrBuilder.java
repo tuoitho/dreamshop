@@ -46,4 +46,31 @@ public interface CreateOrderResponseOrBuilder extends
    * <code>.ecommerce.common.v1.Money total_amount = 3 [json_name = "totalAmount"];</code>
    */
   com.ecommerce.contracts.common.v1.MoneyOrBuilder getTotalAmountOrBuilder();
+
+  /**
+   * <code>.ecommerce.order.v1.OrderDetail order = 4 [json_name = "order"];</code>
+   * @return Whether the order field is set.
+   */
+  boolean hasOrder();
+  /**
+   * <code>.ecommerce.order.v1.OrderDetail order = 4 [json_name = "order"];</code>
+   * @return The order.
+   */
+  com.ecommerce.contracts.order.v1.OrderDetail getOrder();
+  /**
+   * <code>.ecommerce.order.v1.OrderDetail order = 4 [json_name = "order"];</code>
+   */
+  com.ecommerce.contracts.order.v1.OrderDetailOrBuilder getOrderOrBuilder();
+
+  /**
+   * <code>string pay_url = 5 [json_name = "payUrl"];</code>
+   * @return The payUrl.
+   */
+  java.lang.String getPayUrl();
+  /**
+   * <code>string pay_url = 5 [json_name = "payUrl"];</code>
+   * @return The bytes for payUrl.
+   */
+  com.google.protobuf.ByteString
+      getPayUrlBytes();
 }

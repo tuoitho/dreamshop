@@ -52,4 +52,138 @@ public interface OrderItemOrBuilder extends
    * <code>.ecommerce.common.v1.Money unit_price = 4 [json_name = "unitPrice"];</code>
    */
   com.ecommerce.contracts.common.v1.MoneyOrBuilder getUnitPriceOrBuilder();
+
+  /**
+   * <code>string cart_item_id = 5 [json_name = "cartItemId"];</code>
+   * @return The cartItemId.
+   */
+  java.lang.String getCartItemId();
+  /**
+   * <code>string cart_item_id = 5 [json_name = "cartItemId"];</code>
+   * @return The bytes for cartItemId.
+   */
+  com.google.protobuf.ByteString
+      getCartItemIdBytes();
+
+  /**
+   * <code>string variant_label = 6 [json_name = "variantLabel"];</code>
+   * @return The variantLabel.
+   */
+  java.lang.String getVariantLabel();
+  /**
+   * <code>string variant_label = 6 [json_name = "variantLabel"];</code>
+   * @return The bytes for variantLabel.
+   */
+  com.google.protobuf.ByteString
+      getVariantLabelBytes();
+
+  /**
+   * <code>string expected_name = 7 [json_name = "expectedName"];</code>
+   * @return The expectedName.
+   */
+  java.lang.String getExpectedName();
+  /**
+   * <code>string expected_name = 7 [json_name = "expectedName"];</code>
+   * @return The bytes for expectedName.
+   */
+  com.google.protobuf.ByteString
+      getExpectedNameBytes();
+
+  /**
+   * <code>int64 expected_product_version = 8 [json_name = "expectedProductVersion"];</code>
+   * @return The expectedProductVersion.
+   */
+  long getExpectedProductVersion();
+
+  /**
+   * <code>string variant_color_hex = 9 [json_name = "variantColorHex"];</code>
+   * @return The variantColorHex.
+   */
+  java.lang.String getVariantColorHex();
+  /**
+   * <code>string variant_color_hex = 9 [json_name = "variantColorHex"];</code>
+   * @return The bytes for variantColorHex.
+   */
+  com.google.protobuf.ByteString
+      getVariantColorHexBytes();
+
+  /**
+   * <code>string image_url = 10 [json_name = "imageUrl"];</code>
+   * @return The imageUrl.
+   */
+  java.lang.String getImageUrl();
+  /**
+   * <code>string image_url = 10 [json_name = "imageUrl"];</code>
+   * @return The bytes for imageUrl.
+   */
+  com.google.protobuf.ByteString
+      getImageUrlBytes();
+
+  /**
+   * <code>string brand = 11 [json_name = "brand"];</code>
+   * @return The brand.
+   */
+  java.lang.String getBrand();
+  /**
+   * <code>string brand = 11 [json_name = "brand"];</code>
+   * @return The bytes for brand.
+   */
+  com.google.protobuf.ByteString
+      getBrandBytes();
+
+  /**
+   * <code>string category_name = 12 [json_name = "categoryName"];</code>
+   * @return The categoryName.
+   */
+  java.lang.String getCategoryName();
+  /**
+   * <code>string category_name = 12 [json_name = "categoryName"];</code>
+   * @return The bytes for categoryName.
+   */
+  com.google.protobuf.ByteString
+      getCategoryNameBytes();
+
+  /**
+   * <code>string image_emoji = 13 [json_name = "imageEmoji"];</code>
+   * @return The imageEmoji.
+   */
+  java.lang.String getImageEmoji();
+  /**
+   * <code>string image_emoji = 13 [json_name = "imageEmoji"];</code>
+   * @return The bytes for imageEmoji.
+   */
+  com.google.protobuf.ByteString
+      getImageEmojiBytes();
+
+  /**
+   * <code>repeated uint32 image_hue = 14 [json_name = "imageHue"];</code>
+   * @return A list containing the imageHue.
+   */
+  java.util.List<java.lang.Integer> getImageHueList();
+  /**
+   * <code>repeated uint32 image_hue = 14 [json_name = "imageHue"];</code>
+   * @return The count of imageHue.
+   */
+  int getImageHueCount();
+  /**
+   * <code>repeated uint32 image_hue = 14 [json_name = "imageHue"];</code>
+   * @param index The index of the element to return.
+   * @return The imageHue at the given index.
+   */
+  int getImageHue(int index);
+
+  /**
+   * <code>.ecommerce.common.v1.Money line_total = 15 [json_name = "lineTotal"];</code>
+   * @return Whether the lineTotal field is set.
+   */
+  boolean hasLineTotal();
+  /**
+   * <code>.ecommerce.common.v1.Money line_total = 15 [json_name = "lineTotal"];</code>
+   * @return The lineTotal.
+   */
+  com.ecommerce.contracts.common.v1.Money getLineTotal();
+  /**
+   * <code>.ecommerce.common.v1.Money line_total = 15 [json_name = "lineTotal"];</code>
+   */
+  com.ecommerce.contracts.common.v1.MoneyOrBuilder getLineTotalOrBuilder();
 }

@@ -233,4 +233,10 @@ public interface ProductSummaryOrBuilder extends
    */
   com.google.protobuf.ByteString
       getSkuIdsBytes(int index);
+
+  /**
+   * <code>int64 version = 19 [json_name = "version"];</code>
+   * @return The version.
+   */
+  long getVersion();
 }

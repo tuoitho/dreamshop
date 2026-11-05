@@ -88,6 +88,7 @@ message CartItem {
   string image_url = 14;
   CartItemStatus status = 15;
   int32 available_quantity = 16;
+  int64 product_version = 17;
 }
 
 enum CartItemStatus {
