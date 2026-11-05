@@ -48,6 +48,10 @@ func (m *memoryRepo) SoftDelete(_ context.Context, id string, deleted bool) erro
 	for _, p := range m.products {
 		if p.ID == id {
 			p.Deleted = deleted
+			if p.Version <= 0 {
+				p.Version = 1
+			}
+			p.Version++
 			return nil
 		}
 	}
@@ -76,6 +80,9 @@ func (m *memoryRepo) Create(_ context.Context, product *domain.Product, _ time.D
 		}
 	}
 	cp := *product
+	if cp.Version <= 0 {
+		cp.Version = 1
+	}
 	now := time.Now().UTC()
 	cp.CreatedAt = now
 	cp.UpdatedAt = now
@@ -103,6 +110,11 @@ func (m *memoryRepo) Update(_ context.Context, product *domain.Product, _ time.D
 			cp.Rating = existing.Rating
 			cp.ReviewCount = existing.ReviewCount
 			cp.SoldCount = existing.SoldCount
+			prevVersion := existing.Version
+			if prevVersion <= 0 {
+				prevVersion = 1
+			}
+			cp.Version = prevVersion + 1
 			cp.CreatedAt = existing.CreatedAt
 			cp.UpdatedAt = time.Now().UTC()
 			m.products[i] = &cp
@@ -588,5 +600,38 @@ func TestSearchProductsEmptyResult(t *testing.T) {
 	}
 	if len(resp.GetItems()) != 0 || resp.GetTotalItems() != 0 || resp.GetTotalPages() != 0 {
 		t.Fatalf("expected empty result, got %+v", resp)
+	}
+}
+
+func TestGetProductAndSearchProductsExposeVersion(t *testing.T) {
+	products := demoProducts()
+	products[0].Version = 5
+	client := newTestClient(t, &memoryRepo{products: products})
+
+	detail, err := client.GetProduct(context.Background(), &catalogv1.GetProductRequest{Id: "dt-1"})
+	if err != nil {
+		t.Fatalf("GetProduct: %v", err)
+	}
+	if detail.GetVersion() != 5 {
+		t.Fatalf("GetProduct.GetVersion() = %d, want 5", detail.GetVersion())
+	}
+
+	search, err := client.SearchProducts(context.Background(), &catalogv1.SearchProductsRequest{Query: "Nova"})
+	if err != nil {
+		t.Fatalf("SearchProducts: %v", err)
+	}
+	if len(search.GetItems()) != 1 || search.GetItems()[0].GetVersion() != 5 {
+		t.Fatalf("SearchProducts item version = %+v, want 5", search.GetItems())
+	}
+
+	adminList, err := client.ListAdminProducts(context.Background(), &catalogv1.ListAdminProductsRequest{
+		UserId: "admin-1",
+		Query:  "dt-1",
+	})
+	if err != nil {
+		t.Fatalf("ListAdminProducts: %v", err)
+	}
+	if len(adminList.GetItems()) != 1 || adminList.GetItems()[0].GetVersion() != 5 {
+		t.Fatalf("ListAdminProducts item version = %+v, want 5", adminList.GetItems())
 	}
 }

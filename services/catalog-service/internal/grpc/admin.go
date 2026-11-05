@@ -332,6 +332,10 @@ func adminSummaryToProto(s *domain.AdminSummary) *catalogv1.AdminProductSummary 
 	if !s.UpdatedAt.IsZero() {
 		updatedAt = s.UpdatedAt.UTC().Format(time.RFC3339)
 	}
+	version := s.Version
+	if version <= 0 {
+		version = 1
+	}
 	return &catalogv1.AdminProductSummary{
 		Id:            s.ID,
 		Name:          s.Name,
@@ -356,5 +360,6 @@ func adminSummaryToProto(s *domain.AdminSummary) *catalogv1.AdminProductSummary 
 		UpdatedAt:     updatedAt,
 		VideoCount:    s.VideoCount,
 		SkuIds:        s.SkuIDs,
+		Version:       version,
 	}
 }

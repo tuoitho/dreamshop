@@ -69,7 +69,7 @@ func (s *Store) ListAdmin(ctx context.Context, filter domain.AdminSearchFilter) 
 		SELECT p.id, p.name, p.brand, p.category_id, p.category_name,
 		       p.price_amount_minor, p.original_price_amount_minor, p.max_price_amount_minor,
 		       p.rating, p.review_count, p.sold_count, p.is_new, p.badge,
-		       p.featured, p.emoji, p.image_hue, p.deleted_at,
+		       p.featured, p.emoji, p.image_hue, p.version, p.deleted_at,
 		       p.created_at, p.updated_at,
 		       (SELECT COUNT(*)::int FROM product_variants pv WHERE pv.product_id = p.id) AS variant_count,
 		       (SELECT COUNT(*)::int FROM product_videos pvid WHERE pvid.product_id = p.id) AS video_count
@@ -94,7 +94,7 @@ func (s *Store) ListAdmin(ctx context.Context, filter domain.AdminSearchFilter) 
 			&item.ID, &item.Name, &item.Brand, &item.CategoryID, &item.CategoryName,
 			&item.PriceMinor, &item.OriginalPriceMinor, &item.MaxPriceMinor, &item.Rating, &item.ReviewCount,
 			&item.SoldCount, &item.IsNew, &item.Badge, &item.Featured, &item.Emoji,
-			&imageHue, &deletedAt, &item.CreatedAt, &item.UpdatedAt,
+			&imageHue, &item.Version, &deletedAt, &item.CreatedAt, &item.UpdatedAt,
 			&item.VariantCount, &item.VideoCount,
 		); err != nil {
 			return nil, fmt.Errorf("scan admin product row: %w", err)
@@ -288,6 +288,7 @@ func (s *Store) Update(ctx context.Context, p *domain.Product, orphanGrace time.
 		    featured = $13,
 		    emoji = $14,
 		    image_hue = $15,
+		    version = version + 1,
 		    updated_at = now()
 		WHERE id = $1
 	`,

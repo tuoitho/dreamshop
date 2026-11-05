@@ -775,3 +775,94 @@ func TestStoreListInventoryItemsMatchesSkuAndVariantLabel(t *testing.T) {
 		t.Fatalf("expected tiered variant pricing on dt-1, got %+v", items[0].Variants)
 	}
 }
+
+func TestProductVersionIncrementsOnUpdateAndSoftDelete(t *testing.T) {
+	pool := isolatedStorePool(t, "catalog_product_version_test")
+	ctx := context.Background()
+	if err := Migrate(ctx, pool); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+	repo := New(pool)
+
+	initial, err := domain.ValidateAndPrepareCreate(&domain.Product{
+		ID:           "versioned-phone",
+		Name:         "Nova Versioned Phone",
+		Brand:        "Nova",
+		CategoryID:   "dien-thoai",
+		CategoryName: "Điện thoại",
+		Variants: []domain.ProductVariant{
+			{SkuID: "versioned-phone-v1", Label: "128GB", PriceMinor: 9900000},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ValidateAndPrepareCreate: %v", err)
+	}
+
+	created, err := repo.Create(ctx, initial, 24*time.Hour)
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if created.Version != 1 {
+		t.Fatalf("created.Version = %d, want 1", created.Version)
+	}
+
+	updatedInput, err := domain.ValidateAndPrepareUpdate(&domain.Product{
+		ID:           "versioned-phone",
+		Name:         "Nova Versioned Phone Pro",
+		Brand:        "Nova",
+		CategoryID:   "dien-thoai",
+		CategoryName: "Điện thoại",
+		Variants: []domain.ProductVariant{
+			{SkuID: "versioned-phone-v1", Label: "128GB", PriceMinor: 10500000},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ValidateAndPrepareUpdate: %v", err)
+	}
+
+	updated, err := repo.Update(ctx, updatedInput, 24*time.Hour)
+	if err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if updated.Version != 2 {
+		t.Fatalf("updated.Version = %d, want 2", updated.Version)
+	}
+
+	if err := repo.SoftDelete(ctx, "versioned-phone", true); err != nil {
+		t.Fatalf("SoftDelete(true): %v", err)
+	}
+	deletedProd, err := repo.GetByID(ctx, "versioned-phone")
+	if err != nil {
+		t.Fatalf("GetByID after SoftDelete(true): %v", err)
+	}
+	if deletedProd.Version != 3 {
+		t.Fatalf("deletedProd.Version = %d, want 3", deletedProd.Version)
+	}
+
+	if err := repo.SoftDelete(ctx, "versioned-phone", false); err != nil {
+		t.Fatalf("SoftDelete(false): %v", err)
+	}
+	restoredProd, err := repo.GetByID(ctx, "versioned-phone")
+	if err != nil {
+		t.Fatalf("GetByID after SoftDelete(false): %v", err)
+	}
+	if restoredProd.Version != 4 {
+		t.Fatalf("restoredProd.Version = %d, want 4", restoredProd.Version)
+	}
+
+	searchRes, err := repo.Search(ctx, domain.SearchFilter{Query: "Nova Versioned Phone Pro"})
+	if err != nil {
+		t.Fatalf("Search: %v", err)
+	}
+	if len(searchRes.Items) != 1 || searchRes.Items[0].Version != 4 {
+		t.Fatalf("Search item version = %+v, want Version=4", searchRes.Items)
+	}
+
+	adminRes, err := repo.ListAdmin(ctx, domain.AdminSearchFilter{Query: "versioned-phone"})
+	if err != nil {
+		t.Fatalf("ListAdmin: %v", err)
+	}
+	if len(adminRes.Items) != 1 || adminRes.Items[0].Version != 4 {
+		t.Fatalf("ListAdmin item version = %+v, want Version=4", adminRes.Items)
+	}
+}
