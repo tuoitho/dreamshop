@@ -87,3 +87,16 @@ func TestVerifyFoundationRequiresCartService(t *testing.T) {
 		t.Fatalf("expected requiredFoundationFiles to contain services/cart-service/go.mod")
 	}
 }
+
+func TestVerifyFoundationRequiresPaymentService(t *testing.T) {
+	foundFile := false
+	for _, f := range requiredFoundationFiles {
+		if f == "services/payment-service/go.mod" {
+			foundFile = true
+			break
+		}
+	}
+	if !foundFile {
+		t.Fatalf("expected requiredFoundationFiles to contain services/payment-service/go.mod")
+	}
+}

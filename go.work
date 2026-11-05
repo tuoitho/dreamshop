@@ -4,7 +4,8 @@ use (
 	./contracts/go
 	./scripts
 	./services/bff-service
+	./services/cart-service
 	./services/catalog-service
 	./services/inventory-service
-	./services/cart-service
+	./services/payment-service
 )

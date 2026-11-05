@@ -27,6 +27,7 @@ var requiredFoundationFiles = []string{
 	"services/catalog-service/go.mod",
 	"services/inventory-service/go.mod",
 	"services/cart-service/go.mod",
+	"services/payment-service/go.mod",
 }
 
 type cmdRunner func(dir, name string, args ...string) (string, error)
