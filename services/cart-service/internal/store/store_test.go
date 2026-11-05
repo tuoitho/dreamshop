@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"ecommerce.local/cart-service/internal/domain"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -285,5 +286,78 @@ func TestStoreFavoritesIntegration(t *testing.T) {
 	}
 	if len(cleared) != 0 {
 		t.Fatalf("expected empty favorites after clear, got %+v", cleared)
+	}
+}
+
+func TestHandleOrderConfirmedRemovesOnlyOrderedItemsIdempotently(t *testing.T) {
+	pool := testPool(t)
+	ctx := context.Background()
+	if err := Migrate(ctx, pool); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+
+	store := New(pool)
+	userID := "00000000-0000-0000-0000-000000000201"
+	eventID := "evt-cart-clean-" + time.Now().UTC().Format("150405.000000")
+	t.Cleanup(func() {
+		if cartID, found, err := store.FindCart(ctx, userID); err == nil && found {
+			_ = store.Clear(ctx, cartID)
+		}
+		_, _ = pool.Exec(ctx, "DELETE FROM processed_events WHERE event_id = $1", eventID)
+	})
+
+	cartID, err := store.EnsureCart(ctx, userID)
+	if err != nil {
+		t.Fatalf("EnsureCart: %v", err)
+	}
+	_ = store.Clear(ctx, cartID)
+
+	if err := store.AddItem(ctx, cartID, "dt-1", "dt-1-v1", 2); err != nil {
+		t.Fatalf("AddItem(itemA): %v", err)
+	}
+	if err := store.AddItem(ctx, cartID, "dt-2", "dt-2-v1", 1); err != nil {
+		t.Fatalf("AddItem(itemB): %v", err)
+	}
+	if err := store.AddItem(ctx, cartID, "lt-1", "lt-1-v1", 3); err != nil {
+		t.Fatalf("AddItem(itemC): %v", err)
+	}
+
+	before, err := store.ListItems(ctx, cartID)
+	if err != nil || len(before) != 3 {
+		t.Fatalf("ListItems before: len=%d err=%v", len(before), err)
+	}
+	itemAID := before[0].ID
+
+	err = store.RemoveOrderedItems(ctx, eventID, userID, []domain.OrderedItemRef{
+		{CartItemID: itemAID, ProductID: "dt-1", SkuID: "dt-1-v1"},
+		{CartItemID: "", ProductID: "dt-2", SkuID: "dt-2-v1"},
+	})
+	if err != nil {
+		t.Fatalf("RemoveOrderedItems: %v", err)
+	}
+
+	after, err := store.ListItems(ctx, cartID)
+	if err != nil {
+		t.Fatalf("ListItems after: %v", err)
+	}
+	if len(after) != 1 || after[0].SkuID != "lt-1-v1" || after[0].Quantity != 3 {
+		t.Fatalf("expected only unselected itemC (lt-1-v1 qty 3) remaining, got %+v", after)
+	}
+
+	// Re-add dt-1-v1 and replay the same eventID: processed_events must ignore the duplicate!
+	if err := store.AddItem(ctx, cartID, "dt-1", "dt-1-v1", 1); err != nil {
+		t.Fatalf("re-add dt-1-v1: %v", err)
+	}
+	if err := store.RemoveOrderedItems(ctx, eventID, userID, []domain.OrderedItemRef{
+		{CartItemID: "", ProductID: "dt-1", SkuID: "dt-1-v1"},
+	}); err != nil {
+		t.Fatalf("replay RemoveOrderedItems: %v", err)
+	}
+	afterReplay, err := store.ListItems(ctx, cartID)
+	if err != nil {
+		t.Fatalf("ListItems after replay: %v", err)
+	}
+	if len(afterReplay) != 2 {
+		t.Fatalf("expected duplicate eventID replay to preserve re-added item, got %+v", afterReplay)
 	}
 }
