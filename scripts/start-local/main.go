@@ -167,10 +167,13 @@ func runWithDeps(args []string, in io.Reader, out, errOut io.Writer, baseEnv []s
 		setDefaultEnv(env, "RABBITMQ_URL", "amqp://ecommerce:change-me-local-only@127.0.0.1:5672/")
 		setDefaultEnv(env, "HTTP_ADDR", ":8086")
 		setDefaultEnv(env, "GRPC_ADDR", "127.0.0.1:50056")
-		setDefaultEnv(env, "MOMO_PARTNER_CODE", "MOMO")
+		setDefaultEnv(env, "MOMO_PARTNER_CODE", "MOMO_LOCAL")
+		setDefaultEnv(env, "MOMO_ACCESS_KEY", "local-access-key")
+		setDefaultEnv(env, "MOMO_SECRET_KEY", "local-secret-key-change-me")
 		setDefaultEnv(env, "MOMO_API_ENDPOINT", "https://test-payment.momo.vn/v2/gateway/api/create")
 		setDefaultEnv(env, "MOMO_REDIRECT_URL", "http://localhost:8000/api/v1/payments/momo-redirect")
 		setDefaultEnv(env, "MOMO_IPN_URL", "http://localhost:8000/api/v1/payments/momo-ipn")
+		setDefaultEnv(env, "PAYMENT_MOMO_MOCK_ENABLED", "true")
 
 		return launch(filepath.Join(root, "services", "payment-service"), formatEnv(env), "go", "run", "./cmd/server")
 

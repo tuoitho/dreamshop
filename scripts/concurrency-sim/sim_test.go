@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -357,9 +359,9 @@ func TestRunIdempotencyStorm_Deduplicates20SameAndRejects5Mutated(t *testing.T) 
 
 func TestRunMomoCallbackRace_RejectsForgedSignaturesAndConvergesConsistently(t *testing.T) {
 	const (
-		partnerCode = "MOMO"
-		accessKey   = "F8BBA842ECF85"
-		secretKey   = "K951B6PE1waDMi640xX08PD3vg6EkVlz"
+		partnerCode = "MOMO_LOCAL"
+		accessKey   = "local-access-key"
+		secretKey   = "local-secret-key-change-me"
 	)
 
 	var mu sync.Mutex
@@ -550,5 +552,28 @@ func defaultTestShipping() ShippingPayload {
 		WardCode:      "26740",
 		WardName:      "Phường Bến Nghé",
 		AddressLine:   "1 Lê Duẩn",
+	}
+}
+
+func TestResolveMomoCredentials_LoadsDotenvWithoutOverridingProcessEnv(t *testing.T) {
+	tmpDir := t.TempDir()
+	dotenvPath := filepath.Join(tmpDir, ".env")
+	if err := os.WriteFile(dotenvPath, []byte("MOMO_PARTNER_CODE=DOTENV_PARTNER\nMOMO_ACCESS_KEY=\"dotenv-access\"\nMOMO_SECRET_KEY='dotenv-secret'\n"), 0o600); err != nil {
+		t.Fatalf("write .env: %v", err)
+	}
+
+	t.Setenv("MOMO_PARTNER_CODE", "")
+	t.Setenv("MOMO_ACCESS_KEY", "override-access")
+	t.Setenv("MOMO_SECRET_KEY", "")
+
+	env := loadDotenvFallback(dotenvPath)
+	if got := resolveEnv(env, "MOMO_PARTNER_CODE", defaultMomoPartnerCode); got != "DOTENV_PARTNER" {
+		t.Fatalf("partnerCode = %q, want DOTENV_PARTNER", got)
+	}
+	if got := resolveEnv(env, "MOMO_ACCESS_KEY", defaultMomoAccessKey); got != "override-access" {
+		t.Fatalf("accessKey = %q, want override-access", got)
+	}
+	if got := resolveEnv(env, "MOMO_SECRET_KEY", defaultMomoSecretKey); got != "dotenv-secret" {
+		t.Fatalf("secretKey = %q, want dotenv-secret", got)
 	}
 }

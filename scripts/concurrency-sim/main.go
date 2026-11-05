@@ -9,8 +9,18 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
+
+	"ecommerce.local/scripts/internal/repo"
+)
+
+const (
+	defaultMomoPartnerCode = "MOMO_LOCAL"
+	defaultMomoAccessKey   = "local-access-key"
+	defaultMomoSecretKey   = "local-secret-key-change-me"
 )
 
 func main() {
@@ -33,8 +43,15 @@ func runCLI(args []string, out, errOut io.Writer) int {
 		momoPartnerCode string
 		momoAccessKey   string
 		momoSecretKey   string
+		verifySQL       bool
+		pgContainer     string
 		jsonOutput      bool
 	)
+
+	dotenv := map[string]string{}
+	if root, err := repo.Root(); err == nil {
+		dotenv = loadDotenvFallback(filepath.Join(root, ".env"))
+	}
 
 	fs.StringVar(&scenario, "scenario", "all", "scenario to run: all|flash-sale-oversell|snapshot-mismatch-race|idempotency-storm|momo-callback-race")
 	fs.StringVar(&baseURL, "base-url", "http://localhost:8000/api/v1", "public API base URL")
@@ -44,9 +61,11 @@ func runCLI(args []string, out, errOut io.Writer) int {
 	fs.StringVar(&adminPass, "admin-password", "", "admin login password")
 	fs.StringVar(&customerEmail, "customer-email", "", "customer login email (used if -customer-token is empty)")
 	fs.StringVar(&customerPass, "customer-password", "", "customer login password")
-	fs.StringVar(&momoPartnerCode, "momo-partner-code", envOr("MOMO_PARTNER_CODE", "MOMO"), "MoMo partnerCode")
-	fs.StringVar(&momoAccessKey, "momo-access-key", envOr("MOMO_ACCESS_KEY", "F8BBA842ECF85"), "MoMo accessKey")
-	fs.StringVar(&momoSecretKey, "momo-secret-key", envOr("MOMO_SECRET_KEY", "K951B6PE1waDMi640xX08PD3vg6EkVlz"), "MoMo secretKey")
+	fs.StringVar(&momoPartnerCode, "momo-partner-code", resolveEnv(dotenv, "MOMO_PARTNER_CODE", defaultMomoPartnerCode), "MoMo partnerCode")
+	fs.StringVar(&momoAccessKey, "momo-access-key", resolveEnv(dotenv, "MOMO_ACCESS_KEY", defaultMomoAccessKey), "MoMo accessKey")
+	fs.StringVar(&momoSecretKey, "momo-secret-key", resolveEnv(dotenv, "MOMO_SECRET_KEY", defaultMomoSecretKey), "MoMo secretKey")
+	fs.BoolVar(&verifySQL, "verify-sql", false, "verify cross-database SQL invariants via docker exec psql")
+	fs.StringVar(&pgContainer, "pg-container", "ecommerce-postgres", "PostgreSQL Docker container name for -verify-sql")
 	fs.BoolVar(&jsonOutput, "json", false, "emit JSON report")
 
 	if err := fs.Parse(args); err != nil {
@@ -199,6 +218,10 @@ func runCLI(args []string, out, errOut io.Writer) int {
 		}
 	}
 
+	if verifySQL {
+		results = append(results, checkDatabaseInvariants(ctx, pgContainer))
+	}
+
 	if jsonOutput {
 		enc := json.NewEncoder(out)
 		enc.SetIndent("", "  ")
@@ -343,8 +366,89 @@ func seedTestProductAndStock(ctx context.Context, client *http.Client, baseURL, 
 	}, createBody, nil
 }
 
-func envOr(key, fallback string) string {
+func checkDatabaseInvariants(ctx context.Context, container string) ScenarioResult {
+	res := ScenarioResult{
+		Scenario:        "sql-invariants",
+		Goroutines:      1,
+		StatusHistogram: map[int]int{},
+		ErrorHistogram:  map[string]int{},
+	}
+
+	checks := []struct {
+		db    string
+		label string
+		sql   string
+	}{
+		{
+			db:    "inventory_db",
+			label: "negative_or_overflow_stock",
+			sql:   "SELECT COUNT(*) FROM stock WHERE quantity < 0 OR reserved < 0 OR reserved > quantity;",
+		},
+		{
+			db:    "order_db",
+			label: "confirmed_with_refund_required",
+			sql:   "SELECT COUNT(*) FROM orders WHERE status = 'CONFIRMED' AND payment_status = 'REFUND_REQUIRED';",
+		},
+		{
+			db:    "payment_db",
+			label: "duplicate_payment_sessions_per_order",
+			sql:   "SELECT COUNT(*) FROM (SELECT order_id FROM payments GROUP BY order_id HAVING COUNT(*) > 1) dup;",
+		},
+	}
+
+	for _, c := range checks {
+		cmd := exec.CommandContext(ctx, "docker", "exec", container, "psql", "-U", "ecommerce", "-d", c.db, "-tAc", c.sql)
+		raw, err := cmd.CombinedOutput()
+		if err != nil {
+			res.Violations = append(res.Violations, fmt.Sprintf("%s (%s) query failed: %v (%s)", c.db, c.label, err, strings.TrimSpace(string(raw))))
+			continue
+		}
+		val := strings.TrimSpace(string(raw))
+		if val != "0" {
+			res.Violations = append(res.Violations, fmt.Sprintf("%s (%s) invariant violated: count=%s", c.db, c.label, val))
+		} else {
+			res.Notes = append(res.Notes, fmt.Sprintf("%s.%s=0", c.db, c.label))
+		}
+	}
+
+	res.Passed = len(res.Violations) == 0
+	return res
+}
+
+func loadDotenvFallback(path string) map[string]string {
+	vals := map[string]string{}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return vals
+	}
+	for _, rawLine := range strings.Split(string(data), "\n") {
+		line := strings.TrimSpace(rawLine)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		k, v, ok := strings.Cut(line, "=")
+		if !ok {
+			continue
+		}
+		k = strings.TrimSpace(k)
+		v = strings.TrimSpace(v)
+		if len(v) >= 2 && ((v[0] == '"' && v[len(v)-1] == '"') || (v[0] == '\'' && v[len(v)-1] == '\'')) {
+			v = v[1 : len(v)-1]
+		}
+		if k != "" {
+			if _, exists := vals[k]; !exists {
+				vals[k] = v
+			}
+		}
+	}
+	return vals
+}
+
+func resolveEnv(dotenv map[string]string, key, fallback string) string {
 	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
+		return v
+	}
+	if v := strings.TrimSpace(dotenv[key]); v != "" {
 		return v
 	}
 	return fallback

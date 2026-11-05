@@ -84,6 +84,10 @@ func TestStartLocalIdentityOrderCartBff(t *testing.T) {
 		got.Env["GRPC_ADDR"] != "127.0.0.1:50056" ||
 		got.Env["DATABASE_URL"] != "postgres://ecommerce:change-me-local-only@127.0.0.1:5432/payment_db?sslmode=disable" ||
 		got.Env["RABBITMQ_URL"] != "amqp://ecommerce:change-me-local-only@127.0.0.1:5672/" ||
+		got.Env["MOMO_PARTNER_CODE"] != "MOMO_LOCAL" ||
+		got.Env["MOMO_ACCESS_KEY"] != "local-access-key" ||
+		got.Env["MOMO_SECRET_KEY"] != "local-secret-key-change-me" ||
+		got.Env["PAYMENT_MOMO_MOCK_ENABLED"] != "true" ||
 		got.Env["MOMO_REDIRECT_URL"] != "http://localhost:8000/api/v1/payments/momo-redirect" {
 		t.Fatalf("unexpected payment env: %v", got.Env)
 	}
