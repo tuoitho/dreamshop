@@ -235,8 +235,8 @@ export default function OrderDetailPage() {
 
         <h2 className="mb-3 text-sm font-bold">Sản phẩm đã đặt</h2>
         <div className="divide-y">
-          {order.items.map((item) => (
-            <div key={item.skuId} className="flex items-center gap-3 py-3">
+          {order.items.map((item, idx) => (
+            <div key={item.cartItemId || `${item.skuId}-${idx}`} className="flex items-center gap-3 py-3">
               <div className="size-16 shrink-0 overflow-hidden rounded-lg border bg-muted">
                 <DetailItemThumb item={item} />
               </div>

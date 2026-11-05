@@ -83,7 +83,17 @@ public class OrderTransactionStepService {
         Duration payTtl = properties.paymentTtl() != null ? properties.paymentTtl() : Duration.ofMinutes(15);
 
         jdbcTemplate.update(
-                "DELETE FROM idempotency_records WHERE user_id = ? AND idempotency_key = ? AND expires_at <= ?",
+                """
+                DELETE FROM idempotency_records r
+                WHERE r.user_id = ?
+                  AND r.idempotency_key = ?
+                  AND r.expires_at <= ?
+                  AND NOT EXISTS (
+                      SELECT 1 FROM orders o
+                      WHERE o.user_id = r.user_id
+                        AND o.idempotency_key = r.idempotency_key
+                  )
+                """,
                 userId,
                 idempotencyKey,
                 java.sql.Timestamp.from(now));

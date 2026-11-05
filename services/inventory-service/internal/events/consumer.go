@@ -251,7 +251,7 @@ func declareTopology(ch *amqp.Channel, queueName string) error {
 	if err := ch.ExchangeDeclare(ExchangeName, "topic", true, false, false, false, nil); err != nil {
 		return fmt.Errorf("declare exchange %q: %w", ExchangeName, err)
 	}
-	if err := ch.ExchangeDeclare(DeadLetterExchangeName, "direct", true, false, false, false, nil); err != nil {
+	if err := ch.ExchangeDeclare(DeadLetterExchangeName, "topic", true, false, false, false, nil); err != nil {
 		return fmt.Errorf("declare dlx %q: %w", DeadLetterExchangeName, err)
 	}
 

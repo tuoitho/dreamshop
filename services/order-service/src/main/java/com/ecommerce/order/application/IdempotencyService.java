@@ -77,7 +77,8 @@ public class IdempotencyService {
             return Optional.empty();
         }
         IdempotencyRecordEntity record = found.get();
-        if (record.getExpiresAt() != null && !record.getExpiresAt().isAfter(Instant.now())) {
+        boolean expired = record.getExpiresAt() != null && !record.getExpiresAt().isAfter(Instant.now());
+        if (expired && record.getOrderId() == null) {
             return Optional.empty();
         }
         if (!record.getRequestFingerprint().equals(fingerprint)) {

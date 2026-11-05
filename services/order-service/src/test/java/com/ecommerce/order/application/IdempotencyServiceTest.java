@@ -131,6 +131,34 @@ class IdempotencyServiceTest extends PostgresRabbitIntegrationTestSupport {
         assertThat(replayed.getOrderId()).isEqualTo(confirmedResp.getOrderId());
         assertThat(replayed.getStatus()).isEqualTo("CONFIRMED");
         assertThat(OrderDetail.getDefaultInstance()).isNotEqualTo(replayed.getOrder());
+
+        // Even after the 24h TTL window elapses, a key tied to a persisted order replays deterministically
+        // instead of deleting idempotency_records and hitting 23505 on orders.uq_orders_user_idempotency.
+        jdbcTemplate.update(
+                "UPDATE idempotency_records SET expires_at = now() - interval '1 hour' WHERE user_id = ? AND idempotency_key = ?",
+                userId,
+                key);
+        CreateOrderResponse postTtlReplay = idempotencyService.checkExistingOrThrow(userId, key, fingerprint).orElseThrow();
+        assertThat(postTtlReplay.getOrderId()).isEqualTo(confirmedResp.getOrderId());
+
+        OrderTransactionStepService.Tx1Outcome postTtlClaim = txStepService.beginOrderTx1(
+                userId,
+                key,
+                fingerprint,
+                "ORD-20261105-LATE01",
+                PaymentMethod.COD,
+                req.getShippingAddress(),
+                req.getNote(),
+                List.of(),
+                300_000L,
+                0L,
+                300_000L);
+        assertThat(postTtlClaim.claimed()).isFalse();
+
+        assertThatThrownBy(() -> idempotencyService.checkExistingOrThrow(userId, key, mutatedFp))
+                .isInstanceOf(DomainException.class)
+                .extracting(ex -> ((DomainException) ex).reason())
+                .isEqualTo("IDEMPOTENCY_KEY_REUSED");
     }
 
     private static CreateOrderRequest sampleRequest(String userId, String key, int qty) {

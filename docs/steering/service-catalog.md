@@ -48,24 +48,31 @@ and accepted architecture that is not wired yet.
   and protected `/api/v1/users`, `/api/v1/locations`, `/api/v1/admin/users`, and
   `/api/v1/admin/rbac` routes to `identity-service`.
 - Local Kong exposes `/api/v1/storefront/products`, protected `/api/v1/cart`,
-  protected `/api/v1/favorites`, protected `/api/v1/admin/products`, and
-  protected `/api/v1/admin/inventory` routes to the host-run BFF at
-  `host.docker.internal:8081`. Production Kong
+  protected `/api/v1/favorites`, protected `/api/v1/orders`, public
+  `/api/v1/payments/momo-redirect` & `/api/v1/payments/momo-ipn` (with
+  `request-transformer` stripping `X-User-Id` and `X-User-Roles`), protected
+  `/api/v1/admin/products`, and protected `/api/v1/admin/inventory` routes to
+  the host-run BFF at `host.docker.internal:8081`. Production Kong
   (`deployments/kong/kong-production.yaml`) exposes `/` (`ecommerce-fe`),
   `/admin` (`admin-fe`), `/product-media` (`GET, HEAD, PUT` to `minio:9000` with
   `preserve_host: false` and 32 MB size limit), `GET /api/v1/storefront/products`,
   protected `/api/v1/cart`, protected `/api/v1/favorites`, protected
-  `/api/v1/admin/products` (`GET, POST, PUT, PATCH, DELETE`), and protected
-  `/api/v1/admin/inventory` (`GET, POST, PUT, PATCH`) to container
-  `bff-service:8080`.
+  `/api/v1/orders`, public `/api/v1/payments/momo-redirect` &
+  `/api/v1/payments/momo-ipn`, protected `/api/v1/admin/products`
+  (`GET, POST, PUT, PATCH, DELETE`), and protected `/api/v1/admin/inventory`
+  (`GET, POST, PUT, PATCH`) to container `bff-service:8080`.
 - Spring Boot Actuator endpoints run on dedicated internal management ports
   (`8090` on `identity-service`, `8093` on `order-service`) and are not exposed
   on application HTTP ports or through Kong.
 - Internal service calls do not route through Kong or the BFF. They use direct
-  private gRPC. RabbitMQ remains provisioned for future asynchronous workflows.
-- Catalog, Inventory, and Cart call Identity directly for authorization at
+  private gRPC for synchronous calls and durable RabbitMQ topic exchange
+  `ecommerce.events` (with DLX `ecommerce.events.dlx`) for asynchronous Saga
+  workflows (`OrderConfirmed`, `ReservationReleaseRequested`,
+  `PaymentSucceeded`, `PaymentFailed`, `PaymentCancelRequested`,
+  `RefundRequested`).
+- Catalog, Inventory, Cart, and Order call Identity directly for authorization at
   `127.0.0.1:50054` locally (`identity-service:50054` in containers) with a
-  `500ms` timeout. Start Identity before Catalog, Inventory, and Cart; an
+  `500ms` timeout. Start Identity before Catalog, Inventory, Cart, and Order; an
   authorization outage returns `503` without mutating state, while permission
   denial returns `403`.
 - Container BFF configuration remains on port `8080`; the host-run local

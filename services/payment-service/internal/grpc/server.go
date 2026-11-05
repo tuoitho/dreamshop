@@ -117,7 +117,9 @@ func (s *Server) CreatePaymentSession(
 		}
 	}
 
-	savedURL, completeErr := s.store.CompleteCreateSession(ctx, orderID, payURL, resCode, resMsg, gwErr)
+	completeCtx, cancelComplete := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
+	defer cancelComplete()
+	savedURL, completeErr := s.store.CompleteCreateSession(completeCtx, orderID, payURL, resCode, resMsg, gwErr)
 	if completeErr != nil {
 		return nil, mapPaymentError(completeErr)
 	}

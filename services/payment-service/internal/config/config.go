@@ -48,6 +48,17 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	redirectURL := stringEnv("MOMO_REDIRECT_URL", "https://shop.example.com/api/v1/payments/momo-redirect")
+	ipnURL := stringEnv("MOMO_IPN_URL", "https://shop.example.com/api/v1/payments/momo-ipn")
+	if !mockEnabled {
+		if !strings.HasPrefix(redirectURL, "http://") && !strings.HasPrefix(redirectURL, "https://") {
+			return Config{}, fmt.Errorf("MOMO_REDIRECT_URL must be an absolute http(s) URL when PAYMENT_MOMO_MOCK_ENABLED=false")
+		}
+		if !strings.HasPrefix(ipnURL, "http://") && !strings.HasPrefix(ipnURL, "https://") {
+			return Config{}, fmt.Errorf("MOMO_IPN_URL must be an absolute http(s) URL when PAYMENT_MOMO_MOCK_ENABLED=false")
+		}
+	}
+
 	return Config{
 		HTTPAddr:           stringEnv("HTTP_ADDR", ":8086"),
 		GRPCAddr:           stringEnv("GRPC_ADDR", "127.0.0.1:50056"),
@@ -60,8 +71,8 @@ func Load() (Config, error) {
 		MomoAPIEndpoint:    stringEnv("MOMO_API_ENDPOINT", "https://test-payment.momo.vn/v2/gateway/api/create"),
 		MomoConnectTimeout: connectTimeout,
 		MomoReadTimeout:    readTimeout,
-		MomoRedirectURL:    stringEnv("MOMO_REDIRECT_URL", "http://localhost:8081/api/v1/payments/momo-redirect"),
-		MomoIPNURL:         stringEnv("MOMO_IPN_URL", "http://localhost:8081/api/v1/payments/momo-ipn"),
+		MomoRedirectURL:    redirectURL,
+		MomoIPNURL:         ipnURL,
 		MomoMockEnabled:    mockEnabled,
 	}, nil
 }

@@ -151,7 +151,12 @@ func TestOutboxRelayAndConsumerLiveIntegration(t *testing.T) {
 	}
 
 	relay := NewOutboxRelay(repo, rabbitURL, 5*time.Second)
+	compConsumer, err := NewConsumer(rabbitURL, repo)
+	if err != nil {
+		t.Fatalf("NewConsumer: %v", err)
+	}
 	go func() { _ = relay.Run(ctx) }()
+	go func() { _ = compConsumer.Run(ctx) }()
 
 	expires := time.Now().UTC().Add(15 * time.Minute)
 	if _, err := repo.BeginCreateSession(ctx, domain.CreateSessionInput{

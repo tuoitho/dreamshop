@@ -205,8 +205,8 @@ export default function OrdersPage() {
                 </div>
 
                 <div className="divide-y py-2">
-                  {order.items.map((item) => (
-                    <div key={`${order.orderId}-${item.skuId}`} className="flex items-center gap-3 py-3">
+                  {order.items.map((item, idx) => (
+                    <div key={`${order.orderId}-${item.cartItemId || `${item.skuId}-${idx}`}`} className="flex items-center gap-3 py-3">
                       <div className="size-14 shrink-0 overflow-hidden rounded-lg border bg-muted">
                         <OrderItemThumb item={item} />
                       </div>

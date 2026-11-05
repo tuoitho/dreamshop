@@ -13,16 +13,24 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class OrderQueryService {
     private final OrderRepository orderRepository;
     private final AuthorizationGrpcAdapter authorizationAdapter;
+    private final TransactionTemplate readOnlyTx;
 
-    public OrderQueryService(OrderRepository orderRepository, AuthorizationGrpcAdapter authorizationAdapter) {
+    public OrderQueryService(
+            OrderRepository orderRepository,
+            AuthorizationGrpcAdapter authorizationAdapter,
+            PlatformTransactionManager transactionManager) {
         this.orderRepository = orderRepository;
         this.authorizationAdapter = authorizationAdapter;
+        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        template.setReadOnly(true);
+        this.readOnlyTx = template;
     }
 
     public OrderDetail getOrder(String rawUserId, String rawOrderId) {
@@ -31,7 +39,7 @@ public class OrderQueryService {
         if (!authorizationAdapter.hasPermission(userId, "order.view")) {
             throw new DomainException(Status.Code.PERMISSION_DENIED, "ORDER_PERMISSION_DENIED", "Missing order.view permission");
         }
-        return getOrderReadOnly(userId, orderId);
+        return readOnlyTx.execute(status -> getOrderReadOnly(userId, orderId));
     }
 
     public ListOrdersResponse listOrders(String rawUserId, String rawStatus, int page, int pageSize) {
@@ -42,26 +50,26 @@ public class OrderQueryService {
         int safePage = page <= 0 ? 1 : page;
         int safePageSize = pageSize <= 0 ? 20 : Math.min(pageSize, 100);
 
-        OrderStatus statusFilter = null;
+        final OrderStatus statusFilter;
         if (rawStatus != null && !rawStatus.isBlank()) {
             try {
                 statusFilter = OrderStatus.valueOf(rawStatus.trim().toUpperCase(Locale.ROOT));
             } catch (IllegalArgumentException ex) {
                 throw new DomainException(Status.Code.INVALID_ARGUMENT, "INVALID_PARAMETER", "Invalid order status filter");
             }
+        } else {
+            statusFilter = null;
         }
-        return listOrdersReadOnly(userId, statusFilter, safePage, safePageSize);
+        return readOnlyTx.execute(status -> listOrdersReadOnly(userId, statusFilter, safePage, safePageSize));
     }
 
-    @Transactional(readOnly = true)
-    protected OrderDetail getOrderReadOnly(UUID userId, UUID orderId) {
+    private OrderDetail getOrderReadOnly(UUID userId, UUID orderId) {
         OrderEntity order = orderRepository.findByIdAndUserId(orderId, userId)
                 .orElseThrow(() -> new DomainException(Status.Code.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found"));
         return OrderProtoMapper.toOrderDetail(order);
     }
 
-    @Transactional(readOnly = true)
-    protected ListOrdersResponse listOrdersReadOnly(UUID userId, OrderStatus statusFilter, int page, int pageSize) {
+    private ListOrdersResponse listOrdersReadOnly(UUID userId, OrderStatus statusFilter, int page, int pageSize) {
         PageRequest pageable = PageRequest.of(page - 1, pageSize);
         Page<OrderEntity> result = statusFilter == null
                 ? orderRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
