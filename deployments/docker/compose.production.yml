@@ -164,12 +164,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
       identity-service:
         condition: service_healthy
     environment:
       HTTP_ADDR: ":8082"
       GRPC_ADDR: "0.0.0.0:50052"
       DATABASE_URL: postgres://${POSTGRES_USER:-ecommerce}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/inventory_db?sslmode=disable
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-ecommerce}:${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS is required}@rabbitmq:5672/
       IDENTITY_GRPC_ADDR: "identity-service:50054"
       IDENTITY_GRPC_TIMEOUT: "500ms"
       SEED_DEMO_DATA: ${SEED_DEMO_DATA:-false}
@@ -191,6 +194,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
       identity-service:
         condition: service_healthy
       catalog-service:
@@ -201,6 +206,7 @@ services:
       HTTP_ADDR: ":8084"
       GRPC_ADDR: "0.0.0.0:50053"
       DATABASE_URL: postgres://${POSTGRES_USER:-ecommerce}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/cart_db?sslmode=disable
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-ecommerce}:${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS is required}@rabbitmq:5672/
       CATALOG_GRPC_ADDR: "catalog-service:50051"
       CATALOG_GRPC_TIMEOUT: "3s"
       INVENTORY_GRPC_ADDR: "inventory-service:50052"
@@ -211,6 +217,38 @@ services:
       - ecommerce-prod-net
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8084/healthz > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  payment-service:
+    image: ecommerce/payment-service:${IMAGE_TAG:-latest}
+    build:
+      context: ../..
+      dockerfile: services/payment-service/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      HTTP_ADDR: ":8086"
+      GRPC_ADDR: "0.0.0.0:50056"
+      DATABASE_URL: postgres://${POSTGRES_USER:-ecommerce}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/payment_db?sslmode=disable
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-ecommerce}:${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS is required}@rabbitmq:5672/
+      MOMO_PARTNER_CODE: ${MOMO_PARTNER_CODE:-MOMO}
+      MOMO_ACCESS_KEY: ${MOMO_ACCESS_KEY:-}
+      MOMO_SECRET_KEY: ${MOMO_SECRET_KEY:-}
+      MOMO_API_ENDPOINT: ${MOMO_API_ENDPOINT:-https://test-payment.momo.vn/v2/gateway/api/create}
+      MOMO_REDIRECT_URL: ${MOMO_REDIRECT_URL:-/api/v1/payments/momo-redirect}
+      MOMO_IPN_URL: ${MOMO_IPN_URL:-/api/v1/payments/momo-ipn}
+      PAYMENT_MOMO_MOCK_ENABLED: ${PAYMENT_MOMO_MOCK_ENABLED:-false}
+    networks:
+      - ecommerce-prod-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8086/healthz > /dev/null"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -229,6 +267,10 @@ services:
         condition: service_healthy
       cart-service:
         condition: service_healthy
+      order-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
     environment:
       BFF_HTTP_ADDR: ":8080"
       BFF_CATALOG_GRPC_ADDR: "catalog-service:50051"
@@ -237,6 +279,11 @@ services:
       BFF_INVENTORY_GRPC_TIMEOUT: "3s"
       BFF_CART_GRPC_ADDR: "cart-service:50053"
       BFF_CART_GRPC_TIMEOUT: "3s"
+      BFF_ORDER_GRPC_ADDR: "order-service:50055"
+      BFF_ORDER_GRPC_TIMEOUT: "15s"
+      BFF_PAYMENT_GRPC_ADDR: "payment-service:50056"
+      BFF_PAYMENT_GRPC_TIMEOUT: "5s"
+      BFF_STOREFRONT_BASE_URL: ${BFF_STOREFRONT_BASE_URL:-/}
     networks:
       - ecommerce-prod-net
     healthcheck:
@@ -252,10 +299,36 @@ services:
       context: ../..
       dockerfile: services/order-service/Dockerfile
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      identity-service:
+        condition: service_healthy
+      catalog-service:
+        condition: service_healthy
+      inventory-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
     environment:
       SERVER_PORT: "8083"
       MANAGEMENT_SERVER_PORT: "8093"
       JDK_JAVA_OPTIONS: "-Djava.net.preferIPv4Stack=true"
+      ORDER_DB_URL: jdbc:postgresql://postgres:5432/order_db
+      ORDER_DB_USERNAME: ${POSTGRES_USER:-ecommerce}
+      ORDER_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      RABBITMQ_HOST: "rabbitmq"
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-ecommerce}
+      RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS is required}
+      ORDER_GRPC_HOST: "0.0.0.0"
+      ORDER_GRPC_PORT: "50055"
+      IDENTITY_GRPC_ADDR: "identity-service:50054"
+      CATALOG_GRPC_ADDR: "catalog-service:50051"
+      INVENTORY_GRPC_ADDR: "inventory-service:50052"
+      PAYMENT_GRPC_ADDR: "payment-service:50056"
     networks:
       - ecommerce-prod-net
     healthcheck:

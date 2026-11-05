@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -17,6 +18,11 @@ type Config struct {
 	InventoryGRPCTimeout time.Duration
 	CartGRPCAddr         string
 	CartGRPCTimeout      time.Duration
+	OrderGRPCAddr        string
+	OrderGRPCTimeout     time.Duration
+	PaymentGRPCAddr      string
+	PaymentGRPCTimeout   time.Duration
+	StorefrontBaseURL    string
 }
 
 func Load() (*Config, error) {
@@ -26,6 +32,9 @@ func Load() (*Config, error) {
 	settings.SetDefault("catalog.grpc.addr", "127.0.0.1:50051")
 	settings.SetDefault("inventory.grpc.addr", "127.0.0.1:50052")
 	settings.SetDefault("cart.grpc.addr", "127.0.0.1:50053")
+	settings.SetDefault("order.grpc.addr", "127.0.0.1:50055")
+	settings.SetDefault("payment.grpc.addr", "127.0.0.1:50056")
+	settings.SetDefault("storefront.base.url", "http://localhost:5173")
 
 	if err := settings.BindEnv("http.addr", "BFF_HTTP_ADDR", "HTTP_ADDR"); err != nil {
 		return nil, fmt.Errorf("bind HTTP address: %w", err)
@@ -48,6 +57,21 @@ func Load() (*Config, error) {
 	if err := settings.BindEnv("cart.grpc.timeout", "BFF_CART_GRPC_TIMEOUT"); err != nil {
 		return nil, fmt.Errorf("bind Cart gRPC timeout: %w", err)
 	}
+	if err := settings.BindEnv("order.grpc.addr", "BFF_ORDER_GRPC_ADDR"); err != nil {
+		return nil, fmt.Errorf("bind Order gRPC address: %w", err)
+	}
+	if err := settings.BindEnv("order.grpc.timeout", "BFF_ORDER_GRPC_TIMEOUT"); err != nil {
+		return nil, fmt.Errorf("bind Order gRPC timeout: %w", err)
+	}
+	if err := settings.BindEnv("payment.grpc.addr", "BFF_PAYMENT_GRPC_ADDR"); err != nil {
+		return nil, fmt.Errorf("bind Payment gRPC address: %w", err)
+	}
+	if err := settings.BindEnv("payment.grpc.timeout", "BFF_PAYMENT_GRPC_TIMEOUT"); err != nil {
+		return nil, fmt.Errorf("bind Payment gRPC timeout: %w", err)
+	}
+	if err := settings.BindEnv("storefront.base.url", "BFF_STOREFRONT_BASE_URL"); err != nil {
+		return nil, fmt.Errorf("bind Storefront base URL: %w", err)
+	}
 
 	catalogTimeout, err := loadDuration(settings, "catalog.grpc.timeout", "BFF_CATALOG_GRPC_TIMEOUT", 3*time.Second)
 	if err != nil {
@@ -61,6 +85,19 @@ func Load() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	orderTimeout, err := loadDuration(settings, "order.grpc.timeout", "BFF_ORDER_GRPC_TIMEOUT", 15*time.Second)
+	if err != nil {
+		return nil, err
+	}
+	paymentTimeout, err := loadDuration(settings, "payment.grpc.timeout", "BFF_PAYMENT_GRPC_TIMEOUT", 5*time.Second)
+	if err != nil {
+		return nil, err
+	}
+
+	storefrontBaseURL := settings.GetString("storefront.base.url")
+	if raw, ok := os.LookupEnv("BFF_STOREFRONT_BASE_URL"); ok && strings.TrimSpace(raw) == "/" {
+		storefrontBaseURL = ""
+	}
 
 	cfg := &Config{
 		HTTPAddr:             settings.GetString("http.addr"),
@@ -70,6 +107,11 @@ func Load() (*Config, error) {
 		InventoryGRPCTimeout: inventoryTimeout,
 		CartGRPCAddr:         settings.GetString("cart.grpc.addr"),
 		CartGRPCTimeout:      cartTimeout,
+		OrderGRPCAddr:        settings.GetString("order.grpc.addr"),
+		OrderGRPCTimeout:     orderTimeout,
+		PaymentGRPCAddr:      settings.GetString("payment.grpc.addr"),
+		PaymentGRPCTimeout:   paymentTimeout,
+		StorefrontBaseURL:    strings.TrimRight(strings.TrimSpace(storefrontBaseURL), "/"),
 	}
 
 	if cfg.HTTPAddr == "" {
@@ -83,6 +125,12 @@ func Load() (*Config, error) {
 	}
 	if strings.TrimSpace(cfg.CartGRPCAddr) == "" {
 		return nil, errors.New("Cart gRPC address must not be empty")
+	}
+	if strings.TrimSpace(cfg.OrderGRPCAddr) == "" {
+		return nil, errors.New("Order gRPC address must not be empty")
+	}
+	if strings.TrimSpace(cfg.PaymentGRPCAddr) == "" {
+		return nil, errors.New("Payment gRPC address must not be empty")
 	}
 
 	return cfg, nil

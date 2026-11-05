@@ -38,6 +38,7 @@ type kongPluginConfig struct {
 		Audience           string   `yaml:"audience"`
 		Origins            []string `yaml:"origins"`
 		Methods            []string `yaml:"methods"`
+		Headers            []string `yaml:"headers"`
 		AllowedPayloadSize int      `yaml:"allowed_payload_size"`
 		SizeUnit           string   `yaml:"size_unit"`
 		Remove             struct {
@@ -152,6 +153,21 @@ func TestProductionKongConsolidatesServicesWithStripPathFalseAndServesSPA(t *tes
 			paths:     []string{"/api/v1/favorites"},
 			methods:   []string{"GET", "POST", "DELETE"},
 			protected: true,
+		},
+		"orders-api": {
+			service:   "bff-service",
+			paths:     []string{"/api/v1/orders"},
+			methods:   []string{"GET", "POST"},
+			protected: true,
+		},
+		"payments-momo-public": {
+			service: "bff-service",
+			paths: []string{
+				"~/api/v1/payments/momo-redirect$",
+				"~/api/v1/payments/momo-ipn$",
+			},
+			methods:   []string{"GET", "POST"},
+			protected: false,
 		},
 		"admin-products-api": {
 			service:   "bff-service",

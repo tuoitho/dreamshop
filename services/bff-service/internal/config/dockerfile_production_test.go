@@ -69,6 +69,7 @@ func TestBackendDockerfilesAndRootDockerignore(t *testing.T) {
 		{name: "catalog-service", ports: []string{"8081", "50051"}},
 		{name: "inventory-service", ports: []string{"8082", "50052"}},
 		{name: "cart-service", ports: []string{"8084", "50053"}},
+		{name: "payment-service", ports: []string{"8086", "50056"}},
 	}
 
 	for _, svc := range goServices {
@@ -122,8 +123,8 @@ func TestBackendDockerfilesAndRootDockerignore(t *testing.T) {
 	}
 
 	orderDockerfile := readRepoFile(t, root, "services", "order-service", "Dockerfile")
-	if !strings.Contains(orderDockerfile, "EXPOSE 8083 8093") {
-		t.Error("order-service Dockerfile must EXPOSE 8083 8093")
+	if !strings.Contains(orderDockerfile, "EXPOSE 8083 8093 50055") {
+		t.Error("order-service Dockerfile must EXPOSE 8083 8093 50055")
 	}
 
 	catalogDockerfile := readRepoFile(t, root, "services", "catalog-service", "Dockerfile")
@@ -145,7 +146,7 @@ func TestBackendDockerfilesAndRootDockerignore(t *testing.T) {
 
 func TestGoServicesBuildStandaloneWithGoWorkOff(t *testing.T) {
 	root := repoRoot(t)
-	for _, svc := range []string{"bff-service", "catalog-service", "inventory-service", "cart-service"} {
+	for _, svc := range []string{"bff-service", "catalog-service", "inventory-service", "cart-service", "payment-service"} {
 		cmd := exec.Command("go", "list", "./cmd/server")
 		cmd.Dir = filepath.Join(root, "services", svc)
 		cmd.Env = append(os.Environ(), "GOWORK=off")

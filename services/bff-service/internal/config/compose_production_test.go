@@ -75,6 +75,7 @@ func TestProductionComposeEnforcesIsolationSecretsAndStartupOrder(t *testing.T) 
 		"catalog-service",
 		"inventory-service",
 		"cart-service",
+		"payment-service",
 		"order-service",
 		"ecommerce-fe",
 		"admin-fe",
@@ -176,29 +177,57 @@ func TestProductionComposeEnforcesIsolationSecretsAndStartupOrder(t *testing.T) 
 	if inventory.Environment["IDENTITY_GRPC_ADDR"] != "identity-service:50054" || inventory.Environment["IDENTITY_GRPC_TIMEOUT"] != "500ms" {
 		t.Errorf("inventory-service Identity gRPC env = addr=%q timeout=%q, want identity-service:50054 / 500ms", inventory.Environment["IDENTITY_GRPC_ADDR"], inventory.Environment["IDENTITY_GRPC_TIMEOUT"])
 	}
-	assertHealthyDeps(t, "inventory-service", inventory.DependsOn, "postgres", "identity-service")
+	if !strings.HasPrefix(inventory.Environment["RABBITMQ_URL"], "amqp://") {
+		t.Errorf("inventory-service RABBITMQ_URL = %q, want amqp:// URI", inventory.Environment["RABBITMQ_URL"])
+	}
+	assertHealthyDeps(t, "inventory-service", inventory.DependsOn, "postgres", "rabbitmq", "identity-service")
 
 	cart := compose.Services["cart-service"]
 	if cart.Environment["GRPC_ADDR"] != "0.0.0.0:50053" {
 		t.Errorf("cart-service GRPC_ADDR = %q, want 0.0.0.0:50053", cart.Environment["GRPC_ADDR"])
 	}
-	assertHealthyDeps(t, "cart-service", cart.DependsOn, "postgres", "identity-service", "catalog-service", "inventory-service")
+	if !strings.HasPrefix(cart.Environment["RABBITMQ_URL"], "amqp://") {
+		t.Errorf("cart-service RABBITMQ_URL = %q, want amqp:// URI", cart.Environment["RABBITMQ_URL"])
+	}
+	assertHealthyDeps(t, "cart-service", cart.DependsOn, "postgres", "rabbitmq", "identity-service", "catalog-service", "inventory-service")
+
+	payment := compose.Services["payment-service"]
+	if payment.Environment["HTTP_ADDR"] != ":8086" || payment.Environment["GRPC_ADDR"] != "0.0.0.0:50056" {
+		t.Errorf("payment-service addr env = http=%q grpc=%q, want :8086 / 0.0.0.0:50056", payment.Environment["HTTP_ADDR"], payment.Environment["GRPC_ADDR"])
+	}
+	if !strings.HasPrefix(payment.Environment["DATABASE_URL"], "postgres://") || !strings.HasPrefix(payment.Environment["RABBITMQ_URL"], "amqp://") {
+		t.Errorf("payment-service DATABASE_URL/RABBITMQ_URL = %q / %q", payment.Environment["DATABASE_URL"], payment.Environment["RABBITMQ_URL"])
+	}
+	assertHealthyDeps(t, "payment-service", payment.DependsOn, "postgres", "rabbitmq")
 
 	bff := compose.Services["bff-service"]
 	if bff.Environment["BFF_CATALOG_GRPC_ADDR"] != "catalog-service:50051" ||
 		bff.Environment["BFF_INVENTORY_GRPC_ADDR"] != "inventory-service:50052" ||
-		bff.Environment["BFF_CART_GRPC_ADDR"] != "cart-service:50053" {
-		t.Errorf("bff-service gRPC targets = catalog=%q inventory=%q cart=%q", bff.Environment["BFF_CATALOG_GRPC_ADDR"], bff.Environment["BFF_INVENTORY_GRPC_ADDR"], bff.Environment["BFF_CART_GRPC_ADDR"])
+		bff.Environment["BFF_CART_GRPC_ADDR"] != "cart-service:50053" ||
+		bff.Environment["BFF_ORDER_GRPC_ADDR"] != "order-service:50055" ||
+		bff.Environment["BFF_PAYMENT_GRPC_ADDR"] != "payment-service:50056" {
+		t.Errorf("bff-service gRPC targets = %v", bff.Environment)
 	}
 	if bff.Environment["BFF_INVENTORY_GRPC_TIMEOUT"] != "3s" {
 		t.Errorf("bff-service BFF_INVENTORY_GRPC_TIMEOUT = %q, want 3s", bff.Environment["BFF_INVENTORY_GRPC_TIMEOUT"])
 	}
-	assertHealthyDeps(t, "bff-service", bff.DependsOn, "catalog-service", "inventory-service", "cart-service")
+	assertHealthyDeps(t, "bff-service", bff.DependsOn, "catalog-service", "inventory-service", "cart-service", "order-service", "payment-service")
 
 	order := compose.Services["order-service"]
 	if order.Environment["MANAGEMENT_SERVER_PORT"] != "8093" {
 		t.Errorf("order-service MANAGEMENT_SERVER_PORT = %q, want 8093", order.Environment["MANAGEMENT_SERVER_PORT"])
 	}
+	if order.Environment["ORDER_GRPC_HOST"] != "0.0.0.0" || order.Environment["ORDER_GRPC_PORT"] != "50055" {
+		t.Errorf("order-service gRPC bind = %q:%q, want 0.0.0.0:50055", order.Environment["ORDER_GRPC_HOST"], order.Environment["ORDER_GRPC_PORT"])
+	}
+	if order.Environment["IDENTITY_GRPC_ADDR"] != "identity-service:50054" ||
+		order.Environment["CATALOG_GRPC_ADDR"] != "catalog-service:50051" ||
+		order.Environment["INVENTORY_GRPC_ADDR"] != "inventory-service:50052" ||
+		order.Environment["PAYMENT_GRPC_ADDR"] != "payment-service:50056" ||
+		order.Environment["RABBITMQ_HOST"] != "rabbitmq" {
+		t.Errorf("order-service upstream env = %v", order.Environment)
+	}
+	assertHealthyDeps(t, "order-service", order.DependsOn, "postgres", "rabbitmq", "identity-service", "catalog-service", "inventory-service", "payment-service")
 	if orderTest, _ := order.Healthcheck["test"].([]any); len(orderTest) < 2 || !strings.Contains(orderTest[1].(string), "127.0.0.1:8093/actuator/health/readiness") {
 		t.Errorf("order-service healthcheck = %v, want 127.0.0.1:8093/actuator/health/readiness", order.Healthcheck["test"])
 	}

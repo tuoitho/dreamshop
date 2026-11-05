@@ -87,7 +87,7 @@ func cartItemFixture() *cartv1.CartItem {
 		ImageEmoji:    "📱",
 		ImageHue:      []uint32{220, 260}, ImageUrl: "https://example.test/dt-1.png",
 		VariantColorHex: "#111111", Status: cartv1.CartItemStatus_CART_ITEM_STATUS_LIMITED,
-		AvailableQuantity: 3,
+		AvailableQuantity: 3, ProductVersion: 4,
 	}
 }
 
@@ -106,7 +106,7 @@ func TestGetCartMapsItemToExactCamelCaseEnvelope(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	want := `{"data":{"items":[{"itemId":"item-1","productId":"dt-1","skuId":"dt-1-v2","variantLabel":"16GB/512GB","quantity":2,"name":"Nova X","brand":"Nova","categoryName":"Phones","unitPrice":18990000,"originalPrice":21990000,"imageEmoji":"📱","imageHue":[220,260],"imageUrl":"https://example.test/dt-1.png","variantColorHex":"#111111","status":"LIMITED","availableQuantity":3}],"degraded":true},"message":"Cart retrieved."}` + "\n"
+	want := `{"data":{"items":[{"itemId":"item-1","productId":"dt-1","skuId":"dt-1-v2","variantLabel":"16GB/512GB","quantity":2,"name":"Nova X","brand":"Nova","categoryName":"Phones","unitPrice":18990000,"originalPrice":21990000,"imageEmoji":"📱","imageHue":[220,260],"imageUrl":"https://example.test/dt-1.png","variantColorHex":"#111111","status":"LIMITED","availableQuantity":3,"productVersion":4}],"degraded":true},"message":"Cart retrieved."}` + "\n"
 	if got := rec.Body.String(); got != want {
 		t.Fatalf("unexpected body\n got: %s\nwant: %s", got, want)
 	}

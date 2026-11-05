@@ -1,4 +1,4 @@
-.PHONY: infra-up infra-down infra-logs prod-config prod-up prod-down prod-logs identity order catalog inventory cart bff fe admin-fe identity-keys proto lint verify check-boundaries up down help
+.PHONY: infra-up infra-down infra-logs prod-config prod-up prod-down prod-logs identity order payment catalog inventory cart bff fe admin-fe identity-keys proto lint verify check-boundaries up down help
 
 PROD_ENV_FILE ?= .env.production
 
@@ -30,6 +30,9 @@ identity:
 
 order:
 	go run ./scripts/start-local -service order-service
+
+payment:
+	go run ./scripts/start-local -service payment-service
 
 catalog:
 	go run ./scripts/start-local -service catalog-service
@@ -83,6 +86,7 @@ help:
 	@echo "  make prod-logs         - Follow production Docker Compose logs"
 	@echo "  make identity          - Start identity-service locally"
 	@echo "  make order             - Start order-service locally"
+	@echo "  make payment           - Start payment-service locally"
 	@echo "  make catalog           - Start catalog-service locally"
 	@echo "  make inventory         - Start inventory-service locally"
 	@echo "  make cart              - Start cart-service locally"
