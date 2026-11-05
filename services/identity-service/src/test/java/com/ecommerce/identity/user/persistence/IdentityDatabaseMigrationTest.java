@@ -57,7 +57,8 @@ class IdentityDatabaseMigrationTest extends PostgresIntegrationTestSupport {
                 .containsExactly("address.create", "address.delete", "address.set-default",
                         "address.update", "address.view", "cart.clear", "cart.item.add",
                         "cart.item.remove", "cart.item.update", "cart.view", "favorite.manage",
-                        "inventory.update", "inventory.view", "product.create", "product.delete",
+                        "inventory.update", "inventory.view", "order.cancel", "order.create",
+                        "order.view", "product.create", "product.delete",
                         "product.update", "product.view", "rbac.manage", "rbac.view",
                         "user.role.assign", "user.status.update", "user.view");
         assertThat(jdbc.sql("""
@@ -68,7 +69,8 @@ class IdentityDatabaseMigrationTest extends PostgresIntegrationTestSupport {
                 .contains("inventory.update", "inventory.view", "product.create",
                         "product.delete", "product.update", "product.view")
                 .doesNotContain("cart.clear", "cart.item.add", "cart.item.remove",
-                        "cart.item.update", "cart.view");
+                        "cart.item.update", "cart.view", "order.cancel", "order.create",
+                        "order.view");
         assertThat(jdbc.sql("""
                 select child_name from auth_item_children
                 where parent_name = 'CUSTOMER' and child_name like 'cart.%'
@@ -76,6 +78,12 @@ class IdentityDatabaseMigrationTest extends PostgresIntegrationTestSupport {
                 """).query(String.class).list())
                 .containsExactly("cart.clear", "cart.item.add", "cart.item.remove",
                         "cart.item.update", "cart.view");
+        assertThat(jdbc.sql("""
+                select child_name from auth_item_children
+                where parent_name = 'CUSTOMER' and child_name like 'order.%'
+                order by child_name
+                """).query(String.class).list())
+                .containsExactly("order.cancel", "order.create", "order.view");
         assertThat(jdbc.sql("""
                 select count(*) from auth_item_children
                 where parent_name = 'CUSTOMER' and child_name = 'favorite.manage'
