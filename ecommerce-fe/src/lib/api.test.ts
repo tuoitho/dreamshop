@@ -661,3 +661,87 @@ describe("favorites adapters", () => {
     expect(toast.success).toHaveBeenCalledTimes(3)
   })
 })
+
+describe("orders and shipping address adapters", () => {
+  beforeEach(() => {
+    clearAccessToken()
+    vi.clearAllMocks()
+    delete http.defaults.adapter
+    delete refreshHttp.defaults.adapter
+  })
+
+  it("createOrder sends Idempotency-Key header, suppresses toast on MOMO payUrl redirect, and preserves per-SKU errors on 409 PRODUCT_SNAPSHOT_MISMATCH", async () => {
+    const createOrder = apiModule.createOrder
+    expect(typeof createOrder).toBe("function")
+
+    const adapter = vi.fn(async (config) => ({
+      data: {
+        data: {
+          order: { orderId: "ord-1", orderCode: "ORD-20261105-AAA111", status: "PENDING_PAYMENT" },
+          payUrl: "https://test-payment.momo.vn/pay/ord-1",
+        },
+        message: "Đặt hàng thành công",
+      },
+      status: 201,
+      statusText: "Created",
+      headers: {},
+      config,
+    }))
+    http.defaults.adapter = adapter as never
+
+    const payload = {
+      paymentMethod: "MOMO" as const,
+      shippingAddress: {
+        recipientName: "Nguyễn Văn A",
+        phone: "0901234567",
+        provinceCode: "79",
+        provinceName: "TP. Hồ Chí Minh",
+        wardCode: "26740",
+        wardName: "Phường Bến Nghé",
+        addressLine: "1 Lê Duẩn",
+      },
+      items: [
+        {
+          productId: "dt-1",
+          skuId: "dt-1-v1",
+          quantity: 1,
+          unitPrice: 150000,
+          expectedName: "Nova X",
+          variantLabel: "Đen",
+          expectedProductVersion: 4,
+        },
+      ],
+    }
+
+    const res = await createOrder(payload, "idem-key-123")
+    expect(res).toMatchObject({ payUrl: "https://test-payment.momo.vn/pay/ord-1" })
+    const sentHeaders = (adapter.mock.calls[0][0] as { headers?: Record<string, string> }).headers
+    expect(sentHeaders?.["Idempotency-Key"]).toBe("idem-key-123")
+    expect(toast.success).not.toHaveBeenCalled()
+
+    http.defaults.adapter = vi.fn(async (config) => {
+      throw new AxiosError("Conflict", "ERR_BAD_REQUEST", config, undefined, {
+        status: 409,
+        data: {
+          code: "PRODUCT_SNAPSHOT_MISMATCH",
+          message: "Thông tin sản phẩm vừa thay đổi",
+          errors: {
+            "dt-1-v1": "[PRICE_CHANGED] Giá phân loại vừa thay đổi",
+          },
+          traceId: "trace-mismatch-1",
+        },
+        statusText: "Conflict",
+        headers: new AxiosHeaders(),
+        config,
+      })
+    }) as never
+
+    const mismatchErr = await createOrder(payload, "idem-key-456").catch((err) => err)
+    expect(mismatchErr).toBeInstanceOf(ApiClientError)
+    expect((mismatchErr as ApiClientError).code).toBe("PRODUCT_SNAPSHOT_MISMATCH")
+    expect((mismatchErr as ApiClientError).errors).toEqual({
+      "dt-1-v1": "[PRICE_CHANGED] Giá phân loại vừa thay đổi",
+    })
+    expect(toast.error).not.toHaveBeenCalled()
+  })
+})

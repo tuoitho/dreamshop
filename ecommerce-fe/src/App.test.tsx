@@ -21,6 +21,13 @@ vi.mock("@/lib/api", async (importOriginal) => {
       totalItems: 0,
       totalPages: 0,
     }),
+    listOrders: vi.fn().mockResolvedValue({
+      items: [],
+      page: 1,
+      pageSize: 10,
+      totalItems: 0,
+      totalPages: 0,
+    }),
   }
 })
 
@@ -140,5 +147,18 @@ describe("App StoreLayout shell", () => {
     })
 
     expect(await screen.findByText("Đăng nhập vào tài khoản của bạn")).toBeInTheDocument()
+  })
+
+  it("protects /don-hang with RequireAuth for guests and renders OrdersPage for customers", async () => {
+    const { unmount } = renderAppAt("/don-hang", { ready: true, isAuthenticated: false })
+    expect(await screen.findByText("Đăng nhập vào tài khoản của bạn")).toBeInTheDocument()
+    unmount()
+
+    renderAppAt("/don-hang", {
+      token: "access-token",
+      isAuthenticated: true,
+      user: USER,
+    })
+    expect(await screen.findByRole("heading", { name: "Đơn mua của tôi" })).toBeInTheDocument()
   })
 })

@@ -241,7 +241,8 @@ describe("SiteHeader", () => {
     expect(headerCartLink).toHaveTextContent("3")
 
     await userEvent.click(screen.getByRole("button", { name: "Nguyễn Văn A" }))
-    expect(await screen.findByRole("menuitem", { name: "Sản phẩm yêu thích" })).toHaveAttribute("href", "/yeu-thich")
+    expect(await screen.findByRole("menuitem", { name: "Đơn mua" })).toHaveAttribute("href", "/don-hang")
+    expect(screen.getByRole("menuitem", { name: "Sản phẩm yêu thích" })).toHaveAttribute("href", "/yeu-thich")
     await userEvent.keyboard("{Escape}")
 
     await userEvent.click(screen.getByRole("button", { name: "Mở menu" }))

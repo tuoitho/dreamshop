@@ -108,6 +108,7 @@ export interface CartItem {
   variantColorHex?: string
   status: CartItemStatus
   availableQuantity: number
+  productVersion?: number
 }
 
 export interface CartData {
@@ -197,6 +198,122 @@ export interface SearchProductsParams {
 
 export interface SearchProductsResult {
   items: ProductSummary[]
+  page: number
+  pageSize: number
+  totalItems: number
+  totalPages: number
+}
+
+export interface ShippingAddress {
+  id: string
+  recipientName: string
+  phone: string
+  provinceCode: string
+  wardCode: string
+  addressLine: string
+  label: string | null
+  isDefault: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateShippingAddressPayload {
+  recipientName: string
+  phone: string
+  provinceCode: string
+  wardCode: string
+  addressLine: string
+  label?: string | null
+  isDefault?: boolean
+}
+
+export interface ShippingAddressSnapshot {
+  recipientName: string
+  phone: string
+  provinceCode: string
+  provinceName: string
+  wardCode: string
+  wardName: string
+  addressLine: string
+  label?: string
+}
+
+export type PaymentMethod = "COD" | "MOMO"
+
+export type OrderStatus = "PENDING_STOCK" | "PENDING_PAYMENT" | "CONFIRMED" | "CANCELLED"
+
+export type PaymentStatus = "UNPAID" | "PENDING" | "PAID" | "FAILED" | "REFUND_REQUIRED"
+
+export interface OrderItemSnapshot {
+  cartItemId?: string
+  productId: string
+  skuId: string
+  quantity: number
+  unitPrice: number
+  lineTotal: number
+  expectedName: string
+  brand: string
+  categoryName: string
+  variantLabel: string
+  variantColorHex?: string
+  imageUrl: string
+  imageEmoji: string
+  imageHue: [number, number] | number[]
+  expectedProductVersion: number
+}
+
+export interface OrderDetail {
+  orderId: string
+  orderCode: string
+  userId: string
+  status: OrderStatus | string
+  paymentMethod: PaymentMethod | string
+  paymentStatus: PaymentStatus | string
+  shippingAddress: ShippingAddressSnapshot
+  items: OrderItemSnapshot[]
+  subtotal: number
+  shippingFee: number
+  totalAmount: number
+  currency: string
+  note?: string
+  cancelReason?: string
+  payUrl?: string
+  paymentExpiresAt?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateOrderItemPayload {
+  cartItemId?: string
+  productId: string
+  skuId: string
+  quantity: number
+  unitPrice: number
+  expectedName: string
+  brand?: string
+  categoryName?: string
+  variantLabel: string
+  variantColorHex?: string
+  imageUrl?: string
+  imageEmoji?: string
+  imageHue?: [number, number] | number[]
+  expectedProductVersion: number
+}
+
+export interface CreateOrderPayload {
+  paymentMethod: PaymentMethod
+  note?: string
+  shippingAddress: ShippingAddressSnapshot
+  items: CreateOrderItemPayload[]
+}
+
+export interface CreateOrderResult {
+  order: OrderDetail
+  payUrl?: string
+}
+
+export interface OrderListResult {
+  items: OrderDetail[]
   page: number
   pageSize: number
   totalItems: number
