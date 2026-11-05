@@ -2,20 +2,17 @@ package com.ecommerce.order;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.ecommerce.order.support.PostgresRabbitIntegrationTestSupport;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.core.env.Environment;
 
-@SpringBootTest(
-        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = "MANAGEMENT_SERVER_PORT=0")
-class OrderApplicationTest {
+class OrderApplicationTest extends PostgresRabbitIntegrationTestSupport {
     @LocalServerPort
     int serverPort;
 
