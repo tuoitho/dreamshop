@@ -13,6 +13,7 @@ type Config struct {
 	HTTPAddr            string
 	GRPCAddr            string
 	DatabaseURL         string
+	RabbitMQURL         string
 	IdentityGRPCAddr    string
 	IdentityGRPCTimeout time.Duration
 	SeedDemoData        bool
@@ -38,6 +39,7 @@ func Load() (*Config, error) {
 		HTTPAddr:            valueOrDefault("HTTP_ADDR", ":8082"),
 		GRPCAddr:            valueOrDefault("GRPC_ADDR", "127.0.0.1:50052"),
 		DatabaseURL:         databaseURL,
+		RabbitMQURL:         strings.TrimSpace(os.Getenv("RABBITMQ_URL")),
 		IdentityGRPCAddr:    valueOrDefault("IDENTITY_GRPC_ADDR", "127.0.0.1:50054"),
 		IdentityGRPCTimeout: identityTimeout,
 		SeedDemoData:        seedDemoData,
