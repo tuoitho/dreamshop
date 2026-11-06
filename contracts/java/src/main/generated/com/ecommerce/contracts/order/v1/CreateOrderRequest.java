@@ -19,6 +19,9 @@ private static final long serialVersionUID = 0L;
   private CreateOrderRequest() {
     userId_ = "";
     items_ = java.util.Collections.emptyList();
+    idempotencyKey_ = "";
+    paymentMethod_ = "";
+    note_ = "";
   }
 
   @java.lang.Override
@@ -41,6 +44,7 @@ private static final long serialVersionUID = 0L;
             com.ecommerce.contracts.order.v1.CreateOrderRequest.class, com.ecommerce.contracts.order.v1.CreateOrderRequest.Builder.class);
   }
 
+  private int bitField0_;
   public static final int USER_ID_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
   private volatile java.lang.Object userId_ = "";
@@ -121,6 +125,149 @@ private static final long serialVersionUID = 0L;
     return items_.get(index);
   }
 
+  public static final int IDEMPOTENCY_KEY_FIELD_NUMBER = 3;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object idempotencyKey_ = "";
+  /**
+   * <code>string idempotency_key = 3 [json_name = "idempotencyKey"];</code>
+   * @return The idempotencyKey.
+   */
+  @java.lang.Override
+  public java.lang.String getIdempotencyKey() {
+    java.lang.Object ref = idempotencyKey_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      idempotencyKey_ = s;
+      return s;
+    }
+  }
+  /**
+   * <code>string idempotency_key = 3 [json_name = "idempotencyKey"];</code>
+   * @return The bytes for idempotencyKey.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getIdempotencyKeyBytes() {
+    java.lang.Object ref = idempotencyKey_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      idempotencyKey_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int SHIPPING_ADDRESS_FIELD_NUMBER = 4;
+  private com.ecommerce.contracts.order.v1.ShippingAddressSnapshot shippingAddress_;
+  /**
+   * <code>.ecommerce.order.v1.ShippingAddressSnapshot shipping_address = 4 [json_name = "shippingAddress"];</code>
+   * @return Whether the shippingAddress field is set.
+   */
+  @java.lang.Override
+  public boolean hasShippingAddress() {
+    return ((bitField0_ & 0x00000001) != 0);
+  }
+  /**
+   * <code>.ecommerce.order.v1.ShippingAddressSnapshot shipping_address = 4 [json_name = "shippingAddress"];</code>
+   * @return The shippingAddress.
+   */
+  @java.lang.Override
+  public com.ecommerce.contracts.order.v1.ShippingAddressSnapshot getShippingAddress() {
+    return shippingAddress_ == null ? com.ecommerce.contracts.order.v1.ShippingAddressSnapshot.getDefaultInstance() : shippingAddress_;
+  }
+  /**
+   * <code>.ecommerce.order.v1.ShippingAddressSnapshot shipping_address = 4 [json_name = "shippingAddress"];</code>
+   */
+  @java.lang.Override
+  public com.ecommerce.contracts.order.v1.ShippingAddressSnapshotOrBuilder getShippingAddressOrBuilder() {
+    return shippingAddress_ == null ? com.ecommerce.contracts.order.v1.ShippingAddressSnapshot.getDefaultInstance() : shippingAddress_;
+  }
+
+  public static final int PAYMENT_METHOD_FIELD_NUMBER = 5;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object paymentMethod_ = "";
+  /**
+   * <code>string payment_method = 5 [json_name = "paymentMethod"];</code>
+   * @return The paymentMethod.
+   */
+  @java.lang.Override
+  public java.lang.String getPaymentMethod() {
+    java.lang.Object ref = paymentMethod_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      paymentMethod_ = s;
+      return s;
+    }
+  }
+  /**
+   * <code>string payment_method = 5 [json_name = "paymentMethod"];</code>
+   * @return The bytes for paymentMethod.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getPaymentMethodBytes() {
+    java.lang.Object ref = paymentMethod_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      paymentMethod_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int NOTE_FIELD_NUMBER = 6;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object note_ = "";
+  /**
+   * <code>string note = 6 [json_name = "note"];</code>
+   * @return The note.
+   */
+  @java.lang.Override
+  public java.lang.String getNote() {
+    java.lang.Object ref = note_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      note_ = s;
+      return s;
+    }
+  }
+  /**
+   * <code>string note = 6 [json_name = "note"];</code>
+   * @return The bytes for note.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getNoteBytes() {
+    java.lang.Object ref = note_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      note_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -141,6 +288,18 @@ private static final long serialVersionUID = 0L;
     for (int i = 0; i < items_.size(); i++) {
       output.writeMessage(2, items_.get(i));
     }
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(idempotencyKey_)) {
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 3, idempotencyKey_);
+    }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      output.writeMessage(4, getShippingAddress());
+    }
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(paymentMethod_)) {
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 5, paymentMethod_);
+    }
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(note_)) {
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 6, note_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -156,6 +315,19 @@ private static final long serialVersionUID = 0L;
     for (int i = 0; i < items_.size(); i++) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(2, items_.get(i));
+    }
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(idempotencyKey_)) {
+      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, idempotencyKey_);
+    }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(4, getShippingAddress());
+    }
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(paymentMethod_)) {
+      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(5, paymentMethod_);
+    }
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(note_)) {
+      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(6, note_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -176,6 +348,17 @@ private static final long serialVersionUID = 0L;
         .equals(other.getUserId())) return false;
     if (!getItemsList()
         .equals(other.getItemsList())) return false;
+    if (!getIdempotencyKey()
+        .equals(other.getIdempotencyKey())) return false;
+    if (hasShippingAddress() != other.hasShippingAddress()) return false;
+    if (hasShippingAddress()) {
+      if (!getShippingAddress()
+          .equals(other.getShippingAddress())) return false;
+    }
+    if (!getPaymentMethod()
+        .equals(other.getPaymentMethod())) return false;
+    if (!getNote()
+        .equals(other.getNote())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -193,6 +376,16 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + ITEMS_FIELD_NUMBER;
       hash = (53 * hash) + getItemsList().hashCode();
     }
+    hash = (37 * hash) + IDEMPOTENCY_KEY_FIELD_NUMBER;
+    hash = (53 * hash) + getIdempotencyKey().hashCode();
+    if (hasShippingAddress()) {
+      hash = (37 * hash) + SHIPPING_ADDRESS_FIELD_NUMBER;
+      hash = (53 * hash) + getShippingAddress().hashCode();
+    }
+    hash = (37 * hash) + PAYMENT_METHOD_FIELD_NUMBER;
+    hash = (53 * hash) + getPaymentMethod().hashCode();
+    hash = (37 * hash) + NOTE_FIELD_NUMBER;
+    hash = (53 * hash) + getNote().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -312,13 +505,20 @@ private static final long serialVersionUID = 0L;
 
     // Construct using com.ecommerce.contracts.order.v1.CreateOrderRequest.newBuilder()
     private Builder() {
-
+      maybeForceBuilderInitialization();
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
       super(parent);
-
+      maybeForceBuilderInitialization();
+    }
+    private void maybeForceBuilderInitialization() {
+      if (com.google.protobuf.GeneratedMessageV3
+              .alwaysUseFieldBuilders) {
+        getItemsFieldBuilder();
+        getShippingAddressFieldBuilder();
+      }
     }
     @java.lang.Override
     public Builder clear() {
@@ -332,6 +532,14 @@ private static final long serialVersionUID = 0L;
         itemsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000002);
+      idempotencyKey_ = "";
+      shippingAddress_ = null;
+      if (shippingAddressBuilder_ != null) {
+        shippingAddressBuilder_.dispose();
+        shippingAddressBuilder_ = null;
+      }
+      paymentMethod_ = "";
+      note_ = "";
       return this;
     }
 
@@ -381,6 +589,23 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000001) != 0)) {
         result.userId_ = userId_;
       }
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.idempotencyKey_ = idempotencyKey_;
+      }
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.shippingAddress_ = shippingAddressBuilder_ == null
+            ? shippingAddress_
+            : shippingAddressBuilder_.build();
+        to_bitField0_ |= 0x00000001;
+      }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.paymentMethod_ = paymentMethod_;
+      }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.note_ = note_;
+      }
+      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -458,6 +683,24 @@ private static final long serialVersionUID = 0L;
           }
         }
       }
+      if (!other.getIdempotencyKey().isEmpty()) {
+        idempotencyKey_ = other.idempotencyKey_;
+        bitField0_ |= 0x00000004;
+        onChanged();
+      }
+      if (other.hasShippingAddress()) {
+        mergeShippingAddress(other.getShippingAddress());
+      }
+      if (!other.getPaymentMethod().isEmpty()) {
+        paymentMethod_ = other.paymentMethod_;
+        bitField0_ |= 0x00000010;
+        onChanged();
+      }
+      if (!other.getNote().isEmpty()) {
+        note_ = other.note_;
+        bitField0_ |= 0x00000020;
+        onChanged();
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -502,6 +745,28 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 18
+            case 26: {
+              idempotencyKey_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 26
+            case 34: {
+              input.readMessage(
+                  getShippingAddressFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 34
+            case 42: {
+              paymentMethod_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 42
+            case 50: {
+              note_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 50
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -829,6 +1094,343 @@ private static final long serialVersionUID = 0L;
         items_ = null;
       }
       return itemsBuilder_;
+    }
+
+    private java.lang.Object idempotencyKey_ = "";
+    /**
+     * <code>string idempotency_key = 3 [json_name = "idempotencyKey"];</code>
+     * @return The idempotencyKey.
+     */
+    public java.lang.String getIdempotencyKey() {
+      java.lang.Object ref = idempotencyKey_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        idempotencyKey_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <code>string idempotency_key = 3 [json_name = "idempotencyKey"];</code>
+     * @return The bytes for idempotencyKey.
+     */
+    public com.google.protobuf.ByteString
+        getIdempotencyKeyBytes() {
+      java.lang.Object ref = idempotencyKey_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        idempotencyKey_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <code>string idempotency_key = 3 [json_name = "idempotencyKey"];</code>
+     * @param value The idempotencyKey to set.
+     * @return This builder for chaining.
+     */
+    public Builder setIdempotencyKey(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      idempotencyKey_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string idempotency_key = 3 [json_name = "idempotencyKey"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearIdempotencyKey() {
+      idempotencyKey_ = getDefaultInstance().getIdempotencyKey();
+      bitField0_ = (bitField0_ & ~0x00000004);
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string idempotency_key = 3 [json_name = "idempotencyKey"];</code>
+     * @param value The bytes for idempotencyKey to set.
+     * @return This builder for chaining.
+     */
+    public Builder setIdempotencyKeyBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      idempotencyKey_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+
+    private com.ecommerce.contracts.order.v1.ShippingAddressSnapshot shippingAddress_;
+    private com.google.protobuf.SingleFieldBuilderV3<
+        com.ecommerce.contracts.order.v1.ShippingAddressSnapshot, com.ecommerce.contracts.order.v1.ShippingAddressSnapshot.Builder, com.ecommerce.contracts.order.v1.ShippingAddressSnapshotOrBuilder> shippingAddressBuilder_;
+    /**
+     * <code>.ecommerce.order.v1.ShippingAddressSnapshot shipping_address = 4 [json_name = "shippingAddress"];</code>
+     * @return Whether the shippingAddress field is set.
+     */
+    public boolean hasShippingAddress() {
+      return ((bitField0_ & 0x00000008) != 0);
+    }
+    /**
+     * <code>.ecommerce.order.v1.ShippingAddressSnapshot shipping_address = 4 [json_name = "shippingAddress"];</code>
+     * @return The shippingAddress.
+     */
+    public com.ecommerce.contracts.order.v1.ShippingAddressSnapshot getShippingAddress() {
+      if (shippingAddressBuilder_ == null) {
+        return shippingAddress_ == null ? com.ecommerce.contracts.order.v1.ShippingAddressSnapshot.getDefaultInstance() : shippingAddress_;
+      } else {
+        return shippingAddressBuilder_.getMessage();
+      }
+    }
+    /**
+     * <code>.ecommerce.order.v1.ShippingAddressSnapshot shipping_address = 4 [json_name = "shippingAddress"];</code>
+     */
+    public Builder setShippingAddress(com.ecommerce.contracts.order.v1.ShippingAddressSnapshot value) {
+      if (shippingAddressBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        shippingAddress_ = value;
+      } else {
+        shippingAddressBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>.ecommerce.order.v1.ShippingAddressSnapshot shipping_address = 4 [json_name = "shippingAddress"];</code>
+     */
+    public Builder setShippingAddress(
+        com.ecommerce.contracts.order.v1.ShippingAddressSnapshot.Builder builderForValue) {
+      if (shippingAddressBuilder_ == null) {
+        shippingAddress_ = builderForValue.build();
+      } else {
+        shippingAddressBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>.ecommerce.order.v1.ShippingAddressSnapshot shipping_address = 4 [json_name = "shippingAddress"];</code>
+     */
+    public Builder mergeShippingAddress(com.ecommerce.contracts.order.v1.ShippingAddressSnapshot value) {
+      if (shippingAddressBuilder_ == null) {
+        if (((bitField0_ & 0x00000008) != 0) &&
+          shippingAddress_ != null &&
+          shippingAddress_ != com.ecommerce.contracts.order.v1.ShippingAddressSnapshot.getDefaultInstance()) {
+          getShippingAddressBuilder().mergeFrom(value);
+        } else {
+          shippingAddress_ = value;
+        }
+      } else {
+        shippingAddressBuilder_.mergeFrom(value);
+      }
+      if (shippingAddress_ != null) {
+        bitField0_ |= 0x00000008;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <code>.ecommerce.order.v1.ShippingAddressSnapshot shipping_address = 4 [json_name = "shippingAddress"];</code>
+     */
+    public Builder clearShippingAddress() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      shippingAddress_ = null;
+      if (shippingAddressBuilder_ != null) {
+        shippingAddressBuilder_.dispose();
+        shippingAddressBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>.ecommerce.order.v1.ShippingAddressSnapshot shipping_address = 4 [json_name = "shippingAddress"];</code>
+     */
+    public com.ecommerce.contracts.order.v1.ShippingAddressSnapshot.Builder getShippingAddressBuilder() {
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return getShippingAddressFieldBuilder().getBuilder();
+    }
+    /**
+     * <code>.ecommerce.order.v1.ShippingAddressSnapshot shipping_address = 4 [json_name = "shippingAddress"];</code>
+     */
+    public com.ecommerce.contracts.order.v1.ShippingAddressSnapshotOrBuilder getShippingAddressOrBuilder() {
+      if (shippingAddressBuilder_ != null) {
+        return shippingAddressBuilder_.getMessageOrBuilder();
+      } else {
+        return shippingAddress_ == null ?
+            com.ecommerce.contracts.order.v1.ShippingAddressSnapshot.getDefaultInstance() : shippingAddress_;
+      }
+    }
+    /**
+     * <code>.ecommerce.order.v1.ShippingAddressSnapshot shipping_address = 4 [json_name = "shippingAddress"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilderV3<
+        com.ecommerce.contracts.order.v1.ShippingAddressSnapshot, com.ecommerce.contracts.order.v1.ShippingAddressSnapshot.Builder, com.ecommerce.contracts.order.v1.ShippingAddressSnapshotOrBuilder> 
+        getShippingAddressFieldBuilder() {
+      if (shippingAddressBuilder_ == null) {
+        shippingAddressBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+            com.ecommerce.contracts.order.v1.ShippingAddressSnapshot, com.ecommerce.contracts.order.v1.ShippingAddressSnapshot.Builder, com.ecommerce.contracts.order.v1.ShippingAddressSnapshotOrBuilder>(
+                getShippingAddress(),
+                getParentForChildren(),
+                isClean());
+        shippingAddress_ = null;
+      }
+      return shippingAddressBuilder_;
+    }
+
+    private java.lang.Object paymentMethod_ = "";
+    /**
+     * <code>string payment_method = 5 [json_name = "paymentMethod"];</code>
+     * @return The paymentMethod.
+     */
+    public java.lang.String getPaymentMethod() {
+      java.lang.Object ref = paymentMethod_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        paymentMethod_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <code>string payment_method = 5 [json_name = "paymentMethod"];</code>
+     * @return The bytes for paymentMethod.
+     */
+    public com.google.protobuf.ByteString
+        getPaymentMethodBytes() {
+      java.lang.Object ref = paymentMethod_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        paymentMethod_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <code>string payment_method = 5 [json_name = "paymentMethod"];</code>
+     * @param value The paymentMethod to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPaymentMethod(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      paymentMethod_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string payment_method = 5 [json_name = "paymentMethod"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPaymentMethod() {
+      paymentMethod_ = getDefaultInstance().getPaymentMethod();
+      bitField0_ = (bitField0_ & ~0x00000010);
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string payment_method = 5 [json_name = "paymentMethod"];</code>
+     * @param value The bytes for paymentMethod to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPaymentMethodBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      paymentMethod_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object note_ = "";
+    /**
+     * <code>string note = 6 [json_name = "note"];</code>
+     * @return The note.
+     */
+    public java.lang.String getNote() {
+      java.lang.Object ref = note_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        note_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <code>string note = 6 [json_name = "note"];</code>
+     * @return The bytes for note.
+     */
+    public com.google.protobuf.ByteString
+        getNoteBytes() {
+      java.lang.Object ref = note_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        note_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <code>string note = 6 [json_name = "note"];</code>
+     * @param value The note to set.
+     * @return This builder for chaining.
+     */
+    public Builder setNote(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      note_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string note = 6 [json_name = "note"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearNote() {
+      note_ = getDefaultInstance().getNote();
+      bitField0_ = (bitField0_ & ~0x00000020);
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string note = 6 [json_name = "note"];</code>
+     * @param value The bytes for note to set.
+     * @return This builder for chaining.
+     */
+    public Builder setNoteBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      note_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
     }
     @java.lang.Override
     public final Builder setUnknownFields(

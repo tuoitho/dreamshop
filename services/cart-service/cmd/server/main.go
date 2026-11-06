@@ -13,6 +13,7 @@ import (
 	"ecommerce.local/cart-service/internal/authorization"
 	"ecommerce.local/cart-service/internal/catalog"
 	"ecommerce.local/cart-service/internal/config"
+	"ecommerce.local/cart-service/internal/events"
 	cartgrpc "ecommerce.local/cart-service/internal/grpc"
 	internalhttp "ecommerce.local/cart-service/internal/http"
 	"ecommerce.local/cart-service/internal/inventory"
@@ -79,7 +80,27 @@ func buildProductionService(ctx context.Context, cfg *config.Config) (cartv1.Car
 		cleanupPool()
 		return nil, nil, errors.New("failed to create identity authorization client")
 	}
-	return cartgrpc.NewServer(store.New(pool), catalogClient, inventoryClient, authorizationClient), func() {
+	cartStore := store.New(pool)
+	stopConsumer := func() {}
+	if cfg.RabbitMQURL != "" {
+		consumer, err := events.NewConsumer(cfg.RabbitMQURL, cartStore)
+		if err != nil {
+			_ = authorizationClient.Close()
+			_ = inventoryClient.Close()
+			_ = catalogClient.Close()
+			cleanupPool()
+			return nil, nil, errors.New("failed to create cart event consumer")
+		}
+		consumerCtx, cancelConsumer := context.WithCancel(ctx)
+		stopConsumer = cancelConsumer
+		go func() {
+			if err := consumer.Run(consumerCtx); err != nil {
+				log.Printf("cart event consumer stopped: %v", err)
+			}
+		}()
+	}
+	return cartgrpc.NewServer(cartStore, catalogClient, inventoryClient, authorizationClient), func() {
+		stopConsumer()
 		_ = authorizationClient.Close()
 		_ = catalogClient.Close()
 		_ = inventoryClient.Close()

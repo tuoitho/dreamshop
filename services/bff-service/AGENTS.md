@@ -50,7 +50,9 @@ behind standard Kong HTTP proxying under [ADR-011](../../docs/adr/011-service-si
 - `internal/catalog/`: outbound gRPC client for `CatalogService`.
 - `internal/inventory/`: outbound gRPC client for `InventoryService`.
 - `internal/cart/`: outbound gRPC client for `CartService`.
-- `internal/http/`: canonical `/api/v1` HTTP handlers (storefront products with per-SKU variants, SKU-keyed cart, favorites, admin products with 2-phase unreserved SKU stock cleanup & media presign, admin SKU inventory `/api/v1/admin/inventory` and `/api/v1/admin/inventory/skus/{skuId}`), caller context, trace correlation, and response/error mapping.
+- `internal/order/`: outbound gRPC client for `OrderService`.
+- `internal/payment/`: outbound gRPC client for `PaymentService`.
+- `internal/http/`: canonical `/api/v1` HTTP handlers (storefront products with per-SKU variants, SKU-keyed cart with `productVersion`, favorites, orders CRUD/cancellation, public MoMo redirect/IPN callbacks, admin products with 2-phase unreserved SKU stock cleanup & media presign, admin SKU inventory `/api/v1/admin/inventory` and `/api/v1/admin/inventory/skus/{skuId}`), caller context, trace correlation, and response/error mapping.
 
 Keep domain-service clients and adapters under internal packages. Handlers
 validate transport input, invoke orchestration/application logic, and map

@@ -1,5 +1,57 @@
 server:
   port: ${SERVER_PORT:8083}
+
+spring:
+  datasource:
+    url: ${ORDER_DB_URL:jdbc:postgresql://localhost:5432/order_db}
+    username: ${ORDER_DB_USERNAME:ecommerce}
+    password: ${ORDER_DB_PASSWORD:change-me-local-only}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:ecommerce}
+    password: ${RABBITMQ_PASSWORD:change-me-local-only}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    listener:
+      simple:
+        acknowledge-mode: auto
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 5
+          initial-interval: 200ms
+          multiplier: 2.0
+          max-interval: 2000ms
+
+order:
+  grpc:
+    host: ${ORDER_GRPC_HOST:127.0.0.1}
+    port: ${ORDER_GRPC_PORT:50055}
+    shutdown-grace: ${ORDER_GRPC_SHUTDOWN_GRACE:5s}
+  clients:
+    identity-addr: ${IDENTITY_GRPC_ADDR:127.0.0.1:50054}
+    identity-timeout: ${IDENTITY_GRPC_TIMEOUT:500ms}
+    catalog-addr: ${CATALOG_GRPC_ADDR:127.0.0.1:50051}
+    catalog-timeout: ${CATALOG_GRPC_TIMEOUT:2s}
+    inventory-addr: ${INVENTORY_GRPC_ADDR:127.0.0.1:50052}
+    inventory-timeout: ${INVENTORY_GRPC_TIMEOUT:1500ms}
+    payment-addr: ${PAYMENT_GRPC_ADDR:127.0.0.1:50056}
+    payment-timeout: ${PAYMENT_GRPC_TIMEOUT:12s}
+  payment-ttl: ${ORDER_PAYMENT_TTL:15m}
+  idempotency-ttl: ${ORDER_IDEMPOTENCY_TTL:24h}
+  outbox:
+    poll-interval-ms: ${ORDER_OUTBOX_POLL_INTERVAL_MS:1000}
+  reconciliation:
+    interval-ms: ${ORDER_RECONCILIATION_INTERVAL_MS:30000}
+    pending-stock-timeout: ${ORDER_PENDING_STOCK_TIMEOUT:2m}
+
 management:
   server:
     port: ${MANAGEMENT_SERVER_PORT:8093}
@@ -9,5 +61,16 @@ management:
         include: health,info
   endpoint:
     health:
+      validate-group-membership: false
       probes:
         enabled: true
+      group:
+        readiness:
+          include:
+            - readinessState
+            - db
+            - rabbit
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level trace_id=%X{trace_id:-none} [%thread] %logger{36} - %msg%n"

@@ -4,8 +4,11 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"log/slog"
+	"strconv"
 	"strings"
+	"time"
 
 	inventoryv1 "ecommerce.local/contracts/go/inventory/v1"
 	"ecommerce.local/inventory-service/internal/domain"
@@ -16,17 +19,19 @@ import (
 )
 
 const (
-	errorDomain                     = "ecommerce.inventory.v1"
-	inventoryViewPermission         = "inventory.view"
-	inventoryUpdatePermission       = "inventory.update"
-	productUpdatePermission         = "product.update"
-	reasonInventoryPermissionDenied = "INVENTORY_PERMISSION_DENIED"
-	reasonAuthorizationUnavailable  = "AUTHORIZATION_UNAVAILABLE"
-	reasonStockBelowReserved        = "STOCK_BELOW_RESERVED"
-	reasonVariantHasReservedStock   = "VARIANT_HAS_RESERVED_STOCK"
-	traceMetadataKey                = "x-trace-id"
-	maxTraceIDLength                = 64
-	maxBatchSkuIDs                  = 2000
+	errorDomain                      = "ecommerce.inventory.v1"
+	inventoryViewPermission          = "inventory.view"
+	inventoryUpdatePermission        = "inventory.update"
+	productUpdatePermission          = "product.update"
+	reasonInventoryPermissionDenied  = "INVENTORY_PERMISSION_DENIED"
+	reasonAuthorizationUnavailable   = "AUTHORIZATION_UNAVAILABLE"
+	reasonStockBelowReserved         = "STOCK_BELOW_RESERVED"
+	reasonVariantHasReservedStock    = "VARIANT_HAS_RESERVED_STOCK"
+	reasonInventoryInsufficient      = "INVENTORY_INSUFFICIENT"
+	reasonReservationAlreadyReleased = "RESERVATION_ALREADY_RELEASED"
+	traceMetadataKey                 = "x-trace-id"
+	maxTraceIDLength                 = 64
+	maxBatchSkuIDs                   = 2000
 )
 
 type authorizationClient interface {
@@ -97,6 +102,79 @@ func (s *Server) BatchGetAvailability(ctx context.Context, req *inventoryv1.Batc
 		})
 	}
 	return &inventoryv1.BatchGetAvailabilityResponse{Items: items}, nil
+}
+
+// ReserveStock atomically reserves stock across all requested SKUs for an order.
+func (s *Server) ReserveStock(ctx context.Context, req *inventoryv1.ReserveStockRequest) (*inventoryv1.ReserveStockResponse, error) {
+	orderID := strings.TrimSpace(req.GetOrderId())
+	if orderID == "" {
+		return nil, status.Error(codes.InvalidArgument, "order_id is required")
+	}
+	if len(req.GetItems()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "items must not be empty")
+	}
+
+	expiresRaw := strings.TrimSpace(req.GetExpiresAt())
+	if expiresRaw == "" {
+		return nil, status.Error(codes.InvalidArgument, "expires_at is required")
+	}
+	expiresAt, err := time.Parse(time.RFC3339, expiresRaw)
+	if err != nil {
+		expiresAt, err = time.Parse(time.RFC3339Nano, expiresRaw)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "expires_at must be valid RFC3339")
+		}
+	}
+
+	lines := make([]domain.ReservationLine, 0, len(req.GetItems()))
+	for _, item := range req.GetItems() {
+		if item == nil {
+			return nil, status.Error(codes.InvalidArgument, "reservation line is required")
+		}
+		skuID := strings.TrimSpace(item.GetSkuId())
+		if skuID == "" {
+			return nil, status.Error(codes.InvalidArgument, "items.sku_id is required")
+		}
+		if item.GetQuantity() <= 0 {
+			return nil, status.Error(codes.InvalidArgument, "items.quantity must be positive")
+		}
+		lines = append(lines, domain.ReservationLine{
+			SkuID:     skuID,
+			ProductID: strings.TrimSpace(item.GetProductId()),
+			Quantity:  item.GetQuantity(),
+		})
+	}
+
+	resStatus, err := s.repo.ReserveStock(ctx, orderID, lines, expiresAt)
+	if err != nil {
+		var insuffErr *domain.InsufficientStockError
+		if errors.As(err, &insuffErr) {
+			return nil, statusWithReasonAndMetadata(
+				codes.FailedPrecondition,
+				insuffErr.Error(),
+				reasonInventoryInsufficient,
+				map[string]string{
+					"sku_id":     insuffErr.SkuID,
+					"product_id": insuffErr.ProductID,
+					"available":  strconv.FormatInt(int64(insuffErr.Available), 10),
+					"requested":  strconv.FormatInt(int64(insuffErr.Requested), 10),
+				},
+			)
+		}
+		if errors.Is(err, domain.ErrReservationAlreadyReleased) {
+			return nil, statusWithReason(
+				codes.FailedPrecondition,
+				"stock reservation was already released",
+				reasonReservationAlreadyReleased,
+			)
+		}
+		return nil, status.Errorf(codes.Internal, "reserve stock for %q: %v", orderID, err)
+	}
+
+	return &inventoryv1.ReserveStockResponse{
+		OrderId: orderID,
+		Status:  resStatus,
+	}, nil
 }
 
 func sanitizeBatchSkuIDs(rawIDs []string) ([]string, error) {

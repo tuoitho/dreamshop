@@ -10,6 +10,7 @@ import (
 
 	inventoryv1 "ecommerce.local/contracts/go/inventory/v1"
 	"ecommerce.local/inventory-service/internal/domain"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -18,8 +19,9 @@ import (
 )
 
 type memoryRepo struct {
-	stocks map[string]domain.Stock
-	err    error
+	stocks       map[string]domain.Stock
+	reservations map[string]string
+	err          error
 }
 
 func (m *memoryRepo) Get(_ context.Context, skuID string) (domain.Stock, error) {
@@ -192,6 +194,151 @@ func TestGetAvailabilityMapsRepositoryErrorToInternal(t *testing.T) {
 
 	_, err := client.GetAvailability(context.Background(), &inventoryv1.GetAvailabilityRequest{SkuId: "dt-1-v1"})
 	if status.Code(err) != codes.Internal {
-		t.Fatalf("expected codes.Internal, got %v", err)
+		t.Fatalf("expected codes.InvalidArgument or Internal, got %v", err)
+	}
+}
+
+func (m *memoryRepo) ReserveStock(_ context.Context, orderID string, items []domain.ReservationLine, _ time.Time) (string, error) {
+	if m.err != nil {
+		return "", m.err
+	}
+	if m.reservations != nil {
+		if st, exists := m.reservations[orderID]; exists {
+			if st == "RELEASED" {
+				return "", domain.ErrReservationAlreadyReleased
+			}
+			return st, nil
+		}
+	}
+	totals := make(map[string]domain.ReservationLine)
+	for _, item := range items {
+		cur := totals[item.SkuID]
+		cur.SkuID = item.SkuID
+		cur.ProductID = item.ProductID
+		cur.Quantity += item.Quantity
+		totals[item.SkuID] = cur
+	}
+	for skuID, line := range totals {
+		st := m.stocks[skuID]
+		avail := st.AvailableQuantity()
+		if avail < line.Quantity {
+			return "", &domain.InsufficientStockError{
+				SkuID:     skuID,
+				ProductID: line.ProductID,
+				Available: avail,
+				Requested: line.Quantity,
+			}
+		}
+	}
+	for skuID, line := range totals {
+		st := m.stocks[skuID]
+		st.Reserved += line.Quantity
+		m.stocks[skuID] = st
+	}
+	if m.reservations == nil {
+		m.reservations = make(map[string]string)
+	}
+	m.reservations[orderID] = "ACTIVE"
+	return "ACTIVE", nil
+}
+
+func (m *memoryRepo) ConfirmReservation(_ context.Context, orderID string) (string, error) {
+	if m.err != nil {
+		return "", m.err
+	}
+	if m.reservations == nil {
+		m.reservations = make(map[string]string)
+	}
+	m.reservations[orderID] = "CONFIRMED"
+	return "CONFIRMED", nil
+}
+
+func (m *memoryRepo) ReleaseReservation(_ context.Context, orderID, _ string) (string, error) {
+	if m.err != nil {
+		return "", m.err
+	}
+	if m.reservations == nil {
+		m.reservations = make(map[string]string)
+	}
+	m.reservations[orderID] = "RELEASED"
+	return "RELEASED", nil
+}
+
+func TestReserveStockGrpcSuccessInsufficientAndTombstoneErrorInfo(t *testing.T) {
+	repo := &memoryRepo{
+		stocks: map[string]domain.Stock{
+			"dt-1-v1": {SkuID: "dt-1-v1", ProductID: "dt-1", Quantity: 3, Reserved: 1},
+		},
+		reservations: map[string]string{
+			"ord-released": "RELEASED",
+		},
+	}
+	client := newTestClient(t, repo)
+	expires := time.Now().UTC().Add(15 * time.Minute).Format(time.RFC3339)
+
+	resp, err := client.ReserveStock(context.Background(), &inventoryv1.ReserveStockRequest{
+		OrderId:   "ord-ok",
+		ExpiresAt: expires,
+		Items: []*inventoryv1.ReservationLine{
+			{SkuId: "dt-1-v1", ProductId: "dt-1", Quantity: 2},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ReserveStock(ord-ok): %v", err)
+	}
+	if resp.GetOrderId() != "ord-ok" || resp.GetStatus() != "ACTIVE" {
+		t.Fatalf("unexpected ReserveStock response: %+v", resp)
+	}
+
+	_, err = client.ReserveStock(context.Background(), &inventoryv1.ReserveStockRequest{
+		OrderId:   "ord-insuff",
+		ExpiresAt: expires,
+		Items: []*inventoryv1.ReservationLine{
+			{SkuId: "dt-1-v1", ProductId: "dt-1", Quantity: 1},
+		},
+	})
+	st, ok := status.FromError(err)
+	if !ok || st.Code() != codes.FailedPrecondition {
+		t.Fatalf("expected FailedPrecondition on insufficient stock, got %v", err)
+	}
+	var gotInfo *errdetails.ErrorInfo
+	for _, d := range st.Proto().GetDetails() {
+		if d.MessageIs(&errdetails.ErrorInfo{}) {
+			info := &errdetails.ErrorInfo{}
+			if err := d.UnmarshalTo(info); err == nil {
+				gotInfo = info
+			}
+		}
+	}
+	if gotInfo == nil || gotInfo.GetReason() != "INVENTORY_INSUFFICIENT" || gotInfo.GetDomain() != "ecommerce.inventory.v1" {
+		t.Fatalf("unexpected ErrorInfo: %+v", gotInfo)
+	}
+	if gotInfo.GetMetadata()["sku_id"] != "dt-1-v1" || gotInfo.GetMetadata()["product_id"] != "dt-1" ||
+		gotInfo.GetMetadata()["available"] != "0" || gotInfo.GetMetadata()["requested"] != "1" {
+		t.Fatalf("unexpected ErrorInfo metadata: %+v", gotInfo.GetMetadata())
+	}
+
+	_, err = client.ReserveStock(context.Background(), &inventoryv1.ReserveStockRequest{
+		OrderId:   "ord-released",
+		ExpiresAt: expires,
+		Items: []*inventoryv1.ReservationLine{
+			{SkuId: "dt-1-v1", ProductId: "dt-1", Quantity: 1},
+		},
+	})
+	stRel, ok := status.FromError(err)
+	if !ok || stRel.Code() != codes.FailedPrecondition {
+		t.Fatalf("expected FailedPrecondition on released tombstone, got %v", err)
+	}
+	var relReason string
+	for _, d := range stRel.Proto().GetDetails() {
+		if d.MessageIs(&errdetails.ErrorInfo{}) {
+			info := &errdetails.ErrorInfo{}
+			if err := d.UnmarshalTo(info); err == nil {
+				relReason = info.GetReason()
+			}
+		}
+	}
+	if relReason != "RESERVATION_ALREADY_RELEASED" {
+		t.Fatalf("expected RESERVATION_ALREADY_RELEASED, got %q", relReason)
 	}
 }

@@ -48,6 +48,7 @@ message GetProductResponse {
   bool deleted = 21;
   repeated string videos = 22;
   ecommerce.common.v1.Money max_price = 23;
+  int64 version = 24;
 }
 
 message ProductVariant {
@@ -88,6 +89,7 @@ message ProductSummary {
   repeated uint32 image_hue = 16;
   ecommerce.common.v1.Money max_price = 17;
   repeated string sku_ids = 18;
+  int64 version = 19;
 }
 
 message SearchProductsRequest {
@@ -137,6 +139,7 @@ message AdminProductSummary {
   int32 video_count = 21;
   ecommerce.common.v1.Money max_price = 22;
   repeated string sku_ids = 23;
+  int64 version = 24;
 }
 
 message CategoryMetric {

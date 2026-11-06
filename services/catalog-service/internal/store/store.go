@@ -26,7 +26,7 @@ func New(pool *pgxpool.Pool) *Store {
 const productColumns = `
 	id, name, short_description, description, brand, category_id, category_name,
 	price_amount_minor, original_price_amount_minor, max_price_amount_minor, rating, review_count,
-	sold_count, is_new, badge, featured, emoji, image_hue, deleted_at, created_at, updated_at`
+	sold_count, is_new, badge, featured, emoji, image_hue, version, deleted_at, created_at, updated_at`
 
 // GetByID loads a full product including images, videos, variants, and details.
 // Soft-deleted products are returned with Deleted set.
@@ -40,7 +40,7 @@ func (s *Store) GetByID(ctx context.Context, id string) (*domain.Product, error)
 		&p.ID, &p.Name, &p.ShortDescription, &p.Description, &p.Brand,
 		&p.CategoryID, &p.CategoryName, &p.PriceMinor, &p.OriginalPriceMinor, &p.MaxPriceMinor,
 		&p.Rating, &p.ReviewCount, &p.SoldCount, &p.IsNew, &p.Badge,
-		&p.Featured, &p.Emoji, &imageHue, &deletedAt, &p.CreatedAt, &p.UpdatedAt,
+		&p.Featured, &p.Emoji, &imageHue, &p.Version, &deletedAt, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, domain.ErrProductNotFound
@@ -128,7 +128,7 @@ func (s *Store) loadVariants(ctx context.Context, id string) ([]domain.ProductVa
 // excludes it via buildWhere. Media assets remain ATTACHED so restored products
 // retain all uploaded images and videos.
 func (s *Store) SoftDelete(ctx context.Context, id string, deleted bool) error {
-	query := "UPDATE products SET deleted_at = CASE WHEN $2 THEN now() ELSE NULL END, updated_at = now() WHERE id = $1"
+	query := "UPDATE products SET deleted_at = CASE WHEN $2 THEN now() ELSE NULL END, version = version + 1, updated_at = now() WHERE id = $1"
 	commandTag, err := s.pool.Exec(ctx, query, id, deleted)
 	if err != nil {
 		return fmt.Errorf("set product deleted %q: %w", id, err)
@@ -159,7 +159,7 @@ func (s *Store) Search(ctx context.Context, filter domain.SearchFilter) (*domain
 	query := `
 		SELECT id, name, brand, category_id, category_name, price_amount_minor,
 		       original_price_amount_minor, max_price_amount_minor, rating, review_count, sold_count,
-		       is_new, badge, featured, emoji, image_hue
+		       is_new, badge, featured, emoji, image_hue, version
 		FROM products
 		WHERE ` + where + `
 		ORDER BY ` + orderBy(filter.Sort) + `
@@ -179,7 +179,7 @@ func (s *Store) Search(ctx context.Context, filter domain.SearchFilter) (*domain
 		if err := rows.Scan(
 			&s.ID, &s.Name, &s.Brand, &s.CategoryID, &s.CategoryName,
 			&s.PriceMinor, &s.OriginalPriceMinor, &s.MaxPriceMinor, &s.Rating, &s.ReviewCount,
-			&s.SoldCount, &s.IsNew, &s.Badge, &s.Featured, &s.Emoji, &imageHue,
+			&s.SoldCount, &s.IsNew, &s.Badge, &s.Featured, &s.Emoji, &imageHue, &s.Version,
 		); err != nil {
 			return nil, fmt.Errorf("scan product row: %w", err)
 		}

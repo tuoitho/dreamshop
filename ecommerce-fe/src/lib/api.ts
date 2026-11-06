@@ -1,6 +1,26 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios"
 import { toast } from "sonner"
-import type { ApiError, ApiResponse, CartData, CurrentUser, FavoriteData, LoginRequest, LoginResponse, ProductDetail, RegisterRequest, RegisterResponse, SearchProductsParams, SearchProductsResult, UpdateProfileRequest } from "./types"
+import type {
+  ApiError,
+  ApiResponse,
+  CartData,
+  CreateOrderPayload,
+  CreateOrderResult,
+  CreateShippingAddressPayload,
+  CurrentUser,
+  FavoriteData,
+  LoginRequest,
+  LoginResponse,
+  OrderDetail,
+  OrderListResult,
+  ProductDetail,
+  RegisterRequest,
+  RegisterResponse,
+  SearchProductsParams,
+  SearchProductsResult,
+  ShippingAddress,
+  UpdateProfileRequest,
+} from "./types"
 import { clearAccessToken, getAccessToken, getSessionEpoch, runSingleFlightRefresh, setAccessToken } from "./auth-session"
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1"
@@ -32,6 +52,12 @@ function shouldSuppressMutationSuccessToast(response: {
   const url = response.config?.url ?? ""
   if (method === "post" && url.endsWith("/auth/login")) {
     return true
+  }
+  if (method === "post" && url.endsWith("/orders")) {
+    const envelope = response.data as Partial<ApiResponse<CreateOrderResult>> | undefined
+    if (envelope?.data?.payUrl) {
+      return true
+    }
   }
   if (method !== "post" || !url.endsWith("/cart/items")) {
     return false
@@ -112,7 +138,16 @@ http.interceptors.response.use((response) => {
     requestEpoch !== getSessionEpoch()
   ) {
     if (isMutation(config) && !config?._silentToast) {
-      toast.error(responseMessage(error.response?.data) ?? error.message)
+      const errorCode =
+        error.response?.data &&
+        typeof error.response.data === "object" &&
+        "code" in error.response.data &&
+        typeof (error.response.data as { code?: unknown }).code === "string"
+          ? (error.response.data as { code: string }).code
+          : undefined
+      if (errorCode !== "REQUEST_IN_PROGRESS" && errorCode !== "PRODUCT_SNAPSHOT_MISMATCH") {
+        toast.error(responseMessage(error.response?.data) ?? error.message)
+      }
     }
     return Promise.reject(error)
   }
@@ -129,7 +164,16 @@ http.interceptors.response.use((response) => {
       clearAccessToken()
     }
     if (isMutation(config) && !config?._silentToast) {
-      toast.error(responseMessage(error.response?.data) ?? error.message)
+      const errorCode =
+        error.response?.data &&
+        typeof error.response.data === "object" &&
+        "code" in error.response.data &&
+        typeof (error.response.data as { code?: unknown }).code === "string"
+          ? (error.response.data as { code: string }).code
+          : undefined
+      if (errorCode !== "REQUEST_IN_PROGRESS" && errorCode !== "PRODUCT_SNAPSHOT_MISMATCH") {
+        toast.error(responseMessage(error.response?.data) ?? error.message)
+      }
     }
     return Promise.reject(error)
   }
@@ -342,6 +386,94 @@ export async function clearFavorites(): Promise<FavoriteData> {
 export async function softDeleteProduct(id: string, deleted: boolean): Promise<{ id: string; deleted: boolean }> {
   try {
     const { data } = await http.post<ApiResponse<{ id: string; deleted: boolean }>>(`/admin/products/${id}/delete`, { deleted })
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function listShippingAddresses(signal?: AbortSignal): Promise<ShippingAddress[]> {
+  try {
+    const { data } = await http.get<ApiResponse<ShippingAddress[]>>("/users/me/addresses", { signal })
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function createShippingAddress(payload: CreateShippingAddressPayload): Promise<ShippingAddress> {
+  try {
+    const trimmedLabel = payload.label?.trim() ?? ""
+    const body = {
+      recipientName: payload.recipientName.trim(),
+      phone: payload.phone.trim(),
+      provinceCode: payload.provinceCode,
+      wardCode: payload.wardCode,
+      addressLine: payload.addressLine.trim(),
+      ...(trimmedLabel ? { label: trimmedLabel } : {}),
+      ...(payload.isDefault !== undefined ? { isDefault: payload.isDefault } : {}),
+    }
+    const { data } = await http.post<ApiResponse<ShippingAddress>>("/users/me/addresses", body)
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function createOrder(
+  payload: CreateOrderPayload,
+  idempotencyKey: string
+): Promise<CreateOrderResult> {
+  try {
+    const { data } = await http.post<ApiResponse<CreateOrderResult>>("/orders", payload, {
+      headers: {
+        "Idempotency-Key": idempotencyKey,
+      },
+    })
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function listOrders(
+  params?: { page?: number; pageSize?: number; status?: string },
+  signal?: AbortSignal
+): Promise<OrderListResult> {
+  try {
+    const query: Record<string, string | number> = {}
+    if (params?.page !== undefined) query.page = params.page
+    if (params?.pageSize !== undefined) query.pageSize = params.pageSize
+    if (params?.status) query.status = params.status
+    const { data } = await http.get<ApiResponse<OrderListResult>>("/orders", {
+      params: query,
+      signal,
+    })
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function getOrder(orderId: string, signal?: AbortSignal): Promise<OrderDetail> {
+  try {
+    const { data } = await http.get<ApiResponse<OrderDetail>>(
+      `/orders/${encodeURIComponent(orderId)}`,
+      { signal }
+    )
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function cancelOrder(orderId: string, reason?: string): Promise<OrderDetail> {
+  try {
+    const body = reason && reason.trim() ? { reason: reason.trim() } : undefined
+    const { data } = await http.post<ApiResponse<OrderDetail>>(
+      `/orders/${encodeURIComponent(orderId)}/cancel`,
+      body
+    )
     return data.data
   } catch (error) {
     throw toClientError(error)

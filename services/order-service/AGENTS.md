@@ -31,10 +31,14 @@ or events; they do not update Order tables or state transitions directly.
   for retry-safe mutation commands.
 - Persist Order state and its outbox record atomically when publishing an event.
 - Treat event publication, delivery, and consumption as at-least-once.
-- Interact with Inventory through direct private gRPC or approved events.
+- Interact with Identity, Catalog, Inventory, and Payment through direct private
+  gRPC or approved RabbitMQ events (`ecommerce.events`).
 - Use compensation/reconciliation or a saga/workflow for multi-service partial
   failure; do not use a distributed database transaction.
-- Do not hold an Order database transaction open across a network call.
+- Do not hold an Order database transaction open across a network call (including
+  gRPC calls and RabbitMQ publisher confirms).
+- Keep MoMo gateway credentials and HMAC signing inside `payment-service`, never
+  inside `order-service`.
 
 Define timeout, retry, cancellation, and compensation behavior for every
 synchronous dependency. Preserve correlation across command, outbox, event, and

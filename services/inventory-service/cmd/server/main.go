@@ -14,6 +14,7 @@ import (
 	inventoryv1 "ecommerce.local/contracts/go/inventory/v1"
 	"ecommerce.local/inventory-service/internal/authorization"
 	"ecommerce.local/inventory-service/internal/config"
+	"ecommerce.local/inventory-service/internal/events"
 	inventorygrpc "ecommerce.local/inventory-service/internal/grpc"
 	internalhttp "ecommerce.local/inventory-service/internal/http"
 	"ecommerce.local/inventory-service/internal/store"
@@ -56,6 +57,18 @@ func main() {
 	defer func() { _ = authClient.Close() }()
 
 	repo := store.New(pool)
+	if cfg.RabbitMQURL != "" {
+		consumer, err := events.NewConsumer(cfg.RabbitMQURL, repo)
+		if err != nil {
+			log.Fatalf("failed to create order event consumer: %v", err)
+		}
+		go func() {
+			if err := consumer.Run(ctx); err != nil {
+				log.Printf("inventory event consumer stopped: %v", err)
+			}
+		}()
+	}
+
 	grpcServer := grpc.NewServer()
 	inventoryv1.RegisterInventoryServiceServer(grpcServer, inventorygrpc.NewServerWithAuth(repo, authClient))
 

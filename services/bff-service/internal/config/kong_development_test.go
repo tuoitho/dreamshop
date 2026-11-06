@@ -26,8 +26,9 @@ func TestDevelopmentKongConsolidatesTwoServicesWithStripPathFalseAndPreservesCOR
 	if !hasCORS ||
 		!slices.Contains(corsPlugin.Config.Origins, "http://localhost:5173") ||
 		!slices.Contains(corsPlugin.Config.Origins, "http://localhost:5174") ||
-		!slices.Contains(corsPlugin.Config.Methods, "OPTIONS") {
-		t.Fatalf("kong.yaml global cors plugin = %#v (present=%t), want localhost:5173 + localhost:5174 with OPTIONS", corsPlugin.Config, hasCORS)
+		!slices.Contains(corsPlugin.Config.Methods, "OPTIONS") ||
+		!slices.Contains(corsPlugin.Config.Headers, "Idempotency-Key") {
+		t.Fatalf("kong.yaml global cors plugin = %#v (present=%t), want localhost:5173 + localhost:5174 with OPTIONS and Idempotency-Key", corsPlugin.Config, hasCORS)
 	}
 
 	expectedServices := map[string]string{
@@ -70,6 +71,19 @@ func TestDevelopmentKongConsolidatesTwoServicesWithStripPathFalseAndPreservesCOR
 			service:   "bff-service",
 			paths:     []string{"/api/v1/favorites"},
 			protected: true,
+		},
+		"orders-api": {
+			service:   "bff-service",
+			paths:     []string{"/api/v1/orders"},
+			protected: true,
+		},
+		"payments-momo-public": {
+			service: "bff-service",
+			paths: []string{
+				"/api/v1/payments/momo-redirect",
+				"/api/v1/payments/momo-ipn",
+			},
+			protected: false,
 		},
 		"admin-products-api": {
 			service:   "bff-service",

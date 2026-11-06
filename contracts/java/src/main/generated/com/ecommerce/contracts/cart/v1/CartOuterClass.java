@@ -160,7 +160,7 @@ public final class CartOuterClass {
       "merce.cart.v1.CartR\004cart\"A\n\022RemoveItemRe" +
       "sponse\022+\n\004cart\030\001 \001(\0132\027.ecommerce.cart.v1" +
       ".CartR\004cart\"@\n\021ClearCartResponse\022+\n\004cart" +
-      "\030\001 \001(\0132\027.ecommerce.cart.v1.CartR\004cart\"\330\004" +
+      "\030\001 \001(\0132\027.ecommerce.cart.v1.CartR\004cart\"\201\005" +
       "\n\010CartItem\022\027\n\007item_id\030\001 \001(\tR\006itemId\022\035\n\np" +
       "roduct_id\030\002 \001(\tR\tproductId\022\025\n\006sku_id\030\003 \001" +
       "(\tR\005skuId\022#\n\rvariant_label\030\004 \001(\tR\014varian" +
@@ -176,83 +176,84 @@ public final class CartOuterClass {
       " \001(\tR\010imageUrl\0229\n\006status\030\017 \001(\0162!.ecommer" +
       "ce.cart.v1.CartItemStatusR\006status\022-\n\022ava" +
       "ilable_quantity\030\020 \001(\005R\021availableQuantity" +
-      "\".\n\023GetFavoritesRequest\022\027\n\007user_id\030\001 \001(\t" +
-      "R\006userId\"U\n\024GetFavoritesResponse\022=\n\tfavo" +
-      "rites\030\001 \001(\0132\037.ecommerce.cart.v1.Favorite" +
-      "ListR\tfavorites\"L\n\022AddFavoriteRequest\022\027\n" +
-      "\007user_id\030\001 \001(\tR\006userId\022\035\n\nproduct_id\030\002 \001" +
-      "(\tR\tproductId\"T\n\023AddFavoriteResponse\022=\n\t" +
-      "favorites\030\001 \001(\0132\037.ecommerce.cart.v1.Favo" +
-      "riteListR\tfavorites\"O\n\025RemoveFavoriteReq" +
-      "uest\022\027\n\007user_id\030\001 \001(\tR\006userId\022\035\n\nproduct" +
-      "_id\030\002 \001(\tR\tproductId\"W\n\026RemoveFavoriteRe" +
-      "sponse\022=\n\tfavorites\030\001 \001(\0132\037.ecommerce.ca" +
-      "rt.v1.FavoriteListR\tfavorites\"0\n\025ClearFa" +
-      "voritesRequest\022\027\n\007user_id\030\001 \001(\tR\006userId\"" +
-      "W\n\026ClearFavoritesResponse\022=\n\tfavorites\030\001" +
-      " \001(\0132\037.ecommerce.cart.v1.FavoriteListR\tf" +
-      "avorites\"a\n\014FavoriteList\0225\n\005items\030\001 \003(\0132" +
-      "\037.ecommerce.cart.v1.FavoriteItemR\005items\022" +
-      "\032\n\010degraded\030\002 \001(\010R\010degraded\"\320\001\n\017Favorite" +
-      "Variant\022\025\n\006sku_id\030\001 \001(\tR\005skuId\022\024\n\005label\030" +
-      "\002 \001(\tR\005label\022\033\n\tcolor_hex\030\003 \001(\tR\010colorHe" +
-      "x\0220\n\005price\030\004 \001(\0132\032.ecommerce.common.v1.M" +
-      "oneyR\005price\022A\n\016original_price\030\005 \001(\0132\032.ec" +
-      "ommerce.common.v1.MoneyR\roriginalPrice\"\335" +
-      "\005\n\014FavoriteItem\022\027\n\007item_id\030\001 \001(\tR\006itemId" +
-      "\022\035\n\nproduct_id\030\002 \001(\tR\tproductId\022\022\n\004name\030" +
-      "\003 \001(\tR\004name\022\024\n\005brand\030\004 \001(\tR\005brand\022\037\n\013cat" +
-      "egory_id\030\005 \001(\tR\ncategoryId\022#\n\rcategory_n" +
-      "ame\030\006 \001(\tR\014categoryName\0220\n\005price\030\007 \001(\0132\032" +
-      ".ecommerce.common.v1.MoneyR\005price\022A\n\016ori" +
-      "ginal_price\030\010 \001(\0132\032.ecommerce.common.v1." +
-      "MoneyR\roriginalPrice\022\026\n\006rating\030\t \001(\001R\006ra" +
-      "ting\022!\n\014review_count\030\n \001(\003R\013reviewCount\022" +
-      "\035\n\nsold_count\030\013 \001(\003R\tsoldCount\022\033\n\timage_" +
-      "url\030\014 \001(\tR\010imageUrl\022\037\n\013image_emoji\030\r \001(\t" +
-      "R\nimageEmoji\022\033\n\timage_hue\030\016 \003(\rR\010imageHu" +
-      "e\022\024\n\005badge\030\017 \001(\tR\005badge\022>\n\010variants\030\020 \003(" +
-      "\0132\".ecommerce.cart.v1.FavoriteVariantR\010v" +
-      "ariants\022=\n\006status\030\021 \001(\0162%.ecommerce.cart" +
-      ".v1.FavoriteItemStatusR\006status\022-\n\022availa" +
-      "ble_quantity\030\022 \001(\005R\021availableQuantity\0227\n" +
-      "\tmax_price\030\023 \001(\0132\032.ecommerce.common.v1.M" +
-      "oneyR\010maxPrice*\265\001\n\016CartItemStatus\022 \n\034CAR" +
-      "T_ITEM_STATUS_UNSPECIFIED\020\000\022\036\n\032CART_ITEM" +
-      "_STATUS_AVAILABLE\020\001\022\034\n\030CART_ITEM_STATUS_" +
-      "LIMITED\020\002\022!\n\035CART_ITEM_STATUS_OUT_OF_STO" +
-      "CK\020\003\022 \n\034CART_ITEM_STATUS_UNAVAILABLE\020\004*\357" +
-      "\001\n\022FavoriteItemStatus\022$\n FAVORITE_ITEM_S" +
-      "TATUS_UNSPECIFIED\020\000\022\"\n\036FAVORITE_ITEM_STA" +
-      "TUS_AVAILABLE\020\001\022 \n\034FAVORITE_ITEM_STATUS_" +
-      "LIMITED\020\002\022%\n!FAVORITE_ITEM_STATUS_OUT_OF" +
-      "_STOCK\020\003\022$\n FAVORITE_ITEM_STATUS_UNAVAIL" +
-      "ABLE\020\004\022 \n\034FAVORITE_ITEM_STATUS_UNKNOWN\020\005" +
-      "2\344\006\n\013CartService\022P\n\007GetCart\022!.ecommerce." +
-      "cart.v1.GetCartRequest\032\".ecommerce.cart." +
-      "v1.GetCartResponse\022P\n\007AddItem\022!.ecommerc" +
-      "e.cart.v1.AddItemRequest\032\".ecommerce.car" +
-      "t.v1.AddItemResponse\022q\n\022UpdateItemQuanti" +
-      "ty\022,.ecommerce.cart.v1.UpdateItemQuantit" +
-      "yRequest\032-.ecommerce.cart.v1.UpdateItemQ" +
-      "uantityResponse\022Y\n\nRemoveItem\022$.ecommerc" +
-      "e.cart.v1.RemoveItemRequest\032%.ecommerce." +
-      "cart.v1.RemoveItemResponse\022V\n\tClearCart\022" +
-      "#.ecommerce.cart.v1.ClearCartRequest\032$.e" +
-      "commerce.cart.v1.ClearCartResponse\022_\n\014Ge" +
-      "tFavorites\022&.ecommerce.cart.v1.GetFavori" +
-      "tesRequest\032\'.ecommerce.cart.v1.GetFavori" +
-      "tesResponse\022\\\n\013AddFavorite\022%.ecommerce.c" +
-      "art.v1.AddFavoriteRequest\032&.ecommerce.ca" +
-      "rt.v1.AddFavoriteResponse\022e\n\016RemoveFavor" +
-      "ite\022(.ecommerce.cart.v1.RemoveFavoriteRe" +
-      "quest\032).ecommerce.cart.v1.RemoveFavorite" +
-      "Response\022e\n\016ClearFavorites\022(.ecommerce.c" +
-      "art.v1.ClearFavoritesRequest\032).ecommerce" +
-      ".cart.v1.ClearFavoritesResponseBP\n\037com.e" +
-      "commerce.contracts.cart.v1P\001Z+ecommerce." +
-      "local/contracts/go/cart/v1;cartv1b\006proto" +
-      "3"
+      "\022\'\n\017product_version\030\021 \001(\003R\016productVersio" +
+      "n\".\n\023GetFavoritesRequest\022\027\n\007user_id\030\001 \001(" +
+      "\tR\006userId\"U\n\024GetFavoritesResponse\022=\n\tfav" +
+      "orites\030\001 \001(\0132\037.ecommerce.cart.v1.Favorit" +
+      "eListR\tfavorites\"L\n\022AddFavoriteRequest\022\027" +
+      "\n\007user_id\030\001 \001(\tR\006userId\022\035\n\nproduct_id\030\002 " +
+      "\001(\tR\tproductId\"T\n\023AddFavoriteResponse\022=\n" +
+      "\tfavorites\030\001 \001(\0132\037.ecommerce.cart.v1.Fav" +
+      "oriteListR\tfavorites\"O\n\025RemoveFavoriteRe" +
+      "quest\022\027\n\007user_id\030\001 \001(\tR\006userId\022\035\n\nproduc" +
+      "t_id\030\002 \001(\tR\tproductId\"W\n\026RemoveFavoriteR" +
+      "esponse\022=\n\tfavorites\030\001 \001(\0132\037.ecommerce.c" +
+      "art.v1.FavoriteListR\tfavorites\"0\n\025ClearF" +
+      "avoritesRequest\022\027\n\007user_id\030\001 \001(\tR\006userId" +
+      "\"W\n\026ClearFavoritesResponse\022=\n\tfavorites\030" +
+      "\001 \001(\0132\037.ecommerce.cart.v1.FavoriteListR\t" +
+      "favorites\"a\n\014FavoriteList\0225\n\005items\030\001 \003(\013" +
+      "2\037.ecommerce.cart.v1.FavoriteItemR\005items" +
+      "\022\032\n\010degraded\030\002 \001(\010R\010degraded\"\320\001\n\017Favorit" +
+      "eVariant\022\025\n\006sku_id\030\001 \001(\tR\005skuId\022\024\n\005label" +
+      "\030\002 \001(\tR\005label\022\033\n\tcolor_hex\030\003 \001(\tR\010colorH" +
+      "ex\0220\n\005price\030\004 \001(\0132\032.ecommerce.common.v1." +
+      "MoneyR\005price\022A\n\016original_price\030\005 \001(\0132\032.e" +
+      "commerce.common.v1.MoneyR\roriginalPrice\"" +
+      "\335\005\n\014FavoriteItem\022\027\n\007item_id\030\001 \001(\tR\006itemI" +
+      "d\022\035\n\nproduct_id\030\002 \001(\tR\tproductId\022\022\n\004name" +
+      "\030\003 \001(\tR\004name\022\024\n\005brand\030\004 \001(\tR\005brand\022\037\n\013ca" +
+      "tegory_id\030\005 \001(\tR\ncategoryId\022#\n\rcategory_" +
+      "name\030\006 \001(\tR\014categoryName\0220\n\005price\030\007 \001(\0132" +
+      "\032.ecommerce.common.v1.MoneyR\005price\022A\n\016or" +
+      "iginal_price\030\010 \001(\0132\032.ecommerce.common.v1" +
+      ".MoneyR\roriginalPrice\022\026\n\006rating\030\t \001(\001R\006r" +
+      "ating\022!\n\014review_count\030\n \001(\003R\013reviewCount" +
+      "\022\035\n\nsold_count\030\013 \001(\003R\tsoldCount\022\033\n\timage" +
+      "_url\030\014 \001(\tR\010imageUrl\022\037\n\013image_emoji\030\r \001(" +
+      "\tR\nimageEmoji\022\033\n\timage_hue\030\016 \003(\rR\010imageH" +
+      "ue\022\024\n\005badge\030\017 \001(\tR\005badge\022>\n\010variants\030\020 \003" +
+      "(\0132\".ecommerce.cart.v1.FavoriteVariantR\010" +
+      "variants\022=\n\006status\030\021 \001(\0162%.ecommerce.car" +
+      "t.v1.FavoriteItemStatusR\006status\022-\n\022avail" +
+      "able_quantity\030\022 \001(\005R\021availableQuantity\0227" +
+      "\n\tmax_price\030\023 \001(\0132\032.ecommerce.common.v1." +
+      "MoneyR\010maxPrice*\265\001\n\016CartItemStatus\022 \n\034CA" +
+      "RT_ITEM_STATUS_UNSPECIFIED\020\000\022\036\n\032CART_ITE" +
+      "M_STATUS_AVAILABLE\020\001\022\034\n\030CART_ITEM_STATUS" +
+      "_LIMITED\020\002\022!\n\035CART_ITEM_STATUS_OUT_OF_ST" +
+      "OCK\020\003\022 \n\034CART_ITEM_STATUS_UNAVAILABLE\020\004*" +
+      "\357\001\n\022FavoriteItemStatus\022$\n FAVORITE_ITEM_" +
+      "STATUS_UNSPECIFIED\020\000\022\"\n\036FAVORITE_ITEM_ST" +
+      "ATUS_AVAILABLE\020\001\022 \n\034FAVORITE_ITEM_STATUS" +
+      "_LIMITED\020\002\022%\n!FAVORITE_ITEM_STATUS_OUT_O" +
+      "F_STOCK\020\003\022$\n FAVORITE_ITEM_STATUS_UNAVAI" +
+      "LABLE\020\004\022 \n\034FAVORITE_ITEM_STATUS_UNKNOWN\020" +
+      "\0052\344\006\n\013CartService\022P\n\007GetCart\022!.ecommerce" +
+      ".cart.v1.GetCartRequest\032\".ecommerce.cart" +
+      ".v1.GetCartResponse\022P\n\007AddItem\022!.ecommer" +
+      "ce.cart.v1.AddItemRequest\032\".ecommerce.ca" +
+      "rt.v1.AddItemResponse\022q\n\022UpdateItemQuant" +
+      "ity\022,.ecommerce.cart.v1.UpdateItemQuanti" +
+      "tyRequest\032-.ecommerce.cart.v1.UpdateItem" +
+      "QuantityResponse\022Y\n\nRemoveItem\022$.ecommer" +
+      "ce.cart.v1.RemoveItemRequest\032%.ecommerce" +
+      ".cart.v1.RemoveItemResponse\022V\n\tClearCart" +
+      "\022#.ecommerce.cart.v1.ClearCartRequest\032$." +
+      "ecommerce.cart.v1.ClearCartResponse\022_\n\014G" +
+      "etFavorites\022&.ecommerce.cart.v1.GetFavor" +
+      "itesRequest\032\'.ecommerce.cart.v1.GetFavor" +
+      "itesResponse\022\\\n\013AddFavorite\022%.ecommerce." +
+      "cart.v1.AddFavoriteRequest\032&.ecommerce.c" +
+      "art.v1.AddFavoriteResponse\022e\n\016RemoveFavo" +
+      "rite\022(.ecommerce.cart.v1.RemoveFavoriteR" +
+      "equest\032).ecommerce.cart.v1.RemoveFavorit" +
+      "eResponse\022e\n\016ClearFavorites\022(.ecommerce." +
+      "cart.v1.ClearFavoritesRequest\032).ecommerc" +
+      "e.cart.v1.ClearFavoritesResponseBP\n\037com." +
+      "ecommerce.contracts.cart.v1P\001Z+ecommerce" +
+      ".local/contracts/go/cart/v1;cartv1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -330,7 +331,7 @@ public final class CartOuterClass {
     internal_static_ecommerce_cart_v1_CartItem_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_cart_v1_CartItem_descriptor,
-        new java.lang.String[] { "ItemId", "ProductId", "SkuId", "VariantLabel", "VariantColorHex", "Quantity", "Name", "Brand", "CategoryName", "UnitPrice", "OriginalPrice", "ImageEmoji", "ImageHue", "ImageUrl", "Status", "AvailableQuantity", });
+        new java.lang.String[] { "ItemId", "ProductId", "SkuId", "VariantLabel", "VariantColorHex", "Quantity", "Name", "Brand", "CategoryName", "UnitPrice", "OriginalPrice", "ImageEmoji", "ImageHue", "ImageUrl", "Status", "AvailableQuantity", "ProductVersion", });
     internal_static_ecommerce_cart_v1_GetFavoritesRequest_descriptor =
       getDescriptor().getMessageTypes().get(12);
     internal_static_ecommerce_cart_v1_GetFavoritesRequest_fieldAccessorTable = new

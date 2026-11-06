@@ -39,6 +39,7 @@ type Product struct {
 	Variants           []ProductVariant
 	Details            []string
 	Deleted            bool
+	Version            int64
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
 }
@@ -64,6 +65,7 @@ type Summary struct {
 	Emoji              string
 	ImageHue           []uint32
 	SkuIDs             []string
+	Version            int64
 }
 
 // Summary projects a Product into its search-result representation.
@@ -71,6 +73,10 @@ func (p *Product) Summary() *Summary {
 	maxPrice := p.MaxPriceMinor
 	if maxPrice < p.PriceMinor {
 		maxPrice = p.PriceMinor
+	}
+	version := p.Version
+	if version <= 0 {
+		version = 1
 	}
 	var skuIDs []string
 	if len(p.Variants) > 0 {
@@ -100,5 +106,6 @@ func (p *Product) Summary() *Summary {
 		Emoji:              p.Emoji,
 		ImageHue:           p.ImageHue,
 		SkuIDs:             skuIDs,
+		Version:            version,
 	}
 }

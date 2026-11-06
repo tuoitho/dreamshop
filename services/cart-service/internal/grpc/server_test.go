@@ -1142,3 +1142,32 @@ func TestUpdateItemQuantityValidationSkipsAuthorization(t *testing.T) {
 		t.Fatalf("authorization calls = %d, want 0 for invalid quantity", auth.calls)
 	}
 }
+
+func TestGetCartMapsCatalogProductVersion(t *testing.T) {
+	store := &fakeStore{
+		cartID: "cart-ver",
+		found:  true,
+		lines: []domain.Line{
+			{ID: "item-1", ProductID: "p-ver", SkuID: "p-ver-v1", Quantity: 1},
+		},
+	}
+	prod := validProduct("p-ver")
+	prod.Version = 7
+	catalog := &fakeCatalog{
+		products: map[string]*catalogv1.GetProductResponse{"p-ver": prod},
+		errors:   map[string]error{},
+	}
+	inventory := &fakeInventory{availability: map[string]int32{"p-ver-v1": 5}}
+
+	client := newBufconnClient(t, NewServer(store, catalog, inventory, &fakeAuthorization{allowed: true}))
+	resp, err := client.GetCart(context.Background(), &cartv1.GetCartRequest{UserId: testUserID})
+	if err != nil {
+		t.Fatalf("GetCart() error = %v", err)
+	}
+	if len(resp.GetCart().GetItems()) != 1 {
+		t.Fatalf("got %d items, want 1", len(resp.GetCart().GetItems()))
+	}
+	if got := resp.GetCart().GetItems()[0].GetProductVersion(); got != 7 {
+		t.Fatalf("CartItem.GetProductVersion() = %d, want 7", got)
+	}
+}

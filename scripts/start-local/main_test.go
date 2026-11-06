@@ -62,8 +62,34 @@ func TestStartLocalIdentityOrderCartBff(t *testing.T) {
 	if got.Name != "mvn" || !reflect.DeepEqual(got.Args, []string{"-f", "services/order-service/pom.xml", "spring-boot:run"}) {
 		t.Fatalf("unexpected order command: %s %v", got.Name, got.Args)
 	}
-	if got.Env["SERVER_PORT"] != "8083" || got.Env["MANAGEMENT_SERVER_PORT"] != "8093" {
+	if got.Env["SERVER_PORT"] != "8083" ||
+		got.Env["MANAGEMENT_SERVER_PORT"] != "8093" ||
+		got.Env["ORDER_GRPC_PORT"] != "50055" ||
+		got.Env["PAYMENT_GRPC_ADDR"] != "127.0.0.1:50056" {
 		t.Fatalf("unexpected order env: %v", got.Env)
+	}
+
+	// Payment service
+	code = runWithDeps([]string{"-root", root, "-service", "payment"}, strings.NewReader(""), &out, &errOut, []string{}, launcher)
+	if code != 0 {
+		t.Fatalf("payment-service exit %d: %s", code, errOut.String())
+	}
+	if got.Dir != filepath.Join(root, "services", "payment-service") {
+		t.Fatalf("unexpected payment dir: %s", got.Dir)
+	}
+	if got.Name != "go" || !reflect.DeepEqual(got.Args, []string{"run", "./cmd/server"}) {
+		t.Fatalf("unexpected payment command: %s %v", got.Name, got.Args)
+	}
+	if got.Env["HTTP_ADDR"] != ":8086" ||
+		got.Env["GRPC_ADDR"] != "127.0.0.1:50056" ||
+		got.Env["DATABASE_URL"] != "postgres://ecommerce:change-me-local-only@127.0.0.1:5432/payment_db?sslmode=disable" ||
+		got.Env["RABBITMQ_URL"] != "amqp://ecommerce:change-me-local-only@127.0.0.1:5672/" ||
+		got.Env["MOMO_PARTNER_CODE"] != "MOMO_LOCAL" ||
+		got.Env["MOMO_ACCESS_KEY"] != "local-access-key" ||
+		got.Env["MOMO_SECRET_KEY"] != "local-secret-key-change-me" ||
+		got.Env["PAYMENT_MOMO_MOCK_ENABLED"] != "true" ||
+		got.Env["MOMO_REDIRECT_URL"] != "http://localhost:8000/api/v1/payments/momo-redirect" {
+		t.Fatalf("unexpected payment env: %v", got.Env)
 	}
 
 	// Cart service
@@ -77,11 +103,11 @@ func TestStartLocalIdentityOrderCartBff(t *testing.T) {
 	if got.Name != "go" || !reflect.DeepEqual(got.Args, []string{"run", "./cmd/server"}) {
 		t.Fatalf("unexpected cart command: %s %v", got.Name, got.Args)
 	}
-	if got.Env["HTTP_ADDR"] != ":8084" || got.Env["IDENTITY_GRPC_TIMEOUT"] != "500ms" {
+	if got.Env["HTTP_ADDR"] != ":8084" || got.Env["IDENTITY_GRPC_TIMEOUT"] != "500ms" || got.Env["RABBITMQ_URL"] != "amqp://ecommerce:change-me-local-only@127.0.0.1:5672/" {
 		t.Fatalf("unexpected cart env: %v", got.Env)
 	}
 
-	// BFF service sets local defaults directly without reading .env
+	// BFF service sets local defaults directly without setting ENV_FILE
 	errOut.Reset()
 	code = runWithDeps([]string{"-root", root, "-service", "bff-service"}, strings.NewReader(""), &out, &errOut, []string{}, launcher)
 	if code != 0 {
@@ -102,7 +128,12 @@ func TestStartLocalIdentityOrderCartBff(t *testing.T) {
 		got.Env["BFF_INVENTORY_GRPC_ADDR"] != "127.0.0.1:50052" ||
 		got.Env["BFF_INVENTORY_GRPC_TIMEOUT"] != "3s" ||
 		got.Env["BFF_CART_GRPC_ADDR"] != "127.0.0.1:50053" ||
-		got.Env["BFF_CART_GRPC_TIMEOUT"] != "3s" {
+		got.Env["BFF_CART_GRPC_TIMEOUT"] != "3s" ||
+		got.Env["BFF_ORDER_GRPC_ADDR"] != "127.0.0.1:50055" ||
+		got.Env["BFF_ORDER_GRPC_TIMEOUT"] != "15s" ||
+		got.Env["BFF_PAYMENT_GRPC_ADDR"] != "127.0.0.1:50056" ||
+		got.Env["BFF_PAYMENT_GRPC_TIMEOUT"] != "5s" ||
+		got.Env["BFF_STOREFRONT_BASE_URL"] != "http://localhost:5173" {
 		t.Fatalf("unexpected bff env: %v", got.Env)
 	}
 	if _, hasEnvFile := got.Env["ENV_FILE"]; hasEnvFile {
@@ -194,10 +225,31 @@ func TestStartLocalCatalogAndInventoryDefaults(t *testing.T) {
 	if got.Env["HTTP_ADDR"] != ":8082" ||
 		got.Env["GRPC_ADDR"] != "127.0.0.1:50052" ||
 		got.Env["DATABASE_URL"] != "postgres://ecommerce:change-me-local-only@127.0.0.1:5432/inventory_db?sslmode=disable" ||
+		got.Env["RABBITMQ_URL"] != "amqp://ecommerce:change-me-local-only@127.0.0.1:5672/" ||
 		got.Env["IDENTITY_GRPC_ADDR"] != "127.0.0.1:50054" ||
 		got.Env["IDENTITY_GRPC_TIMEOUT"] != "500ms" ||
 		got.Env["SEED_DEMO_DATA"] != "true" {
 		t.Fatalf("unexpected inventory env: %v", got.Env)
+	}
+}
+
+func TestStartLocalLoadsRootDotenvWithProcessEnvPrecedence(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, ".env"), []byte("# comment\nMOMO_ACCESS_KEY=dotenv-access\nMOMO_SECRET_KEY=\"dotenv-secret\"\nHTTP_ADDR=:18086\n"), 0o600); err != nil {
+		t.Fatalf("write .env: %v", err)
+	}
+	var got recordedLaunch
+	launcher := func(dir string, env []string, name string, args ...string) int {
+		got = recordedLaunch{Dir: dir, Env: envSliceToMap(env), Name: name, Args: args}
+		return 0
+	}
+	var out, errOut bytes.Buffer
+	code := runWithDeps([]string{"-root", root, "-service", "payment-service"}, strings.NewReader(""), &out, &errOut, []string{"MOMO_ACCESS_KEY=caller-access"}, launcher)
+	if code != 0 {
+		t.Fatalf("payment-service with .env exit %d: %s", code, errOut.String())
+	}
+	if got.Env["MOMO_ACCESS_KEY"] != "caller-access" || got.Env["MOMO_SECRET_KEY"] != "dotenv-secret" || got.Env["HTTP_ADDR"] != ":18086" {
+		t.Fatalf("unexpected .env precedence result: %v", got.Env)
 	}
 }
 

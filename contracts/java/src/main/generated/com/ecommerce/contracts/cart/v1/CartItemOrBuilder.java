@@ -197,4 +197,10 @@ public interface CartItemOrBuilder extends
    * @return The availableQuantity.
    */
   int getAvailableQuantity();
+
+  /**
+   * <code>int64 product_version = 17 [json_name = "productVersion"];</code>
+   * @return The productVersion.
+   */
+  long getProductVersion();
 }

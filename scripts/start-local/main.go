@@ -97,6 +97,7 @@ func runWithDeps(args []string, in io.Reader, out, errOut io.Writer, baseEnv []s
 		baseEnv = os.Environ()
 	}
 	env := parseEnv(baseEnv)
+	loadDotenvDefaults(env, filepath.Join(root, ".env"))
 
 	switch normalizeService(service) {
 	case "identity-service":
@@ -109,16 +110,7 @@ func runWithDeps(args []string, in io.Reader, out, errOut io.Writer, baseEnv []s
 		setDefaultEnv(env, "IDENTITY_GRPC_HOST", "127.0.0.1")
 		setDefaultEnv(env, "IDENTITY_GRPC_PORT", "50054")
 		setDefaultEnv(env, "IDENTITY_GRPC_SHUTDOWN_GRACE", "5s")
-
-		javaOpts := getEnv(env, "JDK_JAVA_OPTIONS")
-		if !strings.Contains(javaOpts, "-Djava.net.preferIPv4Stack=true") {
-			if javaOpts == "" {
-				javaOpts = "-Djava.net.preferIPv4Stack=true"
-			} else {
-				javaOpts = javaOpts + " -Djava.net.preferIPv4Stack=true"
-			}
-			setEnv(env, "JDK_JAVA_OPTIONS", javaOpts)
-		}
+		ensureIPv4JavaOptions(env)
 
 		if !emailFlagSet {
 			bootstrapEmail = strings.TrimSpace(getEnv(env, "IDENTITY_BOOTSTRAP_SUPER_ADMIN_EMAIL"))
@@ -154,7 +146,36 @@ func runWithDeps(args []string, in io.Reader, out, errOut io.Writer, baseEnv []s
 	case "order-service":
 		setDefaultEnv(env, "SERVER_PORT", "8083")
 		setDefaultEnv(env, "MANAGEMENT_SERVER_PORT", "8093")
+		setDefaultEnv(env, "ORDER_DB_URL", "jdbc:postgresql://localhost:5432/order_db")
+		setDefaultEnv(env, "ORDER_DB_USERNAME", "ecommerce")
+		setDefaultEnv(env, "ORDER_DB_PASSWORD", "change-me-local-only")
+		setDefaultEnv(env, "RABBITMQ_HOST", "localhost")
+		setDefaultEnv(env, "RABBITMQ_PORT", "5672")
+		setDefaultEnv(env, "RABBITMQ_USERNAME", "ecommerce")
+		setDefaultEnv(env, "RABBITMQ_PASSWORD", "change-me-local-only")
+		setDefaultEnv(env, "ORDER_GRPC_HOST", "127.0.0.1")
+		setDefaultEnv(env, "ORDER_GRPC_PORT", "50055")
+		setDefaultEnv(env, "IDENTITY_GRPC_ADDR", "127.0.0.1:50054")
+		setDefaultEnv(env, "CATALOG_GRPC_ADDR", "127.0.0.1:50051")
+		setDefaultEnv(env, "INVENTORY_GRPC_ADDR", "127.0.0.1:50052")
+		setDefaultEnv(env, "PAYMENT_GRPC_ADDR", "127.0.0.1:50056")
+		ensureIPv4JavaOptions(env)
 		return launch(root, formatEnv(env), "mvn", "-f", "services/order-service/pom.xml", "spring-boot:run")
+
+	case "payment-service":
+		setDefaultEnv(env, "DATABASE_URL", "postgres://ecommerce:change-me-local-only@127.0.0.1:5432/payment_db?sslmode=disable")
+		setDefaultEnv(env, "RABBITMQ_URL", "amqp://ecommerce:change-me-local-only@127.0.0.1:5672/")
+		setDefaultEnv(env, "HTTP_ADDR", ":8086")
+		setDefaultEnv(env, "GRPC_ADDR", "127.0.0.1:50056")
+		setDefaultEnv(env, "MOMO_PARTNER_CODE", "MOMO_LOCAL")
+		setDefaultEnv(env, "MOMO_ACCESS_KEY", "local-access-key")
+		setDefaultEnv(env, "MOMO_SECRET_KEY", "local-secret-key-change-me")
+		setDefaultEnv(env, "MOMO_API_ENDPOINT", "https://test-payment.momo.vn/v2/gateway/api/create")
+		setDefaultEnv(env, "MOMO_REDIRECT_URL", "http://localhost:8000/api/v1/payments/momo-redirect")
+		setDefaultEnv(env, "MOMO_IPN_URL", "http://localhost:8000/api/v1/payments/momo-ipn")
+		setDefaultEnv(env, "PAYMENT_MOMO_MOCK_ENABLED", "true")
+
+		return launch(filepath.Join(root, "services", "payment-service"), formatEnv(env), "go", "run", "./cmd/server")
 
 	case "catalog-service":
 		setDefaultEnv(env, "DATABASE_URL", "postgres://ecommerce:change-me-local-only@127.0.0.1:5432/catalog_db?sslmode=disable")
@@ -173,6 +194,7 @@ func runWithDeps(args []string, in io.Reader, out, errOut io.Writer, baseEnv []s
 
 	case "inventory-service":
 		setDefaultEnv(env, "DATABASE_URL", "postgres://ecommerce:change-me-local-only@127.0.0.1:5432/inventory_db?sslmode=disable")
+		setDefaultEnv(env, "RABBITMQ_URL", "amqp://ecommerce:change-me-local-only@127.0.0.1:5672/")
 		setDefaultEnv(env, "HTTP_ADDR", ":8082")
 		setDefaultEnv(env, "GRPC_ADDR", "127.0.0.1:50052")
 		setDefaultEnv(env, "IDENTITY_GRPC_ADDR", "127.0.0.1:50054")
@@ -183,6 +205,7 @@ func runWithDeps(args []string, in io.Reader, out, errOut io.Writer, baseEnv []s
 
 	case "cart-service":
 		setDefaultEnv(env, "DATABASE_URL", "postgres://ecommerce:change-me-local-only@127.0.0.1:5432/cart_db?sslmode=disable")
+		setDefaultEnv(env, "RABBITMQ_URL", "amqp://ecommerce:change-me-local-only@127.0.0.1:5672/")
 		setDefaultEnv(env, "HTTP_ADDR", ":8084")
 		setDefaultEnv(env, "GRPC_ADDR", "127.0.0.1:50053")
 		setDefaultEnv(env, "CATALOG_GRPC_ADDR", "127.0.0.1:50051")
@@ -202,6 +225,11 @@ func runWithDeps(args []string, in io.Reader, out, errOut io.Writer, baseEnv []s
 		setDefaultEnv(env, "BFF_INVENTORY_GRPC_TIMEOUT", "3s")
 		setDefaultEnv(env, "BFF_CART_GRPC_ADDR", "127.0.0.1:50053")
 		setDefaultEnv(env, "BFF_CART_GRPC_TIMEOUT", "3s")
+		setDefaultEnv(env, "BFF_ORDER_GRPC_ADDR", "127.0.0.1:50055")
+		setDefaultEnv(env, "BFF_ORDER_GRPC_TIMEOUT", "15s")
+		setDefaultEnv(env, "BFF_PAYMENT_GRPC_ADDR", "127.0.0.1:50056")
+		setDefaultEnv(env, "BFF_PAYMENT_GRPC_TIMEOUT", "5s")
+		setDefaultEnv(env, "BFF_STOREFRONT_BASE_URL", "http://localhost:5173")
 
 		return launch(filepath.Join(root, "services", "bff-service"), formatEnv(env), "go", "run", "./cmd/server")
 
@@ -216,7 +244,7 @@ func runWithDeps(args []string, in io.Reader, out, errOut io.Writer, baseEnv []s
 		return launch(root, formatEnv(env), "npm", "--prefix", "admin-fe", "run", "dev")
 
 	default:
-		fmt.Fprintf(errOut, "Unknown local service %q. Expected one of: identity-service, order-service, catalog-service, inventory-service, cart-service, bff-service, ecommerce-fe, admin-fe\n", service)
+		fmt.Fprintf(errOut, "Unknown local service %q. Expected one of: identity-service, order-service, payment-service, catalog-service, inventory-service, cart-service, bff-service, ecommerce-fe, admin-fe\n", service)
 		return 2
 	}
 }
@@ -228,6 +256,8 @@ func normalizeService(s string) string {
 		return "identity-service"
 	case "order", "order-service":
 		return "order-service"
+	case "payment", "payment-service":
+		return "payment-service"
 	case "catalog", "catalog-service":
 		return "catalog-service"
 	case "inventory", "inventory-service":
@@ -242,6 +272,44 @@ func normalizeService(s string) string {
 		return "admin-fe"
 	default:
 		return s
+	}
+}
+
+func ensureIPv4JavaOptions(env *envStore) {
+	javaOpts := getEnv(env, "JDK_JAVA_OPTIONS")
+	if !strings.Contains(javaOpts, "-Djava.net.preferIPv4Stack=true") {
+		if javaOpts == "" {
+			javaOpts = "-Djava.net.preferIPv4Stack=true"
+		} else {
+			javaOpts = javaOpts + " -Djava.net.preferIPv4Stack=true"
+		}
+		setEnv(env, "JDK_JAVA_OPTIONS", javaOpts)
+	}
+}
+
+func loadDotenvDefaults(env *envStore, path string) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+	for _, line := range strings.Split(string(raw), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		trimmed = strings.TrimPrefix(trimmed, "export ")
+		key, val, ok := strings.Cut(trimmed, "=")
+		if !ok {
+			continue
+		}
+		key = strings.TrimSpace(key)
+		val = strings.TrimSpace(val)
+		if len(val) >= 2 && ((val[0] == '"' && val[len(val)-1] == '"') || (val[0] == '\'' && val[len(val)-1] == '\'')) {
+			val = val[1 : len(val)-1]
+		}
+		if key != "" && val != "" {
+			setDefaultEnv(env, key, val)
+		}
 	}
 }
 

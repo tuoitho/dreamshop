@@ -191,6 +191,10 @@ func validTraceID(candidate string) bool {
 }
 
 func productToProto(p *domain.Product) *catalogv1.GetProductResponse {
+	version := p.Version
+	if version <= 0 {
+		version = 1
+	}
 	resp := &catalogv1.GetProductResponse{
 		Id:               p.ID,
 		Name:             p.Name,
@@ -214,6 +218,7 @@ func productToProto(p *domain.Product) *catalogv1.GetProductResponse {
 		ImageHue:         p.ImageHue,
 		Details:          p.Details,
 		Deleted:          p.Deleted,
+		Version:          version,
 	}
 	for _, v := range p.Variants {
 		resp.Variants = append(resp.Variants, productVariantToProto(v))
@@ -256,6 +261,10 @@ func searchResultToProto(r *domain.SearchResult) *catalogv1.SearchProductsRespon
 }
 
 func summaryToProto(s *domain.Summary) *catalogv1.ProductSummary {
+	version := s.Version
+	if version <= 0 {
+		version = 1
+	}
 	return &catalogv1.ProductSummary{
 		Id:            s.ID,
 		Name:          s.Name,
@@ -275,6 +284,7 @@ func summaryToProto(s *domain.Summary) *catalogv1.ProductSummary {
 		Emoji:         s.Emoji,
 		ImageHue:      s.ImageHue,
 		SkuIds:        s.SkuIDs,
+		Version:       version,
 	}
 }
 

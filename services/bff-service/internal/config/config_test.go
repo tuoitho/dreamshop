@@ -32,14 +32,7 @@ type kongProductionConfig struct {
 }
 
 func TestLoadUsesDefaults(t *testing.T) {
-	t.Setenv("BFF_HTTP_ADDR", "")
-	t.Setenv("HTTP_ADDR", "")
-	t.Setenv("BFF_CATALOG_GRPC_ADDR", "")
-	t.Setenv("BFF_CATALOG_GRPC_TIMEOUT", "")
-	t.Setenv("BFF_INVENTORY_GRPC_ADDR", "")
-	t.Setenv("BFF_INVENTORY_GRPC_TIMEOUT", "")
-	t.Setenv("BFF_CART_GRPC_ADDR", "")
-	t.Setenv("BFF_CART_GRPC_TIMEOUT", "")
+	clearBFFConfigEnv(t)
 
 	cfg, err := Load()
 	if err != nil {
@@ -66,6 +59,21 @@ func TestLoadUsesDefaults(t *testing.T) {
 	if cfg.CartGRPCTimeout != 3*time.Second {
 		t.Fatalf("expected default CartGRPCTimeout 3s, got %s", cfg.CartGRPCTimeout)
 	}
+	if cfg.OrderGRPCAddr != "127.0.0.1:50055" {
+		t.Fatalf("expected default OrderGRPCAddr 127.0.0.1:50055, got %s", cfg.OrderGRPCAddr)
+	}
+	if cfg.OrderGRPCTimeout != 15*time.Second {
+		t.Fatalf("expected default OrderGRPCTimeout 15s, got %s", cfg.OrderGRPCTimeout)
+	}
+	if cfg.PaymentGRPCAddr != "127.0.0.1:50056" {
+		t.Fatalf("expected default PaymentGRPCAddr 127.0.0.1:50056, got %s", cfg.PaymentGRPCAddr)
+	}
+	if cfg.PaymentGRPCTimeout != 5*time.Second {
+		t.Fatalf("expected default PaymentGRPCTimeout 5s, got %s", cfg.PaymentGRPCTimeout)
+	}
+	if cfg.StorefrontBaseURL != "http://localhost:5173" {
+		t.Fatalf("expected default StorefrontBaseURL http://localhost:5173, got %s", cfg.StorefrontBaseURL)
+	}
 }
 
 func TestLoadUsesPrefixedEnvironment(t *testing.T) {
@@ -77,6 +85,11 @@ func TestLoadUsesPrefixedEnvironment(t *testing.T) {
 	t.Setenv("BFF_INVENTORY_GRPC_TIMEOUT", "4s")
 	t.Setenv("BFF_CART_GRPC_ADDR", "cart.local:50053")
 	t.Setenv("BFF_CART_GRPC_TIMEOUT", "7s")
+	t.Setenv("BFF_ORDER_GRPC_ADDR", "order.local:50055")
+	t.Setenv("BFF_ORDER_GRPC_TIMEOUT", "18s")
+	t.Setenv("BFF_PAYMENT_GRPC_ADDR", "payment.local:50056")
+	t.Setenv("BFF_PAYMENT_GRPC_TIMEOUT", "6s")
+	t.Setenv("BFF_STOREFRONT_BASE_URL", "https://shop.example.com")
 
 	cfg, err := Load()
 	if err != nil {
@@ -102,6 +115,21 @@ func TestLoadUsesPrefixedEnvironment(t *testing.T) {
 	}
 	if cfg.CartGRPCTimeout != 7*time.Second {
 		t.Fatalf("expected BFF_CART_GRPC_TIMEOUT 7s, got %s", cfg.CartGRPCTimeout)
+	}
+	if cfg.OrderGRPCAddr != "order.local:50055" {
+		t.Fatalf("expected BFF_ORDER_GRPC_ADDR order.local:50055, got %s", cfg.OrderGRPCAddr)
+	}
+	if cfg.OrderGRPCTimeout != 18*time.Second {
+		t.Fatalf("expected BFF_ORDER_GRPC_TIMEOUT 18s, got %s", cfg.OrderGRPCTimeout)
+	}
+	if cfg.PaymentGRPCAddr != "payment.local:50056" {
+		t.Fatalf("expected BFF_PAYMENT_GRPC_ADDR payment.local:50056, got %s", cfg.PaymentGRPCAddr)
+	}
+	if cfg.PaymentGRPCTimeout != 6*time.Second {
+		t.Fatalf("expected BFF_PAYMENT_GRPC_TIMEOUT 6s, got %s", cfg.PaymentGRPCTimeout)
+	}
+	if cfg.StorefrontBaseURL != "https://shop.example.com" {
+		t.Fatalf("expected BFF_STOREFRONT_BASE_URL https://shop.example.com, got %s", cfg.StorefrontBaseURL)
 	}
 }
 
@@ -202,8 +230,25 @@ func clearBFFConfigEnv(t *testing.T) {
 		"BFF_INVENTORY_GRPC_TIMEOUT",
 		"BFF_CART_GRPC_ADDR",
 		"BFF_CART_GRPC_TIMEOUT",
+		"BFF_ORDER_GRPC_ADDR",
+		"BFF_ORDER_GRPC_TIMEOUT",
+		"BFF_PAYMENT_GRPC_ADDR",
+		"BFF_PAYMENT_GRPC_TIMEOUT",
+		"BFF_STOREFRONT_BASE_URL",
 	} {
 		t.Setenv(key, "")
+	}
+}
+
+func TestLoadRejectsBlankOrderAndPaymentAddresses(t *testing.T) {
+	for _, envKey := range []string{"BFF_ORDER_GRPC_ADDR", "BFF_PAYMENT_GRPC_ADDR"} {
+		t.Run(envKey, func(t *testing.T) {
+			clearBFFConfigEnv(t)
+			t.Setenv(envKey, "   ")
+			if _, err := Load(); err == nil {
+				t.Fatalf("expected error for blank %s, got nil", envKey)
+			}
+		})
 	}
 }
 
@@ -212,6 +257,8 @@ func TestLoadRejectsMalformedTimeouts(t *testing.T) {
 		"BFF_CATALOG_GRPC_TIMEOUT",
 		"BFF_INVENTORY_GRPC_TIMEOUT",
 		"BFF_CART_GRPC_TIMEOUT",
+		"BFF_ORDER_GRPC_TIMEOUT",
+		"BFF_PAYMENT_GRPC_TIMEOUT",
 	}
 	malformedValues := []string{"3000", "invalid"}
 
@@ -425,5 +472,11 @@ func TestBFFContainerDeclaresProductionCartGRPCTarget(t *testing.T) {
 	}
 	if !strings.Contains(content, `ENV BFF_INVENTORY_GRPC_TIMEOUT="3s"`) {
 		t.Fatal("BFF production image does not declare the Inventory gRPC timeout")
+	}
+	if !strings.Contains(content, `ENV BFF_ORDER_GRPC_ADDR="order-service:50055"`) {
+		t.Fatal("BFF production image does not declare the Order gRPC service DNS target")
+	}
+	if !strings.Contains(content, `ENV BFF_PAYMENT_GRPC_ADDR="payment-service:50056"`) {
+		t.Fatal("BFF production image does not declare the Payment gRPC service DNS target")
 	}
 }

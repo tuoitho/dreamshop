@@ -413,6 +413,11 @@ func enrichLine(
 	item.ImageEmoji = product.GetEmoji()
 	item.ImageHue = product.GetImageHue()
 	item.ImageUrl = firstString(product.GetImages())
+	productVersion := product.GetVersion()
+	if productVersion <= 0 {
+		productVersion = 1
+	}
+	item.ProductVersion = productVersion
 
 	matchedVariant := findVariantBySku(product, line.SkuID)
 	if matchedVariant != nil {

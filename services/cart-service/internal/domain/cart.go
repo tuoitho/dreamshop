@@ -7,6 +7,12 @@ type Line struct {
 	Quantity  int32
 }
 
+type OrderedItemRef struct {
+	CartItemID string
+	ProductID  string
+	SkuID      string
+}
+
 type ItemStatus int
 
 const (

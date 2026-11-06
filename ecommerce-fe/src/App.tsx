@@ -10,6 +10,9 @@ import ProductDetailPage from "@/pages/product-detail-page"
 import CartPage from "@/pages/cart-page"
 import FavoritesPage from "@/pages/favorites-page"
 import OrderPreviewPage from "@/pages/order-preview-page"
+import PaymentResultPage from "@/pages/payment-result-page"
+import OrdersPage from "@/pages/orders-page"
+import OrderDetailPage from "@/pages/order-detail-page"
 
 function App() {
   return (
@@ -22,6 +25,9 @@ function App() {
           <Route path="/yeu-thich" element={<RequireAuth><FavoritesPage /></RequireAuth>} />
           <Route path="/gio-hang" element={<RequireAuth><CartPage /></RequireAuth>} />
           <Route path="/gio-hang/dat-hang" element={<RequireAuth><OrderPreviewPage /></RequireAuth>} />
+          <Route path="/thanh-toan/ket-qua" element={<RequireAuth><PaymentResultPage /></RequireAuth>} />
+          <Route path="/don-hang" element={<RequireAuth><OrdersPage /></RequireAuth>} />
+          <Route path="/don-hang/:orderId" element={<RequireAuth><OrderDetailPage /></RequireAuth>} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route

@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package ecommerce.payment.v1;
+
+import "common/v1/common.proto";
+
+option go_package = "ecommerce.local/contracts/go/payment/v1;paymentv1";
+option java_multiple_files = true;
+option java_package = "com.ecommerce.contracts.payment.v1";
+
+service PaymentService {
+  rpc CreatePaymentSession(CreatePaymentSessionRequest) returns (CreatePaymentSessionResponse);
+  rpc HandleMomoCallback(HandleMomoCallbackRequest) returns (HandleMomoCallbackResponse);
+}
+
+message CreatePaymentSessionRequest {
+  string order_id = 1;
+  string order_code = 2;
+  string user_id = 3;
+  ecommerce.common.v1.Money amount = 4;
+  string expires_at = 5;
+}
+
+message CreatePaymentSessionResponse {
+  string order_id = 1;
+  string status = 2;
+  string pay_url = 3;
+}
+
+message HandleMomoCallbackRequest {
+  string partner_code = 1;
+  string order_id = 2;
+  string request_id = 3;
+  int64 amount = 4;
+  string order_info = 5;
+  string order_type = 6;
+  string trans_id = 7;
+  int32 result_code = 8;
+  string message = 9;
+  string pay_type = 10;
+  int64 response_time = 11;
+  string extra_data = 12;
+  string signature = 13;
+  string source = 14;
+}
+
+message HandleMomoCallbackResponse {
+  string order_id = 1;
+  string payment_status = 2;
+  string redirect_result = 3;
+}

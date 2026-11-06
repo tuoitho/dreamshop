@@ -19,6 +19,7 @@ private static final long serialVersionUID = 0L;
   private CreateOrderResponse() {
     orderId_ = "";
     status_ = "";
+    payUrl_ = "";
   }
 
   @java.lang.Override
@@ -146,6 +147,71 @@ private static final long serialVersionUID = 0L;
     return totalAmount_ == null ? com.ecommerce.contracts.common.v1.Money.getDefaultInstance() : totalAmount_;
   }
 
+  public static final int ORDER_FIELD_NUMBER = 4;
+  private com.ecommerce.contracts.order.v1.OrderDetail order_;
+  /**
+   * <code>.ecommerce.order.v1.OrderDetail order = 4 [json_name = "order"];</code>
+   * @return Whether the order field is set.
+   */
+  @java.lang.Override
+  public boolean hasOrder() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <code>.ecommerce.order.v1.OrderDetail order = 4 [json_name = "order"];</code>
+   * @return The order.
+   */
+  @java.lang.Override
+  public com.ecommerce.contracts.order.v1.OrderDetail getOrder() {
+    return order_ == null ? com.ecommerce.contracts.order.v1.OrderDetail.getDefaultInstance() : order_;
+  }
+  /**
+   * <code>.ecommerce.order.v1.OrderDetail order = 4 [json_name = "order"];</code>
+   */
+  @java.lang.Override
+  public com.ecommerce.contracts.order.v1.OrderDetailOrBuilder getOrderOrBuilder() {
+    return order_ == null ? com.ecommerce.contracts.order.v1.OrderDetail.getDefaultInstance() : order_;
+  }
+
+  public static final int PAY_URL_FIELD_NUMBER = 5;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object payUrl_ = "";
+  /**
+   * <code>string pay_url = 5 [json_name = "payUrl"];</code>
+   * @return The payUrl.
+   */
+  @java.lang.Override
+  public java.lang.String getPayUrl() {
+    java.lang.Object ref = payUrl_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      payUrl_ = s;
+      return s;
+    }
+  }
+  /**
+   * <code>string pay_url = 5 [json_name = "payUrl"];</code>
+   * @return The bytes for payUrl.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getPayUrlBytes() {
+    java.lang.Object ref = payUrl_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      payUrl_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -169,6 +235,12 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(3, getTotalAmount());
     }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(4, getOrder());
+    }
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(payUrl_)) {
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 5, payUrl_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -187,6 +259,13 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(3, getTotalAmount());
+    }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(4, getOrder());
+    }
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(payUrl_)) {
+      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(5, payUrl_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -212,6 +291,13 @@ private static final long serialVersionUID = 0L;
       if (!getTotalAmount()
           .equals(other.getTotalAmount())) return false;
     }
+    if (hasOrder() != other.hasOrder()) return false;
+    if (hasOrder()) {
+      if (!getOrder()
+          .equals(other.getOrder())) return false;
+    }
+    if (!getPayUrl()
+        .equals(other.getPayUrl())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -231,6 +317,12 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + TOTAL_AMOUNT_FIELD_NUMBER;
       hash = (53 * hash) + getTotalAmount().hashCode();
     }
+    if (hasOrder()) {
+      hash = (37 * hash) + ORDER_FIELD_NUMBER;
+      hash = (53 * hash) + getOrder().hashCode();
+    }
+    hash = (37 * hash) + PAY_URL_FIELD_NUMBER;
+    hash = (53 * hash) + getPayUrl().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -362,6 +454,7 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessageV3
               .alwaysUseFieldBuilders) {
         getTotalAmountFieldBuilder();
+        getOrderFieldBuilder();
       }
     }
     @java.lang.Override
@@ -375,6 +468,12 @@ private static final long serialVersionUID = 0L;
         totalAmountBuilder_.dispose();
         totalAmountBuilder_ = null;
       }
+      order_ = null;
+      if (orderBuilder_ != null) {
+        orderBuilder_.dispose();
+        orderBuilder_ = null;
+      }
+      payUrl_ = "";
       return this;
     }
 
@@ -420,6 +519,15 @@ private static final long serialVersionUID = 0L;
             ? totalAmount_
             : totalAmountBuilder_.build();
         to_bitField0_ |= 0x00000001;
+      }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.order_ = orderBuilder_ == null
+            ? order_
+            : orderBuilder_.build();
+        to_bitField0_ |= 0x00000002;
+      }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.payUrl_ = payUrl_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -481,6 +589,14 @@ private static final long serialVersionUID = 0L;
       if (other.hasTotalAmount()) {
         mergeTotalAmount(other.getTotalAmount());
       }
+      if (other.hasOrder()) {
+        mergeOrder(other.getOrder());
+      }
+      if (!other.getPayUrl().isEmpty()) {
+        payUrl_ = other.payUrl_;
+        bitField0_ |= 0x00000010;
+        onChanged();
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -524,6 +640,18 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
+            case 34: {
+              input.readMessage(
+                  getOrderFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 34
+            case 42: {
+              payUrl_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 42
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -804,6 +932,199 @@ private static final long serialVersionUID = 0L;
         totalAmount_ = null;
       }
       return totalAmountBuilder_;
+    }
+
+    private com.ecommerce.contracts.order.v1.OrderDetail order_;
+    private com.google.protobuf.SingleFieldBuilderV3<
+        com.ecommerce.contracts.order.v1.OrderDetail, com.ecommerce.contracts.order.v1.OrderDetail.Builder, com.ecommerce.contracts.order.v1.OrderDetailOrBuilder> orderBuilder_;
+    /**
+     * <code>.ecommerce.order.v1.OrderDetail order = 4 [json_name = "order"];</code>
+     * @return Whether the order field is set.
+     */
+    public boolean hasOrder() {
+      return ((bitField0_ & 0x00000008) != 0);
+    }
+    /**
+     * <code>.ecommerce.order.v1.OrderDetail order = 4 [json_name = "order"];</code>
+     * @return The order.
+     */
+    public com.ecommerce.contracts.order.v1.OrderDetail getOrder() {
+      if (orderBuilder_ == null) {
+        return order_ == null ? com.ecommerce.contracts.order.v1.OrderDetail.getDefaultInstance() : order_;
+      } else {
+        return orderBuilder_.getMessage();
+      }
+    }
+    /**
+     * <code>.ecommerce.order.v1.OrderDetail order = 4 [json_name = "order"];</code>
+     */
+    public Builder setOrder(com.ecommerce.contracts.order.v1.OrderDetail value) {
+      if (orderBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        order_ = value;
+      } else {
+        orderBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>.ecommerce.order.v1.OrderDetail order = 4 [json_name = "order"];</code>
+     */
+    public Builder setOrder(
+        com.ecommerce.contracts.order.v1.OrderDetail.Builder builderForValue) {
+      if (orderBuilder_ == null) {
+        order_ = builderForValue.build();
+      } else {
+        orderBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>.ecommerce.order.v1.OrderDetail order = 4 [json_name = "order"];</code>
+     */
+    public Builder mergeOrder(com.ecommerce.contracts.order.v1.OrderDetail value) {
+      if (orderBuilder_ == null) {
+        if (((bitField0_ & 0x00000008) != 0) &&
+          order_ != null &&
+          order_ != com.ecommerce.contracts.order.v1.OrderDetail.getDefaultInstance()) {
+          getOrderBuilder().mergeFrom(value);
+        } else {
+          order_ = value;
+        }
+      } else {
+        orderBuilder_.mergeFrom(value);
+      }
+      if (order_ != null) {
+        bitField0_ |= 0x00000008;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <code>.ecommerce.order.v1.OrderDetail order = 4 [json_name = "order"];</code>
+     */
+    public Builder clearOrder() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      order_ = null;
+      if (orderBuilder_ != null) {
+        orderBuilder_.dispose();
+        orderBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>.ecommerce.order.v1.OrderDetail order = 4 [json_name = "order"];</code>
+     */
+    public com.ecommerce.contracts.order.v1.OrderDetail.Builder getOrderBuilder() {
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return getOrderFieldBuilder().getBuilder();
+    }
+    /**
+     * <code>.ecommerce.order.v1.OrderDetail order = 4 [json_name = "order"];</code>
+     */
+    public com.ecommerce.contracts.order.v1.OrderDetailOrBuilder getOrderOrBuilder() {
+      if (orderBuilder_ != null) {
+        return orderBuilder_.getMessageOrBuilder();
+      } else {
+        return order_ == null ?
+            com.ecommerce.contracts.order.v1.OrderDetail.getDefaultInstance() : order_;
+      }
+    }
+    /**
+     * <code>.ecommerce.order.v1.OrderDetail order = 4 [json_name = "order"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilderV3<
+        com.ecommerce.contracts.order.v1.OrderDetail, com.ecommerce.contracts.order.v1.OrderDetail.Builder, com.ecommerce.contracts.order.v1.OrderDetailOrBuilder> 
+        getOrderFieldBuilder() {
+      if (orderBuilder_ == null) {
+        orderBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+            com.ecommerce.contracts.order.v1.OrderDetail, com.ecommerce.contracts.order.v1.OrderDetail.Builder, com.ecommerce.contracts.order.v1.OrderDetailOrBuilder>(
+                getOrder(),
+                getParentForChildren(),
+                isClean());
+        order_ = null;
+      }
+      return orderBuilder_;
+    }
+
+    private java.lang.Object payUrl_ = "";
+    /**
+     * <code>string pay_url = 5 [json_name = "payUrl"];</code>
+     * @return The payUrl.
+     */
+    public java.lang.String getPayUrl() {
+      java.lang.Object ref = payUrl_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        payUrl_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <code>string pay_url = 5 [json_name = "payUrl"];</code>
+     * @return The bytes for payUrl.
+     */
+    public com.google.protobuf.ByteString
+        getPayUrlBytes() {
+      java.lang.Object ref = payUrl_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        payUrl_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <code>string pay_url = 5 [json_name = "payUrl"];</code>
+     * @param value The payUrl to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPayUrl(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      payUrl_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string pay_url = 5 [json_name = "payUrl"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPayUrl() {
+      payUrl_ = getDefaultInstance().getPayUrl();
+      bitField0_ = (bitField0_ & ~0x00000010);
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string pay_url = 5 [json_name = "payUrl"];</code>
+     * @param value The bytes for payUrl to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPayUrlBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      payUrl_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
     }
     @java.lang.Override
     public final Builder setUnknownFields(

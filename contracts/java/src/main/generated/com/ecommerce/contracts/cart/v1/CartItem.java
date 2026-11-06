@@ -564,6 +564,17 @@ private static final long serialVersionUID = 0L;
     return availableQuantity_;
   }
 
+  public static final int PRODUCT_VERSION_FIELD_NUMBER = 17;
+  private long productVersion_ = 0L;
+  /**
+   * <code>int64 product_version = 17 [json_name = "productVersion"];</code>
+   * @return The productVersion.
+   */
+  @java.lang.Override
+  public long getProductVersion() {
+    return productVersion_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -630,6 +641,9 @@ private static final long serialVersionUID = 0L;
     }
     if (availableQuantity_ != 0) {
       output.writeInt32(16, availableQuantity_);
+    }
+    if (productVersion_ != 0L) {
+      output.writeInt64(17, productVersion_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -704,6 +718,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(16, availableQuantity_);
     }
+    if (productVersion_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(17, productVersion_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -756,6 +774,8 @@ private static final long serialVersionUID = 0L;
     if (status_ != other.status_) return false;
     if (getAvailableQuantity()
         != other.getAvailableQuantity()) return false;
+    if (getProductVersion()
+        != other.getProductVersion()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -805,6 +825,9 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + status_;
     hash = (37 * hash) + AVAILABLE_QUANTITY_FIELD_NUMBER;
     hash = (53 * hash) + getAvailableQuantity();
+    hash = (37 * hash) + PRODUCT_VERSION_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getProductVersion());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -967,6 +990,7 @@ private static final long serialVersionUID = 0L;
       imageUrl_ = "";
       status_ = 0;
       availableQuantity_ = 0;
+      productVersion_ = 0L;
       return this;
     }
 
@@ -1055,6 +1079,9 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00008000) != 0)) {
         result.availableQuantity_ = availableQuantity_;
+      }
+      if (((from_bitField0_ & 0x00010000) != 0)) {
+        result.productVersion_ = productVersion_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1179,6 +1206,9 @@ private static final long serialVersionUID = 0L;
       if (other.getAvailableQuantity() != 0) {
         setAvailableQuantity(other.getAvailableQuantity());
       }
+      if (other.getProductVersion() != 0L) {
+        setProductVersion(other.getProductVersion());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1300,6 +1330,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00008000;
               break;
             } // case 128
+            case 136: {
+              productVersion_ = input.readInt64();
+              bitField0_ |= 0x00010000;
+              break;
+            } // case 136
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2476,6 +2511,38 @@ private static final long serialVersionUID = 0L;
     public Builder clearAvailableQuantity() {
       bitField0_ = (bitField0_ & ~0x00008000);
       availableQuantity_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private long productVersion_ ;
+    /**
+     * <code>int64 product_version = 17 [json_name = "productVersion"];</code>
+     * @return The productVersion.
+     */
+    @java.lang.Override
+    public long getProductVersion() {
+      return productVersion_;
+    }
+    /**
+     * <code>int64 product_version = 17 [json_name = "productVersion"];</code>
+     * @param value The productVersion to set.
+     * @return This builder for chaining.
+     */
+    public Builder setProductVersion(long value) {
+
+      productVersion_ = value;
+      bitField0_ |= 0x00010000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>int64 product_version = 17 [json_name = "productVersion"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearProductVersion() {
+      bitField0_ = (bitField0_ & ~0x00010000);
+      productVersion_ = 0L;
       onChanged();
       return this;
     }

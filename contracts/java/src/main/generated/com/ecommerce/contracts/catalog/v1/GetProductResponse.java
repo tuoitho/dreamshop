@@ -734,6 +734,17 @@ private static final long serialVersionUID = 0L;
     return maxPrice_ == null ? com.ecommerce.contracts.common.v1.Money.getDefaultInstance() : maxPrice_;
   }
 
+  public static final int VERSION_FIELD_NUMBER = 24;
+  private long version_ = 0L;
+  /**
+   * <code>int64 version = 24 [json_name = "version"];</code>
+   * @return The version.
+   */
+  @java.lang.Override
+  public long getVersion() {
+    return version_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -821,6 +832,9 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(23, getMaxPrice());
+    }
+    if (version_ != 0L) {
+      output.writeInt64(24, version_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -936,6 +950,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(23, getMaxPrice());
     }
+    if (version_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(24, version_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1007,6 +1025,8 @@ private static final long serialVersionUID = 0L;
       if (!getMaxPrice()
           .equals(other.getMaxPrice())) return false;
     }
+    if (getVersion()
+        != other.getVersion()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1086,6 +1106,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + MAX_PRICE_FIELD_NUMBER;
       hash = (53 * hash) + getMaxPrice().hashCode();
     }
+    hash = (37 * hash) + VERSION_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getVersion());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1270,6 +1293,7 @@ private static final long serialVersionUID = 0L;
         maxPriceBuilder_.dispose();
         maxPriceBuilder_ = null;
       }
+      version_ = 0L;
       return this;
     }
 
@@ -1395,6 +1419,9 @@ private static final long serialVersionUID = 0L;
             ? maxPrice_
             : maxPriceBuilder_.build();
         to_bitField0_ |= 0x00000004;
+      }
+      if (((from_bitField0_ & 0x00800000) != 0)) {
+        result.version_ = version_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1582,6 +1609,9 @@ private static final long serialVersionUID = 0L;
       if (other.hasMaxPrice()) {
         mergeMaxPrice(other.getMaxPrice());
       }
+      if (other.getVersion() != 0L) {
+        setVersion(other.getVersion());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1751,6 +1781,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00400000;
               break;
             } // case 186
+            case 192: {
+              version_ = input.readInt64();
+              bitField0_ |= 0x00800000;
+              break;
+            } // case 192
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3626,6 +3661,38 @@ private static final long serialVersionUID = 0L;
         maxPrice_ = null;
       }
       return maxPriceBuilder_;
+    }
+
+    private long version_ ;
+    /**
+     * <code>int64 version = 24 [json_name = "version"];</code>
+     * @return The version.
+     */
+    @java.lang.Override
+    public long getVersion() {
+      return version_;
+    }
+    /**
+     * <code>int64 version = 24 [json_name = "version"];</code>
+     * @param value The version to set.
+     * @return This builder for chaining.
+     */
+    public Builder setVersion(long value) {
+
+      version_ = value;
+      bitField0_ |= 0x00800000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>int64 version = 24 [json_name = "version"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearVersion() {
+      bitField0_ = (bitField0_ & ~0x00800000);
+      version_ = 0L;
+      onChanged();
+      return this;
     }
     @java.lang.Override
     public final Builder setUnknownFields(

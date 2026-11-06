@@ -312,4 +312,10 @@ public interface GetProductResponseOrBuilder extends
    * <code>.ecommerce.common.v1.Money max_price = 23 [json_name = "maxPrice"];</code>
    */
   com.ecommerce.contracts.common.v1.MoneyOrBuilder getMaxPriceOrBuilder();
+
+  /**
+   * <code>int64 version = 24 [json_name = "version"];</code>
+   * @return The version.
+   */
+  long getVersion();
 }

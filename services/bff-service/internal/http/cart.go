@@ -36,6 +36,7 @@ type cartItem struct {
 	VariantColorHex   string   `json:"variantColorHex,omitempty"`
 	Status            string   `json:"status"`
 	AvailableQuantity int32    `json:"availableQuantity"`
+	ProductVersion    int64    `json:"productVersion"`
 }
 
 type cartMutationRequest struct {
@@ -203,7 +204,7 @@ func newCartItem(item *cartv1.CartItem) cartItem {
 		Name: item.GetName(), Brand: item.GetBrand(), CategoryName: item.GetCategoryName(),
 		UnitPrice: amountMinor(item.GetUnitPrice()), OriginalPrice: amountMinor(item.GetOriginalPrice()),
 		ImageEmoji: item.GetImageEmoji(), ImageHue: uintsOrEmpty(item.GetImageHue()), ImageURL: item.GetImageUrl(), VariantColorHex: item.GetVariantColorHex(),
-		Status: publicCartStatus(item.GetStatus()), AvailableQuantity: item.GetAvailableQuantity(),
+		Status: publicCartStatus(item.GetStatus()), AvailableQuantity: item.GetAvailableQuantity(), ProductVersion: item.GetProductVersion(),
 	}
 }
 

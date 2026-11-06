@@ -10,6 +10,20 @@ option java_package = "com.ecommerce.contracts.order.v1";
 
 service OrderService {
   rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
+  rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse);
+}
+
+message ShippingAddressSnapshot {
+  string recipient_name = 1;
+  string phone = 2;
+  string province_code = 3;
+  string province_name = 4;
+  string ward_code = 5;
+  string ward_name = 6;
+  string address_line = 7;
+  string label = 8;
 }
 
 message OrderItem {
@@ -17,15 +31,86 @@ message OrderItem {
   string sku_id = 2;
   int32 quantity = 3;
   ecommerce.common.v1.Money unit_price = 4;
+  string cart_item_id = 5;
+  string variant_label = 6;
+  string expected_name = 7;
+  int64 expected_product_version = 8;
+  string variant_color_hex = 9;
+  string image_url = 10;
+  string brand = 11;
+  string category_name = 12;
+  string image_emoji = 13;
+  repeated uint32 image_hue = 14;
+  ecommerce.common.v1.Money line_total = 15;
 }
 
 message CreateOrderRequest {
   string user_id = 1;
   repeated OrderItem items = 2;
+  string idempotency_key = 3;
+  ShippingAddressSnapshot shipping_address = 4;
+  string payment_method = 5;
+  string note = 6;
+}
+
+message OrderDetail {
+  string order_id = 1;
+  string order_code = 2;
+  string user_id = 3;
+  string status = 4;
+  string payment_method = 5;
+  string payment_status = 6;
+  ShippingAddressSnapshot shipping_address = 7;
+  repeated OrderItem items = 8;
+  ecommerce.common.v1.Money subtotal = 9;
+  ecommerce.common.v1.Money shipping_fee = 10;
+  ecommerce.common.v1.Money total_amount = 11;
+  string note = 12;
+  string pay_url = 13;
+  string cancel_reason = 14;
+  string payment_expires_at = 15;
+  string created_at = 16;
+  string updated_at = 17;
 }
 
 message CreateOrderResponse {
   string order_id = 1;
   string status = 2;
   ecommerce.common.v1.Money total_amount = 3;
+  OrderDetail order = 4;
+  string pay_url = 5;
+}
+
+message GetOrderRequest {
+  string user_id = 1;
+  string order_id = 2;
+}
+
+message GetOrderResponse {
+  OrderDetail order = 1;
+}
+
+message ListOrdersRequest {
+  string user_id = 1;
+  string status = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message ListOrdersResponse {
+  repeated OrderDetail items = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  int64 total_items = 4;
+  int32 total_pages = 5;
+}
+
+message CancelOrderRequest {
+  string user_id = 1;
+  string order_id = 2;
+  string reason = 3;
+}
+
+message CancelOrderResponse {
+  OrderDetail order = 1;
 }

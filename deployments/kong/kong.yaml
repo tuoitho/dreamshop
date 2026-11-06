@@ -59,6 +59,27 @@ services:
               jwks_uri: http://host.docker.internal:8080/.well-known/jwks.json
               issuer: http://localhost:8080
               audience: ecommerce-api
+      - name: orders-api
+        paths: ["/api/v1/orders"]
+        strip_path: false
+        plugins:
+          - name: caller-context
+            config:
+              jwks_uri: http://host.docker.internal:8080/.well-known/jwks.json
+              issuer: http://localhost:8080
+              audience: ecommerce-api
+      - name: payments-momo-public
+        paths:
+          - "/api/v1/payments/momo-redirect"
+          - "/api/v1/payments/momo-ipn"
+        strip_path: false
+        plugins:
+          - name: request-transformer
+            config:
+              remove:
+                headers:
+                  - X-User-Id
+                  - X-User-Roles
       - name: admin-products-api
         paths: ["/api/v1/admin/products"]
         strip_path: false
@@ -95,6 +116,7 @@ plugins:
         - Accept
         - Authorization
         - Content-Type
+        - Idempotency-Key
       exposed_headers:
         - Authorization
       max_age: 3600

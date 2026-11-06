@@ -37,7 +37,9 @@ Detailed steering documents translate those decisions into implementation rules.
   shipping addresses, locations, RBAC hierarchy/authorization gRPC, sessions,
   refresh tokens, and JWT issuance.
 - `services/order-service/`: Java 21/Spring Boot; order lifecycle, idempotency,
-  and transactional outbox ownership.
+  saga orchestration, and transactional outbox ownership.
+- `services/payment-service/`: Go; MoMo payment sessions, HMAC callback
+  verification, payment tombstones, and transactional outbox ownership.
 - `services/bff-service/`: Go; client-specific commerce composition and REST
   adaptation.
 - `services/catalog-service/`: Go; product/catalog data and catalog caching.
@@ -131,9 +133,9 @@ Developer procedures and contribution policy live in `docs/instructions/`:
 - `make prod-config`, `make prod-up`, `make prod-down`, and `make prod-logs`
   validate, start, stop, or inspect the self-contained production Compose stack.
 - `make identity-keys` generates local-only Identity signing keys.
-- `make identity`, `make order`, `make catalog`, `make inventory`, `make cart`,
-  `make bff`, `make fe`, or `make admin-fe` runs the corresponding surface
-  directly from the host.
+- `make identity`, `make order`, `make payment`, `make catalog`, `make inventory`,
+  `make cart`, `make bff`, `make fe`, or `make admin-fe` runs the corresponding
+  surface directly from the host.
 - `mvn test` builds and tests all Maven modules (Docker Desktop must be running
   for `identity-service` Testcontainers tests).
 - `go test ./scripts/... ./services/bff-service/... ./services/catalog-service/... ./services/inventory-service/... ./services/cart-service/...`
@@ -168,8 +170,9 @@ on Linux/WSL) and verify the listed health endpoint after startup.
 | bff-service | `8081` | - | Kong local upstream is `host.docker.internal:8081`; set `BFF_HTTP_ADDR=0.0.0.0:8081`. Container BFF remains `8080`. |
 | catalog-service | `8085` | `127.0.0.1:50051` | Its standalone HTTP default is `8081`; set `HTTP_ADDR=:8085` when BFF runs. |
 | inventory-service | `8082` | `127.0.0.1:50052` | |
-| order-service | `8083` (mgmt `8093`) | - | Actuator health is isolated on `:8093`. |
+| order-service | `8083` (mgmt `8093`) | `127.0.0.1:50055` | Actuator health is isolated on `:8093`; BFF calls Order over private gRPC. |
 | cart-service | `8084` | `127.0.0.1:50053` | BFF calls Cart directly over gRPC. |
+| payment-service | `8086` | `127.0.0.1:50056` | Order creates MoMo sessions and BFF forwards MoMo callbacks over private gRPC. |
 | ecommerce-fe | `5173` | - | Storefront browser development server. |
 | admin-fe | `5174` | - | Administrative dashboard browser development server (production Kong `/admin`). |
 | Kong | proxy `8000`; admin `8001` | - | Public local ingress. |
@@ -181,14 +184,18 @@ on Linux/WSL) and verify the listed health endpoint after startup.
 - The browser calls public APIs only through `http://localhost:8000/api/v1`
   (or same-origin `/api/v1` in production Compose), covering Identity auth,
   profile, shipping addresses, locations, effective permissions, admin user/RBAC
-  management, storefront products, cart CRUD, and admin product/media/inventory
-  workflows (with direct browser presigned `PUT` uploads to MinIO).
+  management, storefront products, cart CRUD, order checkout/history, MoMo
+  payment callbacks, and admin product/media/inventory workflows (with direct
+  browser presigned `PUT` uploads to MinIO).
 - Internal service calls use direct private gRPC. BFF calls Catalog at `50051`,
-  Inventory at `50052`, and Cart at `50053`; Catalog and Inventory call Identity
-  authorization at `127.0.0.1:50054` with a `500ms` timeout; Cart calls Catalog
-  at `50051`, Inventory at `50052`, and Identity authorization at `127.0.0.1:50054`
-  with a `500ms` timeout. Start Identity before Catalog, Inventory, and Cart. Do
-  not route these calls through Kong or use another service's HTTP port.
+  Inventory at `50052`, Cart at `50053`, Order at `50055`, and Payment at
+  `50056`; Order calls Identity authorization at `127.0.0.1:50054`, Catalog at
+  `50051`, Inventory at `50052`, and Payment at `50056`; Catalog and Inventory
+  call Identity authorization at `127.0.0.1:50054` with a `500ms` timeout; Cart
+  calls Catalog at `50051`, Inventory at `50052`, and Identity authorization at
+  `127.0.0.1:50054` with a `500ms` timeout. Start Identity before Catalog,
+  Inventory, Cart, and Order. Do not route these calls through Kong or use
+  another service's HTTP port.
 - Roll out authorization dependencies provider-first: Identity, then Catalog,
   Inventory, and Cart, then BFF.
 

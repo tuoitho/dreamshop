@@ -104,6 +104,7 @@ type AdminSummary struct {
 	VariantCount       int32
 	VideoCount         int32
 	SkuIDs             []string
+	Version            int64
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
 }
@@ -634,6 +635,10 @@ func ListAdminProducts(products []*Product, filter AdminSearchFilter) *AdminSear
 				}
 			}
 		}
+		version := p.Version
+		if version <= 0 {
+			version = 1
+		}
 		items = append(items, &AdminSummary{
 			ID:                 p.ID,
 			Name:               p.Name,
@@ -656,6 +661,7 @@ func ListAdminProducts(products []*Product, filter AdminSearchFilter) *AdminSear
 			VariantCount:       int32(len(p.Variants)),
 			VideoCount:         int32(len(p.Videos)),
 			SkuIDs:             skuIDs,
+			Version:            version,
 			CreatedAt:          p.CreatedAt,
 			UpdatedAt:          p.UpdatedAt,
 		})

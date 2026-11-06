@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { DropdownMenu } from "radix-ui"
-import { Heart, LogOut, Menu, Search, ShoppingCart, User, UserPlus, X } from "lucide-react"
+import { Heart, LogOut, Menu, Package, Search, ShoppingCart, User, UserPlus, X } from "lucide-react"
 import { useCart } from "@/hooks/use-cart"
 import { useFavorites } from "@/hooks/use-favorites"
 import { useAuth } from "@/hooks/use-auth"
@@ -161,6 +161,17 @@ export function SiteHeader() {
                       <span>Hồ sơ</span>
                     </Link>
                   </DropdownMenu.Item>
+                  {!cartForbidden && (
+                    <DropdownMenu.Item
+                      asChild
+                      className="flex cursor-pointer select-none items-center gap-2 rounded-md px-2.5 py-1.5 text-sm outline-none focus:bg-muted focus:text-foreground data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
+                    >
+                      <Link to="/don-hang">
+                        <Package className="size-4 text-muted-foreground" />
+                        <span>Đơn mua</span>
+                      </Link>
+                    </DropdownMenu.Item>
+                  )}
                   {!favoritesForbidden && (
                     <DropdownMenu.Item
                       asChild
@@ -284,6 +295,16 @@ export function SiteHeader() {
                   <User className="size-4 text-muted-foreground" />
                   <span>Hồ sơ cá nhân</span>
                 </Link>
+                {!cartForbidden && (
+                  <Link
+                    to="/don-hang"
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <Package className="size-4 text-muted-foreground" />
+                    <span>Đơn mua</span>
+                  </Link>
+                )}
                 {!favoritesForbidden && (
                   <Link
                     to="/yeu-thich"
