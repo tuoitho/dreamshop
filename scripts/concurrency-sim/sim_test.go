@@ -56,16 +56,22 @@ func TestRunFlashSaleOversell_PreventsOversellUnder50ConcurrentBuyers(t *testing
 				},
 				"message": "Order created",
 			})
-		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/admin/inventory/sku-flash-1":
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/admin/inventory":
 			mu.Lock()
-			defer mu.Unlock()
+			q := stockQty
+			res := reservedQty
+			mu.Unlock()
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"data": map[string]any{
-					"skuId":     "sku-flash-1",
-					"quantity":  stockQty,
-					"reserved":  reservedQty,
-					"available": stockQty - reservedQty,
+					"items": []map[string]any{
+						{
+							"skuId":     "sku-flash-1",
+							"quantity":  q,
+							"reserved":  res,
+							"available": q - res,
+						},
+					},
 				},
 			})
 		default:

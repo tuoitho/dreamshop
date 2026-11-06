@@ -8,6 +8,7 @@ param(
     [string]$AdminPassword = $(if ($env:SIM_ADMIN_PASSWORD) { $env:SIM_ADMIN_PASSWORD } else { "AdminPassword123!" }),
     [string]$CustomerEmail = $(if ($env:SIM_CUSTOMER_EMAIL) { $env:SIM_CUSTOMER_EMAIL } else { "customer1@gmail.com" }),
     [string]$CustomerPassword = $(if ($env:SIM_CUSTOMER_PASSWORD) { $env:SIM_CUSTOMER_PASSWORD } else { "123456123456" }),
+    [string]$SettleTimeout = "",
     [switch]$VerifySql,
     [switch]$Json
 )
@@ -40,6 +41,7 @@ try {
     if ($AdminPassword) { $goArgs += @("-admin-password", $AdminPassword) }
     if ($CustomerEmail) { $goArgs += @("-customer-email", $CustomerEmail) }
     if ($CustomerPassword) { $goArgs += @("-customer-password", $CustomerPassword) }
+    if ($SettleTimeout) { $goArgs += @("-settle-timeout", $SettleTimeout) }
     if ($VerifySql) { $goArgs += "-verify-sql" }
     if ($Json) { $goArgs += "-json" }
 

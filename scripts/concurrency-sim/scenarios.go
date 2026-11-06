@@ -748,8 +748,9 @@ func sendMomoIPN(ctx context.Context, client *http.Client, baseURL string, param
 func waitForInventorySettlement(ctx context.Context, client *http.Client, baseURL, adminToken, skuID string, wantQty, wantReserved int, timeout time.Duration) (bool, string) {
 	deadline := time.Now().Add(timeout)
 	var lastNote string
+	queryURL := strings.TrimRight(baseURL, "/") + "/admin/inventory?q=" + url.QueryEscape(skuID)
 	for time.Now().Before(deadline) {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(baseURL, "/")+"/admin/inventory/"+url.PathEscape(skuID), nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, queryURL, nil)
 		if err != nil {
 			return false, ""
 		}
@@ -758,16 +759,24 @@ func waitForInventorySettlement(ctx context.Context, client *http.Client, baseUR
 		if err == nil {
 			var env struct {
 				Data struct {
-					Quantity int `json:"quantity"`
-					Reserved int `json:"reserved"`
+					Items []struct {
+						SkuID    string `json:"skuId"`
+						Quantity int    `json:"quantity"`
+						Reserved int    `json:"reserved"`
+					} `json:"items"`
 				} `json:"data"`
 			}
 			_ = json.NewDecoder(resp.Body).Decode(&env)
 			_ = resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
-				lastNote = fmt.Sprintf("inventory sku=%s quantity=%d reserved=%d", skuID, env.Data.Quantity, env.Data.Reserved)
-				if env.Data.Quantity == wantQty && env.Data.Reserved == wantReserved {
-					return true, lastNote
+				for _, item := range env.Data.Items {
+					if item.SkuID != skuID {
+						continue
+					}
+					lastNote = fmt.Sprintf("inventory sku=%s quantity=%d reserved=%d", skuID, item.Quantity, item.Reserved)
+					if item.Quantity == wantQty && item.Reserved == wantReserved {
+						return true, lastNote
+					}
 				}
 			}
 		}

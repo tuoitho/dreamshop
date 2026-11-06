@@ -46,6 +46,7 @@ func runCLI(args []string, out, errOut io.Writer) int {
 		verifySQL       bool
 		pgContainer     string
 		jsonOutput      bool
+		settleTimeout   time.Duration
 	)
 
 	dotenv := map[string]string{}
@@ -67,12 +68,13 @@ func runCLI(args []string, out, errOut io.Writer) int {
 	fs.BoolVar(&verifySQL, "verify-sql", false, "verify cross-database SQL invariants via docker exec psql")
 	fs.StringVar(&pgContainer, "pg-container", "ecommerce-postgres", "PostgreSQL Docker container name for -verify-sql")
 	fs.BoolVar(&jsonOutput, "json", false, "emit JSON report")
+	fs.DurationVar(&settleTimeout, "settle-timeout", 10*time.Second, "max time to wait for an async order to reach a terminal state")
 
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute+4*settleTimeout)
 	defer cancel()
 	client := &http.Client{Timeout: 15 * time.Second}
 
@@ -122,6 +124,7 @@ func runCLI(args []string, out, errOut io.Writer) int {
 				AdminToken:     adminToken,
 				CustomerTokens: []string{customerToken},
 				Product:        prod,
+				SettleTimeout:  settleTimeout,
 				InitialStock:   5,
 				Buyers:         50,
 				Shipping:       shipping,
@@ -135,9 +138,9 @@ func runCLI(args []string, out, errOut io.Writer) int {
 			if err != nil {
 				return err
 			}
-			updateBody["price"] = int64(12000000)
 			if variants, ok := updateBody["variants"].([]map[string]any); ok && len(variants) > 0 {
 				variants[0]["price"] = int64(12000000)
+				variants[0]["originalPrice"] = int64(12000000)
 			}
 			r, err := RunSnapshotMismatchRace(ctx, SnapshotRaceConfig{
 				BaseURL:            baseURL,
@@ -189,6 +192,7 @@ func runCLI(args []string, out, errOut io.Writer) int {
 				ForgedCallbacks: 5,
 				CancelRequests:  5,
 				Product:         prod,
+				SettleTimeout:   settleTimeout,
 				Shipping:        shipping,
 			})
 			if err != nil {
@@ -292,17 +296,20 @@ func seedTestProductAndStock(ctx context.Context, client *http.Client, baseURL, 
 	skuID := strings.ToLower(prefix) + "-sku-" + suffix
 	name := prefix + " " + suffix
 	createBody := map[string]any{
-		"name":          name,
-		"brand":         "SimLab",
-		"categorySlug":  "dien-thoai",
-		"categoryName":  "Điện thoại",
-		"price":         price,
-		"originalPrice": price,
-		"imageEmoji":    "⚡",
-		"imageHue":      []int{210, 250},
-		"description":   "Concurrency simulation test product",
-		"specs":         map[string]string{"Mode": "Sim"},
-		"tags":          []string{"sim"},
+		"name":             name,
+		"shortDescription": "Concurrency simulation test product",
+		"description":      "Concurrency simulation test product",
+		"brand":            "SimLab",
+		"categoryId":       "dien-thoai",
+		"categoryName":     "Điện thoại",
+		"images":           []string{},
+		"videos":           []string{},
+		"isNew":            false,
+		"badge":            "",
+		"featured":         false,
+		"emoji":            "⚡",
+		"imageHue":         []int{210, 250},
+		"details":          []string{"Simulation mode"},
 		"variants": []map[string]any{
 			{
 				"skuId":         skuID,
@@ -341,8 +348,9 @@ func seedTestProductAndStock(ctx context.Context, client *http.Client, baseURL, 
 		return SnapshotProduct{}, nil, err
 	}
 
-	status, err := putJSON(ctx, client, strings.TrimRight(baseURL, "/")+"/admin/inventory/"+skuID, adminToken, map[string]any{
-		"quantity": qty,
+	status, err := putJSON(ctx, client, strings.TrimRight(baseURL, "/")+"/admin/inventory/skus/"+skuID, adminToken, map[string]any{
+		"productId": prodEnv.Data.ID,
+		"quantity":  qty,
 	})
 	if err != nil || (status != http.StatusOK && status != http.StatusCreated) {
 		return SnapshotProduct{}, nil, fmt.Errorf("set stock HTTP %d err=%v", status, err)
