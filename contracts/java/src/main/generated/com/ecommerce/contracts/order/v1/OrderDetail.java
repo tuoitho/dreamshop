@@ -30,6 +30,10 @@ private static final long serialVersionUID = 0L;
     paymentExpiresAt_ = "";
     createdAt_ = "";
     updatedAt_ = "";
+    statusHistory_ = java.util.Collections.emptyList();
+    autoConfirmAt_ = "";
+    shippingCarrier_ = "";
+    trackingNumber_ = "";
   }
 
   @java.lang.Override
@@ -666,6 +670,184 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int STATUS_HISTORY_FIELD_NUMBER = 18;
+  @SuppressWarnings("serial")
+  private java.util.List<com.ecommerce.contracts.order.v1.OrderStatusChange> statusHistory_;
+  /**
+   * <pre>
+   * Populated only by single-order reads; list responses leave it empty.
+   * </pre>
+   *
+   * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<com.ecommerce.contracts.order.v1.OrderStatusChange> getStatusHistoryList() {
+    return statusHistory_;
+  }
+  /**
+   * <pre>
+   * Populated only by single-order reads; list responses leave it empty.
+   * </pre>
+   *
+   * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends com.ecommerce.contracts.order.v1.OrderStatusChangeOrBuilder> 
+      getStatusHistoryOrBuilderList() {
+    return statusHistory_;
+  }
+  /**
+   * <pre>
+   * Populated only by single-order reads; list responses leave it empty.
+   * </pre>
+   *
+   * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+   */
+  @java.lang.Override
+  public int getStatusHistoryCount() {
+    return statusHistory_.size();
+  }
+  /**
+   * <pre>
+   * Populated only by single-order reads; list responses leave it empty.
+   * </pre>
+   *
+   * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+   */
+  @java.lang.Override
+  public com.ecommerce.contracts.order.v1.OrderStatusChange getStatusHistory(int index) {
+    return statusHistory_.get(index);
+  }
+  /**
+   * <pre>
+   * Populated only by single-order reads; list responses leave it empty.
+   * </pre>
+   *
+   * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+   */
+  @java.lang.Override
+  public com.ecommerce.contracts.order.v1.OrderStatusChangeOrBuilder getStatusHistoryOrBuilder(
+      int index) {
+    return statusHistory_.get(index);
+  }
+
+  public static final int AUTO_CONFIRM_AT_FIELD_NUMBER = 19;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object autoConfirmAt_ = "";
+  /**
+   * <code>string auto_confirm_at = 19 [json_name = "autoConfirmAt"];</code>
+   * @return The autoConfirmAt.
+   */
+  @java.lang.Override
+  public java.lang.String getAutoConfirmAt() {
+    java.lang.Object ref = autoConfirmAt_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      autoConfirmAt_ = s;
+      return s;
+    }
+  }
+  /**
+   * <code>string auto_confirm_at = 19 [json_name = "autoConfirmAt"];</code>
+   * @return The bytes for autoConfirmAt.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getAutoConfirmAtBytes() {
+    java.lang.Object ref = autoConfirmAt_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      autoConfirmAt_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int SHIPPING_CARRIER_FIELD_NUMBER = 20;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object shippingCarrier_ = "";
+  /**
+   * <code>string shipping_carrier = 20 [json_name = "shippingCarrier"];</code>
+   * @return The shippingCarrier.
+   */
+  @java.lang.Override
+  public java.lang.String getShippingCarrier() {
+    java.lang.Object ref = shippingCarrier_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      shippingCarrier_ = s;
+      return s;
+    }
+  }
+  /**
+   * <code>string shipping_carrier = 20 [json_name = "shippingCarrier"];</code>
+   * @return The bytes for shippingCarrier.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getShippingCarrierBytes() {
+    java.lang.Object ref = shippingCarrier_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      shippingCarrier_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int TRACKING_NUMBER_FIELD_NUMBER = 21;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object trackingNumber_ = "";
+  /**
+   * <code>string tracking_number = 21 [json_name = "trackingNumber"];</code>
+   * @return The trackingNumber.
+   */
+  @java.lang.Override
+  public java.lang.String getTrackingNumber() {
+    java.lang.Object ref = trackingNumber_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      trackingNumber_ = s;
+      return s;
+    }
+  }
+  /**
+   * <code>string tracking_number = 21 [json_name = "trackingNumber"];</code>
+   * @return The bytes for trackingNumber.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getTrackingNumberBytes() {
+    java.lang.Object ref = trackingNumber_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      trackingNumber_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -730,6 +912,18 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(updatedAt_)) {
       com.google.protobuf.GeneratedMessageV3.writeString(output, 17, updatedAt_);
+    }
+    for (int i = 0; i < statusHistory_.size(); i++) {
+      output.writeMessage(18, statusHistory_.get(i));
+    }
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(autoConfirmAt_)) {
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 19, autoConfirmAt_);
+    }
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(shippingCarrier_)) {
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 20, shippingCarrier_);
+    }
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(trackingNumber_)) {
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 21, trackingNumber_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -796,6 +990,19 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(updatedAt_)) {
       size += com.google.protobuf.GeneratedMessageV3.computeStringSize(17, updatedAt_);
     }
+    for (int i = 0; i < statusHistory_.size(); i++) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(18, statusHistory_.get(i));
+    }
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(autoConfirmAt_)) {
+      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(19, autoConfirmAt_);
+    }
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(shippingCarrier_)) {
+      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(20, shippingCarrier_);
+    }
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(trackingNumber_)) {
+      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(21, trackingNumber_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -857,6 +1064,14 @@ private static final long serialVersionUID = 0L;
         .equals(other.getCreatedAt())) return false;
     if (!getUpdatedAt()
         .equals(other.getUpdatedAt())) return false;
+    if (!getStatusHistoryList()
+        .equals(other.getStatusHistoryList())) return false;
+    if (!getAutoConfirmAt()
+        .equals(other.getAutoConfirmAt())) return false;
+    if (!getShippingCarrier()
+        .equals(other.getShippingCarrier())) return false;
+    if (!getTrackingNumber()
+        .equals(other.getTrackingNumber())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -912,6 +1127,16 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getCreatedAt().hashCode();
     hash = (37 * hash) + UPDATED_AT_FIELD_NUMBER;
     hash = (53 * hash) + getUpdatedAt().hashCode();
+    if (getStatusHistoryCount() > 0) {
+      hash = (37 * hash) + STATUS_HISTORY_FIELD_NUMBER;
+      hash = (53 * hash) + getStatusHistoryList().hashCode();
+    }
+    hash = (37 * hash) + AUTO_CONFIRM_AT_FIELD_NUMBER;
+    hash = (53 * hash) + getAutoConfirmAt().hashCode();
+    hash = (37 * hash) + SHIPPING_CARRIER_FIELD_NUMBER;
+    hash = (53 * hash) + getShippingCarrier().hashCode();
+    hash = (37 * hash) + TRACKING_NUMBER_FIELD_NUMBER;
+    hash = (53 * hash) + getTrackingNumber().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1047,6 +1272,7 @@ private static final long serialVersionUID = 0L;
         getSubtotalFieldBuilder();
         getShippingFeeFieldBuilder();
         getTotalAmountFieldBuilder();
+        getStatusHistoryFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1092,6 +1318,16 @@ private static final long serialVersionUID = 0L;
       paymentExpiresAt_ = "";
       createdAt_ = "";
       updatedAt_ = "";
+      if (statusHistoryBuilder_ == null) {
+        statusHistory_ = java.util.Collections.emptyList();
+      } else {
+        statusHistory_ = null;
+        statusHistoryBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00020000);
+      autoConfirmAt_ = "";
+      shippingCarrier_ = "";
+      trackingNumber_ = "";
       return this;
     }
 
@@ -1133,6 +1369,15 @@ private static final long serialVersionUID = 0L;
         result.items_ = items_;
       } else {
         result.items_ = itemsBuilder_.build();
+      }
+      if (statusHistoryBuilder_ == null) {
+        if (((bitField0_ & 0x00020000) != 0)) {
+          statusHistory_ = java.util.Collections.unmodifiableList(statusHistory_);
+          bitField0_ = (bitField0_ & ~0x00020000);
+        }
+        result.statusHistory_ = statusHistory_;
+      } else {
+        result.statusHistory_ = statusHistoryBuilder_.build();
       }
     }
 
@@ -1198,6 +1443,15 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00010000) != 0)) {
         result.updatedAt_ = updatedAt_;
+      }
+      if (((from_bitField0_ & 0x00040000) != 0)) {
+        result.autoConfirmAt_ = autoConfirmAt_;
+      }
+      if (((from_bitField0_ & 0x00080000) != 0)) {
+        result.shippingCarrier_ = shippingCarrier_;
+      }
+      if (((from_bitField0_ & 0x00100000) != 0)) {
+        result.trackingNumber_ = trackingNumber_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1344,6 +1598,47 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00010000;
         onChanged();
       }
+      if (statusHistoryBuilder_ == null) {
+        if (!other.statusHistory_.isEmpty()) {
+          if (statusHistory_.isEmpty()) {
+            statusHistory_ = other.statusHistory_;
+            bitField0_ = (bitField0_ & ~0x00020000);
+          } else {
+            ensureStatusHistoryIsMutable();
+            statusHistory_.addAll(other.statusHistory_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.statusHistory_.isEmpty()) {
+          if (statusHistoryBuilder_.isEmpty()) {
+            statusHistoryBuilder_.dispose();
+            statusHistoryBuilder_ = null;
+            statusHistory_ = other.statusHistory_;
+            bitField0_ = (bitField0_ & ~0x00020000);
+            statusHistoryBuilder_ = 
+              com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                 getStatusHistoryFieldBuilder() : null;
+          } else {
+            statusHistoryBuilder_.addAllMessages(other.statusHistory_);
+          }
+        }
+      }
+      if (!other.getAutoConfirmAt().isEmpty()) {
+        autoConfirmAt_ = other.autoConfirmAt_;
+        bitField0_ |= 0x00040000;
+        onChanged();
+      }
+      if (!other.getShippingCarrier().isEmpty()) {
+        shippingCarrier_ = other.shippingCarrier_;
+        bitField0_ |= 0x00080000;
+        onChanged();
+      }
+      if (!other.getTrackingNumber().isEmpty()) {
+        trackingNumber_ = other.trackingNumber_;
+        bitField0_ |= 0x00100000;
+        onChanged();
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1471,6 +1766,34 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00010000;
               break;
             } // case 138
+            case 146: {
+              com.ecommerce.contracts.order.v1.OrderStatusChange m =
+                  input.readMessage(
+                      com.ecommerce.contracts.order.v1.OrderStatusChange.parser(),
+                      extensionRegistry);
+              if (statusHistoryBuilder_ == null) {
+                ensureStatusHistoryIsMutable();
+                statusHistory_.add(m);
+              } else {
+                statusHistoryBuilder_.addMessage(m);
+              }
+              break;
+            } // case 146
+            case 154: {
+              autoConfirmAt_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00040000;
+              break;
+            } // case 154
+            case 162: {
+              shippingCarrier_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00080000;
+              break;
+            } // case 162
+            case 170: {
+              trackingNumber_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00100000;
+              break;
+            } // case 170
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3072,6 +3395,534 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       updatedAt_ = value;
       bitField0_ |= 0x00010000;
+      onChanged();
+      return this;
+    }
+
+    private java.util.List<com.ecommerce.contracts.order.v1.OrderStatusChange> statusHistory_ =
+      java.util.Collections.emptyList();
+    private void ensureStatusHistoryIsMutable() {
+      if (!((bitField0_ & 0x00020000) != 0)) {
+        statusHistory_ = new java.util.ArrayList<com.ecommerce.contracts.order.v1.OrderStatusChange>(statusHistory_);
+        bitField0_ |= 0x00020000;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilderV3<
+        com.ecommerce.contracts.order.v1.OrderStatusChange, com.ecommerce.contracts.order.v1.OrderStatusChange.Builder, com.ecommerce.contracts.order.v1.OrderStatusChangeOrBuilder> statusHistoryBuilder_;
+
+    /**
+     * <pre>
+     * Populated only by single-order reads; list responses leave it empty.
+     * </pre>
+     *
+     * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+     */
+    public java.util.List<com.ecommerce.contracts.order.v1.OrderStatusChange> getStatusHistoryList() {
+      if (statusHistoryBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(statusHistory_);
+      } else {
+        return statusHistoryBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Populated only by single-order reads; list responses leave it empty.
+     * </pre>
+     *
+     * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+     */
+    public int getStatusHistoryCount() {
+      if (statusHistoryBuilder_ == null) {
+        return statusHistory_.size();
+      } else {
+        return statusHistoryBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Populated only by single-order reads; list responses leave it empty.
+     * </pre>
+     *
+     * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+     */
+    public com.ecommerce.contracts.order.v1.OrderStatusChange getStatusHistory(int index) {
+      if (statusHistoryBuilder_ == null) {
+        return statusHistory_.get(index);
+      } else {
+        return statusHistoryBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Populated only by single-order reads; list responses leave it empty.
+     * </pre>
+     *
+     * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+     */
+    public Builder setStatusHistory(
+        int index, com.ecommerce.contracts.order.v1.OrderStatusChange value) {
+      if (statusHistoryBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureStatusHistoryIsMutable();
+        statusHistory_.set(index, value);
+        onChanged();
+      } else {
+        statusHistoryBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Populated only by single-order reads; list responses leave it empty.
+     * </pre>
+     *
+     * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+     */
+    public Builder setStatusHistory(
+        int index, com.ecommerce.contracts.order.v1.OrderStatusChange.Builder builderForValue) {
+      if (statusHistoryBuilder_ == null) {
+        ensureStatusHistoryIsMutable();
+        statusHistory_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        statusHistoryBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Populated only by single-order reads; list responses leave it empty.
+     * </pre>
+     *
+     * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+     */
+    public Builder addStatusHistory(com.ecommerce.contracts.order.v1.OrderStatusChange value) {
+      if (statusHistoryBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureStatusHistoryIsMutable();
+        statusHistory_.add(value);
+        onChanged();
+      } else {
+        statusHistoryBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Populated only by single-order reads; list responses leave it empty.
+     * </pre>
+     *
+     * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+     */
+    public Builder addStatusHistory(
+        int index, com.ecommerce.contracts.order.v1.OrderStatusChange value) {
+      if (statusHistoryBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureStatusHistoryIsMutable();
+        statusHistory_.add(index, value);
+        onChanged();
+      } else {
+        statusHistoryBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Populated only by single-order reads; list responses leave it empty.
+     * </pre>
+     *
+     * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+     */
+    public Builder addStatusHistory(
+        com.ecommerce.contracts.order.v1.OrderStatusChange.Builder builderForValue) {
+      if (statusHistoryBuilder_ == null) {
+        ensureStatusHistoryIsMutable();
+        statusHistory_.add(builderForValue.build());
+        onChanged();
+      } else {
+        statusHistoryBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Populated only by single-order reads; list responses leave it empty.
+     * </pre>
+     *
+     * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+     */
+    public Builder addStatusHistory(
+        int index, com.ecommerce.contracts.order.v1.OrderStatusChange.Builder builderForValue) {
+      if (statusHistoryBuilder_ == null) {
+        ensureStatusHistoryIsMutable();
+        statusHistory_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        statusHistoryBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Populated only by single-order reads; list responses leave it empty.
+     * </pre>
+     *
+     * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+     */
+    public Builder addAllStatusHistory(
+        java.lang.Iterable<? extends com.ecommerce.contracts.order.v1.OrderStatusChange> values) {
+      if (statusHistoryBuilder_ == null) {
+        ensureStatusHistoryIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, statusHistory_);
+        onChanged();
+      } else {
+        statusHistoryBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Populated only by single-order reads; list responses leave it empty.
+     * </pre>
+     *
+     * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+     */
+    public Builder clearStatusHistory() {
+      if (statusHistoryBuilder_ == null) {
+        statusHistory_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00020000);
+        onChanged();
+      } else {
+        statusHistoryBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Populated only by single-order reads; list responses leave it empty.
+     * </pre>
+     *
+     * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+     */
+    public Builder removeStatusHistory(int index) {
+      if (statusHistoryBuilder_ == null) {
+        ensureStatusHistoryIsMutable();
+        statusHistory_.remove(index);
+        onChanged();
+      } else {
+        statusHistoryBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Populated only by single-order reads; list responses leave it empty.
+     * </pre>
+     *
+     * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+     */
+    public com.ecommerce.contracts.order.v1.OrderStatusChange.Builder getStatusHistoryBuilder(
+        int index) {
+      return getStatusHistoryFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Populated only by single-order reads; list responses leave it empty.
+     * </pre>
+     *
+     * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+     */
+    public com.ecommerce.contracts.order.v1.OrderStatusChangeOrBuilder getStatusHistoryOrBuilder(
+        int index) {
+      if (statusHistoryBuilder_ == null) {
+        return statusHistory_.get(index);  } else {
+        return statusHistoryBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Populated only by single-order reads; list responses leave it empty.
+     * </pre>
+     *
+     * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+     */
+    public java.util.List<? extends com.ecommerce.contracts.order.v1.OrderStatusChangeOrBuilder> 
+         getStatusHistoryOrBuilderList() {
+      if (statusHistoryBuilder_ != null) {
+        return statusHistoryBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(statusHistory_);
+      }
+    }
+    /**
+     * <pre>
+     * Populated only by single-order reads; list responses leave it empty.
+     * </pre>
+     *
+     * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+     */
+    public com.ecommerce.contracts.order.v1.OrderStatusChange.Builder addStatusHistoryBuilder() {
+      return getStatusHistoryFieldBuilder().addBuilder(
+          com.ecommerce.contracts.order.v1.OrderStatusChange.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Populated only by single-order reads; list responses leave it empty.
+     * </pre>
+     *
+     * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+     */
+    public com.ecommerce.contracts.order.v1.OrderStatusChange.Builder addStatusHistoryBuilder(
+        int index) {
+      return getStatusHistoryFieldBuilder().addBuilder(
+          index, com.ecommerce.contracts.order.v1.OrderStatusChange.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Populated only by single-order reads; list responses leave it empty.
+     * </pre>
+     *
+     * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+     */
+    public java.util.List<com.ecommerce.contracts.order.v1.OrderStatusChange.Builder> 
+         getStatusHistoryBuilderList() {
+      return getStatusHistoryFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilderV3<
+        com.ecommerce.contracts.order.v1.OrderStatusChange, com.ecommerce.contracts.order.v1.OrderStatusChange.Builder, com.ecommerce.contracts.order.v1.OrderStatusChangeOrBuilder> 
+        getStatusHistoryFieldBuilder() {
+      if (statusHistoryBuilder_ == null) {
+        statusHistoryBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+            com.ecommerce.contracts.order.v1.OrderStatusChange, com.ecommerce.contracts.order.v1.OrderStatusChange.Builder, com.ecommerce.contracts.order.v1.OrderStatusChangeOrBuilder>(
+                statusHistory_,
+                ((bitField0_ & 0x00020000) != 0),
+                getParentForChildren(),
+                isClean());
+        statusHistory_ = null;
+      }
+      return statusHistoryBuilder_;
+    }
+
+    private java.lang.Object autoConfirmAt_ = "";
+    /**
+     * <code>string auto_confirm_at = 19 [json_name = "autoConfirmAt"];</code>
+     * @return The autoConfirmAt.
+     */
+    public java.lang.String getAutoConfirmAt() {
+      java.lang.Object ref = autoConfirmAt_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        autoConfirmAt_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <code>string auto_confirm_at = 19 [json_name = "autoConfirmAt"];</code>
+     * @return The bytes for autoConfirmAt.
+     */
+    public com.google.protobuf.ByteString
+        getAutoConfirmAtBytes() {
+      java.lang.Object ref = autoConfirmAt_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        autoConfirmAt_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <code>string auto_confirm_at = 19 [json_name = "autoConfirmAt"];</code>
+     * @param value The autoConfirmAt to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAutoConfirmAt(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      autoConfirmAt_ = value;
+      bitField0_ |= 0x00040000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string auto_confirm_at = 19 [json_name = "autoConfirmAt"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAutoConfirmAt() {
+      autoConfirmAt_ = getDefaultInstance().getAutoConfirmAt();
+      bitField0_ = (bitField0_ & ~0x00040000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string auto_confirm_at = 19 [json_name = "autoConfirmAt"];</code>
+     * @param value The bytes for autoConfirmAt to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAutoConfirmAtBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      autoConfirmAt_ = value;
+      bitField0_ |= 0x00040000;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object shippingCarrier_ = "";
+    /**
+     * <code>string shipping_carrier = 20 [json_name = "shippingCarrier"];</code>
+     * @return The shippingCarrier.
+     */
+    public java.lang.String getShippingCarrier() {
+      java.lang.Object ref = shippingCarrier_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        shippingCarrier_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <code>string shipping_carrier = 20 [json_name = "shippingCarrier"];</code>
+     * @return The bytes for shippingCarrier.
+     */
+    public com.google.protobuf.ByteString
+        getShippingCarrierBytes() {
+      java.lang.Object ref = shippingCarrier_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        shippingCarrier_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <code>string shipping_carrier = 20 [json_name = "shippingCarrier"];</code>
+     * @param value The shippingCarrier to set.
+     * @return This builder for chaining.
+     */
+    public Builder setShippingCarrier(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      shippingCarrier_ = value;
+      bitField0_ |= 0x00080000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string shipping_carrier = 20 [json_name = "shippingCarrier"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearShippingCarrier() {
+      shippingCarrier_ = getDefaultInstance().getShippingCarrier();
+      bitField0_ = (bitField0_ & ~0x00080000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string shipping_carrier = 20 [json_name = "shippingCarrier"];</code>
+     * @param value The bytes for shippingCarrier to set.
+     * @return This builder for chaining.
+     */
+    public Builder setShippingCarrierBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      shippingCarrier_ = value;
+      bitField0_ |= 0x00080000;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object trackingNumber_ = "";
+    /**
+     * <code>string tracking_number = 21 [json_name = "trackingNumber"];</code>
+     * @return The trackingNumber.
+     */
+    public java.lang.String getTrackingNumber() {
+      java.lang.Object ref = trackingNumber_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        trackingNumber_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <code>string tracking_number = 21 [json_name = "trackingNumber"];</code>
+     * @return The bytes for trackingNumber.
+     */
+    public com.google.protobuf.ByteString
+        getTrackingNumberBytes() {
+      java.lang.Object ref = trackingNumber_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        trackingNumber_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <code>string tracking_number = 21 [json_name = "trackingNumber"];</code>
+     * @param value The trackingNumber to set.
+     * @return This builder for chaining.
+     */
+    public Builder setTrackingNumber(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      trackingNumber_ = value;
+      bitField0_ |= 0x00100000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string tracking_number = 21 [json_name = "trackingNumber"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearTrackingNumber() {
+      trackingNumber_ = getDefaultInstance().getTrackingNumber();
+      bitField0_ = (bitField0_ & ~0x00100000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string tracking_number = 21 [json_name = "trackingNumber"];</code>
+     * @param value The bytes for trackingNumber to set.
+     * @return This builder for chaining.
+     */
+    public Builder setTrackingNumberBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      trackingNumber_ = value;
+      bitField0_ |= 0x00100000;
       onChanged();
       return this;
     }

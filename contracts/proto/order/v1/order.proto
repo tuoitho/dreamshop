@@ -13,6 +13,9 @@ service OrderService {
   rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
   rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
   rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse);
+  rpc AdminListOrders(AdminListOrdersRequest) returns (AdminListOrdersResponse);
+  rpc AdminGetOrder(AdminGetOrderRequest) returns (AdminGetOrderResponse);
+  rpc AdminUpdateOrderStatus(AdminUpdateOrderStatusRequest) returns (AdminUpdateOrderStatusResponse);
 }
 
 message ShippingAddressSnapshot {
@@ -71,6 +74,23 @@ message OrderDetail {
   string payment_expires_at = 15;
   string created_at = 16;
   string updated_at = 17;
+  // Populated only by single-order reads; list responses leave it empty.
+  repeated OrderStatusChange status_history = 18;
+  string auto_confirm_at = 19;
+  string shipping_carrier = 20;
+  string tracking_number = 21;
+}
+
+message OrderStatusChange {
+  // Empty for the entry that records order creation.
+  string from_status = 1;
+  string to_status = 2;
+  // SYSTEM, CUSTOMER or ADMIN.
+  string actor_type = 3;
+  string reason = 4;
+  string shipping_carrier = 5;
+  string tracking_number = 6;
+  string created_at = 7;
 }
 
 message CreateOrderResponse {
@@ -113,4 +133,51 @@ message CancelOrderRequest {
 
 message CancelOrderResponse {
   OrderDetail order = 1;
+}
+
+message AdminListOrdersRequest {
+  // Calling administrator.
+  string user_id = 1;
+  // Empty lists every status.
+  string status = 2;
+  // Case-insensitive order code prefix.
+  string query = 3;
+  int32 page = 4;
+  int32 page_size = 5;
+}
+
+message AdminListOrdersResponse {
+  repeated OrderDetail items = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  int64 total_items = 4;
+  int32 total_pages = 5;
+  // Order count per status for the same query, ignoring the status filter.
+  map<string, int64> status_counts = 6;
+}
+
+message AdminGetOrderRequest {
+  string user_id = 1;
+  string order_id = 2;
+}
+
+message AdminGetOrderResponse {
+  OrderDetail order = 1;
+  repeated string allowed_next_statuses = 2;
+}
+
+message AdminUpdateOrderStatusRequest {
+  string user_id = 1;
+  string order_id = 2;
+  // Rejects the update when the order is no longer in this status.
+  string expected_status = 3;
+  string target_status = 4;
+  string reason = 5;
+  string shipping_carrier = 6;
+  string tracking_number = 7;
+}
+
+message AdminUpdateOrderStatusResponse {
+  OrderDetail order = 1;
+  repeated string allowed_next_statuses = 2;
 }

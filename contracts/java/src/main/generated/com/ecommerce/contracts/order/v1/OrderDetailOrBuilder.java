@@ -235,4 +235,84 @@ public interface OrderDetailOrBuilder extends
    */
   com.google.protobuf.ByteString
       getUpdatedAtBytes();
+
+  /**
+   * <pre>
+   * Populated only by single-order reads; list responses leave it empty.
+   * </pre>
+   *
+   * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+   */
+  java.util.List<com.ecommerce.contracts.order.v1.OrderStatusChange> 
+      getStatusHistoryList();
+  /**
+   * <pre>
+   * Populated only by single-order reads; list responses leave it empty.
+   * </pre>
+   *
+   * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+   */
+  com.ecommerce.contracts.order.v1.OrderStatusChange getStatusHistory(int index);
+  /**
+   * <pre>
+   * Populated only by single-order reads; list responses leave it empty.
+   * </pre>
+   *
+   * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+   */
+  int getStatusHistoryCount();
+  /**
+   * <pre>
+   * Populated only by single-order reads; list responses leave it empty.
+   * </pre>
+   *
+   * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+   */
+  java.util.List<? extends com.ecommerce.contracts.order.v1.OrderStatusChangeOrBuilder> 
+      getStatusHistoryOrBuilderList();
+  /**
+   * <pre>
+   * Populated only by single-order reads; list responses leave it empty.
+   * </pre>
+   *
+   * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+   */
+  com.ecommerce.contracts.order.v1.OrderStatusChangeOrBuilder getStatusHistoryOrBuilder(
+      int index);
+
+  /**
+   * <code>string auto_confirm_at = 19 [json_name = "autoConfirmAt"];</code>
+   * @return The autoConfirmAt.
+   */
+  java.lang.String getAutoConfirmAt();
+  /**
+   * <code>string auto_confirm_at = 19 [json_name = "autoConfirmAt"];</code>
+   * @return The bytes for autoConfirmAt.
+   */
+  com.google.protobuf.ByteString
+      getAutoConfirmAtBytes();
+
+  /**
+   * <code>string shipping_carrier = 20 [json_name = "shippingCarrier"];</code>
+   * @return The shippingCarrier.
+   */
+  java.lang.String getShippingCarrier();
+  /**
+   * <code>string shipping_carrier = 20 [json_name = "shippingCarrier"];</code>
+   * @return The bytes for shippingCarrier.
+   */
+  com.google.protobuf.ByteString
+      getShippingCarrierBytes();
+
+  /**
+   * <code>string tracking_number = 21 [json_name = "trackingNumber"];</code>
+   * @return The trackingNumber.
+   */
+  java.lang.String getTrackingNumber();
+  /**
+   * <code>string tracking_number = 21 [json_name = "trackingNumber"];</code>
+   * @return The bytes for trackingNumber.
+   */
+  com.google.protobuf.ByteString
+      getTrackingNumberBytes();
 }

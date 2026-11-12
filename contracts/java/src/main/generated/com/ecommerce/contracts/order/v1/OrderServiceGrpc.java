@@ -139,6 +139,99 @@ public final class OrderServiceGrpc {
     return getCancelOrderMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.AdminListOrdersRequest,
+      com.ecommerce.contracts.order.v1.AdminListOrdersResponse> getAdminListOrdersMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "AdminListOrders",
+      requestType = com.ecommerce.contracts.order.v1.AdminListOrdersRequest.class,
+      responseType = com.ecommerce.contracts.order.v1.AdminListOrdersResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.AdminListOrdersRequest,
+      com.ecommerce.contracts.order.v1.AdminListOrdersResponse> getAdminListOrdersMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.AdminListOrdersRequest, com.ecommerce.contracts.order.v1.AdminListOrdersResponse> getAdminListOrdersMethod;
+    if ((getAdminListOrdersMethod = OrderServiceGrpc.getAdminListOrdersMethod) == null) {
+      synchronized (OrderServiceGrpc.class) {
+        if ((getAdminListOrdersMethod = OrderServiceGrpc.getAdminListOrdersMethod) == null) {
+          OrderServiceGrpc.getAdminListOrdersMethod = getAdminListOrdersMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.order.v1.AdminListOrdersRequest, com.ecommerce.contracts.order.v1.AdminListOrdersResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "AdminListOrders"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.order.v1.AdminListOrdersRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.order.v1.AdminListOrdersResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new OrderServiceMethodDescriptorSupplier("AdminListOrders"))
+              .build();
+        }
+      }
+    }
+    return getAdminListOrdersMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.AdminGetOrderRequest,
+      com.ecommerce.contracts.order.v1.AdminGetOrderResponse> getAdminGetOrderMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "AdminGetOrder",
+      requestType = com.ecommerce.contracts.order.v1.AdminGetOrderRequest.class,
+      responseType = com.ecommerce.contracts.order.v1.AdminGetOrderResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.AdminGetOrderRequest,
+      com.ecommerce.contracts.order.v1.AdminGetOrderResponse> getAdminGetOrderMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.AdminGetOrderRequest, com.ecommerce.contracts.order.v1.AdminGetOrderResponse> getAdminGetOrderMethod;
+    if ((getAdminGetOrderMethod = OrderServiceGrpc.getAdminGetOrderMethod) == null) {
+      synchronized (OrderServiceGrpc.class) {
+        if ((getAdminGetOrderMethod = OrderServiceGrpc.getAdminGetOrderMethod) == null) {
+          OrderServiceGrpc.getAdminGetOrderMethod = getAdminGetOrderMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.order.v1.AdminGetOrderRequest, com.ecommerce.contracts.order.v1.AdminGetOrderResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "AdminGetOrder"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.order.v1.AdminGetOrderRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.order.v1.AdminGetOrderResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new OrderServiceMethodDescriptorSupplier("AdminGetOrder"))
+              .build();
+        }
+      }
+    }
+    return getAdminGetOrderMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusRequest,
+      com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse> getAdminUpdateOrderStatusMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "AdminUpdateOrderStatus",
+      requestType = com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusRequest.class,
+      responseType = com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusRequest,
+      com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse> getAdminUpdateOrderStatusMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusRequest, com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse> getAdminUpdateOrderStatusMethod;
+    if ((getAdminUpdateOrderStatusMethod = OrderServiceGrpc.getAdminUpdateOrderStatusMethod) == null) {
+      synchronized (OrderServiceGrpc.class) {
+        if ((getAdminUpdateOrderStatusMethod = OrderServiceGrpc.getAdminUpdateOrderStatusMethod) == null) {
+          OrderServiceGrpc.getAdminUpdateOrderStatusMethod = getAdminUpdateOrderStatusMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusRequest, com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "AdminUpdateOrderStatus"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new OrderServiceMethodDescriptorSupplier("AdminUpdateOrderStatus"))
+              .build();
+        }
+      }
+    }
+    return getAdminUpdateOrderStatusMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -214,6 +307,27 @@ public final class OrderServiceGrpc {
         io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.CancelOrderResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCancelOrderMethod(), responseObserver);
     }
+
+    /**
+     */
+    default void adminListOrders(com.ecommerce.contracts.order.v1.AdminListOrdersRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.AdminListOrdersResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getAdminListOrdersMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void adminGetOrder(com.ecommerce.contracts.order.v1.AdminGetOrderRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.AdminGetOrderResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getAdminGetOrderMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void adminUpdateOrderStatus(com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getAdminUpdateOrderStatusMethod(), responseObserver);
+    }
   }
 
   /**
@@ -274,6 +388,30 @@ public final class OrderServiceGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getCancelOrderMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     */
+    public void adminListOrders(com.ecommerce.contracts.order.v1.AdminListOrdersRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.AdminListOrdersResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getAdminListOrdersMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void adminGetOrder(com.ecommerce.contracts.order.v1.AdminGetOrderRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.AdminGetOrderResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getAdminGetOrderMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void adminUpdateOrderStatus(com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getAdminUpdateOrderStatusMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -318,6 +456,27 @@ public final class OrderServiceGrpc {
     public com.ecommerce.contracts.order.v1.CancelOrderResponse cancelOrder(com.ecommerce.contracts.order.v1.CancelOrderRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getCancelOrderMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.order.v1.AdminListOrdersResponse adminListOrders(com.ecommerce.contracts.order.v1.AdminListOrdersRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getAdminListOrdersMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.order.v1.AdminGetOrderResponse adminGetOrder(com.ecommerce.contracts.order.v1.AdminGetOrderRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getAdminGetOrderMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse adminUpdateOrderStatus(com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getAdminUpdateOrderStatusMethod(), getCallOptions(), request);
     }
   }
 
@@ -368,12 +527,39 @@ public final class OrderServiceGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getCancelOrderMethod(), getCallOptions()), request);
     }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.order.v1.AdminListOrdersResponse> adminListOrders(
+        com.ecommerce.contracts.order.v1.AdminListOrdersRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getAdminListOrdersMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.order.v1.AdminGetOrderResponse> adminGetOrder(
+        com.ecommerce.contracts.order.v1.AdminGetOrderRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getAdminGetOrderMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse> adminUpdateOrderStatus(
+        com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getAdminUpdateOrderStatusMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_CREATE_ORDER = 0;
   private static final int METHODID_GET_ORDER = 1;
   private static final int METHODID_LIST_ORDERS = 2;
   private static final int METHODID_CANCEL_ORDER = 3;
+  private static final int METHODID_ADMIN_LIST_ORDERS = 4;
+  private static final int METHODID_ADMIN_GET_ORDER = 5;
+  private static final int METHODID_ADMIN_UPDATE_ORDER_STATUS = 6;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -407,6 +593,18 @@ public final class OrderServiceGrpc {
         case METHODID_CANCEL_ORDER:
           serviceImpl.cancelOrder((com.ecommerce.contracts.order.v1.CancelOrderRequest) request,
               (io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.CancelOrderResponse>) responseObserver);
+          break;
+        case METHODID_ADMIN_LIST_ORDERS:
+          serviceImpl.adminListOrders((com.ecommerce.contracts.order.v1.AdminListOrdersRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.AdminListOrdersResponse>) responseObserver);
+          break;
+        case METHODID_ADMIN_GET_ORDER:
+          serviceImpl.adminGetOrder((com.ecommerce.contracts.order.v1.AdminGetOrderRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.AdminGetOrderResponse>) responseObserver);
+          break;
+        case METHODID_ADMIN_UPDATE_ORDER_STATUS:
+          serviceImpl.adminUpdateOrderStatus((com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -454,6 +652,27 @@ public final class OrderServiceGrpc {
               com.ecommerce.contracts.order.v1.CancelOrderRequest,
               com.ecommerce.contracts.order.v1.CancelOrderResponse>(
                 service, METHODID_CANCEL_ORDER)))
+        .addMethod(
+          getAdminListOrdersMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.order.v1.AdminListOrdersRequest,
+              com.ecommerce.contracts.order.v1.AdminListOrdersResponse>(
+                service, METHODID_ADMIN_LIST_ORDERS)))
+        .addMethod(
+          getAdminGetOrderMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.order.v1.AdminGetOrderRequest,
+              com.ecommerce.contracts.order.v1.AdminGetOrderResponse>(
+                service, METHODID_ADMIN_GET_ORDER)))
+        .addMethod(
+          getAdminUpdateOrderStatusMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusRequest,
+              com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse>(
+                service, METHODID_ADMIN_UPDATE_ORDER_STATUS)))
         .build();
   }
 
@@ -506,6 +725,9 @@ public final class OrderServiceGrpc {
               .addMethod(getGetOrderMethod())
               .addMethod(getListOrdersMethod())
               .addMethod(getCancelOrderMethod())
+              .addMethod(getAdminListOrdersMethod())
+              .addMethod(getAdminGetOrderMethod())
+              .addMethod(getAdminUpdateOrderStatusMethod())
               .build();
         }
       }
