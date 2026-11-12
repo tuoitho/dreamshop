@@ -121,10 +121,10 @@ use real infrastructure only for adapter behavior that depends on it.
 ## Frontend Testing
 
 Use Vitest and Testing Library. Assert outcomes users observe rather than
-component internals. Keep tests under `ecommerce-fe/src` using `*.test.ts` or
-`*.test.tsx`.
+component internals. Keep tests under `ecommerce-fe/src` or `admin-fe/src` using
+`*.test.ts` or `*.test.tsx`.
 
-Run:
+Run, replacing `ecommerce-fe` with `admin-fe` for the admin console:
 
 ```powershell
 npm --prefix ecommerce-fe run test
