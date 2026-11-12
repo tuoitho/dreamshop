@@ -3,6 +3,8 @@
 **Ngày cập nhật:** 2026-11-05  
 **Phạm vi:** `contracts`, `identity-service`, `catalog-service`, `inventory-service`, `cart-service`, `payment-service`, `order-service`, `bff-service`, `ecommerce-fe`, `deployments`, `scripts/concurrency-sim`
 
+> **Cập nhật sau tài liệu này:** bản Hybrid đã được hợp nhất vào `main` và mở rộng vòng đời giao hàng theo [ADR-015](../adr/015-order-fulfillment-lifecycle.md): COD chờ `PENDING_CONFIRMATION` rồi tự xác nhận sau 1 phút, thêm `PREPARING` / `SHIPPING` / `DELIVERED` / `DELIVERY_FAILED`, hủy sau xác nhận hoàn kho qua `StockRestockRequested`, giỏ hàng dọn khi nhận `OrderPlaced`, và trang quản trị đơn hàng trong `admin-fe`. Các bảng so sánh bên dưới phản ánh thời điểm 2026-11-05.
+
 ---
 
 ## 1. Tổng quan Hai Biến thể Kiến trúc Đã Triển khai
@@ -104,7 +106,8 @@ BEGIN
         UPDATE stock SET reserved = 0;
     END IF;
     IF to_regclass('public.schema_migrations') IS NOT NULL THEN
-        DELETE FROM schema_migrations WHERE version LIKE '000003_%';
+        -- 000004 (ADR-015) alters the stock_reservations CHECK, so it must re-run with 000003.
+        DELETE FROM schema_migrations WHERE version LIKE '000003_%' OR version LIKE '000004_%';
     END IF;
 END `$`$;
 "@
