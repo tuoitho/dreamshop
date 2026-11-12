@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,10 +15,23 @@ import (
 )
 
 type fakeOrderClient struct {
-	createFn func(context.Context, *orderv1.CreateOrderRequest) (*orderv1.CreateOrderResponse, error)
-	getFn    func(context.Context, string, string) (*orderv1.GetOrderResponse, error)
-	listFn   func(context.Context, string, string, int32, int32) (*orderv1.ListOrdersResponse, error)
-	cancelFn func(context.Context, string, string, string) (*orderv1.CancelOrderResponse, error)
+	createFn      func(context.Context, *orderv1.CreateOrderRequest) (*orderv1.CreateOrderResponse, error)
+	getFn         func(context.Context, string, string) (*orderv1.GetOrderResponse, error)
+	listFn        func(context.Context, string, string, int32, int32) (*orderv1.ListOrdersResponse, error)
+	cancelFn      func(context.Context, string, string, string) (*orderv1.CancelOrderResponse, error)
+	adminListFn   func(context.Context, string, string, string, int32, int32) (*orderv1.AdminListOrdersResponse, error)
+	adminGetFn    func(context.Context, string, string) (*orderv1.AdminGetOrderResponse, error)
+	adminUpdateFn func(context.Context, *orderv1.AdminUpdateOrderStatusRequest) (*orderv1.AdminUpdateOrderStatusResponse, error)
+}
+
+func (f *fakeOrderClient) AdminListOrders(ctx context.Context, userID, statusFilter, query string, page, pageSize int32) (*orderv1.AdminListOrdersResponse, error) {
+	return f.adminListFn(ctx, userID, statusFilter, query, page, pageSize)
+}
+func (f *fakeOrderClient) AdminGetOrder(ctx context.Context, userID, orderID string) (*orderv1.AdminGetOrderResponse, error) {
+	return f.adminGetFn(ctx, userID, orderID)
+}
+func (f *fakeOrderClient) AdminUpdateOrderStatus(ctx context.Context, req *orderv1.AdminUpdateOrderStatusRequest) (*orderv1.AdminUpdateOrderStatusResponse, error) {
+	return f.adminUpdateFn(ctx, req)
 }
 
 func (f *fakeOrderClient) CreateOrder(ctx context.Context, req *orderv1.CreateOrderRequest) (*orderv1.CreateOrderResponse, error) {
@@ -253,5 +267,39 @@ func TestListGetAndCancelOrdersEndpoints(t *testing.T) {
 	mux.ServeHTTP(cancelRec, cancelReq)
 	if cancelRec.Code != http.StatusOK {
 		t.Fatalf("expected 200 on cancel, got %d: %s", cancelRec.Code, cancelRec.Body.String())
+	}
+}
+
+func TestOrderDetailJSONIncludesFulfillmentFields(t *testing.T) {
+	withoutHistory := newOrderDetailJSON(orderDetailFixture())
+	if withoutHistory.StatusHistory == nil || len(withoutHistory.StatusHistory) != 0 {
+		t.Fatalf("statusHistory must be an empty array, got %#v", withoutHistory.StatusHistory)
+	}
+
+	detail := orderDetailFixture()
+	detail.Status = "SHIPPING"
+	detail.AutoConfirmAt = "2026-11-12T08:01:00Z"
+	detail.ShippingCarrier = "GHN"
+	detail.TrackingNumber = "T1"
+	detail.StatusHistory = []*orderv1.OrderStatusChange{
+		{ToStatus: "PENDING_STOCK", ActorType: "CUSTOMER", CreatedAt: "2026-11-12T08:00:00Z"},
+		{FromStatus: "PREPARING", ToStatus: "SHIPPING", ActorType: "ADMIN", ShippingCarrier: "GHN", TrackingNumber: "T1", CreatedAt: "2026-11-12T09:00:00Z"},
+	}
+
+	raw, err := json.Marshal(newOrderDetailJSON(detail))
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	body := string(raw)
+	for _, want := range []string{
+		`"autoConfirmAt":"2026-11-12T08:01:00Z"`,
+		`"shippingCarrier":"GHN"`,
+		`"trackingNumber":"T1"`,
+		`"statusHistory":[{"toStatus":"PENDING_STOCK","actorType":"CUSTOMER","createdAt":"2026-11-12T08:00:00Z"}`,
+		`{"fromStatus":"PREPARING","toStatus":"SHIPPING","actorType":"ADMIN","shippingCarrier":"GHN","trackingNumber":"T1","createdAt":"2026-11-12T09:00:00Z"}`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("order JSON missing %s:\n%s", want, body)
+		}
 	}
 }

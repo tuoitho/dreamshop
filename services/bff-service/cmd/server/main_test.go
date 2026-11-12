@@ -120,6 +120,15 @@ func (fakeOrderClient) ListOrders(context.Context, string, string, int32, int32)
 func (fakeOrderClient) CancelOrder(context.Context, string, string, string) (*orderv1.CancelOrderResponse, error) {
 	return &orderv1.CancelOrderResponse{Order: &orderv1.OrderDetail{OrderId: "ord-1"}}, nil
 }
+func (fakeOrderClient) AdminListOrders(context.Context, string, string, string, int32, int32) (*orderv1.AdminListOrdersResponse, error) {
+	return &orderv1.AdminListOrdersResponse{}, nil
+}
+func (fakeOrderClient) AdminGetOrder(context.Context, string, string) (*orderv1.AdminGetOrderResponse, error) {
+	return &orderv1.AdminGetOrderResponse{Order: &orderv1.OrderDetail{OrderId: "ord-1"}}, nil
+}
+func (fakeOrderClient) AdminUpdateOrderStatus(context.Context, *orderv1.AdminUpdateOrderStatusRequest) (*orderv1.AdminUpdateOrderStatusResponse, error) {
+	return &orderv1.AdminUpdateOrderStatusResponse{Order: &orderv1.OrderDetail{OrderId: "ord-1"}}, nil
+}
 
 type fakePaymentClient struct{}
 
@@ -153,6 +162,8 @@ func TestBuildMuxMakesCanonicalRoutesReachableAndRejectsLegacyPaths(t *testing.T
 		{method: http.MethodPost, path: "/api/v1/payments/momo-ipn", body: `{"orderId":"ord-1","signature":"sig"}`, status: http.StatusNoContent},
 		{method: http.MethodGet, path: "/api/v1/admin/products", caller: "admin-1", status: http.StatusOK},
 		{method: http.MethodGet, path: "/api/v1/admin/inventory", caller: "admin-1", status: http.StatusOK},
+		{method: http.MethodGet, path: "/api/v1/admin/orders", caller: "admin-1", status: http.StatusOK},
+		{method: http.MethodGet, path: "/api/v1/admin/orders", status: http.StatusUnauthorized},
 		{method: http.MethodGet, path: "/", caller: "user-1", status: http.StatusNotFound},
 		{method: http.MethodGet, path: "/products", status: http.StatusNotFound},
 		{method: http.MethodGet, path: "/api/v1/cart/unknown", caller: "user-1", status: http.StatusNotFound},

@@ -181,6 +181,12 @@ func TestProductionKongConsolidatesServicesWithStripPathFalseAndServesSPA(t *tes
 			methods:   []string{"GET", "POST", "PUT", "PATCH"},
 			protected: true,
 		},
+		"admin-orders-api": {
+			service:   "bff-service",
+			paths:     []string{"/api/v1/admin/orders"},
+			methods:   []string{"GET", "POST"},
+			protected: true,
+		},
 		"product-media-storage": {
 			service:           "minio",
 			paths:             []string{"/product-media"},

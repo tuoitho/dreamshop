@@ -62,6 +62,21 @@ type orderDetailJSON struct {
 	PaymentExpiresAt string              `json:"paymentExpiresAt,omitempty"`
 	CreatedAt        string              `json:"createdAt"`
 	UpdatedAt        string              `json:"updatedAt"`
+	AutoConfirmAt    string              `json:"autoConfirmAt,omitempty"`
+	ShippingCarrier  string              `json:"shippingCarrier,omitempty"`
+	TrackingNumber   string              `json:"trackingNumber,omitempty"`
+	// Filled only by single-order reads; list responses return an empty array.
+	StatusHistory []orderStatusChangeJSON `json:"statusHistory"`
+}
+
+type orderStatusChangeJSON struct {
+	FromStatus      string `json:"fromStatus,omitempty"`
+	ToStatus        string `json:"toStatus"`
+	ActorType       string `json:"actorType"`
+	Reason          string `json:"reason,omitempty"`
+	ShippingCarrier string `json:"shippingCarrier,omitempty"`
+	TrackingNumber  string `json:"trackingNumber,omitempty"`
+	CreatedAt       string `json:"createdAt"`
 }
 
 type createOrderDataJSON struct {
@@ -181,7 +196,7 @@ func (h *OrdersHandler) create(w http.ResponseWriter, r *http.Request) {
 		Items: protoItems,
 	})
 	if err != nil {
-		h.writeOrderError(w, r, err)
+		writeOrderServiceError(w, r, err)
 		return
 	}
 
@@ -220,7 +235,7 @@ func (h *OrdersHandler) list(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.orders.ListOrders(r.Context(), callerID(r), statusFilter, page, pageSize)
 	if err != nil {
-		h.writeOrderError(w, r, err)
+		writeOrderServiceError(w, r, err)
 		return
 	}
 
@@ -245,7 +260,7 @@ func (h *OrdersHandler) get(w http.ResponseWriter, r *http.Request) {
 	}
 	resp, err := h.orders.GetOrder(r.Context(), callerID(r), orderID)
 	if err != nil {
-		h.writeOrderError(w, r, err)
+		writeOrderServiceError(w, r, err)
 		return
 	}
 	writeEnvelope(w, http.StatusOK, newOrderDetailJSON(resp.GetOrder()), "Order retrieved.")
@@ -270,13 +285,13 @@ func (h *OrdersHandler) cancel(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.orders.CancelOrder(r.Context(), callerID(r), orderID, strings.TrimSpace(input.Reason))
 	if err != nil {
-		h.writeOrderError(w, r, err)
+		writeOrderServiceError(w, r, err)
 		return
 	}
 	writeEnvelope(w, http.StatusOK, newOrderDetailJSON(resp.GetOrder()), "Đã hủy đơn hàng.")
 }
 
-func (h *OrdersHandler) writeOrderError(w http.ResponseWriter, r *http.Request, err error) {
+func writeOrderServiceError(w http.ResponseWriter, r *http.Request, err error) {
 	var svcErr *orderclient.ServiceError
 	if errors.As(err, &svcErr) {
 		msg := svcErr.Message
@@ -287,6 +302,9 @@ func (h *OrdersHandler) writeOrderError(w http.ResponseWriter, r *http.Request, 
 		case "INVALID_PARAMETER":
 			writeError(w, r, http.StatusBadRequest, "INVALID_PARAMETER", msg, svcErr.Metadata)
 			return
+		case "ORDER_REASON_REQUIRED":
+			writeError(w, r, http.StatusBadRequest, svcErr.Reason, msg, nil)
+			return
 		case "ORDER_PERMISSION_DENIED":
 			writeError(w, r, http.StatusForbidden, "FORBIDDEN", msg, nil)
 			return
@@ -296,6 +314,8 @@ func (h *OrdersHandler) writeOrderError(w http.ResponseWriter, r *http.Request, 
 		case "PRODUCT_SNAPSHOT_MISMATCH",
 			"INVENTORY_INSUFFICIENT",
 			"ORDER_NOT_CANCELLABLE",
+			"ORDER_INVALID_TRANSITION",
+			"ORDER_STATUS_CONFLICT",
 			"PAYMENT_GATEWAY_REJECTED",
 			"REQUEST_IN_PROGRESS",
 			"IDEMPOTENCY_KEY_REUSED":
@@ -335,7 +355,7 @@ func (h *OrdersHandler) writeOrderError(w http.ResponseWriter, r *http.Request, 
 
 func newOrderDetailJSON(detail *orderv1.OrderDetail) orderDetailJSON {
 	if detail == nil {
-		return orderDetailJSON{Items: []orderItemJSON{}, Currency: "VND"}
+		return orderDetailJSON{Items: []orderItemJSON{}, Currency: "VND", StatusHistory: []orderStatusChangeJSON{}}
 	}
 	items := make([]orderItemJSON, 0, len(detail.GetItems()))
 	for _, it := range detail.GetItems() {
@@ -360,6 +380,18 @@ func newOrderDetailJSON(detail *orderv1.OrderDetail) orderDetailJSON {
 	currency := detail.GetTotalAmount().GetCurrency()
 	if currency == "" {
 		currency = "VND"
+	}
+	history := make([]orderStatusChangeJSON, 0, len(detail.GetStatusHistory()))
+	for _, change := range detail.GetStatusHistory() {
+		history = append(history, orderStatusChangeJSON{
+			FromStatus:      change.GetFromStatus(),
+			ToStatus:        change.GetToStatus(),
+			ActorType:       change.GetActorType(),
+			Reason:          change.GetReason(),
+			ShippingCarrier: change.GetShippingCarrier(),
+			TrackingNumber:  change.GetTrackingNumber(),
+			CreatedAt:       change.GetCreatedAt(),
+		})
 	}
 	addr := detail.GetShippingAddress()
 	return orderDetailJSON{
@@ -390,5 +422,9 @@ func newOrderDetailJSON(detail *orderv1.OrderDetail) orderDetailJSON {
 		PaymentExpiresAt: detail.GetPaymentExpiresAt(),
 		CreatedAt:        detail.GetCreatedAt(),
 		UpdatedAt:        detail.GetUpdatedAt(),
+		AutoConfirmAt:    detail.GetAutoConfirmAt(),
+		ShippingCarrier:  detail.GetShippingCarrier(),
+		TrackingNumber:   detail.GetTrackingNumber(),
+		StatusHistory:    history,
 	}
 }
