@@ -115,7 +115,7 @@ describe("OrdersPage", () => {
     const article = await screen.findByRole("article")
     expect(within(article).getByText("Đã giao")).toBeInTheDocument()
     expect(within(article).queryByRole("button", { name: /Hủy đơn/i })).not.toBeInTheDocument()
-    for (const label of ["Chờ xác nhận", "Đang chuẩn bị", "Đang giao", "Đã giao"]) {
+    for (const label of ["Chờ xác nhận", "Đang chuẩn bị", "Đang giao", "Đã giao", "Giao thất bại"]) {
       expect(screen.getByRole("button", { name: label })).toBeInTheDocument()
     }
 

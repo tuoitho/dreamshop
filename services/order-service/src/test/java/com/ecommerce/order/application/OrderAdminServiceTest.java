@@ -129,8 +129,29 @@ class OrderAdminServiceTest extends PostgresRabbitIntegrationTestSupport {
                 "SELECT tracking_number FROM order_status_history WHERE order_id = ? AND to_status = 'SHIPPING'",
                 String.class, orderId)).isEqualTo("T1");
         assertThat(jdbcTemplate.queryForObject(
+                "SELECT shipping_carrier || '|' || tracking_number FROM order_status_history WHERE order_id = ? AND to_status = 'DELIVERED'",
+                String.class, orderId)).isEqualTo("|");
+        assertThat(jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM order_status_history WHERE order_id = ? AND actor_id = ?",
                 Integer.class, orderId, adminId)).isEqualTo(3);
+    }
+
+    @Test
+    void redeliveryKeepsShippingDetailsUnlessNewOnesAreGiven() {
+        UUID orderId = seedOrder(orderRepository, UUID.randomUUID(), "ORD-20261112-RESHIP",
+                OrderStatus.PREPARING, PaymentMethod.COD, PaymentStatus.UNPAID);
+        lifecycleService.updateStatusByAdmin(adminId.toString(), orderId.toString(), "PREPARING", "SHIPPING", "", "GHN", "T1");
+        update(adminId.toString(), orderId, "SHIPPING", "DELIVERY_FAILED", "Khong lien lac duoc");
+
+        AdminUpdateOrderStatusResponse retried = update(adminId.toString(), orderId, "DELIVERY_FAILED", "SHIPPING", "");
+
+        assertThat(retried.getOrder().getShippingCarrier()).isEqualTo("GHN");
+        assertThat(retried.getOrder().getTrackingNumber()).isEqualTo("T1");
+        update(adminId.toString(), orderId, "SHIPPING", "DELIVERY_FAILED", "Van khong lien lac duoc");
+        AdminUpdateOrderStatusResponse replaced = lifecycleService.updateStatusByAdmin(
+                adminId.toString(), orderId.toString(), "DELIVERY_FAILED", "SHIPPING", "", "GHTK", "T2");
+        assertThat(replaced.getOrder().getShippingCarrier()).isEqualTo("GHTK");
+        assertThat(replaced.getOrder().getTrackingNumber()).isEqualTo("T2");
     }
 
     @Test

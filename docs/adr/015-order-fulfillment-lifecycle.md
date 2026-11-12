@@ -49,7 +49,9 @@ Cart chỉ xóa dòng giỏ khi nhận `OrderConfirmed`.
   làm mất tồn kho.
 - Mất: thêm hai event, một trạng thái reservation, một job định kỳ và ma trận test lớn hơn.
 - Ràng buộc triển khai: consumer của `order.placed` (Cart) và
-  `order.stock.restock_requested` (Inventory) phải bind queue trước khi `order-service`
-  phát các event này; topic exchange bỏ message không có queue nhận.
+  `order.stock.restock_requested` (Inventory) nên bind queue trước khi `order-service`
+  phát các event này. Outbox của Order publish với `mandatory`; message không có queue
+  nhận bị broker trả về và được giữ ở trạng thái chưa publish để gửi lại, nên triển khai
+  sai thứ tự chỉ làm chậm event chứ không làm mất.
 - Xem lại khi cần tích hợp đơn vị vận chuyển thật, trả hàng/hoàn tiền hoặc khách xác nhận
   đã nhận hàng (`COMPLETED`).

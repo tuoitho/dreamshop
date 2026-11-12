@@ -133,6 +133,11 @@ public class OutboxRelayScheduler {
             if (confirm == null || !confirm.ack()) {
                 throw new IllegalStateException("Broker nacked outbox event " + row.id());
             }
+            // Published as mandatory: a broker ack still arrives for a message no queue is bound
+            // to, so a returned message must stay pending until its consumer has bound a queue.
+            if (cd.getReturned() != null) {
+                throw new IllegalStateException("No queue bound for routing key " + row.routingKey());
+            }
         } else {
             rabbitTemplate.send(RabbitMqConfig.EXCHANGE_NAME, row.routingKey(), message);
         }

@@ -19,6 +19,8 @@ spring:
     password: ${RABBITMQ_PASSWORD:change-me-local-only}
     publisher-confirm-type: correlated
     publisher-returns: true
+    template:
+      mandatory: true
     listener:
       simple:
         acknowledge-mode: auto

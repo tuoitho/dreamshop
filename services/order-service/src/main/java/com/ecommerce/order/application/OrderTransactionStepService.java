@@ -300,7 +300,8 @@ public class OrderTransactionStepService {
 
     /**
      * Appends a history entry for the order's current status. Call it in the same
-     * transaction as the status change so history and state never diverge.
+     * transaction as the status change so history and state never diverge. Shipping
+     * details are recorded only on the entry that starts a delivery attempt.
      */
     public void recordStatusChange(
             OrderEntity order,
@@ -309,6 +310,7 @@ public class OrderTransactionStepService {
             UUID actorId,
             String reason,
             Instant at) {
+        boolean shipping = order.getStatus() == OrderStatus.SHIPPING;
         statusHistoryRepository.save(OrderStatusHistoryEntity.builder()
                 .id(UUID.randomUUID())
                 .orderId(order.getId())
@@ -317,8 +319,8 @@ public class OrderTransactionStepService {
                 .actorType(actorType)
                 .actorId(actorId)
                 .reason(reason == null ? "" : reason)
-                .shippingCarrier(order.getShippingCarrier() == null ? "" : order.getShippingCarrier())
-                .trackingNumber(order.getTrackingNumber() == null ? "" : order.getTrackingNumber())
+                .shippingCarrier(shipping && order.getShippingCarrier() != null ? order.getShippingCarrier() : "")
+                .trackingNumber(shipping && order.getTrackingNumber() != null ? order.getTrackingNumber() : "")
                 .createdAt(at)
                 .build());
     }

@@ -123,8 +123,11 @@ public class OrderLifecycleService {
                 applyCancellation(order, ActorType.ADMIN, adminId, cleanReason, now);
             } else {
                 order.setStatus(target);
-                if (target == OrderStatus.SHIPPING) {
+                // A redelivery may leave the fields blank to keep the current carrier and tracking number.
+                if (target == OrderStatus.SHIPPING && !cleanCarrier.isEmpty()) {
                     order.setShippingCarrier(cleanCarrier);
+                }
+                if (target == OrderStatus.SHIPPING && !cleanTracking.isEmpty()) {
                     order.setTrackingNumber(cleanTracking);
                 }
                 if (target == OrderStatus.DELIVERED && order.getPaymentMethod() == PaymentMethod.COD) {

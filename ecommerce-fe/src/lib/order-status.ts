@@ -27,6 +27,7 @@ export const ORDER_STATUS_TABS: Array<{ value: OrderStatus | ""; label: string }
   { value: "PREPARING", label: STATUS_LABELS.PREPARING },
   { value: "SHIPPING", label: STATUS_LABELS.SHIPPING },
   { value: "DELIVERED", label: STATUS_LABELS.DELIVERED },
+  { value: "DELIVERY_FAILED", label: STATUS_LABELS.DELIVERY_FAILED },
   { value: "CANCELLED", label: STATUS_LABELS.CANCELLED },
 ]
 
