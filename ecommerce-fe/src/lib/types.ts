@@ -240,7 +240,26 @@ export interface ShippingAddressSnapshot {
 
 export type PaymentMethod = "COD" | "MOMO"
 
-export type OrderStatus = "PENDING_STOCK" | "PENDING_PAYMENT" | "CONFIRMED" | "CANCELLED"
+export type OrderStatus =
+  | "PENDING_STOCK"
+  | "PENDING_PAYMENT"
+  | "PENDING_CONFIRMATION"
+  | "CONFIRMED"
+  | "PREPARING"
+  | "SHIPPING"
+  | "DELIVERED"
+  | "DELIVERY_FAILED"
+  | "CANCELLED"
+
+export interface OrderStatusChange {
+  fromStatus?: OrderStatus | string
+  toStatus: OrderStatus | string
+  actorType: "SYSTEM" | "CUSTOMER" | "ADMIN" | string
+  reason?: string
+  shippingCarrier?: string
+  trackingNumber?: string
+  createdAt: string
+}
 
 export type PaymentStatus = "UNPAID" | "PENDING" | "PAID" | "FAILED" | "REFUND_REQUIRED"
 
@@ -279,8 +298,13 @@ export interface OrderDetail {
   cancelReason?: string
   payUrl?: string
   paymentExpiresAt?: string
+  autoConfirmAt?: string
+  shippingCarrier?: string
+  trackingNumber?: string
   createdAt: string
   updatedAt: string
+  /** Present on single-order reads; list responses return an empty array. */
+  statusHistory?: OrderStatusChange[]
 }
 
 export interface CreateOrderItemPayload {

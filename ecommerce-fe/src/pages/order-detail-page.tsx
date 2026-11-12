@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react"
 import { Link, useParams, useSearchParams } from "react-router-dom"
-import { AlertTriangle, ArrowLeft, CheckCircle2, ExternalLink, Loader2, MapPin } from "lucide-react"
+import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, ExternalLink, Loader2, MapPin, RefreshCw, Truck } from "lucide-react"
+import { OrderTimeline } from "@/components/order/order-timeline"
 import { ProductImage } from "@/components/product-image"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { cancelOrder, getOrder } from "@/lib/api"
+import { isCustomerCancellable, orderStatusLabel } from "@/lib/order-status"
 import type { OrderDetail, OrderItemSnapshot } from "@/lib/types"
 import { formatVND } from "@/lib/utils"
 
@@ -35,21 +37,6 @@ function DetailItemThumb({ item }: { item: OrderItemSnapshot }) {
       label={item.expectedName}
     />
   )
-}
-
-function formatOrderStatus(status: string): string {
-  switch (status) {
-    case "CONFIRMED":
-      return "Đã xác nhận"
-    case "PENDING_PAYMENT":
-      return "Chờ thanh toán"
-    case "PENDING_STOCK":
-      return "Đang giữ kho"
-    case "CANCELLED":
-      return "Đã hủy"
-    default:
-      return status
-  }
 }
 
 function formatPaymentStatus(paymentStatus: string): string {
@@ -170,6 +157,25 @@ export default function OrderDetailPage() {
         </div>
       )}
 
+      {order.status === "PENDING_CONFIRMATION" && (
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200">
+          <div className="flex items-start gap-3">
+            <Clock className="mt-0.5 size-5 shrink-0 text-amber-600" />
+            <div>
+              <p className="font-bold">{justPlaced ? "Đặt hàng thành công!" : "Đơn hàng đang chờ xác nhận"}</p>
+              <p className="mt-0.5">
+                Đơn hàng <span className="font-mono font-semibold">{order.orderCode}</span> đang chờ xác nhận, hệ thống
+                sẽ tự xác nhận trong khoảng 1 phút.
+              </p>
+            </div>
+          </div>
+          <Button type="button" size="sm" variant="outline" onClick={() => void loadDetail()}>
+            <RefreshCw className="mr-1 size-4" />
+            Làm mới
+          </Button>
+        </div>
+      )}
+
       {order.status === "CANCELLED" && order.paymentStatus === "REFUND_REQUIRED" && (
         <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200">
           <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600" />
@@ -189,7 +195,7 @@ export default function OrderDetailPage() {
             <h1 className="font-mono text-xl font-extrabold">{order.orderCode}</h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">{formatOrderStatus(order.status)}</Badge>
+            <Badge variant="outline">{orderStatusLabel(order.status)}</Badge>
             <Badge variant="secondary">{formatPaymentStatus(order.paymentStatus)}</Badge>
           </div>
         </div>
@@ -211,6 +217,15 @@ export default function OrderDetailPage() {
             </p>
             {order.note && (
               <p className="mt-2 text-xs text-muted-foreground">Ghi chú: {order.note}</p>
+            )}
+            {(order.shippingCarrier || order.trackingNumber) && (
+              <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm">
+                <Truck className="size-4 text-primary" />
+                <span>Vận chuyển:</span>
+                <span className="font-semibold">{order.shippingCarrier || "—"}</span>
+                <span className="text-muted-foreground">• Mã vận đơn:</span>
+                <span className="font-mono font-semibold">{order.trackingNumber || "—"}</span>
+              </p>
             )}
           </div>
 
@@ -276,9 +291,16 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
-        {order.status === "PENDING_PAYMENT" && (
+        {order.statusHistory && order.statusHistory.length > 0 && (
+          <>
+            <Separator className="my-5" />
+            <OrderTimeline history={order.statusHistory} />
+          </>
+        )}
+
+        {isCustomerCancellable(order.status) && (
           <div className="mt-6 flex flex-wrap justify-end gap-3 border-t pt-4">
-            {order.payUrl && (
+            {order.status === "PENDING_PAYMENT" && order.payUrl && (
               <Button asChild>
                 <a href={order.payUrl}>
                   Thanh toán qua MoMo
