@@ -1,12 +1,15 @@
 package com.ecommerce.order.application;
 
+import com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse;
 import com.ecommerce.contracts.order.v1.OrderDetail;
 import com.ecommerce.order.common.DomainException;
 import com.ecommerce.order.config.RabbitMqConfig;
 import com.ecommerce.order.domain.ActorType;
 import com.ecommerce.order.domain.OrderStatus;
 import com.ecommerce.order.domain.OrderTransitions;
+import com.ecommerce.order.domain.PaymentMethod;
 import com.ecommerce.order.domain.PaymentStatus;
+import com.ecommerce.order.integration.AuthorizationGrpcAdapter;
 import com.ecommerce.order.persistence.OrderEntity;
 import com.ecommerce.order.persistence.OrderRepository;
 import com.ecommerce.order.persistence.OrderStatusHistoryRepository;
@@ -14,24 +17,34 @@ import io.grpc.Status;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /** Order state changes requested after checkout: cancellation and fulfillment updates. */
 @Service
 public class OrderLifecycleService {
     static final int MAX_REASON_LENGTH = 128;
+    static final int MAX_SHIPPING_FIELD_LENGTH = 100;
+    static final String UPDATE_PERMISSION = "order.admin.update";
 
     private final OrderRepository orderRepository;
     private final OrderStatusHistoryRepository statusHistoryRepository;
     private final OrderTransactionStepService txStepService;
+    private final AuthorizationGrpcAdapter authorizationAdapter;
+    private final TransactionTemplate transactionTemplate;
 
     public OrderLifecycleService(
             OrderRepository orderRepository,
             OrderStatusHistoryRepository statusHistoryRepository,
-            OrderTransactionStepService txStepService) {
+            OrderTransactionStepService txStepService,
+            AuthorizationGrpcAdapter authorizationAdapter,
+            PlatformTransactionManager transactionManager) {
         this.orderRepository = orderRepository;
         this.statusHistoryRepository = statusHistoryRepository;
         this.txStepService = txStepService;
+        this.authorizationAdapter = authorizationAdapter;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     @Transactional
@@ -56,6 +69,79 @@ public class OrderLifecycleService {
                     Instant.now());
         }
         return OrderProtoMapper.toOrderDetail(order, statusHistoryRepository.findByOrderIdOrderByCreatedAtAsc(orderId));
+    }
+
+    /**
+     * Applies an administrator fulfillment step. {@code expectedStatus} must match the
+     * current status so a stale console cannot overwrite another administrator's change.
+     */
+    public AdminUpdateOrderStatusResponse updateStatusByAdmin(
+            String rawUserId,
+            String rawOrderId,
+            String rawExpectedStatus,
+            String rawTargetStatus,
+            String reason,
+            String shippingCarrier,
+            String trackingNumber) {
+        UUID adminId = AdminRequests.requiredUuid(rawUserId, "user_id");
+        UUID orderId = AdminRequests.requiredUuid(rawOrderId, "order_id");
+        OrderStatus expected = AdminRequests.requiredStatus(rawExpectedStatus, "expected_status");
+        OrderStatus target = AdminRequests.requiredStatus(rawTargetStatus, "target_status");
+        String cleanReason = trimToLimit(reason, MAX_REASON_LENGTH, "reason");
+        String cleanCarrier = trimToLimit(shippingCarrier, MAX_SHIPPING_FIELD_LENGTH, "shipping_carrier");
+        String cleanTracking = trimToLimit(trackingNumber, MAX_SHIPPING_FIELD_LENGTH, "tracking_number");
+        if (!authorizationAdapter.hasPermission(adminId, UPDATE_PERMISSION)) {
+            throw new DomainException(
+                    Status.Code.PERMISSION_DENIED, "ORDER_PERMISSION_DENIED", "Missing " + UPDATE_PERMISSION + " permission");
+        }
+
+        return transactionTemplate.execute(tx -> {
+            OrderEntity order = orderRepository.findByIdForUpdate(orderId)
+                    .orElseThrow(() -> new DomainException(Status.Code.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found"));
+            OrderStatus current = order.getStatus();
+            if (current != expected) {
+                throw new DomainException(
+                        Status.Code.ABORTED,
+                        "ORDER_STATUS_CONFLICT",
+                        "Order status changed to " + current.name() + "; reload before updating");
+            }
+            if (!OrderTransitions.adminTargets(current).contains(target)) {
+                throw new DomainException(
+                        Status.Code.FAILED_PRECONDITION,
+                        "ORDER_INVALID_TRANSITION",
+                        "Cannot change order status from " + current.name() + " to " + target.name());
+            }
+            if (OrderTransitions.requiresReason(target) && cleanReason.isEmpty()) {
+                throw new DomainException(
+                        Status.Code.INVALID_ARGUMENT,
+                        "ORDER_REASON_REQUIRED",
+                        "A reason is required for " + target.name());
+            }
+
+            Instant now = Instant.now();
+            if (target == OrderStatus.CANCELLED) {
+                applyCancellation(order, ActorType.ADMIN, adminId, cleanReason, now);
+            } else {
+                order.setStatus(target);
+                if (target == OrderStatus.SHIPPING) {
+                    order.setShippingCarrier(cleanCarrier);
+                    order.setTrackingNumber(cleanTracking);
+                }
+                if (target == OrderStatus.DELIVERED && order.getPaymentMethod() == PaymentMethod.COD) {
+                    order.setPaymentStatus(PaymentStatus.PAID);
+                }
+                order.setUpdatedAt(now);
+                orderRepository.saveAndFlush(order);
+                txStepService.recordStatusChange(order, current, ActorType.ADMIN, adminId, cleanReason, now);
+            }
+
+            AdminUpdateOrderStatusResponse.Builder builder = AdminUpdateOrderStatusResponse.newBuilder()
+                    .setOrder(OrderProtoMapper.toOrderDetail(
+                            order, statusHistoryRepository.findByOrderIdOrderByCreatedAtAsc(orderId)));
+            OrderTransitions.adminTargets(order.getStatus())
+                    .forEach(next -> builder.addAllowedNextStatuses(next.name()));
+            return builder.build();
+        });
     }
 
     /**

@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.ecommerce.contracts.catalog.v1.GetProductResponse;
 import com.ecommerce.contracts.catalog.v1.ProductVariant;
 import com.ecommerce.contracts.common.v1.Money;
+import com.ecommerce.contracts.order.v1.AdminGetOrderRequest;
 import com.ecommerce.contracts.order.v1.CreateOrderRequest;
 import com.ecommerce.contracts.order.v1.CreateOrderResponse;
 import com.ecommerce.contracts.order.v1.GetOrderRequest;
@@ -25,8 +26,11 @@ import com.ecommerce.order.integration.CatalogGrpcAdapter;
 import com.ecommerce.order.integration.InventoryGrpcAdapter;
 import com.ecommerce.order.integration.PaymentGrpcAdapter;
 import com.ecommerce.order.support.PostgresRabbitIntegrationTestSupport;
+import com.google.rpc.ErrorInfo;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.StatusRuntimeException;
+import io.grpc.protobuf.StatusProto;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
@@ -94,6 +98,26 @@ class OrderGrpcIntegrationTest extends PostgresRabbitIntegrationTestSupport {
     }
 
     @Test
+    void adminGetOrderWithoutPermissionReturnsPermissionDeniedWithReason() {
+        reset(authorizationAdapter);
+        when(authorizationAdapter.hasPermission(any(UUID.class), anyString())).thenReturn(false);
+        OrderServiceGrpc.OrderServiceBlockingStub stub = OrderServiceGrpc.newBlockingStub(channel);
+
+        StatusRuntimeException ex = org.junit.jupiter.api.Assertions.assertThrows(
+                StatusRuntimeException.class,
+                () -> stub.adminGetOrder(AdminGetOrderRequest.newBuilder()
+                        .setUserId(UUID.randomUUID().toString())
+                        .setOrderId(UUID.randomUUID().toString())
+                        .build()));
+
+        assertThat(ex.getStatus().getCode()).isEqualTo(io.grpc.Status.Code.PERMISSION_DENIED);
+        com.google.rpc.Status details = StatusProto.fromThrowable(ex);
+        assertThat(details).isNotNull();
+        assertThat(details.getDetailsList())
+                .anySatisfy(any -> assertThat(any.unpack(ErrorInfo.class).getReason()).isEqualTo("ORDER_PERMISSION_DENIED"));
+    }
+
+    @Test
     void endToEndMomoOrderReceivesPaymentSucceededEventAndPublishesOrderConfirmedViaOutbox() throws Exception {
         UUID userId = UUID.randomUUID();
         when(catalogAdapter.getProduct("p-e2e")).thenReturn(Optional.of(GetProductResponse.newBuilder()
@@ -112,7 +136,8 @@ class OrderGrpcIntegrationTest extends PostgresRabbitIntegrationTestSupport {
         when(paymentAdapter.createPaymentSession(any(UUID.class), anyString(), eq(userId), anyLong(), any()))
                 .thenReturn("https://momo.test/pay/e2e");
 
-        Queue probeQueue = new Queue("probe.order.confirmed." + UUID.randomUUID(), false, false, true);
+        // Not auto-delete: each timed-out receive() cancels its consumer, which would drop an auto-delete queue.
+        Queue probeQueue = new Queue("probe.order.confirmed." + UUID.randomUUID(), false, false, false);
         rabbitAdmin.declareQueue(probeQueue);
         rabbitAdmin.declareBinding(BindingBuilder.bind(probeQueue)
                 .to(new TopicExchange(RabbitMqConfig.EXCHANGE_NAME, true, false))
