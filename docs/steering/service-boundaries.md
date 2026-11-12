@@ -88,6 +88,20 @@ Do not hold a database transaction open across a network call. Do not assume
 exactly-once delivery. Make repeated commands/events either return the original
 outcome or produce no additional side effect.
 
+Clocks are not shared: each service host, each database, and the Docker Desktop
+VM that runs local and Testcontainers databases keep their own time, which can
+differ by seconds. Write and compare a timestamp with the same clock:
+
+- When a query selects rows by `<column> <= now()`, set that column with the
+  database clock too (the column default, or `now() + interval` in SQL), not an
+  application `Instant.now()` or `time.Now()`. An outbox row stamped
+  `next_attempt_at` by an application clock running ahead of the database stays
+  invisible to the relay until the database clock catches up; in tests this
+  shows up as an intermittent failure.
+- When one service sets a deadline that another service acts on, the two
+  services compare it against different clocks. Let one owner decide the
+  expiry, or give the other side a grace margin larger than the expected skew.
+
 ## Boundary Review Checklist
 
 Before approving a cross-service change, confirm:
@@ -97,4 +111,5 @@ Before approving a cross-service change, confirm:
 - Synchronous versus asynchronous communication is justified.
 - Contract compatibility and consumer impact are analyzed.
 - Retry, idempotency, timeout, and compensation behavior are explicit.
+- Due times and deadlines are written and compared with the same clock.
 - Logs and traces carry correlation identifiers across the workflow.
