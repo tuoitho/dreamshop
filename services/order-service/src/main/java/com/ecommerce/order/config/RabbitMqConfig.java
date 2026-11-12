@@ -19,6 +19,8 @@ public class RabbitMqConfig {
     public static final String PAYMENT_EVENTS_DLQ = "order.payment-events.dlq";
 
     public static final String RK_ORDER_CONFIRMED = "order.confirmed";
+    public static final String RK_ORDER_PLACED = "order.placed";
+    public static final String RK_STOCK_RESTOCK_REQUESTED = "order.stock.restock_requested";
     public static final String RK_RESERVATION_RELEASE_REQUESTED = "order.reservation.release_requested";
     public static final String RK_PAYMENT_CANCEL_REQUESTED = "order.payment.cancel_requested";
     public static final String RK_PAYMENT_REFUND_REQUESTED = "order.payment.refund_requested";

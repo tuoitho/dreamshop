@@ -29,6 +29,7 @@ import com.ecommerce.order.persistence.OrderEntity;
 import com.ecommerce.order.persistence.OrderRepository;
 import com.ecommerce.order.support.PostgresRabbitIntegrationTestSupport;
 import io.grpc.Status;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -46,6 +47,9 @@ class OrderSagaOrchestratorTest extends PostgresRabbitIntegrationTestSupport {
 
     @Autowired
     OrderRepository orderRepository;
+
+    @Autowired
+    CodAutoConfirmScheduler codAutoConfirmScheduler;
 
     @Autowired
     JdbcTemplate jdbcTemplate;
@@ -92,7 +96,7 @@ class OrderSagaOrchestratorTest extends PostgresRabbitIntegrationTestSupport {
     }
 
     @Test
-    void codHappyPathConfirmsOrderComputesShippingAndNeverHoldsDbTransactionDuringGrpc() {
+    void codHappyPathWaitsForConfirmationAndPublishesOrderPlaced() {
         UUID userId = UUID.randomUUID();
         when(catalogAdapter.getProduct("p-cod")).thenReturn(Optional.of(sampleCatalogProduct("p-cod", "p-cod-v1", "Headset", "White", 200_000L, 1L, false)));
         doAnswer(inv -> {
@@ -101,18 +105,43 @@ class OrderSagaOrchestratorTest extends PostgresRabbitIntegrationTestSupport {
         }).when(inventoryAdapter).reserveStock(any(UUID.class), any(), any());
 
         CreateOrderRequest req = buildRequest(userId, "idem-cod-1", "COD", "p-cod", "p-cod-v1", "Headset", "White", 200_000L, 1L);
+        Instant before = Instant.now();
         CreateOrderResponse resp = orchestrator.createOrder(req);
 
-        assertThat(resp.getStatus()).isEqualTo("CONFIRMED");
+        assertThat(resp.getStatus()).isEqualTo("PENDING_CONFIRMATION");
+        assertThat(resp.getOrder().getPaymentStatus()).isEqualTo("UNPAID");
         assertThat(resp.getOrder().getSubtotal().getAmountMinor()).isEqualTo(200_000L);
         assertThat(resp.getOrder().getShippingFee().getAmountMinor()).isEqualTo(25_000L);
         assertThat(resp.getOrder().getTotalAmount().getAmountMinor()).isEqualTo(225_000L);
+        assertThat(Instant.parse(resp.getOrder().getAutoConfirmAt()))
+                .isBetween(before.plusSeconds(55), Instant.now().plusSeconds(65));
 
-        Integer outboxCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM outbox_events WHERE aggregate_id = ? AND routing_key = 'order.confirmed'",
-                Integer.class,
+        List<String> routingKeys = jdbcTemplate.queryForList(
+                "SELECT routing_key FROM outbox_events WHERE aggregate_id = ?",
+                String.class,
                 resp.getOrderId());
-        assertThat(outboxCount).isEqualTo(1);
+        assertThat(routingKeys).containsExactly("order.placed");
+        assertThat(historyOf(jdbcTemplate, UUID.fromString(resp.getOrderId())))
+                .containsExactly("->PENDING_STOCK:CUSTOMER", "PENDING_STOCK>PENDING_CONFIRMATION:SYSTEM");
+    }
+
+    @Test
+    void codReplayAfterAutoConfirmReturnsOriginalResponse() {
+        UUID userId = UUID.randomUUID();
+        when(catalogAdapter.getProduct("p-cod")).thenReturn(Optional.of(sampleCatalogProduct("p-cod", "p-cod-v1", "Headset", "White", 200_000L, 1L, false)));
+        CreateOrderRequest req = buildRequest(userId, "idem-cod-replay", "COD", "p-cod", "p-cod-v1", "Headset", "White", 200_000L, 1L);
+
+        CreateOrderResponse first = orchestrator.createOrder(req);
+        jdbcTemplate.update("UPDATE orders SET auto_confirm_at = now() - interval '1 second' WHERE id = ?::uuid", first.getOrderId());
+        codAutoConfirmScheduler.confirmDueOrders();
+        assertThat(orderRepository.findById(UUID.fromString(first.getOrderId())).orElseThrow().getStatus())
+                .isEqualTo(OrderStatus.CONFIRMED);
+
+        CreateOrderResponse replay = orchestrator.createOrder(req);
+
+        assertThat(replay.getOrderId()).isEqualTo(first.getOrderId());
+        assertThat(replay.getStatus()).isEqualTo("PENDING_CONFIRMATION");
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM orders", Integer.class)).isEqualTo(1);
     }
 
     @Test

@@ -126,10 +126,10 @@ class IdempotencyServiceTest extends PostgresRabbitIntegrationTestSupport {
                 .isEqualTo("IDEMPOTENCY_KEY_REUSED");
 
         // After completing COD order, replay returns exact CreateOrderResponse
-        CreateOrderResponse confirmedResp = txStepService.confirmCodOrder(winningOrderId, userId, key);
+        CreateOrderResponse confirmedResp = txStepService.markPendingConfirmation(winningOrderId, userId, key);
         CreateOrderResponse replayed = idempotencyService.checkExistingOrThrow(userId, key, fingerprint).orElseThrow();
         assertThat(replayed.getOrderId()).isEqualTo(confirmedResp.getOrderId());
-        assertThat(replayed.getStatus()).isEqualTo("CONFIRMED");
+        assertThat(replayed.getStatus()).isEqualTo("PENDING_CONFIRMATION");
         assertThat(OrderDetail.getDefaultInstance()).isNotEqualTo(replayed.getOrder());
 
         // Even after the 24h TTL window elapses, a key tied to a persisted order replays deterministically

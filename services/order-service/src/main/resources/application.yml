@@ -51,6 +51,9 @@ order:
   reconciliation:
     interval-ms: ${ORDER_RECONCILIATION_INTERVAL_MS:30000}
     pending-stock-timeout: ${ORDER_PENDING_STOCK_TIMEOUT:2m}
+  cod:
+    auto-confirm-delay: ${ORDER_COD_AUTO_CONFIRM_DELAY:1m}
+    auto-confirm-interval-ms: ${ORDER_COD_AUTO_CONFIRM_INTERVAL_MS:5000}
 
 management:
   server:

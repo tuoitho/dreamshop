@@ -168,8 +168,13 @@ public class OrderTransactionStepService {
         return new Tx1Outcome(true, orderId, paymentExpiresAt);
     }
 
+    /**
+     * Moves a COD order whose stock is reserved to PENDING_CONFIRMATION. The order is
+     * confirmed later by {@link CodAutoConfirmScheduler}; OrderPlaced lets Cart clear the
+     * ordered lines right away.
+     */
     @Transactional
-    public CreateOrderResponse confirmCodOrder(UUID orderId, UUID userId, String idempotencyKey) {
+    public CreateOrderResponse markPendingConfirmation(UUID orderId, UUID userId, String idempotencyKey) {
         OrderEntity order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new DomainException(Status.Code.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found"));
         if (order.getStatus() != OrderStatus.PENDING_STOCK) {
@@ -180,12 +185,17 @@ public class OrderTransactionStepService {
         }
 
         Instant now = Instant.now();
-        order.setStatus(OrderStatus.CONFIRMED);
+        Duration delay = properties.cod() != null && properties.cod().autoConfirmDelay() != null
+                ? properties.cod().autoConfirmDelay()
+                : Duration.ofMinutes(1);
+        order.setStatus(OrderStatus.PENDING_CONFIRMATION);
         order.setPaymentStatus(PaymentStatus.UNPAID);
+        order.setAutoConfirmAt(now.plus(delay));
         order.setUpdatedAt(now);
         orderRepository.saveAndFlush(order);
+        recordStatusChange(order, OrderStatus.PENDING_STOCK, ActorType.SYSTEM, null, "", now);
 
-        insertOrderConfirmedOutbox(order, now);
+        insertOrderPlacedOutbox(order, now);
 
         CreateOrderResponse response = OrderProtoMapper.toCreateOrderResponse(order);
         markIdempotencyCompleted(userId, idempotencyKey, orderId, response, now);
@@ -356,6 +366,14 @@ public class OrderTransactionStepService {
     }
 
     public void insertOrderConfirmedOutbox(OrderEntity order, Instant now) {
+        insertOrderItemsEvent(order, "OrderConfirmed", RabbitMqConfig.RK_ORDER_CONFIRMED, now);
+    }
+
+    public void insertOrderPlacedOutbox(OrderEntity order, Instant now) {
+        insertOrderItemsEvent(order, "OrderPlaced", RabbitMqConfig.RK_ORDER_PLACED, now);
+    }
+
+    private void insertOrderItemsEvent(OrderEntity order, String eventType, String routingKey, Instant now) {
         UUID eventId = UUID.randomUUID();
         List<Map<String, Object>> itemRefs = order.getItems().stream()
                 .map(i -> {
@@ -374,7 +392,7 @@ public class OrderTransactionStepService {
         data.put("userId", order.getUserId().toString());
         data.put("items", itemRefs);
 
-        saveOutboxEvent(eventId, "OrderConfirmed", RabbitMqConfig.RK_ORDER_CONFIRMED, order.getId().toString(), data, now);
+        saveOutboxEvent(eventId, eventType, routingKey, order.getId().toString(), data, now);
     }
 
     public void insertCompensationOutbox(String eventType, String routingKey, UUID orderId, String reason, Instant now) {

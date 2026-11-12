@@ -247,7 +247,7 @@ public class OrderSagaOrchestrator {
         }
 
         if (paymentMethod == PaymentMethod.COD) {
-            return txStepService.confirmCodOrder(orderId, userId, idempotencyKey);
+            return txStepService.markPendingConfirmation(orderId, userId, idempotencyKey);
         }
 
         String payUrl;
