@@ -3,6 +3,8 @@ import { toast } from "sonner"
 import type {
   AccountStatus,
   AdminInventoryPage,
+  AdminOrderPage,
+  AdminOrderView,
   AdminProductDetail,
   AdminProductMutationPayload,
   AdminProductsPage,
@@ -12,6 +14,7 @@ import type {
   ApiResponse,
   CurrentUser,
   ListAdminInventoryParams,
+  ListAdminOrdersParams,
   ListAdminProductsParams,
   ListAdminUsersParams,
   LoginRequest,
@@ -21,6 +24,7 @@ import type {
   RbacItem,
   RbacItemType,
   StockMutationResult,
+  UpdateOrderStatusPayload,
 } from "./types"
 import {
   clearAccessToken,
@@ -332,6 +336,50 @@ export async function adjustSkuStock(
     const { data } = await http.post<ApiResponse<StockMutationResult>>(
       `/admin/inventory/skus/${encodeURIComponent(skuId)}/adjust`,
       { productId, delta }
+    )
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+// --- Admin Orders ---
+
+export async function listAdminOrders(
+  params: ListAdminOrdersParams = {},
+  signal?: AbortSignal
+): Promise<AdminOrderPage> {
+  try {
+    const { data } = await http.get<ApiResponse<AdminOrderPage>>("/admin/orders", {
+      params,
+      signal,
+    })
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function getAdminOrder(orderId: string, signal?: AbortSignal): Promise<AdminOrderView> {
+  try {
+    const { data } = await http.get<ApiResponse<AdminOrderView>>(
+      `/admin/orders/${encodeURIComponent(orderId)}`,
+      { signal }
+    )
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function updateAdminOrderStatus(
+  orderId: string,
+  payload: UpdateOrderStatusPayload
+): Promise<AdminOrderView> {
+  try {
+    const { data } = await http.post<ApiResponse<AdminOrderView>>(
+      `/admin/orders/${encodeURIComponent(orderId)}/status`,
+      payload
     )
     return data.data
   } catch (error) {

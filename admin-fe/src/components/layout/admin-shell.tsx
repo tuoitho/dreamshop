@@ -1,6 +1,7 @@
 import {
   Boxes,
   ChevronRight,
+  ClipboardList,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -55,6 +56,12 @@ const NAV_GROUPS: NavGroupConfig[] = [
         icon: Boxes,
         permission: "inventory.view",
       },
+      {
+        to: "/orders",
+        label: "Đơn hàng",
+        icon: ClipboardList,
+        permission: "order.admin.view",
+      },
     ],
   },
   {
@@ -80,6 +87,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/": "Tổng quan vận hành",
   "/products": "Danh mục sản phẩm & Media",
   "/inventory": "Kiểm kê & Điều phối tồn kho",
+  "/orders": "Quản lý đơn hàng",
   "/users": "Quản trị tài khoản người dùng",
   "/rbac": "Cây phân quyền RBAC",
 }

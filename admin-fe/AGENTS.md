@@ -10,6 +10,9 @@ These instructions apply to `admin-fe/` in addition to the root
 - Overview KPIs, stock health breakdown, and low-stock watchlist.
 - Catalog product CRUD, soft-delete/restore, and direct browser S3/MinIO media uploads (`IMAGE` & `VIDEO`).
 - Inventory stock inspection and atomic `SetStock` / `AdjustStock` operations.
+- Order management: status tabs with counts, order code search, order detail with
+  status history, and fulfillment status updates limited to the server-provided
+  `allowedNextStatuses`.
 - User search, `ACTIVE` / `DISABLED` status management, and role assignment/revocation.
 - RBAC roles, permissions, and parent-child hierarchy administration.
 

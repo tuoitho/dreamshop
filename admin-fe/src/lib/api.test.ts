@@ -5,11 +5,14 @@ import {
   adjustSkuStock,
   fetchCurrentUser,
   fetchMyPermissions,
+  getAdminOrder,
   http,
   listAdminInventory,
+  listAdminOrders,
   listAdminProducts,
   refreshHttp,
   setSkuStock,
+  updateAdminOrderStatus,
 } from "./api"
 import { clearAccessToken, setAccessToken } from "./auth-session"
 
@@ -248,5 +251,52 @@ describe("admin api client", () => {
     ])
     expect(setRes).toMatchObject({ skuId: "dt-1-v1", productId: "dt-1", quantity: 25 })
     expect(adjustRes).toMatchObject({ skuId: "dt-1-v1", productId: "dt-1", quantity: 22 })
+  })
+
+  it("lists, reads and updates admin orders through /admin/orders", async () => {
+    setAccessToken("valid-token")
+    const calls: Array<{ method?: string; url?: string; params?: unknown; body: unknown }> = []
+
+    http.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
+      calls.push({
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        params: config.params,
+        body: typeof config.data === "string" ? JSON.parse(config.data) : config.data,
+      })
+      const data =
+        config.url === "/admin/orders"
+          ? { items: [], page: 1, pageSize: 20, totalItems: 0, totalPages: 0, statusCounts: { SHIPPING: 2 } }
+          : { order: { orderId: "ord-1", status: "SHIPPING" }, allowedNextStatuses: ["DELIVERED"] }
+      return { data: { data, message: "ok" }, status: 200, statusText: "OK", headers: {}, config }
+    }
+
+    const page = await listAdminOrders({ status: "SHIPPING", q: "ORD", page: 1 })
+    const view = await getAdminOrder("ord-1")
+    const updated = await updateAdminOrderStatus("ord-1", {
+      expectedStatus: "PREPARING",
+      targetStatus: "SHIPPING",
+      shippingCarrier: "GHN",
+      trackingNumber: "T1",
+    })
+
+    expect(calls).toEqual([
+      { method: "GET", url: "/admin/orders", params: { status: "SHIPPING", q: "ORD", page: 1 }, body: undefined },
+      { method: "GET", url: "/admin/orders/ord-1", params: undefined, body: undefined },
+      {
+        method: "POST",
+        url: "/admin/orders/ord-1/status",
+        params: undefined,
+        body: {
+          expectedStatus: "PREPARING",
+          targetStatus: "SHIPPING",
+          shippingCarrier: "GHN",
+          trackingNumber: "T1",
+        },
+      },
+    ])
+    expect(page.statusCounts.SHIPPING).toBe(2)
+    expect(view.allowedNextStatuses).toEqual(["DELIVERED"])
+    expect(updated.order.status).toBe("SHIPPING")
   })
 })

@@ -272,3 +272,111 @@ export interface RbacItem {
   createdAt: string
   updatedAt: string
 }
+
+export type OrderStatus =
+  | "PENDING_STOCK"
+  | "PENDING_PAYMENT"
+  | "PENDING_CONFIRMATION"
+  | "CONFIRMED"
+  | "PREPARING"
+  | "SHIPPING"
+  | "DELIVERED"
+  | "DELIVERY_FAILED"
+  | "CANCELLED"
+
+export type OrderPaymentMethod = "COD" | "MOMO"
+
+export type OrderPaymentStatus = "UNPAID" | "PENDING" | "PAID" | "FAILED" | "REFUND_REQUIRED"
+
+export type OrderActorType = "SYSTEM" | "CUSTOMER" | "ADMIN"
+
+export interface AdminOrderStatusChange {
+  fromStatus?: OrderStatus
+  toStatus: OrderStatus
+  actorType: OrderActorType
+  reason?: string
+  shippingCarrier?: string
+  trackingNumber?: string
+  createdAt: string
+}
+
+export interface AdminOrderShippingAddress {
+  recipientName: string
+  phone: string
+  provinceCode: string
+  provinceName: string
+  wardCode: string
+  wardName: string
+  addressLine: string
+  label?: string
+}
+
+export interface AdminOrderItem {
+  cartItemId?: string
+  productId: string
+  skuId: string
+  quantity: number
+  unitPrice: number
+  lineTotal: number
+  expectedName: string
+  brand: string
+  categoryName: string
+  variantLabel: string
+  variantColorHex?: string
+  imageUrl: string
+  imageEmoji: string
+  imageHue: number[]
+  expectedProductVersion: number
+}
+
+export interface AdminOrder {
+  orderId: string
+  orderCode: string
+  userId: string
+  status: OrderStatus
+  paymentMethod: OrderPaymentMethod
+  paymentStatus: OrderPaymentStatus
+  shippingAddress: AdminOrderShippingAddress
+  items: AdminOrderItem[]
+  subtotal: number
+  shippingFee: number
+  totalAmount: number
+  currency: string
+  note?: string
+  cancelReason?: string
+  autoConfirmAt?: string
+  shippingCarrier?: string
+  trackingNumber?: string
+  createdAt: string
+  updatedAt: string
+  statusHistory: AdminOrderStatusChange[]
+}
+
+export interface AdminOrderPage {
+  items: AdminOrder[]
+  page: number
+  pageSize: number
+  totalItems: number
+  totalPages: number
+  statusCounts: Partial<Record<OrderStatus, number>>
+}
+
+export interface AdminOrderView {
+  order: AdminOrder
+  allowedNextStatuses: OrderStatus[]
+}
+
+export interface ListAdminOrdersParams {
+  status?: OrderStatus
+  q?: string
+  page?: number
+  pageSize?: number
+}
+
+export interface UpdateOrderStatusPayload {
+  expectedStatus: OrderStatus
+  targetStatus: OrderStatus
+  reason?: string
+  shippingCarrier?: string
+  trackingNumber?: string
+}

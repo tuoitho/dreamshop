@@ -5,6 +5,8 @@ export const ADMIN_CONSOLE_PERMISSIONS = [
   "product.delete",
   "inventory.view",
   "inventory.update",
+  "order.admin.view",
+  "order.admin.update",
   "user.view",
   "user.status.update",
   "user.role.assign",
