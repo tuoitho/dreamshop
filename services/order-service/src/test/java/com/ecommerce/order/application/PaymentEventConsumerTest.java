@@ -171,7 +171,7 @@ class PaymentEventConsumerTest extends PostgresRabbitIntegrationTestSupport {
     }
 
     @Test
-    void cancelOrderEmitsReleaseAndPaymentCancelOnPendingPaymentAndRejectsConfirmed() {
+    void cancelOrderEmitsReleaseAndPaymentCancelOnPendingPaymentAndRejectsShipping() {
         UUID userId = UUID.randomUUID();
         UUID pendingId = seedOrder(userId, "ORD-20261105-CANC01", OrderStatus.PENDING_PAYMENT, PaymentMethod.MOMO, PaymentStatus.PENDING);
 
@@ -184,8 +184,8 @@ class PaymentEventConsumerTest extends PostgresRabbitIntegrationTestSupport {
                 pendingId.toString());
         assertThat(routingKeys).containsExactly("order.payment.cancel_requested", "order.reservation.release_requested");
 
-        UUID confirmedId = seedOrder(userId, "ORD-20261105-CONF01", OrderStatus.CONFIRMED, PaymentMethod.COD, PaymentStatus.UNPAID);
-        assertThatThrownBy(() -> orchestrator.cancelOrder(userId.toString(), confirmedId.toString(), "Muon huy"))
+        UUID shippingId = seedOrder(userId, "ORD-20261105-SHIP01", OrderStatus.SHIPPING, PaymentMethod.COD, PaymentStatus.UNPAID);
+        assertThatThrownBy(() -> orchestrator.cancelOrder(userId.toString(), shippingId.toString(), "Muon huy"))
                 .isInstanceOf(DomainException.class)
                 .extracting(e -> ((DomainException) e).reason())
                 .isEqualTo("ORDER_NOT_CANCELLABLE");

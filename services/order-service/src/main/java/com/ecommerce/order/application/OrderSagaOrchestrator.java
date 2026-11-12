@@ -47,6 +47,7 @@ public class OrderSagaOrchestrator {
     private final PaymentGrpcAdapter paymentAdapter;
     private final IdempotencyService idempotencyService;
     private final OrderTransactionStepService txStepService;
+    private final OrderLifecycleService lifecycleService;
     private final OrderProperties properties;
 
     public OrderSagaOrchestrator(
@@ -56,6 +57,7 @@ public class OrderSagaOrchestrator {
             PaymentGrpcAdapter paymentAdapter,
             IdempotencyService idempotencyService,
             OrderTransactionStepService txStepService,
+            OrderLifecycleService lifecycleService,
             OrderProperties properties) {
         this.authorizationAdapter = authorizationAdapter;
         this.catalogAdapter = catalogAdapter;
@@ -63,6 +65,7 @@ public class OrderSagaOrchestrator {
         this.paymentAdapter = paymentAdapter;
         this.idempotencyService = idempotencyService;
         this.txStepService = txStepService;
+        this.lifecycleService = lifecycleService;
         this.properties = properties;
     }
 
@@ -291,7 +294,7 @@ public class OrderSagaOrchestrator {
         if (!authorizationAdapter.hasPermission(userId, "order.cancel")) {
             throw new DomainException(Status.Code.PERMISSION_DENIED, "ORDER_PERMISSION_DENIED", "Missing order.cancel permission");
         }
-        return txStepService.cancelPendingPaymentOrder(userId, orderId, reason);
+        return lifecycleService.cancelByCustomer(userId, orderId, reason);
     }
 
     private static ProductVariant findVariant(GetProductResponse product, String skuId) {

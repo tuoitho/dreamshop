@@ -1,7 +1,6 @@
 package com.ecommerce.order.application;
 
 import com.ecommerce.contracts.order.v1.CreateOrderResponse;
-import com.ecommerce.contracts.order.v1.OrderDetail;
 import com.ecommerce.contracts.order.v1.ShippingAddressSnapshot;
 import com.ecommerce.order.common.DomainException;
 import com.ecommerce.order.common.TraceIdProvider;
@@ -297,47 +296,6 @@ public class OrderTransactionStepService {
                 idempotencyRepository.saveAndFlush(rec);
             }
         });
-    }
-
-    @Transactional
-    public OrderDetail cancelPendingPaymentOrder(UUID userId, UUID orderId, String reason) {
-        OrderEntity order = orderRepository.findByIdForUpdate(orderId)
-                .filter(o -> o.getUserId().equals(userId))
-                .orElseThrow(() -> new DomainException(Status.Code.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found"));
-
-        if (order.getStatus() == OrderStatus.CANCELLED) {
-            return OrderProtoMapper.toOrderDetail(order);
-        }
-        if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
-            throw new DomainException(
-                    Status.Code.FAILED_PRECONDITION,
-                    "ORDER_NOT_CANCELLABLE",
-                    "Only orders awaiting payment can be cancelled");
-        }
-
-        Instant now = Instant.now();
-        String effectiveReason = (reason == null || reason.isBlank()) ? "USER_CANCELLED" : reason.trim();
-        order.setStatus(OrderStatus.CANCELLED);
-        order.setCancelReason(effectiveReason);
-        order.setPayUrl("");
-        order.setUpdatedAt(now);
-        orderRepository.saveAndFlush(order);
-
-        insertCompensationOutbox(
-                "ReservationReleaseRequested",
-                RabbitMqConfig.RK_RESERVATION_RELEASE_REQUESTED,
-                order.getId(),
-                effectiveReason,
-                now);
-        insertCompensationOutbox(
-                "PaymentCancelRequested",
-                RabbitMqConfig.RK_PAYMENT_CANCEL_REQUESTED,
-                order.getId(),
-                effectiveReason,
-                now);
-        registerOutboxWakeupAfterCommit();
-
-        return OrderProtoMapper.toOrderDetail(order);
     }
 
     /**
