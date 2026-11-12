@@ -402,7 +402,6 @@ public class OrderTransactionStepService {
                 .correlationId(corrId)
                 .payload(JSON.writeValueAsString(envelope))
                 .attempts(0)
-                .nextAttemptAt(now)
                 .lastError("")
                 .createdAt(now)
                 .build());

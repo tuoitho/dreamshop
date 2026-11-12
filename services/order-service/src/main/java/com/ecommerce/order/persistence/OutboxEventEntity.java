@@ -52,7 +52,10 @@ public class OutboxEventEntity {
     @Builder.Default
     private int attempts = 0;
 
-    @Column(name = "next_attempt_at", nullable = false)
+    // Assigned by the column default now(): the relay claims rows with
+    // `next_attempt_at <= now()`, so a new row must be due by the database clock,
+    // not by an application clock that may run ahead of it.
+    @Column(name = "next_attempt_at", nullable = false, insertable = false, updatable = false)
     private Instant nextAttemptAt;
 
     @Column(name = "published_at")

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.ecommerce.order.config.RabbitMqConfig;
 import com.ecommerce.order.support.PostgresRabbitIntegrationTestSupport;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -58,6 +59,25 @@ class OutboxRelaySchedulerTest extends PostgresRabbitIntegrationTestSupport {
                 .to(new TopicExchange(RabbitMqConfig.EXCHANGE_NAME, true, false))
                 .with(routingKey));
         jdbcTemplate.update("UPDATE outbox_events SET next_attempt_at = now() WHERE aggregate_id = ?", orderId.toString());
+
+        relay.flushPendingOutbox();
+
+        assertThat(outboxRow(orderId).get("published_at")).isNotNull();
+        rabbitAdmin.deleteQueue(queue.getName());
+    }
+
+    @Test
+    void eventIsDueImmediatelyWhenTheApplicationClockRunsAheadOfTheDatabase() {
+        String routingKey = "order.test.clock." + UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+        Queue queue = new Queue("probe.clock." + UUID.randomUUID(), false, false, false);
+        rabbitAdmin.declareQueue(queue);
+        rabbitAdmin.declareBinding(BindingBuilder.bind(queue)
+                .to(new TopicExchange(RabbitMqConfig.EXCHANGE_NAME, true, false))
+                .with(routingKey));
+        Instant applicationClockAhead = Instant.now().plus(Duration.ofMinutes(5));
+        transactionTemplate.executeWithoutResult(status ->
+                txStepService.insertCompensationOutbox("TestEvent", routingKey, orderId, "TEST", applicationClockAhead));
 
         relay.flushPendingOutbox();
 
