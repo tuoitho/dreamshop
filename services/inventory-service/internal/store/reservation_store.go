@@ -16,6 +16,7 @@ const (
 	reservationStatusActive    = "ACTIVE"
 	reservationStatusConfirmed = "CONFIRMED"
 	reservationStatusReleased  = "RELEASED"
+	reservationStatusRestocked = "RESTOCKED"
 )
 
 // ReserveStock atomically reserves stock across all requested SKUs for orderID.
@@ -108,7 +109,8 @@ func (s *Store) ReserveStock(ctx context.Context, orderID string, items []domain
 }
 
 // ConfirmReservation deducts physical quantity and reserved units for an ACTIVE
-// reservation in ascending sku_id order. Replays on CONFIRMED or RELEASED are no-ops.
+// reservation in ascending sku_id order. Replays on CONFIRMED, RELEASED or RESTOCKED
+// are no-ops.
 func (s *Store) ConfirmReservation(ctx context.Context, orderID string) (string, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
@@ -240,6 +242,85 @@ func (s *Store) ReleaseReservation(ctx context.Context, orderID, reason string) 
 		return "", fmt.Errorf("commit release reservation %q: %w", orderID, err)
 	}
 	return reservationStatusReleased, nil
+}
+
+// RestockReservation returns stock for an order cancelled after confirmation. A
+// CONFIRMED reservation adds its quantities back and becomes RESTOCKED. An ACTIVE
+// reservation (the confirmation event has not been applied yet) is released
+// instead, so a confirmation arriving later finds nothing to deduct. A missing
+// reservation gets a RELEASED tombstone; other states are idempotent no-ops.
+func (s *Store) RestockReservation(ctx context.Context, orderID, reason string) (string, error) {
+	cleanReason := strings.TrimSpace(reason)
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return "", fmt.Errorf("begin restock reservation tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	tag, err := tx.Exec(ctx, `
+		INSERT INTO stock_reservations (order_id, status, expires_at, release_reason, created_at, updated_at)
+		VALUES ($1, $2, now(), $3, now(), now())
+		ON CONFLICT (order_id) DO NOTHING
+	`, orderID, reservationStatusReleased, cleanReason)
+	if err != nil {
+		return "", fmt.Errorf("insert restock tombstone %q: %w", orderID, err)
+	}
+	if tag.RowsAffected() == 1 {
+		if err := tx.Commit(ctx); err != nil {
+			return "", fmt.Errorf("commit restock tombstone %q: %w", orderID, err)
+		}
+		return reservationStatusReleased, nil
+	}
+
+	var currentStatus string
+	if err := tx.QueryRow(ctx, `
+		SELECT status
+		FROM stock_reservations
+		WHERE order_id = $1
+		FOR UPDATE
+	`, orderID).Scan(&currentStatus); err != nil {
+		return "", fmt.Errorf("lock reservation %q for restock: %w", orderID, err)
+	}
+
+	var stockUpdate, nextStatus string
+	switch currentStatus {
+	case reservationStatusConfirmed:
+		stockUpdate = `UPDATE stock SET quantity = quantity + $2, updated_at = now() WHERE sku_id = $1`
+		nextStatus = reservationStatusRestocked
+	case reservationStatusActive:
+		stockUpdate = `UPDATE stock SET reserved = reserved - $2, updated_at = now() WHERE sku_id = $1`
+		nextStatus = reservationStatusReleased
+	default:
+		if err := tx.Commit(ctx); err != nil {
+			return "", fmt.Errorf("commit idempotent restock %q: %w", orderID, err)
+		}
+		return currentStatus, nil
+	}
+
+	items, err := loadReservationItemsTx(ctx, tx, orderID)
+	if err != nil {
+		return "", err
+	}
+	for _, item := range items {
+		if _, err := tx.Exec(ctx, stockUpdate, item.SkuID, item.Quantity); err != nil {
+			return "", fmt.Errorf("restock sku %q: %w", item.SkuID, err)
+		}
+	}
+
+	if _, err := tx.Exec(ctx, `
+		UPDATE stock_reservations
+		SET status = $2,
+		    release_reason = $3,
+		    updated_at = now()
+		WHERE order_id = $1
+	`, orderID, nextStatus, cleanReason); err != nil {
+		return "", fmt.Errorf("mark reservation %s %q: %w", nextStatus, orderID, err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return "", fmt.Errorf("commit restock reservation %q: %w", orderID, err)
+	}
+	return nextStatus, nil
 }
 
 func loadReservationItemsTx(ctx context.Context, tx pgx.Tx, orderID string) ([]domain.ReservationLine, error) {

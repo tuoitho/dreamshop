@@ -19,6 +19,7 @@ const (
 	DefaultQueueName             = "inventory.order-events"
 	RoutingKeyOrderConfirmed     = "order.confirmed"
 	RoutingKeyReservationRelease = "order.reservation.release_requested"
+	RoutingKeyStockRestock       = "order.stock.restock_requested"
 	maxDeliveryAttempts          = 5
 )
 
@@ -30,6 +31,7 @@ var ErrPermanentMessage = errors.New("permanent event payload error")
 type ReservationHandler interface {
 	ConfirmReservation(ctx context.Context, orderID string) (string, error)
 	ReleaseReservation(ctx context.Context, orderID, reason string) (string, error)
+	RestockReservation(ctx context.Context, orderID, reason string) (string, error)
 }
 
 type eventEnvelope struct {
@@ -112,6 +114,9 @@ func DispatchMessage(ctx context.Context, handler ReservationHandler, routingKey
 		return err
 	case routingKey == RoutingKeyReservationRelease || env.EventType == "ReservationReleaseRequested":
 		_, err := handler.ReleaseReservation(ctx, orderID, env.Data.Reason)
+		return err
+	case routingKey == RoutingKeyStockRestock || env.EventType == "StockRestockRequested":
+		_, err := handler.RestockReservation(ctx, orderID, env.Data.Reason)
 		return err
 	default:
 		return nil
@@ -270,7 +275,7 @@ func declareTopology(ch *amqp.Channel, queueName string) error {
 	if _, err := ch.QueueDeclare(queueName, true, false, false, false, args); err != nil {
 		return fmt.Errorf("declare queue %q: %w", queueName, err)
 	}
-	for _, key := range []string{RoutingKeyOrderConfirmed, RoutingKeyReservationRelease} {
+	for _, key := range []string{RoutingKeyOrderConfirmed, RoutingKeyReservationRelease, RoutingKeyStockRestock} {
 		if err := ch.QueueBind(queueName, key, ExchangeName, false, nil); err != nil {
 			return fmt.Errorf("bind queue %q to %q: %w", queueName, key, err)
 		}

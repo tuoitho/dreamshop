@@ -280,3 +280,110 @@ func TestConcurrentCrossOrderReservationsDoNotDeadlock(t *testing.T) {
 		t.Fatalf("expected Reserved=%d on both SKUs, got a=%+v b=%+v", workers, stA, stB)
 	}
 }
+
+func newRestockRepo(t *testing.T, dbName string) (*Store, context.Context) {
+	t.Helper()
+	pool := isolatedInventoryPool(t, dbName)
+	ctx := context.Background()
+	if err := Migrate(ctx, pool); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+	repo := New(pool)
+	if _, err := repo.SetQuantity(ctx, "sku-rs", "p-rs", 10); err != nil {
+		t.Fatalf("SetQuantity: %v", err)
+	}
+	return repo, ctx
+}
+
+func reserveRestockOrder(t *testing.T, ctx context.Context, repo *Store, orderID string) {
+	t.Helper()
+	if _, err := repo.ReserveStock(ctx, orderID, []domain.ReservationLine{
+		{SkuID: "sku-rs", ProductID: "p-rs", Quantity: 3},
+	}, time.Now().UTC().Add(15*time.Minute)); err != nil {
+		t.Fatalf("ReserveStock: %v", err)
+	}
+}
+
+func assertRestockStock(t *testing.T, ctx context.Context, repo *Store, wantQty, wantReserved int32) {
+	t.Helper()
+	stock, err := repo.Get(ctx, "sku-rs")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if stock.Quantity != wantQty || stock.Reserved != wantReserved {
+		t.Fatalf("expected Quantity=%d Reserved=%d, got %+v", wantQty, wantReserved, stock)
+	}
+}
+
+func TestRestockConfirmedReservationReturnsQuantity(t *testing.T) {
+	repo, ctx := newRestockRepo(t, "inv_restock_confirmed_test")
+	reserveRestockOrder(t, ctx, repo, "ord-rs-1")
+	if _, err := repo.ConfirmReservation(ctx, "ord-rs-1"); err != nil {
+		t.Fatalf("ConfirmReservation: %v", err)
+	}
+	assertRestockStock(t, ctx, repo, 7, 0)
+
+	st, err := repo.RestockReservation(ctx, "ord-rs-1", "ADMIN_CANCELLED")
+	if err != nil || st != "RESTOCKED" {
+		t.Fatalf("RestockReservation: status=%q err=%v", st, err)
+	}
+	assertRestockStock(t, ctx, repo, 10, 0)
+
+	st, err = repo.RestockReservation(ctx, "ord-rs-1", "ADMIN_CANCELLED")
+	if err != nil || st != "RESTOCKED" {
+		t.Fatalf("replayed RestockReservation: status=%q err=%v", st, err)
+	}
+	assertRestockStock(t, ctx, repo, 10, 0)
+}
+
+func TestRestockActiveReservationReleasesInsteadOfDeducting(t *testing.T) {
+	repo, ctx := newRestockRepo(t, "inv_restock_active_test")
+	reserveRestockOrder(t, ctx, repo, "ord-rs-2")
+	assertRestockStock(t, ctx, repo, 10, 3)
+
+	st, err := repo.RestockReservation(ctx, "ord-rs-2", "USER_CANCELLED")
+	if err != nil || st != "RELEASED" {
+		t.Fatalf("RestockReservation: status=%q err=%v", st, err)
+	}
+	assertRestockStock(t, ctx, repo, 10, 0)
+
+	st, err = repo.ConfirmReservation(ctx, "ord-rs-2")
+	if err != nil || st != "RELEASED" {
+		t.Fatalf("late ConfirmReservation: status=%q err=%v", st, err)
+	}
+	assertRestockStock(t, ctx, repo, 10, 0)
+}
+
+func TestConfirmAfterRestockIsNoop(t *testing.T) {
+	repo, ctx := newRestockRepo(t, "inv_confirm_after_restock_test")
+	reserveRestockOrder(t, ctx, repo, "ord-rs-3")
+	if _, err := repo.ConfirmReservation(ctx, "ord-rs-3"); err != nil {
+		t.Fatalf("ConfirmReservation: %v", err)
+	}
+	if _, err := repo.RestockReservation(ctx, "ord-rs-3", "ADMIN_CANCELLED"); err != nil {
+		t.Fatalf("RestockReservation: %v", err)
+	}
+
+	st, err := repo.ConfirmReservation(ctx, "ord-rs-3")
+	if err != nil || st != "RESTOCKED" {
+		t.Fatalf("ConfirmReservation after restock: status=%q err=%v", st, err)
+	}
+	assertRestockStock(t, ctx, repo, 10, 0)
+}
+
+func TestRestockWithoutReservationWritesTombstone(t *testing.T) {
+	repo, ctx := newRestockRepo(t, "inv_restock_tombstone_test")
+
+	st, err := repo.RestockReservation(ctx, "ord-rs-4", "ADMIN_CANCELLED")
+	if err != nil || st != "RELEASED" {
+		t.Fatalf("RestockReservation: status=%q err=%v", st, err)
+	}
+
+	_, err = repo.ReserveStock(ctx, "ord-rs-4", []domain.ReservationLine{
+		{SkuID: "sku-rs", ProductID: "p-rs", Quantity: 3},
+	}, time.Now().UTC().Add(15*time.Minute))
+	if !errors.Is(err, domain.ErrReservationAlreadyReleased) {
+		t.Fatalf("expected ErrReservationAlreadyReleased, got %v", err)
+	}
+	assertRestockStock(t, ctx, repo, 10, 0)
+}

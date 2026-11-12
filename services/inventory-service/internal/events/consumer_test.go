@@ -14,6 +14,7 @@ type fakeReservationHandler struct {
 	mu          sync.Mutex
 	confirmed   []string
 	released    map[string]string
+	restocked   map[string]string
 	confirmErr  error
 	releaseErr  error
 	doneNotifyC chan struct{}
@@ -52,6 +53,32 @@ func (f *fakeReservationHandler) ReleaseReservation(_ context.Context, orderID, 
 		}
 	}
 	return "RELEASED", nil
+}
+
+func (f *fakeReservationHandler) RestockReservation(_ context.Context, orderID, reason string) (string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.restocked == nil {
+		f.restocked = make(map[string]string)
+	}
+	f.restocked[orderID] = reason
+	return "RESTOCKED", nil
+}
+
+func TestDispatchMessageRoutesStockRestockRequested(t *testing.T) {
+	handler := &fakeReservationHandler{}
+	body := []byte(`{"eventId":"e1","eventType":"StockRestockRequested","data":{"orderId":"o-1","reason":"ADMIN_CANCELLED"}}`)
+
+	if err := DispatchMessage(context.Background(), handler, "order.stock.restock_requested", body); err != nil {
+		t.Fatalf("DispatchMessage(order.stock.restock_requested): %v", err)
+	}
+
+	if got := handler.restocked["o-1"]; got != "ADMIN_CANCELLED" {
+		t.Fatalf("restocked[o-1] = %q, want ADMIN_CANCELLED (restocked=%v)", got, handler.restocked)
+	}
+	if len(handler.confirmed) != 0 || len(handler.released) != 0 {
+		t.Fatalf("restock must not confirm or release: confirmed=%v released=%v", handler.confirmed, handler.released)
+	}
 }
 
 func TestHandleMessageRoutesOrderConfirmedAndReleaseRequested(t *testing.T) {
