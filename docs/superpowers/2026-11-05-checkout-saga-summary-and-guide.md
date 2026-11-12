@@ -14,7 +14,7 @@ Hệ thống đặt hàng và thanh toán (`COD` & `MoMo Wallet`) được tri�
 | Thuộc tính | Nhánh 1: Hybrid Saga (`feat/checkout-hybrid`) | Nhánh 2: Pure Event-Driven Saga (`feat/checkout-event-driven`) |
 | --- | --- | --- |
 | **Thư mục Worktree** | `.worktrees/checkout-hybrid` | `.worktrees/checkout-event-driven` |
-| **ADR & Tài liệu thiết kế** | [ADR-013](../adr/013-order-checkout-hybrid-saga-and-payment-service.md), [Spec Hybrid](specs/2026-10-28-order-checkout-saga-design.md) | [ADR-014](../adr/014-pure-event-driven-order-checkout-saga.md), [Spec Event-Driven](specs/2026-11-03-event-driven-order-checkout-saga-design.md) |
+| **ADR & Tài liệu thiết kế** | [ADR-014](../adr/014-order-checkout-saga-and-payment-service.md), [Spec Hybrid](specs/2026-10-28-order-checkout-saga-design.md) | [Spec Event-Driven](specs/2026-11-03-event-driven-order-checkout-saga-design.md) (ADR của nhánh này không có trên `main`) |
 | **Phản hồi `POST /api/v1/orders`** | `201 Created` — trả kết quả chốt đơn hoặc `payUrl` ngay trong 1 vòng HTTP; trả `409 Conflict` trực tiếp nếu hết hàng hoặc lệch giá | `202 Accepted` — ghi nhận đơn ở trạng thái `PENDING_VALIDATION` + ghi Transactional Outbox rồi phản hồi ngay |
 | **Kiểm tra Snapshot Sản phẩm (`Catalog`)** | Đồng bộ trong luồng đặt hàng tại `order-service` qua gRPC `CatalogService.GetProductsBySkus` | Bất đồng bộ tại worker `OrderValidationConsumer` của `order-service` sau khi đơn đã được tiếp nhận |
 | **Giữ chỗ Tồn kho (`Inventory`)** | Đồng bộ qua private gRPC `InventoryService.ReserveStock` | Bất đồng bộ qua RabbitMQ (`order.stock.reserve_requested` → `inventory.stock.reserved` / `inventory.stock.rejected`) kèm Transactional Outbox tại `inventory-service` |
