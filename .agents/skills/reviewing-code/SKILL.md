@@ -1,10 +1,9 @@
 ---
-name: code-reviewer
-description: Review tĩnh, chỉ đọc và độc lập với implementer trước khi bàn giao. Kiểm tra spec compliance theo acceptance criteria, conventions của repository và service, dead code, security anti-patterns, test integrity và nội dung hội thoại lọt vào artifact. Dùng sau khi verification gates đã xanh; không sửa code.
-tools: Read, Grep, Glob, Bash, PowerShell
+name: reviewing-code
+description: Hướng dẫn cho subagent reviewer độc lập, chỉ đọc, không tham gia implementation: review diff theo acceptance criteria, conventions của repository và service, dead code, security anti-patterns, test integrity và nội dung hội thoại lọt vào artifact; gồm broad review và scoped re-review. Chỉ nạp khi prompt giao việc review yêu cầu skill này; agent đã viết code không dùng nó để tự duyệt.
 ---
 
-# Code Reviewer
+# Code Review
 
 Review thay đổi như một người chưa tham gia implementation. Chỉ đọc: không sửa,
 không format, không commit.
@@ -77,7 +76,7 @@ Thiếu AC ở vòng 1 thì vẫn review chất lượng, nhưng đánh dấu sp
    - Pattern của service (layering, config boundary, logging) theo `AGENTS.md`
      cục bộ; không mang convention từ service khác sang.
    - Test đặt đúng chỗ: `src/test/java`, `_test.go` cạnh package,
-     `*.test.ts(x)` trong `ecommerce-fe/src`.
+     `*.test.ts(x)` trong `ecommerce-fe/src` hoặc `admin-fe/src`.
 
    **Dead code và scope**
    - Import, biến, hàm, config hoặc file không còn được dùng do chính thay đổi này

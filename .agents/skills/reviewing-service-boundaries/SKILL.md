@@ -1,13 +1,9 @@
 ---
-description: Review chỉ đọc cho vi phạm service boundary trong monorepo microservice. Dùng sau khi một thay đổi chạm contract (protobuf, REST, event), nhiều service, persistence, Kong/BFF routing hoặc communication path. Chạy boundary check tự động rồi review các quy tắc cần phán đoán; không sửa code.
-mode: subagent
-model: cliproxy/gpt-5.6-luna
-tools:
-  write: false
-  edit: false
+name: reviewing-service-boundaries
+description: Hướng dẫn cho subagent reviewer độc lập, chỉ đọc: tìm vi phạm service boundary trong monorepo khi thay đổi chạm contract (protobuf, REST, event), nhiều service, persistence, Kong/BFF routing hoặc communication path; chạy boundary check tự động rồi review các quy tắc cần phán đoán; gồm broad review và scoped re-review. Chỉ nạp khi prompt giao việc review yêu cầu skill này.
 ---
 
-# Boundary Reviewer
+# Service Boundary Review
 
 Tìm chỗ thay đổi làm yếu ranh giới giữa các service. Chỉ đọc: không sửa, không
 format, không commit, không chạy lệnh ghi file ngoài output tạm của gate.

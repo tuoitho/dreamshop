@@ -49,7 +49,7 @@ git grep -n "com.ecommerce.contracts.<domain>.v1" -- services
 git grep -n "google.api.http" -- contracts/proto/<domain>
 git grep -n "<route hoặc tên RPC>" -- deployments/kong
 # REST consumers
-git grep -n "<path hoặc field>" -- ecommerce-fe/src services/bff-service
+git grep -n "<path hoặc field>" -- ecommerce-fe/src admin-fe/src services/bff-service
 ```
 
 Ghi inventory theo `change-impact.md`: CONTRACT đã đổi, DEPENDENT phải sửa, và
@@ -89,7 +89,8 @@ quay lại bước 2.
 2. Consumer: chỉ sửa consumer cần dùng behavior mới. Chạy
    `make verify SERVICE=<consumer>` cho mọi consumer import package đã đổi, kể cả
    consumer không sửa, vì generated code của chúng đã thay đổi.
-3. Frontend consumer của REST: `make verify SERVICE=ecommerce-fe`.
+3. Frontend consumer của REST: `make verify SERVICE=<frontend>` cho mỗi frontend
+   dùng route hoặc field đã đổi (`ecommerce-fe`, `admin-fe`).
 
 Thứ tự rollout:
 
@@ -103,7 +104,9 @@ Không để correctness phụ thuộc vào việc mọi service deploy cùng l�
 
 ## 6. Review và báo cáo
 
-Giao diff cho `boundary-reviewer`, kèm contract đã đổi và danh sách consumer.
+Giao diff cho một subagent reviewer nạp skill `reviewing-service-boundaries`,
+dùng prompt mẫu trong `fullstack-feature/references/review-prompts.md`, kèm
+contract đã đổi và danh sách consumer.
 
 Báo cáo gồm:
 

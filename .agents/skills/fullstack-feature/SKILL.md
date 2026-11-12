@@ -1,180 +1,139 @@
 ---
 name: fullstack-feature
-description: Điều phối việc xây dựng hoặc thay đổi một feature end-to-end qua một hay nhiều application surface. Dùng khi cần làm rõ requirement và acceptance criteria, xác định phạm vi, chọn single-agent hay selective delegation, ổn định interface khi cần, triển khai theo TDD, chạy verification, self-heal có giới hạn, review độc lập và báo cáo evidence. Skill chỉ quy định workflow; kiến trúc, technology, convention và lệnh kiểm tra phải lấy từ workspace và service-local instructions.
+description: Nghĩa vụ riêng của repository này cho mọi feature hoặc behavior change, áp dụng chồng lên bất kỳ workflow spec/plan/thực thi nào (superpowers brainstorming → writing-plans → subagent-driven-development hoặc executing-plans, hay làm trực tiếp). Dùng khi viết spec hoặc plan cho thay đổi chạm service, frontend, contract hoặc datastore; khi giao task cho subagent; trước khi tuyên bố task hoặc feature đã xong; và trước final review, handoff, PR hoặc merge. Quy định surface map và ownership, gate `make verify`, review bắt buộc bằng subagent nạp skill `reviewing-code` và `reviewing-service-boundaries` của repository, và evidence report.
 ---
 
 # Fullstack Feature
 
-Điều phối feature end-to-end nhưng để repository quyết định cách hiện thực.
+Yêu cầu, spec, plan, TDD và cách thực thi từng task do workflow đang dùng quyết
+định: chuỗi superpowers khi có, hoặc mục Development Process của `AGENTS.md` khi
+làm trực tiếp. Skill này thêm các nghĩa vụ mà workflow chung không biết về
+repository này. Bước tương ứng của workflow chung không thay thế chúng.
 
-## Nguồn sự thật
+| Thời điểm | Nghĩa vụ |
+|---|---|
+| Viết spec hoặc plan | [1. Surface map](#1-surface-map) |
+| Giao task cho subagent | [2. Task context](#2-task-context) |
+| Trước khi tuyên bố task hoặc feature đã xong | [3. Gate theo lớp](#3-gate-theo-lớp) |
+| Sau task cuối, trước handoff, PR hoặc merge | [4. Review của repository](#4-review-của-repository) |
+| Kết thúc | [5. Evidence](#5-evidence) |
 
-Áp dụng theo thứ tự ưu tiên:
+Khi các nguồn mâu thuẫn: quyết định của người dùng, rồi `AGENTS.md` và steering
+docs, rồi skill này, rồi workflow chung.
 
-1. Yêu cầu và quyết định hiện tại của người dùng.
-2. `AGENTS.md`, `CLAUDE.md`, steering docs và instructions áp dụng cho từng thư mục.
-3. Spec, contract/interface và test hiện hữu của repository.
-4. Pattern đang được dùng trong code gần nhất.
-5. Workflow trong skill này.
+## 1. Surface map
 
-Không đưa convention của một stack hoặc project khác vào feature. Không tạo thêm
-manifest cấu hình, repo detector hoặc verification harness nếu repository không yêu
-cầu chúng.
+Spec hoặc plan của feature phải chứa:
 
-Khi cần xác định context hoặc repository có nhiều service, đọc
-[`references/workspace-context.md`](references/workspace-context.md).
+- Từng service, frontend, contract, datastore và routing surface bị ảnh hưởng,
+  phân loại theo [`docs/steering/change-impact.md`](../../../docs/steering/change-impact.md),
+  mỗi surface một owner.
+- Dependency order giữa các surface: contract, rồi provider, rồi consumer, rồi
+  frontend. Ví dụ: `contracts -> order-service -> bff-service -> admin-fe`.
+- Với mỗi task: surface sở hữu, path được sửa và gate
+  `make verify SERVICE=<surface>` của nó.
 
-## Nguyên tắc thực thi
+Thay đổi protobuf, gRPC, event hoặc REST contract dùng chung là task riêng, làm
+theo skill `contract-change`, và phải xong trước khi bắt đầu task provider hoặc
+consumer phụ thuộc vào nó. Feature chạm nhiều service không phải boundary
+violation mặc định; import chéo hoặc truy cập database của service khác thì có.
 
-- Giữ primary agent chịu trách nhiệm end-to-end và cho phép primary trực tiếp viết
-  code trong single-agent mode.
-- Xem primary agent là authority mặc định cho shared/durable interface và quyết
-  định cross-surface, trừ khi ownership đó đã được giao rõ cho một assignee khác.
-- Ưu tiên single-agent. Chỉ delegate khi phần việc độc lập đủ để giảm thời gian hoặc
-  khi người dùng/workspace yêu cầu nhiều agent.
-- Phân chia theo implementation surface và ownership thực tế, không mặc định theo
-  `backend`/`frontend` hoặc theo technology.
-- Chỉ chạy song song sau khi dependency và shared interface liên quan đã ổn định.
-- Để mỗi assignee đọc instructions áp dụng cho surface của mình trước khi sửa code.
-- Giữ test độc lập với implementation trong multi-agent mode khi có thể. Không cho
-  implementation owner sửa hoặc xóa test chỉ để làm gate xanh.
-- Xem kết quả command/harness của repository là bằng chứng pass/fail. Không tự suy
-  diễn rằng gate đã pass khi chưa chạy.
-- Behavior change đi theo TDD: test fail đúng lý do trước, implementation sau.
-- Bug hoặc gate fail chưa rõ nguyên nhân: tìm root cause trước khi sửa; không
-  thử-sai.
-- Implementer không tự duyệt code của mình: review độc lập trước khi bàn giao.
-- Giữ visual review là advisory, trừ khi workspace hoặc người dùng quy định nó là
-  gate.
+Thay đổi làm trực tiếp không qua spec hoặc plan vẫn cần acceptance criteria kiểm
+chứng được ghi lại trước khi sửa code, vì reviewer ở mục 4 nhận AC làm đầu vào.
 
-## Workflow
+## 2. Task context
 
-### 1. Chuẩn hóa yêu cầu
-
-- Ghi lại outcome, hành vi mong đợi, ràng buộc và out-of-scope.
-- Chuyển chúng thành acceptance criteria có thể kiểm chứng.
-- Phân biệt yêu cầu trực tiếp với assumption hoặc derived requirement.
-- Hỏi người dùng trước khi thực hiện một quyết định high-risk không thể suy ra an
-  toàn, như thay đổi public interface gây breaking change, security boundary,
-  destructive migration, dữ liệu nhạy cảm hoặc external side effect khó hoàn tác.
-- Với quyết định low-risk và dễ đảo ngược, nêu assumption rồi tiếp tục.
-
-### 2. Xác định affected surfaces
-
-- Đọc root instructions và chỉ các local instructions có khả năng áp dụng.
-- Xác định từng service, application, contract, datastore hoặc operational surface
-  bị ảnh hưởng.
-- Lập dependency order ngắn gọn và gán một owner cho mỗi surface.
-- Không xem feature chạm nhiều service là boundary violation mặc định.
-
-Ví dụ surface hợp lệ:
+Prompt template của workflow chung không mang thông tin repository. Khi giao
+task cho subagent, thêm khối này vào prompt:
 
 ```text
-order-service -> inventory-service -> web
+Đọc trước khi làm: root AGENTS.md; AGENTS.md gần nhất của <surface>;
+steering: <chỉ các file docs/steering liên quan>; ADR: <nếu task chạm quyết định đã duyệt>.
+Ownership: được sửa <paths>; chỉ đọc <paths, gồm contract và test của owner khác>.
+Interfaces phải tuân thủ: <proto/REST/event + đường dẫn file>.
+Gate: make verify SERVICE=<surface>
+
+- Cần sửa ngoài ownership, đổi contract hoặc test của owner khác: dừng phần phụ
+  thuộc và báo lại kèm lý do.
+- Không sửa generated output bằng tay. Không xóa, skip hoặc hạ assertion để làm
+  gate xanh.
+- Báo cáo commands đã chạy kèm exit code; check nào không chạy được phải nêu lý do.
 ```
 
-### 3. Chọn execution strategy
+## 3. Gate theo lớp
 
-Chọn single-agent khi thay đổi nhỏ, coupling cao, cần nhiều vòng chỉnh chéo, hoặc
-chi phí handoff lớn hơn lợi ích song song hóa.
+Commands lấy từ [`docs/instructions/build-and-test.md`](../../../docs/instructions/build-and-test.md);
+lựa chọn mức test theo [`docs/steering/testing.md`](../../../docs/steering/testing.md).
 
-Chọn selective delegation khi có từ hai implementation unit độc lập, ownership rõ,
-ít shared state và interface dùng chung đã ổn định.
+1. Focused checks cho phần code vừa đổi, trong từng task.
+2. `make verify SERVICE=<surface>` cho mỗi surface đã chạm.
+3. Contract checks khi boundary thay đổi, theo skill `contract-change`.
+4. E2E hoặc repository-wide checks khi scope hoặc risk yêu cầu.
 
-Giao việc cho general-purpose subagent bằng prompt dựng từ
-[`references/delegation-prompts.md`](references/delegation-prompts.md): khung chung
-(outcome, AC, ownership, interface, instructions cần đọc, verification, format báo
-cáo) cộng một phần vai trò (implementer, test owner, interface analyst hoặc visual
-reviewer). Khi có test owner, ghi rõ test artifacts nào thuộc test owner và local
-regression tests nào vẫn thuộc implementer.
+"Tests pass" ở cuối một task chỉ là lớp 1. Lớp 2 phải chạy trên trạng thái code
+cuối cùng, sau commit cuối của feature và trước review ở mục 4. Kết quả gate là
+exit code của command do chính agent điều phối chạy; số test trong báo cáo của
+subagent không phải kết quả gate.
 
-Không delegate chỉ để mô phỏng một pipeline cố định. Không tạo agent theo technology
-hoặc vai trò khi general-purpose assignee nhận prompt đầy đủ làm được. Agent chuyên
-biệt chỉ dành cho việc cần quyền hạn riêng, như reviewer chỉ đọc ở bước 7.
+Trước khi sửa code, ghi lại failure đã tồn tại ở baseline để tách khỏi
+regression. Khi gate fail, áp dụng
+[`references/self-heal-protocol.md`](references/self-heal-protocol.md).
 
-### 4. Quyết định interface/contract
+## 4. Review của repository
 
-Không tạo contract trung gian chỉ để handoff trong một thay đổi nội bộ do một agent
-thực hiện.
+Final whole-branch review của workflow chung được thực hiện bằng các skill review
+của repository, không phải reviewer generic hay review template của workflow đó:
+reviewer generic không kiểm tra service boundary và không áp dụng Finding
+Admission Gate. Review theo từng task của workflow chung giữ nguyên và không
+thay cho bước này.
 
-Cập nhật durable interface khi feature thay đổi public API, cross-service call,
-event/schema hoặc boundary được nhiều implementation unit sử dụng. Dùng artifact mà
-repository đã chọn, ví dụ OpenAPI, Protobuf, event schema hoặc typed interface; không
-mặc định mọi boundary đều là một `openapi.yaml`. Với protobuf, gRPC, event hoặc REST
-contract dùng chung, làm theo skill `contract-change`.
+Mỗi review là một subagent mới chưa tham gia implementation, nhận prompt dựng từ
+[`references/review-prompts.md`](references/review-prompts.md) và nạp đúng một
+skill review:
 
-Trong multi-agent mode, ổn định phần shared interface tối thiểu trước khi dispatch
-các consumer/provider phụ thuộc vào nó. Nếu contract còn tranh chấp, giữ các phần
-phụ thuộc tuần tự.
+- `reviewing-code`: mọi thay đổi.
+- `reviewing-service-boundaries`: thêm khi thay đổi chạm contract, nhiều
+  service, persistence, Kong/BFF routing hoặc communication path.
 
-### 5. Lập test và triển khai
+Hai broad review độc lập với nhau nên dispatch cùng lúc.
 
-- Bám acceptance criteria và testing policy của repository.
-- Với mỗi behavior thay đổi: viết hoặc chọn test, chạy và xác nhận nó fail vì
-  behavior chưa có (không vì syntax, fixture hay environment), implement tối
-  thiểu cho pass, rồi refactor khi test vẫn xanh. Test pass ngay từ đầu nghĩa là
-  nó chưa kiểm chứng thay đổi; sửa test trước khi đi tiếp.
-- Với bug: tái hiện bằng test fail và xác định root cause theo skill
-  `debugging-services` trước khi sửa.
-- Thêm regression coverage cho mọi behavior path thay đổi theo local convention.
-- Nếu dùng multi-agent, giao test/QA độc lập với implementation khi việc đó mang lại
-  kiểm chứng thực sự; không bắt buộc tạo QA agent cho thay đổi nhỏ.
-- Khi không delegate QA, surface owner sở hữu local regression tests. Khi có
-  delegate QA, implementation owner xem các test artifacts đã giao cho QA là
-  read-only và vẫn sở hữu local tests không giao cho QA, trừ khi primary agent
-  chuyển ownership hoặc xác nhận test sai theo self-heal protocol.
-- Triển khai theo dependency order trong single-agent mode, hoặc song song chỉ với
-  các unit đã độc lập.
-- Không sửa file generated thủ công và không mở rộng ownership ngoài scope nếu chưa
-  cập nhật kế hoạch.
+Xử lý kết quả:
 
-### 6. Verify theo lớp
+1. Sửa mọi finding `blocking` và AC chưa đạt; mỗi bản sửa đi qua test fail trước.
+   Finding `major` thì sửa hoặc ghi lý do kỹ thuật không sửa; finding `minor`
+   và `non-blocking` không sửa thì đưa vào evidence report.
+2. Chạy lại focused check và `make verify` của surface bị sửa.
+3. Gửi scoped re-review bằng prompt mẫu tương ứng, nạp đúng skill đã tạo
+   finding: danh sách finding chưa đóng, diff của bản sửa và kết quả chạy lại.
+4. Tối đa 3 vòng cho mỗi skill review trên cùng phạm vi; sau đó dừng và báo người
+   dùng. Giới hạn này thay cho giới hạn vòng final review của workflow chung.
 
-Chạy bằng commands do repository quy định:
+Finding bị bác bỏ phải có lý do kỹ thuật trong evidence report. Visual review cho
+thay đổi UI là advisory, trừ khi người dùng hoặc workspace quy định nó là gate.
 
-1. Focused checks cho phần code vừa đổi.
-2. Surface-level build, lint và test liên quan.
-3. Contract/integration checks qua boundary đã thay đổi.
-4. E2E hoặc repository-wide gates khi scope/risk yêu cầu.
+## 5. Evidence
 
-Nếu repository có canonical CI script hoặc harness, dùng nó làm gate chính. Nếu
-không có, chạy trực tiếp các command đã được instructions/build files xác nhận;
-không dựng một universal harness trong feature task.
+Khi workflow có ledger (`.superpowers/sdd/<plan>/progress.md`), ghi gate và
+review vào đó ngay khi có kết quả:
 
-Khi fail, áp dụng [`references/self-heal-protocol.md`](references/self-heal-protocol.md).
+```text
+Gate: make verify SERVICE=order-service → exit 0
+Final: reviewing-code round 1 — CHANGES REQUESTED (2 blocking)
+Final: reviewing-code round 2 — APPROVE
+Final: reviewing-service-boundaries round 1 — PASS
+```
 
-### 7. Review độc lập
-
-Sau khi gates xanh và trước khi bàn giao, giao diff cho reviewer không tham gia
-implementation:
-
-- `code-reviewer`: spec compliance theo AC, conventions, dead code, security
-  anti-patterns, test integrity và nội dung hội thoại lọt vào artifact.
-- `boundary-reviewer`: thêm khi thay đổi chạm contract, nhiều service, persistence,
-  routing hoặc communication path.
-
-Truyền cho reviewer: diff range, AC, contract đã đổi và commands đã chạy. Không
-đưa lời biện minh thiết kế hoặc gợi ý hạ mức độ lỗi ("do not flag", "at most
-minor") vào prompt gọi reviewer để giữ tính độc lập.
-
-Sửa các finding blocking, chạy lại focused gate, rồi gửi reviewer re-review đúng
-phạm vi đã sửa (scoped re-review: từ vòng 2 chỉ kiểm tra finding cũ chưa đóng và
-regression trực tiếp do bản sửa tạo ra; không mở rộng bới thêm lỗi minor mới để
-block). Finding bị bác bỏ phải có lý do kỹ thuật trong báo cáo cuối. Tối đa 3
-vòng cho mỗi cổng review trên cùng phạm vi; sau đó báo người dùng.
-
-### 8. Kết thúc bằng evidence
-
-Chỉ tuyên bố hoàn thành khi các acceptance criteria trong scope đã có evidence.
-Báo cáo ngắn gọn:
+Ledger bị xóa khi plan kết thúc, nên báo cáo cuối và mô tả PR phải tự mang đủ:
 
 - surfaces và behavior đã thay đổi;
-- contract/interface đã thêm hoặc cập nhật;
-- commands thực tế đã chạy và kết quả;
+- contract hoặc interface đã thêm hoặc cập nhật;
+- commands đã chạy kèm exit code;
 - checks bị skip cùng lý do;
-- kết quả review độc lập và findings còn mở;
-- assumptions hoặc high-risk decisions đã được chốt;
+- verdict của từng skill review, số vòng, findings còn mở và findings bị bác
+  bỏ kèm lý do; ghi `reviewing-service-boundaries: không áp dụng — <lý do>`
+  khi thay đổi không thuộc phạm vi của nó;
+- assumptions và high-risk decisions đã được chốt;
 - blocker hoặc residual risk còn lại.
 
-Nếu UI thay đổi, có thể đề xuất hoặc thực hiện visual review sau functional gates và ghi
-rõ kết quả advisory hay blocking theo rules của workspace.
+Chỉ tuyên bố hoàn thành khi mọi AC trong scope có evidence, lớp gate 2 đã chạy
+trên trạng thái cuối và verdict review đã được ghi lại.

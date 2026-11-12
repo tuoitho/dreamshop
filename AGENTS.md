@@ -73,15 +73,24 @@ dependent services, but modify them only when a contract change requires it.
 
 ## Development Process
 
+- Features and multi-step behavior changes apply the `fullstack-feature` skill
+  on top of whichever spec, plan, and execution workflow is in use (for example
+  superpowers brainstorming → writing-plans → subagent-driven-development or
+  executing-plans). That workflow owns the spec, the plan, and task execution;
+  the skill adds this repository's surface map, layered gates, final review,
+  and evidence report.
 - Behavior changes follow test-driven development: write or select a test, run
   it, confirm it fails for the missing behavior, then implement until it passes.
 - Bugs, failing gates, and flaky tests require a root cause backed by evidence
   before any fix; follow the `debugging-services` skill.
 - Contract changes follow the `contract-change` skill.
-- Before handoff, an independent read-only reviewer that did not implement the
-  change reviews the diff: `code-reviewer` for every change, plus
-  `boundary-reviewer` when contracts, several services, persistence, routing,
-  or communication paths change.
+- Before handoff, a fresh read-only reviewer subagent that did not implement
+  the change reviews the diff with a prompt built from the `fullstack-feature`
+  skill's `references/review-prompts.md`: it loads the `reviewing-code` skill
+  for every change, and a second reviewer loads `reviewing-service-boundaries`
+  when contracts, several services, persistence, routing, or communication
+  paths change. The final whole-branch review of a plan-driven workflow uses
+  these skills; a generic reviewer from that workflow does not replace them.
 - Gate results come from exit codes of `make verify SERVICE=<surface>` and the
   commands in [`docs/instructions/build-and-test.md`](docs/instructions/build-and-test.md).
 
