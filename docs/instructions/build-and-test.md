@@ -30,7 +30,7 @@ gate for one surface. Its exit code is the gate result.
 | Java service, e.g. `identity-service` | `mvn --batch-mode --no-transfer-progress -pl services/<name> -am verify` |
 | Go service, e.g. `cart-service` | `go build` and `go test` for `./services/<name>/...` |
 | `ecommerce-fe`, `admin-fe` | Frontend tests, lint, and build |
-| `contracts` | Contract checks below (`buf format`, `buf lint`, `buf generate`, clean diff) |
+| `contracts` | Contract checks below (`buf format`, `buf lint`, `buf breaking` against `main`, `buf generate`, clean diff) |
 
 On Windows, the `cart-service` gate tests `./services/cart-service/internal/...`
 only, for the reason described at the end of this document.
@@ -71,13 +71,18 @@ $gitRoot = Split-Path (Split-Path (Get-Command git).Source -Parent) -Parent
 $env:PATH = "$gitRoot\usr\bin;$env:PATH"
 buf format --diff --exit-code
 buf lint
+buf breaking --against "$(git rev-parse --git-common-dir)#branch=main"
 buf generate
 git diff --exit-code -- contracts/go contracts/java/src/main/generated
 git ls-files --others --exclude-standard -- contracts/go contracts/java/src/main/generated
 ```
 
 The Git for Windows `usr\bin` path provides the `diff` executable used by
-`buf format --diff`; it is unnecessary on Linux CI. Any output from the last
+`buf format --diff`; it is unnecessary on Linux CI. `buf breaking` compares the
+protobuf sources with the local `main` branch; `--git-common-dir` resolves to
+the main repository's `.git` when run from a linked worktree. A failure means
+the change is wire-incompatible and needs the explicit approval described in
+the `contract-change` skill. Any output from the last
 command means a generated file has not been staged. Run the affected language
 build after changing generated contracts. Protobuf sources live under
 `contracts/`; generated Java and Go modules are consumed by their owning

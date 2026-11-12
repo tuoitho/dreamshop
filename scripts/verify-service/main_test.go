@@ -75,6 +75,9 @@ func TestVerifyServiceJavaAndFrontendAndContracts(t *testing.T) {
 	execMock := func(dir, name string, args ...string) (string, int) {
 		cmd := name + " " + strings.Join(args, " ")
 		recorded = append(recorded, cmd)
+		if cmd == "git rev-parse --git-common-dir" {
+			return ".git\n", 0
+		}
 		return "", 0
 	}
 
@@ -103,8 +106,10 @@ func TestVerifyServiceJavaAndFrontendAndContracts(t *testing.T) {
 		"npm --prefix admin-fe test -- --run",
 		"npm --prefix admin-fe run lint",
 		"npm --prefix admin-fe run build",
+		"git rev-parse --git-common-dir",
 		"buf format --diff --exit-code",
 		"buf lint",
+		"buf breaking --against .git#branch=main",
 		"buf generate",
 		"git diff --exit-code -- contracts/go contracts/java/src/main/generated",
 		"git ls-files --others --exclude-standard -- contracts/go contracts/java/src/main/generated",
