@@ -7,6 +7,7 @@ import com.ecommerce.order.common.DomainException;
 import com.ecommerce.order.common.TraceIdProvider;
 import com.ecommerce.order.config.OrderProperties;
 import com.ecommerce.order.config.RabbitMqConfig;
+import com.ecommerce.order.domain.ActorType;
 import com.ecommerce.order.domain.OrderStatus;
 import com.ecommerce.order.domain.PaymentMethod;
 import com.ecommerce.order.domain.PaymentStatus;
@@ -17,6 +18,8 @@ import com.ecommerce.order.persistence.IdempotencyRecordRepository;
 import com.ecommerce.order.persistence.OrderEntity;
 import com.ecommerce.order.persistence.OrderItemEntity;
 import com.ecommerce.order.persistence.OrderRepository;
+import com.ecommerce.order.persistence.OrderStatusHistoryEntity;
+import com.ecommerce.order.persistence.OrderStatusHistoryRepository;
 import com.ecommerce.order.persistence.OutboxEventEntity;
 import com.ecommerce.order.persistence.OutboxEventRepository;
 import io.grpc.Status;
@@ -38,6 +41,7 @@ public class OrderTransactionStepService {
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
     private final OrderRepository orderRepository;
+    private final OrderStatusHistoryRepository statusHistoryRepository;
     private final IdempotencyRecordRepository idempotencyRepository;
     private final OutboxEventRepository outboxRepository;
     private final IdempotencyService idempotencyService;
@@ -50,6 +54,7 @@ public class OrderTransactionStepService {
 
     public OrderTransactionStepService(
             OrderRepository orderRepository,
+            OrderStatusHistoryRepository statusHistoryRepository,
             IdempotencyRecordRepository idempotencyRepository,
             OutboxEventRepository outboxRepository,
             IdempotencyService idempotencyService,
@@ -57,6 +62,7 @@ public class OrderTransactionStepService {
             OrderProperties properties,
             JdbcTemplate jdbcTemplate) {
         this.orderRepository = orderRepository;
+        this.statusHistoryRepository = statusHistoryRepository;
         this.idempotencyRepository = idempotencyRepository;
         this.outboxRepository = outboxRepository;
         this.idempotencyService = idempotencyService;
@@ -158,6 +164,7 @@ public class OrderTransactionStepService {
             order.addItem(item);
         }
         orderRepository.saveAndFlush(order);
+        recordStatusChange(order, null, ActorType.CUSTOMER, userId, "", now);
         return new Tx1Outcome(true, orderId, paymentExpiresAt);
     }
 
@@ -220,6 +227,7 @@ public class OrderTransactionStepService {
         order.setPayUrl(payUrl);
         order.setUpdatedAt(now);
         orderRepository.saveAndFlush(order);
+        recordStatusChange(order, OrderStatus.PENDING_STOCK, ActorType.SYSTEM, null, "", now);
 
         CreateOrderResponse response = OrderProtoMapper.toCreateOrderResponse(order);
         markIdempotencyCompleted(userId, idempotencyKey, orderId, response, now);
@@ -247,6 +255,7 @@ public class OrderTransactionStepService {
             order.setPayUrl("");
             order.setUpdatedAt(now);
             orderRepository.saveAndFlush(order);
+            recordStatusChange(order, OrderStatus.PENDING_STOCK, ActorType.SYSTEM, null, cancelReason, now);
 
             if (releaseStock) {
                 insertCompensationOutbox(
@@ -319,6 +328,31 @@ public class OrderTransactionStepService {
         registerOutboxWakeupAfterCommit();
 
         return OrderProtoMapper.toOrderDetail(order);
+    }
+
+    /**
+     * Appends a history entry for the order's current status. Call it in the same
+     * transaction as the status change so history and state never diverge.
+     */
+    public void recordStatusChange(
+            OrderEntity order,
+            OrderStatus fromStatus,
+            ActorType actorType,
+            UUID actorId,
+            String reason,
+            Instant at) {
+        statusHistoryRepository.save(OrderStatusHistoryEntity.builder()
+                .id(UUID.randomUUID())
+                .orderId(order.getId())
+                .fromStatus(fromStatus)
+                .toStatus(order.getStatus())
+                .actorType(actorType)
+                .actorId(actorId)
+                .reason(reason == null ? "" : reason)
+                .shippingCarrier(order.getShippingCarrier() == null ? "" : order.getShippingCarrier())
+                .trackingNumber(order.getTrackingNumber() == null ? "" : order.getTrackingNumber())
+                .createdAt(at)
+                .build());
     }
 
     public void insertOrderConfirmedOutbox(OrderEntity order, Instant now) {

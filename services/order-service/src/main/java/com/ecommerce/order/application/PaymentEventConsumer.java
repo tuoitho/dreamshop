@@ -1,6 +1,7 @@
 package com.ecommerce.order.application;
 
 import com.ecommerce.order.config.RabbitMqConfig;
+import com.ecommerce.order.domain.ActorType;
 import com.ecommerce.order.domain.OrderStatus;
 import com.ecommerce.order.domain.PaymentStatus;
 import com.ecommerce.order.persistence.OrderEntity;
@@ -90,6 +91,7 @@ public class PaymentEventConsumer {
 
         if (RabbitMqConfig.RK_PAYMENT_SUCCEEDED.equals(routingKey) || "PaymentSucceeded".equals(eventType)) {
             if (order.getStatus() == OrderStatus.PENDING_PAYMENT || order.getStatus() == OrderStatus.PENDING_STOCK) {
+                OrderStatus previous = order.getStatus();
                 order.setStatus(OrderStatus.CONFIRMED);
                 order.setPaymentStatus(PaymentStatus.PAID);
                 if (!momoTransId.isEmpty()) {
@@ -97,6 +99,7 @@ public class PaymentEventConsumer {
                 }
                 order.setUpdatedAt(now);
                 orderRepository.saveAndFlush(order);
+                txStepService.recordStatusChange(order, previous, ActorType.SYSTEM, null, "", now);
 
                 txStepService.insertOrderConfirmedOutbox(order, now);
                 txStepService.registerOutboxWakeupAfterCommit();
@@ -124,6 +127,8 @@ public class PaymentEventConsumer {
                 order.setPayUrl("");
                 order.setUpdatedAt(now);
                 orderRepository.saveAndFlush(order);
+                txStepService.recordStatusChange(
+                        order, OrderStatus.PENDING_PAYMENT, ActorType.SYSTEM, null, "PAYMENT_FAILED", now);
 
                 txStepService.insertCompensationOutbox(
                         "ReservationReleaseRequested",

@@ -1,5 +1,6 @@
 package com.ecommerce.order.application;
 
+import static com.ecommerce.order.support.StatusHistoryQueries.historyOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -131,6 +132,13 @@ class OrderSagaOrchestratorTest extends PostgresRabbitIntegrationTestSupport {
 
         Integer compOutbox1 = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM outbox_events", Integer.class);
         assertThat(compOutbox1).isZero();
+        UUID insufficientOrderId = orderRepository.findAll().stream()
+                .filter(o -> "idem-inv-insuff".equals(o.getIdempotencyKey()))
+                .findFirst()
+                .orElseThrow()
+                .getId();
+        assertThat(historyOf(jdbcTemplate, insufficientOrderId))
+                .containsExactly("->PENDING_STOCK:CUSTOMER", "PENDING_STOCK>CANCELLED:SYSTEM");
 
         reset(inventoryAdapter);
         doAnswer(inv -> {
@@ -161,6 +169,8 @@ class OrderSagaOrchestratorTest extends PostgresRabbitIntegrationTestSupport {
                 buildRequest(userId, "idem-momo-ok", "MOMO", "p-momo", "p-momo-v1", "Laptop", "Silver", 500_000L, 1L));
         assertThat(momoOk.getStatus()).isEqualTo("PENDING_PAYMENT");
         assertThat(momoOk.getPayUrl()).isEqualTo("https://momo.test/pay/ok-1");
+        assertThat(historyOf(jdbcTemplate, UUID.fromString(momoOk.getOrderId())))
+                .containsExactly("->PENDING_STOCK:CUSTOMER", "PENDING_STOCK>PENDING_PAYMENT:SYSTEM");
 
         // Timeout on CreatePaymentSession emits BOTH release stock and cancel payment
         reset(paymentAdapter);

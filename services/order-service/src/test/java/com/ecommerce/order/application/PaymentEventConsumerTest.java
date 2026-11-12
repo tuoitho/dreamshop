@@ -1,5 +1,6 @@
 package com.ecommerce.order.application;
 
+import static com.ecommerce.order.support.StatusHistoryQueries.historyOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -36,6 +37,9 @@ class PaymentEventConsumerTest extends PostgresRabbitIntegrationTestSupport {
 
     @Autowired
     OrderRepository orderRepository;
+
+    @Autowired
+    OrderQueryService orderQueryService;
 
     @Autowired
     JdbcTemplate jdbcTemplate;
@@ -84,6 +88,18 @@ class PaymentEventConsumerTest extends PostgresRabbitIntegrationTestSupport {
                 Integer.class,
                 orderId.toString());
         assertThat(confirmedOutbox).isEqualTo(1);
+        assertThat(historyOf(jdbcTemplate, orderId)).containsExactly("PENDING_PAYMENT>CONFIRMED:SYSTEM");
+
+        when(authorizationAdapter.hasPermission(any(UUID.class), eq("order.view"))).thenReturn(true);
+        OrderDetail detail = orderQueryService.getOrder(userId.toString(), orderId.toString());
+        assertThat(detail.getStatusHistoryList())
+                .singleElement()
+                .satisfies(change -> {
+                    assertThat(change.getFromStatus()).isEqualTo("PENDING_PAYMENT");
+                    assertThat(change.getToStatus()).isEqualTo("CONFIRMED");
+                    assertThat(change.getActorType()).isEqualTo("SYSTEM");
+                    assertThat(change.getCreatedAt()).isNotBlank();
+                });
 
         // Late PaymentFailed after CONFIRMED is a no-op
         String failedJson = """
@@ -100,6 +116,25 @@ class PaymentEventConsumerTest extends PostgresRabbitIntegrationTestSupport {
         OrderEntity stillConfirmed = orderRepository.findById(orderId).orElseThrow();
         assertThat(stillConfirmed.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
         assertThat(stillConfirmed.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+    }
+
+    @Test
+    void paymentFailedCancelsPendingOrderAndRecordsHistory() {
+        UUID userId = UUID.randomUUID();
+        UUID orderId = seedOrder(userId, "ORD-20261112-PFAIL1", OrderStatus.PENDING_PAYMENT, PaymentMethod.MOMO, PaymentStatus.PENDING);
+
+        paymentEventConsumer.handleMessage("payment.failed", """
+                {
+                  "eventId": "evt-fail-1",
+                  "eventType": "PaymentFailed",
+                  "eventVersion": 1,
+                  "aggregateId": "%s",
+                  "data": { "orderId": "%s", "message": "Declined" }
+                }
+                """.formatted(orderId, orderId));
+
+        assertThat(orderRepository.findById(orderId).orElseThrow().getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        assertThat(historyOf(jdbcTemplate, orderId)).containsExactly("PENDING_PAYMENT>CANCELLED:SYSTEM");
     }
 
     @Test

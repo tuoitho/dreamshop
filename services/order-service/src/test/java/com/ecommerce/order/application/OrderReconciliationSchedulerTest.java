@@ -1,5 +1,6 @@
 package com.ecommerce.order.application;
 
+import static com.ecommerce.order.support.StatusHistoryQueries.historyOf;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.ecommerce.order.domain.OrderStatus;
@@ -140,5 +141,12 @@ class OrderReconciliationSchedulerTest extends PostgresRabbitIntegrationTestSupp
                 String.class,
                 expiredPaymentId.toString());
         assertThat(expOutbox).containsExactly("order.payment.cancel_requested", "order.reservation.release_requested");
+
+        assertThat(historyOf(jdbcTemplate, staleStockId)).containsExactly("PENDING_STOCK>CANCELLED:SYSTEM");
+        assertThat(historyOf(jdbcTemplate, expiredPaymentId)).containsExactly("PENDING_PAYMENT>CANCELLED:SYSTEM");
+        assertThat(jdbcTemplate.queryForList(
+                "SELECT reason FROM order_status_history WHERE order_id IN (?, ?) ORDER BY reason",
+                String.class, staleStockId, expiredPaymentId))
+                .containsExactly("PAYMENT_EXPIRED", "PENDING_STOCK_TIMEOUT");
     }
 }

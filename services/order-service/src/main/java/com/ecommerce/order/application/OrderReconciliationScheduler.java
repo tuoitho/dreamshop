@@ -2,6 +2,7 @@ package com.ecommerce.order.application;
 
 import com.ecommerce.order.config.OrderProperties;
 import com.ecommerce.order.config.RabbitMqConfig;
+import com.ecommerce.order.domain.ActorType;
 import com.ecommerce.order.domain.OrderStatus;
 import com.ecommerce.order.domain.PaymentMethod;
 import com.ecommerce.order.domain.PaymentStatus;
@@ -89,6 +90,8 @@ public class OrderReconciliationScheduler {
                 order.setPayUrl("");
                 order.setUpdatedAt(now);
                 orderRepository.saveAndFlush(order);
+                txStepService.recordStatusChange(
+                        order, OrderStatus.PENDING_STOCK, ActorType.SYSTEM, null, "PENDING_STOCK_TIMEOUT", now);
 
                 idempotencyRepository.findById(new IdempotencyRecordId(order.getUserId(), order.getIdempotencyKey()))
                         .ifPresent(rec -> {
@@ -155,6 +158,8 @@ public class OrderReconciliationScheduler {
                 order.setPayUrl("");
                 order.setUpdatedAt(now);
                 orderRepository.saveAndFlush(order);
+                txStepService.recordStatusChange(
+                        order, OrderStatus.PENDING_PAYMENT, ActorType.SYSTEM, null, "PAYMENT_EXPIRED", now);
 
                 txStepService.insertCompensationOutbox(
                         "ReservationReleaseRequested",
