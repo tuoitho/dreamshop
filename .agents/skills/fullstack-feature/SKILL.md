@@ -40,6 +40,10 @@ violation mặc định; import chéo hoặc truy cập database của service k
 
 Thay đổi làm trực tiếp không qua spec hoặc plan vẫn cần acceptance criteria kiểm
 chứng được ghi lại trước khi sửa code, vì reviewer ở mục 4 nhận AC làm đầu vào.
+Không có plan nhắc từng bước TDD, nên với mỗi behavior change: viết test, chạy nó
+và thấy nó fail vì behavior chưa có, rồi mới sửa code production. Lệnh và kết quả
+fail đó là một dòng trong evidence report; test được viết cùng lúc với code thì
+không chứng minh được gì về thay đổi.
 
 ## 2. Task context
 
@@ -127,7 +131,7 @@ Ledger bị xóa khi plan kết thúc, nên báo cáo cuối và mô tả PR ph�
 
 - surfaces và behavior đã thay đổi;
 - contract hoặc interface đã thêm hoặc cập nhật;
-- commands đã chạy kèm exit code;
+- commands đã chạy kèm exit code, gồm lần chạy test fail trước khi sửa code;
 - checks bị skip cùng lý do;
 - verdict của từng skill review, số vòng, findings còn mở và findings bị bác
   bỏ kèm lý do; ghi `reviewing-service-boundaries: không áp dụng — <lý do>`
