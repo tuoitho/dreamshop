@@ -2,6 +2,7 @@ package com.ecommerce.order.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.ecommerce.order.domain.ActorType;
 import com.ecommerce.order.domain.OrderStatus;
 import com.ecommerce.order.domain.PaymentMethod;
 import com.ecommerce.order.domain.PaymentStatus;
@@ -25,6 +26,9 @@ class OrderMigrationAndLockingTest extends PostgresRabbitIntegrationTestSupport 
 
     @Autowired
     TransactionTemplate transactionTemplate;
+
+    @Autowired
+    OrderStatusHistoryRepository statusHistoryRepository;
 
     @BeforeEach
     void cleanTables() {
@@ -100,5 +104,62 @@ class OrderMigrationAndLockingTest extends PostgresRabbitIntegrationTestSupport 
         assertThat(locked).isNotNull();
         assertThat(locked.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
         assertThat(locked.getVersion()).isGreaterThanOrEqualTo(1L);
+    }
+
+    @Test
+    void persistsFulfillmentFieldsAndStatusHistory() {
+        UUID orderId = UUID.randomUUID();
+        Instant autoConfirmAt = Instant.parse("2026-11-12T08:00:00Z");
+        orderRepository.saveAndFlush(OrderEntity.builder()
+                .id(orderId)
+                .orderCode("ORD-20261112-DELIV1")
+                .userId(UUID.randomUUID())
+                .idempotencyKey("idem-deliv-1")
+                .status(OrderStatus.DELIVERED)
+                .paymentMethod(PaymentMethod.COD)
+                .paymentStatus(PaymentStatus.PAID)
+                .recipientName("Nguyen Van A")
+                .recipientPhone("0901234567")
+                .provinceCode("79")
+                .provinceName("TP. Ho Chi Minh")
+                .wardCode("26734")
+                .wardName("Phuong Ben Nghe")
+                .addressLine("1 Le Duan")
+                .subtotalMinor(100_000L)
+                .shippingFeeMinor(0L)
+                .totalAmountMinor(100_000L)
+                .autoConfirmAt(autoConfirmAt)
+                .shippingCarrier("GHN")
+                .trackingNumber("T1")
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build());
+        UUID adminId = UUID.randomUUID();
+        statusHistoryRepository.saveAndFlush(OrderStatusHistoryEntity.builder()
+                .id(UUID.randomUUID())
+                .orderId(orderId)
+                .fromStatus(OrderStatus.SHIPPING)
+                .toStatus(OrderStatus.DELIVERED)
+                .actorType(ActorType.ADMIN)
+                .actorId(adminId)
+                .shippingCarrier("GHN")
+                .trackingNumber("T1")
+                .createdAt(Instant.now())
+                .build());
+
+        OrderEntity reloaded = orderRepository.findById(orderId).orElseThrow();
+        assertThat(reloaded.getStatus()).isEqualTo(OrderStatus.DELIVERED);
+        assertThat(reloaded.getAutoConfirmAt()).isEqualTo(autoConfirmAt);
+        assertThat(reloaded.getShippingCarrier()).isEqualTo("GHN");
+        assertThat(reloaded.getTrackingNumber()).isEqualTo("T1");
+
+        List<OrderStatusHistoryEntity> history = statusHistoryRepository.findByOrderIdOrderByCreatedAtAsc(orderId);
+        assertThat(history).singleElement().satisfies(entry -> {
+            assertThat(entry.getFromStatus()).isEqualTo(OrderStatus.SHIPPING);
+            assertThat(entry.getToStatus()).isEqualTo(OrderStatus.DELIVERED);
+            assertThat(entry.getActorType()).isEqualTo(ActorType.ADMIN);
+            assertThat(entry.getActorId()).isEqualTo(adminId);
+            assertThat(entry.getReason()).isEmpty();
+        });
     }
 }

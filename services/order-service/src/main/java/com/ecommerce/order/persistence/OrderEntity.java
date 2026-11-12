@@ -115,6 +115,17 @@ public class OrderEntity {
     @Builder.Default
     private String cancelReason = "";
 
+    @Column(name = "auto_confirm_at")
+    private Instant autoConfirmAt;
+
+    @Column(name = "shipping_carrier", nullable = false, length = 100)
+    @Builder.Default
+    private String shippingCarrier = "";
+
+    @Column(name = "tracking_number", nullable = false, length = 100)
+    @Builder.Default
+    private String trackingNumber = "";
+
     @Version
     @Column(name = "version", nullable = false)
     private long version;
