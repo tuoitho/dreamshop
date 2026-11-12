@@ -29,6 +29,7 @@ import com.ecommerce.order.persistence.OrderEntity;
 import com.ecommerce.order.persistence.OrderRepository;
 import com.ecommerce.order.support.PostgresRabbitIntegrationTestSupport;
 import io.grpc.Status;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -132,7 +133,8 @@ class OrderSagaOrchestratorTest extends PostgresRabbitIntegrationTestSupport {
         CreateOrderRequest req = buildRequest(userId, "idem-cod-replay", "COD", "p-cod", "p-cod-v1", "Headset", "White", 200_000L, 1L);
 
         CreateOrderResponse first = orchestrator.createOrder(req);
-        jdbcTemplate.update("UPDATE orders SET auto_confirm_at = now() - interval '1 second' WHERE id = ?::uuid", first.getOrderId());
+        jdbcTemplate.update("UPDATE orders SET auto_confirm_at = ? WHERE id = ?::uuid",
+                Timestamp.from(Instant.now().minusSeconds(5)), first.getOrderId());
         codAutoConfirmScheduler.confirmDueOrders();
         assertThat(orderRepository.findById(UUID.fromString(first.getOrderId())).orElseThrow().getStatus())
                 .isEqualTo(OrderStatus.CONFIRMED);
