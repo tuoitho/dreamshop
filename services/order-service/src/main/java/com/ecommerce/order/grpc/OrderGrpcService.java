@@ -22,12 +22,14 @@ import com.ecommerce.order.application.OrderQueryService;
 import com.ecommerce.order.application.OrderSagaOrchestrator;
 import com.ecommerce.order.common.DomainException;
 import io.grpc.stub.StreamObserver;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class OrderGrpcService extends OrderServiceImplBase {
     private static final Logger log = LoggerFactory.getLogger(OrderGrpcService.class);
 
@@ -35,17 +37,6 @@ public class OrderGrpcService extends OrderServiceImplBase {
     private final OrderQueryService queryService;
     private final OrderAdminQueryService adminQueryService;
     private final OrderLifecycleService lifecycleService;
-
-    public OrderGrpcService(
-            OrderSagaOrchestrator orchestrator,
-            OrderQueryService queryService,
-            OrderAdminQueryService adminQueryService,
-            OrderLifecycleService lifecycleService) {
-        this.orchestrator = orchestrator;
-        this.queryService = queryService;
-        this.adminQueryService = adminQueryService;
-        this.lifecycleService = lifecycleService;
-    }
 
     @Override
     public void createOrder(CreateOrderRequest request, StreamObserver<CreateOrderResponse> responseObserver) {

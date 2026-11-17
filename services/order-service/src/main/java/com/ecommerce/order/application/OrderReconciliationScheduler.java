@@ -15,12 +15,14 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Component
+@RequiredArgsConstructor
 public class OrderReconciliationScheduler {
     private static final int BATCH_SIZE = 50;
 
@@ -30,21 +32,6 @@ public class OrderReconciliationScheduler {
     private final IdempotencyRecordRepository idempotencyRepository;
     private final OrderTransactionStepService txStepService;
     private final OrderProperties properties;
-
-    public OrderReconciliationScheduler(
-            JdbcTemplate jdbcTemplate,
-            TransactionTemplate transactionTemplate,
-            OrderRepository orderRepository,
-            IdempotencyRecordRepository idempotencyRepository,
-            OrderTransactionStepService txStepService,
-            OrderProperties properties) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.transactionTemplate = transactionTemplate;
-        this.orderRepository = orderRepository;
-        this.idempotencyRepository = idempotencyRepository;
-        this.txStepService = txStepService;
-        this.properties = properties;
-    }
 
     @Scheduled(fixedDelayString = "${order.reconciliation.interval-ms:30000}")
     public void reconcileStaleOrders() {

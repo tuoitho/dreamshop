@@ -8,6 +8,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -19,6 +20,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * the same moment never confirm the same order twice.
  */
 @Component
+@RequiredArgsConstructor
 public class CodAutoConfirmScheduler {
     private static final int BATCH_SIZE = 50;
 
@@ -26,17 +28,6 @@ public class CodAutoConfirmScheduler {
     private final TransactionTemplate transactionTemplate;
     private final OrderRepository orderRepository;
     private final OrderTransactionStepService txStepService;
-
-    public CodAutoConfirmScheduler(
-            JdbcTemplate jdbcTemplate,
-            TransactionTemplate transactionTemplate,
-            OrderRepository orderRepository,
-            OrderTransactionStepService txStepService) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.transactionTemplate = transactionTemplate;
-        this.orderRepository = orderRepository;
-        this.txStepService = txStepService;
-    }
 
     @Scheduled(fixedDelayString = "${order.cod.auto-confirm-interval-ms:5000}")
     public void confirmDueOrders() {

@@ -28,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +37,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import tools.jackson.databind.json.JsonMapper;
 
 @Service
+@RequiredArgsConstructor
 public class OrderTransactionStepService {
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
@@ -49,25 +51,6 @@ public class OrderTransactionStepService {
     private final JdbcTemplate jdbcTemplate;
 
     public record Tx1Outcome(boolean claimed, UUID orderId, Instant paymentExpiresAt) {
-    }
-
-    public OrderTransactionStepService(
-            OrderRepository orderRepository,
-            OrderStatusHistoryRepository statusHistoryRepository,
-            IdempotencyRecordRepository idempotencyRepository,
-            OutboxEventRepository outboxRepository,
-            IdempotencyService idempotencyService,
-            OutboxRelayScheduler outboxRelayScheduler,
-            OrderProperties properties,
-            JdbcTemplate jdbcTemplate) {
-        this.orderRepository = orderRepository;
-        this.statusHistoryRepository = statusHistoryRepository;
-        this.idempotencyRepository = idempotencyRepository;
-        this.outboxRepository = outboxRepository;
-        this.idempotencyService = idempotencyService;
-        this.outboxRelayScheduler = outboxRelayScheduler;
-        this.properties = properties;
-        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Transactional

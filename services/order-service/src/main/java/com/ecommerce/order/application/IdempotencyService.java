@@ -21,20 +21,18 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class IdempotencyService {
     public static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
     public static final String STATUS_COMPLETED = "COMPLETED";
     public static final String STATUS_FAILED_TERMINAL = "FAILED_TERMINAL";
 
     private final IdempotencyRecordRepository repository;
-
-    public IdempotencyService(IdempotencyRecordRepository repository) {
-        this.repository = repository;
-    }
 
     public String computeFingerprint(CreateOrderRequest req) {
         ShippingAddressSnapshot addr = req.getShippingAddress();

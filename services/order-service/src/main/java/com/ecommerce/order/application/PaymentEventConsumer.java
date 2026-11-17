@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
 
 @Component
+@RequiredArgsConstructor
 public class PaymentEventConsumer {
     private static final Logger log = LoggerFactory.getLogger(PaymentEventConsumer.class);
     private static final JsonMapper JSON = JsonMapper.builder().build();
@@ -27,15 +29,6 @@ public class PaymentEventConsumer {
     private final OrderRepository orderRepository;
     private final OrderTransactionStepService txStepService;
     private final JdbcTemplate jdbcTemplate;
-
-    public PaymentEventConsumer(
-            OrderRepository orderRepository,
-            OrderTransactionStepService txStepService,
-            JdbcTemplate jdbcTemplate) {
-        this.orderRepository = orderRepository;
-        this.txStepService = txStepService;
-        this.jdbcTemplate = jdbcTemplate;
-    }
 
     @RabbitListener(queues = RabbitMqConfig.PAYMENT_EVENTS_QUEUE)
     @Transactional

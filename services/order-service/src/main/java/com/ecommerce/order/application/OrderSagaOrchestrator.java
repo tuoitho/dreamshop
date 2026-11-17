@@ -33,9 +33,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class OrderSagaOrchestrator {
     private static final String CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneOffset.UTC);
@@ -49,25 +51,6 @@ public class OrderSagaOrchestrator {
     private final OrderTransactionStepService txStepService;
     private final OrderLifecycleService lifecycleService;
     private final OrderProperties properties;
-
-    public OrderSagaOrchestrator(
-            AuthorizationGrpcAdapter authorizationAdapter,
-            CatalogGrpcAdapter catalogAdapter,
-            InventoryGrpcAdapter inventoryAdapter,
-            PaymentGrpcAdapter paymentAdapter,
-            IdempotencyService idempotencyService,
-            OrderTransactionStepService txStepService,
-            OrderLifecycleService lifecycleService,
-            OrderProperties properties) {
-        this.authorizationAdapter = authorizationAdapter;
-        this.catalogAdapter = catalogAdapter;
-        this.inventoryAdapter = inventoryAdapter;
-        this.paymentAdapter = paymentAdapter;
-        this.idempotencyService = idempotencyService;
-        this.txStepService = txStepService;
-        this.lifecycleService = lifecycleService;
-        this.properties = properties;
-    }
 
     public CreateOrderResponse createOrder(CreateOrderRequest request) {
         UUID userId = parseRequiredUuid(request.getUserId(), "user_id");

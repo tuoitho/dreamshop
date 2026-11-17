@@ -9,6 +9,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Component
+@RequiredArgsConstructor
 public class OutboxRelayScheduler {
     private static final Logger log = LoggerFactory.getLogger(OutboxRelayScheduler.class);
     private static final int BATCH_SIZE = 50;
@@ -39,15 +41,6 @@ public class OutboxRelayScheduler {
     private final Object drainLock = new Object();
 
     public record ClaimedOutboxRow(UUID id, String eventType, String routingKey, String payload) {
-    }
-
-    public OutboxRelayScheduler(
-            JdbcTemplate jdbcTemplate,
-            TransactionTemplate transactionTemplate,
-            RabbitTemplate rabbitTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.transactionTemplate = transactionTemplate;
-        this.rabbitTemplate = rabbitTemplate;
     }
 
     public void triggerFlush() {
