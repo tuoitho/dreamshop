@@ -92,7 +92,7 @@ func (s *Store) BeginCreateSession(ctx context.Context, in domain.CreateSessionI
 			}, nil
 		}
 		return nil, domain.ErrPaymentGatewayRejected
-	case domain.StatusCancelled, domain.StatusRefundRequired:
+	case domain.StatusCancelled, domain.StatusRefundRequired, domain.StatusRefunded, domain.StatusRefundFailed:
 		return nil, domain.ErrPaymentAlreadyCancelled
 	case domain.StatusInitiating:
 		return nil, domain.ErrPaymentSessionInProgress
@@ -138,7 +138,7 @@ func (s *Store) CompleteCreateSession(
 				return existingPayURL, nil
 			}
 			return "", domain.ErrPaymentGatewayRejected
-		case domain.StatusCancelled, domain.StatusRefundRequired:
+		case domain.StatusCancelled, domain.StatusRefundRequired, domain.StatusRefunded, domain.StatusRefundFailed:
 			return "", domain.ErrPaymentAlreadyCancelled
 		default:
 			return "", domain.ErrPaymentGatewayRejected
@@ -195,27 +195,32 @@ func (s *Store) RecordMomoCallback(ctx context.Context, in domain.CallbackInput)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	var orderID, orderCode, userID, status, currency string
+	var orderID, orderCode, userID, status, currency, existingTransID, cancelReason string
 	var amountMinor int64
 	if err := tx.QueryRow(ctx, `
-		SELECT order_id, order_code, user_id, status, amount_minor, currency
+		SELECT order_id, order_code, user_id, status, amount_minor, currency, momo_trans_id, cancel_reason
 		FROM payments
 		WHERE momo_order_id = $1
 		FOR UPDATE`,
 		in.MomoOrderID,
-	).Scan(&orderID, &orderCode, &userID, &status, &amountMinor, &currency); err != nil {
+	).Scan(&orderID, &orderCode, &userID, &status, &amountMinor, &currency, &existingTransID, &cancelReason); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, domain.ErrPaymentNotFound
 		}
 		return nil, fmt.Errorf("lock payment by momo_order_id: %w", err)
 	}
 
-	if in.AmountMinor != amountMinor {
+	if amountMinor > 0 && in.AmountMinor != amountMinor {
 		return nil, domain.ErrPaymentAmountMismatch
+	}
+	effectiveAmount := amountMinor
+	if effectiveAmount == 0 && in.AmountMinor > 0 {
+		effectiveAmount = in.AmountMinor
 	}
 
 	var nextStatus string
 	var eventType, routingKey string
+	ensureRefundRow := false
 
 	if in.ResultCode == 0 {
 		switch status {
@@ -227,7 +232,23 @@ func (s *Store) RecordMomoCallback(ctx context.Context, in domain.CallbackInput)
 			nextStatus = domain.StatusRefundRequired
 			eventType = "PaymentSucceeded"
 			routingKey = "payment.succeeded"
-		case domain.StatusSucceeded, domain.StatusRefundRequired:
+		case domain.StatusRefundRequired:
+			if existingTransID == "" {
+				nextStatus = domain.StatusRefundRequired
+				eventType = "PaymentSucceeded"
+				routingKey = "payment.succeeded"
+				ensureRefundRow = true
+			} else {
+				if err := tx.Commit(ctx); err != nil {
+					return nil, fmt.Errorf("commit idempotent success callback: %w", err)
+				}
+				return &domain.CallbackOutcome{
+					OrderID:        orderID,
+					Status:         status,
+					OutboxInserted: false,
+				}, nil
+			}
+		case domain.StatusSucceeded, domain.StatusRefunded, domain.StatusRefundFailed:
 			if err := tx.Commit(ctx); err != nil {
 				return nil, fmt.Errorf("commit idempotent success callback: %w", err)
 			}
@@ -258,6 +279,7 @@ func (s *Store) RecordMomoCallback(ctx context.Context, in domain.CallbackInput)
 	if _, err := tx.Exec(ctx, `
 		UPDATE payments
 		SET status = $2,
+		    amount_minor = CASE WHEN amount_minor = 0 AND $6 > 0 THEN $6 ELSE amount_minor END,
 		    momo_trans_id = CASE WHEN $3 <> '' THEN $3 ELSE momo_trans_id END,
 		    result_code = $4,
 		    result_message = $5,
@@ -268,8 +290,15 @@ func (s *Store) RecordMomoCallback(ctx context.Context, in domain.CallbackInput)
 		in.MomoTransID,
 		in.ResultCode,
 		in.ResultMessage,
+		effectiveAmount,
 	); err != nil {
 		return nil, fmt.Errorf("update payment callback status: %w", err)
+	}
+
+	if ensureRefundRow && effectiveAmount > 0 && in.MomoTransID != "" {
+		if _, err := insertRefundJobTx(ctx, tx, orderID, orderCode, effectiveAmount, currency, in.MomoTransID, cancelReason, 3); err != nil {
+			return nil, err
+		}
 	}
 
 	eventID, err := newUUID()

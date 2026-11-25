@@ -12,14 +12,24 @@ const (
 	StatusFailed         = "FAILED"
 	StatusCancelled      = "CANCELLED"
 	StatusRefundRequired = "REFUND_REQUIRED"
+	StatusRefunded       = "REFUNDED"
+	StatusRefundFailed   = "REFUND_FAILED"
+
+	RefundStatusPending    = "PENDING"
+	RefundStatusProcessing = "PROCESSING"
+	RefundStatusSucceeded  = "SUCCEEDED"
+	RefundStatusFailed     = "FAILED"
 )
 
 var (
-	ErrPaymentNotFound          = errors.New("payment not found")
-	ErrPaymentAmountMismatch    = errors.New("payment amount mismatch")
-	ErrPaymentAlreadyCancelled  = errors.New("payment already cancelled")
-	ErrPaymentSessionInProgress = errors.New("payment session creation in progress")
-	ErrPaymentGatewayRejected   = errors.New("payment gateway rejected session")
+	ErrPaymentNotFound           = errors.New("payment not found")
+	ErrPaymentAmountMismatch     = errors.New("payment amount mismatch")
+	ErrPaymentAlreadyCancelled   = errors.New("payment already cancelled")
+	ErrPaymentSessionInProgress  = errors.New("payment session creation in progress")
+	ErrPaymentGatewayRejected    = errors.New("payment gateway rejected session")
+	ErrRefundNotFound            = errors.New("payment refund not found")
+	ErrRefundAutoRetryInProgress = errors.New("automatic refund retry still in progress")
+	ErrRefundInProgress          = errors.New("refund attempt already in progress")
 )
 
 type Payment struct {
@@ -82,4 +92,35 @@ type OutboxEvent struct {
 	RoutingKey  string
 	AggregateID string
 	Payload     []byte
+}
+
+type RefundJob struct {
+	OrderID         string
+	OrderCode       string
+	UserID          string
+	MomoOrderID     string
+	MomoTransID     string
+	RefundOrderID   string
+	RefundRequestID string
+	Description     string
+	Reason          string
+	Currency        string
+	AmountMinor     int64
+	Attempts        int
+	MaxAutoAttempts int
+}
+
+type RefundAttemptResult struct {
+	Succeeded              bool
+	RefundTransID          string
+	ResultCode             int32
+	ResultMessage          string
+	LastError              string
+	RotateIDsOnNextAttempt bool
+}
+
+type ManualRefundBeginOutcome struct {
+	AlreadyRefunded bool
+	RefundTransID   string
+	Job             *RefundJob
 }
