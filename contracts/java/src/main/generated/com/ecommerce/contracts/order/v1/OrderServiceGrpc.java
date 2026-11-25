@@ -232,6 +232,37 @@ public final class OrderServiceGrpc {
     return getAdminUpdateOrderStatusMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.AdminRetryRefundRequest,
+      com.ecommerce.contracts.order.v1.AdminRetryRefundResponse> getAdminRetryRefundMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "AdminRetryRefund",
+      requestType = com.ecommerce.contracts.order.v1.AdminRetryRefundRequest.class,
+      responseType = com.ecommerce.contracts.order.v1.AdminRetryRefundResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.AdminRetryRefundRequest,
+      com.ecommerce.contracts.order.v1.AdminRetryRefundResponse> getAdminRetryRefundMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.order.v1.AdminRetryRefundRequest, com.ecommerce.contracts.order.v1.AdminRetryRefundResponse> getAdminRetryRefundMethod;
+    if ((getAdminRetryRefundMethod = OrderServiceGrpc.getAdminRetryRefundMethod) == null) {
+      synchronized (OrderServiceGrpc.class) {
+        if ((getAdminRetryRefundMethod = OrderServiceGrpc.getAdminRetryRefundMethod) == null) {
+          OrderServiceGrpc.getAdminRetryRefundMethod = getAdminRetryRefundMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.order.v1.AdminRetryRefundRequest, com.ecommerce.contracts.order.v1.AdminRetryRefundResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "AdminRetryRefund"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.order.v1.AdminRetryRefundRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.order.v1.AdminRetryRefundResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new OrderServiceMethodDescriptorSupplier("AdminRetryRefund"))
+              .build();
+        }
+      }
+    }
+    return getAdminRetryRefundMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -328,6 +359,13 @@ public final class OrderServiceGrpc {
         io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getAdminUpdateOrderStatusMethod(), responseObserver);
     }
+
+    /**
+     */
+    default void adminRetryRefund(com.ecommerce.contracts.order.v1.AdminRetryRefundRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.AdminRetryRefundResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getAdminRetryRefundMethod(), responseObserver);
+    }
   }
 
   /**
@@ -412,6 +450,14 @@ public final class OrderServiceGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getAdminUpdateOrderStatusMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     */
+    public void adminRetryRefund(com.ecommerce.contracts.order.v1.AdminRetryRefundRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.AdminRetryRefundResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getAdminRetryRefundMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -477,6 +523,13 @@ public final class OrderServiceGrpc {
     public com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse adminUpdateOrderStatus(com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getAdminUpdateOrderStatusMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.order.v1.AdminRetryRefundResponse adminRetryRefund(com.ecommerce.contracts.order.v1.AdminRetryRefundRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getAdminRetryRefundMethod(), getCallOptions(), request);
     }
   }
 
@@ -551,6 +604,14 @@ public final class OrderServiceGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getAdminUpdateOrderStatusMethod(), getCallOptions()), request);
     }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.order.v1.AdminRetryRefundResponse> adminRetryRefund(
+        com.ecommerce.contracts.order.v1.AdminRetryRefundRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getAdminRetryRefundMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_CREATE_ORDER = 0;
@@ -560,6 +621,7 @@ public final class OrderServiceGrpc {
   private static final int METHODID_ADMIN_LIST_ORDERS = 4;
   private static final int METHODID_ADMIN_GET_ORDER = 5;
   private static final int METHODID_ADMIN_UPDATE_ORDER_STATUS = 6;
+  private static final int METHODID_ADMIN_RETRY_REFUND = 7;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -605,6 +667,10 @@ public final class OrderServiceGrpc {
         case METHODID_ADMIN_UPDATE_ORDER_STATUS:
           serviceImpl.adminUpdateOrderStatus((com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusRequest) request,
               (io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse>) responseObserver);
+          break;
+        case METHODID_ADMIN_RETRY_REFUND:
+          serviceImpl.adminRetryRefund((com.ecommerce.contracts.order.v1.AdminRetryRefundRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.order.v1.AdminRetryRefundResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -673,6 +739,13 @@ public final class OrderServiceGrpc {
               com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusRequest,
               com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse>(
                 service, METHODID_ADMIN_UPDATE_ORDER_STATUS)))
+        .addMethod(
+          getAdminRetryRefundMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.order.v1.AdminRetryRefundRequest,
+              com.ecommerce.contracts.order.v1.AdminRetryRefundResponse>(
+                service, METHODID_ADMIN_RETRY_REFUND)))
         .build();
   }
 
@@ -728,6 +801,7 @@ public final class OrderServiceGrpc {
               .addMethod(getAdminListOrdersMethod())
               .addMethod(getAdminGetOrderMethod())
               .addMethod(getAdminUpdateOrderStatusMethod())
+              .addMethod(getAdminRetryRefundMethod())
               .build();
         }
       }

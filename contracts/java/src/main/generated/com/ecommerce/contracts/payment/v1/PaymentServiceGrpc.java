@@ -77,6 +77,37 @@ public final class PaymentServiceGrpc {
     return getHandleMomoCallbackMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.payment.v1.RetryRefundRequest,
+      com.ecommerce.contracts.payment.v1.RetryRefundResponse> getRetryRefundMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "RetryRefund",
+      requestType = com.ecommerce.contracts.payment.v1.RetryRefundRequest.class,
+      responseType = com.ecommerce.contracts.payment.v1.RetryRefundResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.payment.v1.RetryRefundRequest,
+      com.ecommerce.contracts.payment.v1.RetryRefundResponse> getRetryRefundMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.payment.v1.RetryRefundRequest, com.ecommerce.contracts.payment.v1.RetryRefundResponse> getRetryRefundMethod;
+    if ((getRetryRefundMethod = PaymentServiceGrpc.getRetryRefundMethod) == null) {
+      synchronized (PaymentServiceGrpc.class) {
+        if ((getRetryRefundMethod = PaymentServiceGrpc.getRetryRefundMethod) == null) {
+          PaymentServiceGrpc.getRetryRefundMethod = getRetryRefundMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.payment.v1.RetryRefundRequest, com.ecommerce.contracts.payment.v1.RetryRefundResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "RetryRefund"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.payment.v1.RetryRefundRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.payment.v1.RetryRefundResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new PaymentServiceMethodDescriptorSupplier("RetryRefund"))
+              .build();
+        }
+      }
+    }
+    return getRetryRefundMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -138,6 +169,13 @@ public final class PaymentServiceGrpc {
         io.grpc.stub.StreamObserver<com.ecommerce.contracts.payment.v1.HandleMomoCallbackResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getHandleMomoCallbackMethod(), responseObserver);
     }
+
+    /**
+     */
+    default void retryRefund(com.ecommerce.contracts.payment.v1.RetryRefundRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.payment.v1.RetryRefundResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRetryRefundMethod(), responseObserver);
+    }
   }
 
   /**
@@ -182,6 +220,14 @@ public final class PaymentServiceGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getHandleMomoCallbackMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     */
+    public void retryRefund(com.ecommerce.contracts.payment.v1.RetryRefundRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.payment.v1.RetryRefundResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getRetryRefundMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -212,6 +258,13 @@ public final class PaymentServiceGrpc {
     public com.ecommerce.contracts.payment.v1.HandleMomoCallbackResponse handleMomoCallback(com.ecommerce.contracts.payment.v1.HandleMomoCallbackRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getHandleMomoCallbackMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.payment.v1.RetryRefundResponse retryRefund(com.ecommerce.contracts.payment.v1.RetryRefundRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getRetryRefundMethod(), getCallOptions(), request);
     }
   }
 
@@ -246,10 +299,19 @@ public final class PaymentServiceGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getHandleMomoCallbackMethod(), getCallOptions()), request);
     }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.payment.v1.RetryRefundResponse> retryRefund(
+        com.ecommerce.contracts.payment.v1.RetryRefundRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getRetryRefundMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_CREATE_PAYMENT_SESSION = 0;
   private static final int METHODID_HANDLE_MOMO_CALLBACK = 1;
+  private static final int METHODID_RETRY_REFUND = 2;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -275,6 +337,10 @@ public final class PaymentServiceGrpc {
         case METHODID_HANDLE_MOMO_CALLBACK:
           serviceImpl.handleMomoCallback((com.ecommerce.contracts.payment.v1.HandleMomoCallbackRequest) request,
               (io.grpc.stub.StreamObserver<com.ecommerce.contracts.payment.v1.HandleMomoCallbackResponse>) responseObserver);
+          break;
+        case METHODID_RETRY_REFUND:
+          serviceImpl.retryRefund((com.ecommerce.contracts.payment.v1.RetryRefundRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.payment.v1.RetryRefundResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -308,6 +374,13 @@ public final class PaymentServiceGrpc {
               com.ecommerce.contracts.payment.v1.HandleMomoCallbackRequest,
               com.ecommerce.contracts.payment.v1.HandleMomoCallbackResponse>(
                 service, METHODID_HANDLE_MOMO_CALLBACK)))
+        .addMethod(
+          getRetryRefundMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.payment.v1.RetryRefundRequest,
+              com.ecommerce.contracts.payment.v1.RetryRefundResponse>(
+                service, METHODID_RETRY_REFUND)))
         .build();
   }
 
@@ -358,6 +431,7 @@ public final class PaymentServiceGrpc {
               .setSchemaDescriptor(new PaymentServiceFileDescriptorSupplier())
               .addMethod(getCreatePaymentSessionMethod())
               .addMethod(getHandleMomoCallbackMethod())
+              .addMethod(getRetryRefundMethod())
               .build();
         }
       }

@@ -315,4 +315,72 @@ public interface OrderDetailOrBuilder extends
    */
   com.google.protobuf.ByteString
       getTrackingNumberBytes();
+
+  /**
+   * <code>string refund_trans_id = 22 [json_name = "refundTransId"];</code>
+   * @return The refundTransId.
+   */
+  java.lang.String getRefundTransId();
+  /**
+   * <code>string refund_trans_id = 22 [json_name = "refundTransId"];</code>
+   * @return The bytes for refundTransId.
+   */
+  com.google.protobuf.ByteString
+      getRefundTransIdBytes();
+
+  /**
+   * <pre>
+   * Admin-only fields: omitted (empty) on shopper-facing GetOrder / ListOrders responses.
+   * </pre>
+   *
+   * <code>string refund_last_error = 23 [json_name = "refundLastError"];</code>
+   * @return The refundLastError.
+   */
+  java.lang.String getRefundLastError();
+  /**
+   * <pre>
+   * Admin-only fields: omitted (empty) on shopper-facing GetOrder / ListOrders responses.
+   * </pre>
+   *
+   * <code>string refund_last_error = 23 [json_name = "refundLastError"];</code>
+   * @return The bytes for refundLastError.
+   */
+  com.google.protobuf.ByteString
+      getRefundLastErrorBytes();
+
+  /**
+   * <code>string refunded_at = 24 [json_name = "refundedAt"];</code>
+   * @return The refundedAt.
+   */
+  java.lang.String getRefundedAt();
+  /**
+   * <code>string refunded_at = 24 [json_name = "refundedAt"];</code>
+   * @return The bytes for refundedAt.
+   */
+  com.google.protobuf.ByteString
+      getRefundedAtBytes();
+
+  /**
+   * <code>string refund_actor_type = 25 [json_name = "refundActorType"];</code>
+   * @return The refundActorType.
+   */
+  java.lang.String getRefundActorType();
+  /**
+   * <code>string refund_actor_type = 25 [json_name = "refundActorType"];</code>
+   * @return The bytes for refundActorType.
+   */
+  com.google.protobuf.ByteString
+      getRefundActorTypeBytes();
+
+  /**
+   * <code>string refund_reason = 26 [json_name = "refundReason"];</code>
+   * @return The refundReason.
+   */
+  java.lang.String getRefundReason();
+  /**
+   * <code>string refund_reason = 26 [json_name = "refundReason"];</code>
+   * @return The bytes for refundReason.
+   */
+  com.google.protobuf.ByteString
+      getRefundReasonBytes();
 }

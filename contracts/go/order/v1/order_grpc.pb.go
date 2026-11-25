@@ -26,6 +26,7 @@ const (
 	OrderService_AdminListOrders_FullMethodName        = "/ecommerce.order.v1.OrderService/AdminListOrders"
 	OrderService_AdminGetOrder_FullMethodName          = "/ecommerce.order.v1.OrderService/AdminGetOrder"
 	OrderService_AdminUpdateOrderStatus_FullMethodName = "/ecommerce.order.v1.OrderService/AdminUpdateOrderStatus"
+	OrderService_AdminRetryRefund_FullMethodName       = "/ecommerce.order.v1.OrderService/AdminRetryRefund"
 )
 
 // OrderServiceClient is the client API for OrderService service.
@@ -39,6 +40,7 @@ type OrderServiceClient interface {
 	AdminListOrders(ctx context.Context, in *AdminListOrdersRequest, opts ...grpc.CallOption) (*AdminListOrdersResponse, error)
 	AdminGetOrder(ctx context.Context, in *AdminGetOrderRequest, opts ...grpc.CallOption) (*AdminGetOrderResponse, error)
 	AdminUpdateOrderStatus(ctx context.Context, in *AdminUpdateOrderStatusRequest, opts ...grpc.CallOption) (*AdminUpdateOrderStatusResponse, error)
+	AdminRetryRefund(ctx context.Context, in *AdminRetryRefundRequest, opts ...grpc.CallOption) (*AdminRetryRefundResponse, error)
 }
 
 type orderServiceClient struct {
@@ -119,6 +121,16 @@ func (c *orderServiceClient) AdminUpdateOrderStatus(ctx context.Context, in *Adm
 	return out, nil
 }
 
+func (c *orderServiceClient) AdminRetryRefund(ctx context.Context, in *AdminRetryRefundRequest, opts ...grpc.CallOption) (*AdminRetryRefundResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdminRetryRefundResponse)
+	err := c.cc.Invoke(ctx, OrderService_AdminRetryRefund_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // OrderServiceServer is the server API for OrderService service.
 // All implementations must embed UnimplementedOrderServiceServer
 // for forward compatibility.
@@ -130,6 +142,7 @@ type OrderServiceServer interface {
 	AdminListOrders(context.Context, *AdminListOrdersRequest) (*AdminListOrdersResponse, error)
 	AdminGetOrder(context.Context, *AdminGetOrderRequest) (*AdminGetOrderResponse, error)
 	AdminUpdateOrderStatus(context.Context, *AdminUpdateOrderStatusRequest) (*AdminUpdateOrderStatusResponse, error)
+	AdminRetryRefund(context.Context, *AdminRetryRefundRequest) (*AdminRetryRefundResponse, error)
 	mustEmbedUnimplementedOrderServiceServer()
 }
 
@@ -160,6 +173,9 @@ func (UnimplementedOrderServiceServer) AdminGetOrder(context.Context, *AdminGetO
 }
 func (UnimplementedOrderServiceServer) AdminUpdateOrderStatus(context.Context, *AdminUpdateOrderStatusRequest) (*AdminUpdateOrderStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AdminUpdateOrderStatus not implemented")
+}
+func (UnimplementedOrderServiceServer) AdminRetryRefund(context.Context, *AdminRetryRefundRequest) (*AdminRetryRefundResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminRetryRefund not implemented")
 }
 func (UnimplementedOrderServiceServer) mustEmbedUnimplementedOrderServiceServer() {}
 func (UnimplementedOrderServiceServer) testEmbeddedByValue()                      {}
@@ -308,6 +324,24 @@ func _OrderService_AdminUpdateOrderStatus_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OrderService_AdminRetryRefund_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminRetryRefundRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrderServiceServer).AdminRetryRefund(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrderService_AdminRetryRefund_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrderServiceServer).AdminRetryRefund(ctx, req.(*AdminRetryRefundRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // OrderService_ServiceDesc is the grpc.ServiceDesc for OrderService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -342,6 +376,10 @@ var OrderService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AdminUpdateOrderStatus",
 			Handler:    _OrderService_AdminUpdateOrderStatus_Handler,
+		},
+		{
+			MethodName: "AdminRetryRefund",
+			Handler:    _OrderService_AdminRetryRefund_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

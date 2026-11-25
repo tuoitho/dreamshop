@@ -16,6 +16,7 @@ service OrderService {
   rpc AdminListOrders(AdminListOrdersRequest) returns (AdminListOrdersResponse);
   rpc AdminGetOrder(AdminGetOrderRequest) returns (AdminGetOrderResponse);
   rpc AdminUpdateOrderStatus(AdminUpdateOrderStatusRequest) returns (AdminUpdateOrderStatusResponse);
+  rpc AdminRetryRefund(AdminRetryRefundRequest) returns (AdminRetryRefundResponse);
 }
 
 message ShippingAddressSnapshot {
@@ -79,6 +80,12 @@ message OrderDetail {
   string auto_confirm_at = 19;
   string shipping_carrier = 20;
   string tracking_number = 21;
+  string refund_trans_id = 22;
+  // Admin-only fields: omitted (empty) on shopper-facing GetOrder / ListOrders responses.
+  string refund_last_error = 23;
+  string refunded_at = 24;
+  string refund_actor_type = 25;
+  string refund_reason = 26;
 }
 
 message OrderStatusChange {
@@ -178,6 +185,17 @@ message AdminUpdateOrderStatusRequest {
 }
 
 message AdminUpdateOrderStatusResponse {
+  OrderDetail order = 1;
+  repeated string allowed_next_statuses = 2;
+}
+
+message AdminRetryRefundRequest {
+  string user_id = 1;
+  string order_id = 2;
+  string reason = 3;
+}
+
+message AdminRetryRefundResponse {
   OrderDetail order = 1;
   repeated string allowed_next_statuses = 2;
 }

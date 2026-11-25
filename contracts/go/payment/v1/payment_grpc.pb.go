@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	PaymentService_CreatePaymentSession_FullMethodName = "/ecommerce.payment.v1.PaymentService/CreatePaymentSession"
 	PaymentService_HandleMomoCallback_FullMethodName   = "/ecommerce.payment.v1.PaymentService/HandleMomoCallback"
+	PaymentService_RetryRefund_FullMethodName          = "/ecommerce.payment.v1.PaymentService/RetryRefund"
 )
 
 // PaymentServiceClient is the client API for PaymentService service.
@@ -29,6 +30,7 @@ const (
 type PaymentServiceClient interface {
 	CreatePaymentSession(ctx context.Context, in *CreatePaymentSessionRequest, opts ...grpc.CallOption) (*CreatePaymentSessionResponse, error)
 	HandleMomoCallback(ctx context.Context, in *HandleMomoCallbackRequest, opts ...grpc.CallOption) (*HandleMomoCallbackResponse, error)
+	RetryRefund(ctx context.Context, in *RetryRefundRequest, opts ...grpc.CallOption) (*RetryRefundResponse, error)
 }
 
 type paymentServiceClient struct {
@@ -59,12 +61,23 @@ func (c *paymentServiceClient) HandleMomoCallback(ctx context.Context, in *Handl
 	return out, nil
 }
 
+func (c *paymentServiceClient) RetryRefund(ctx context.Context, in *RetryRefundRequest, opts ...grpc.CallOption) (*RetryRefundResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RetryRefundResponse)
+	err := c.cc.Invoke(ctx, PaymentService_RetryRefund_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PaymentServiceServer is the server API for PaymentService service.
 // All implementations must embed UnimplementedPaymentServiceServer
 // for forward compatibility.
 type PaymentServiceServer interface {
 	CreatePaymentSession(context.Context, *CreatePaymentSessionRequest) (*CreatePaymentSessionResponse, error)
 	HandleMomoCallback(context.Context, *HandleMomoCallbackRequest) (*HandleMomoCallbackResponse, error)
+	RetryRefund(context.Context, *RetryRefundRequest) (*RetryRefundResponse, error)
 	mustEmbedUnimplementedPaymentServiceServer()
 }
 
@@ -80,6 +93,9 @@ func (UnimplementedPaymentServiceServer) CreatePaymentSession(context.Context, *
 }
 func (UnimplementedPaymentServiceServer) HandleMomoCallback(context.Context, *HandleMomoCallbackRequest) (*HandleMomoCallbackResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method HandleMomoCallback not implemented")
+}
+func (UnimplementedPaymentServiceServer) RetryRefund(context.Context, *RetryRefundRequest) (*RetryRefundResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RetryRefund not implemented")
 }
 func (UnimplementedPaymentServiceServer) mustEmbedUnimplementedPaymentServiceServer() {}
 func (UnimplementedPaymentServiceServer) testEmbeddedByValue()                        {}
@@ -138,6 +154,24 @@ func _PaymentService_HandleMomoCallback_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PaymentService_RetryRefund_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RetryRefundRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PaymentServiceServer).RetryRefund(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PaymentService_RetryRefund_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PaymentServiceServer).RetryRefund(ctx, req.(*RetryRefundRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PaymentService_ServiceDesc is the grpc.ServiceDesc for PaymentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +186,10 @@ var PaymentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "HandleMomoCallback",
 			Handler:    _PaymentService_HandleMomoCallback_Handler,
+		},
+		{
+			MethodName: "RetryRefund",
+			Handler:    _PaymentService_RetryRefund_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

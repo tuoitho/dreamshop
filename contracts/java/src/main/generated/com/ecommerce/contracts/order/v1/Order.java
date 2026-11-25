@@ -110,6 +110,16 @@ public final class Order {
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_ecommerce_order_v1_AdminUpdateOrderStatusResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_order_v1_AdminRetryRefundRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_order_v1_AdminRetryRefundRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_order_v1_AdminRetryRefundResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_order_v1_AdminRetryRefundResponse_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -149,7 +159,7 @@ public final class Order {
       "\030\004 \001(\0132+.ecommerce.order.v1.ShippingAddr" +
       "essSnapshotR\017shippingAddress\022%\n\016payment_" +
       "method\030\005 \001(\tR\rpaymentMethod\022\022\n\004note\030\006 \001(" +
-      "\tR\004note\"\221\007\n\013OrderDetail\022\031\n\010order_id\030\001 \001(" +
+      "\tR\004note\"\327\010\n\013OrderDetail\022\031\n\010order_id\030\001 \001(" +
       "\tR\007orderId\022\035\n\norder_code\030\002 \001(\tR\torderCod" +
       "e\022\027\n\007user_id\030\003 \001(\tR\006userId\022\026\n\006status\030\004 \001" +
       "(\tR\006status\022%\n\016payment_method\030\005 \001(\tR\rpaym" +
@@ -172,83 +182,97 @@ public final class Order {
       "&\n\017auto_confirm_at\030\023 \001(\tR\rautoConfirmAt\022" +
       ")\n\020shipping_carrier\030\024 \001(\tR\017shippingCarri" +
       "er\022\'\n\017tracking_number\030\025 \001(\tR\016trackingNum" +
-      "ber\"\373\001\n\021OrderStatusChange\022\037\n\013from_status" +
-      "\030\001 \001(\tR\nfromStatus\022\033\n\tto_status\030\002 \001(\tR\010t" +
-      "oStatus\022\035\n\nactor_type\030\003 \001(\tR\tactorType\022\026" +
-      "\n\006reason\030\004 \001(\tR\006reason\022)\n\020shipping_carri" +
-      "er\030\005 \001(\tR\017shippingCarrier\022\'\n\017tracking_nu" +
-      "mber\030\006 \001(\tR\016trackingNumber\022\035\n\ncreated_at" +
-      "\030\007 \001(\tR\tcreatedAt\"\327\001\n\023CreateOrderRespons" +
-      "e\022\031\n\010order_id\030\001 \001(\tR\007orderId\022\026\n\006status\030\002" +
-      " \001(\tR\006status\022=\n\014total_amount\030\003 \001(\0132\032.eco" +
-      "mmerce.common.v1.MoneyR\013totalAmount\0225\n\005o" +
-      "rder\030\004 \001(\0132\037.ecommerce.order.v1.OrderDet" +
-      "ailR\005order\022\027\n\007pay_url\030\005 \001(\tR\006payUrl\"E\n\017G" +
-      "etOrderRequest\022\027\n\007user_id\030\001 \001(\tR\006userId\022" +
-      "\031\n\010order_id\030\002 \001(\tR\007orderId\"I\n\020GetOrderRe" +
-      "sponse\0225\n\005order\030\001 \001(\0132\037.ecommerce.order." +
-      "v1.OrderDetailR\005order\"u\n\021ListOrdersReque" +
-      "st\022\027\n\007user_id\030\001 \001(\tR\006userId\022\026\n\006status\030\002 " +
-      "\001(\tR\006status\022\022\n\004page\030\003 \001(\005R\004page\022\033\n\tpage_" +
-      "size\030\004 \001(\005R\010pageSize\"\276\001\n\022ListOrdersRespo" +
-      "nse\0225\n\005items\030\001 \003(\0132\037.ecommerce.order.v1." +
-      "OrderDetailR\005items\022\022\n\004page\030\002 \001(\005R\004page\022\033" +
-      "\n\tpage_size\030\003 \001(\005R\010pageSize\022\037\n\013total_ite" +
-      "ms\030\004 \001(\003R\ntotalItems\022\037\n\013total_pages\030\005 \001(" +
-      "\005R\ntotalPages\"`\n\022CancelOrderRequest\022\027\n\007u" +
-      "ser_id\030\001 \001(\tR\006userId\022\031\n\010order_id\030\002 \001(\tR\007" +
-      "orderId\022\026\n\006reason\030\003 \001(\tR\006reason\"L\n\023Cance" +
-      "lOrderResponse\0225\n\005order\030\001 \001(\0132\037.ecommerc" +
-      "e.order.v1.OrderDetailR\005order\"\220\001\n\026AdminL" +
-      "istOrdersRequest\022\027\n\007user_id\030\001 \001(\tR\006userI" +
-      "d\022\026\n\006status\030\002 \001(\tR\006status\022\024\n\005query\030\003 \001(\t" +
-      "R\005query\022\022\n\004page\030\004 \001(\005R\004page\022\033\n\tpage_size" +
-      "\030\005 \001(\005R\010pageSize\"\350\002\n\027AdminListOrdersResp" +
-      "onse\0225\n\005items\030\001 \003(\0132\037.ecommerce.order.v1" +
-      ".OrderDetailR\005items\022\022\n\004page\030\002 \001(\005R\004page\022" +
-      "\033\n\tpage_size\030\003 \001(\005R\010pageSize\022\037\n\013total_it" +
-      "ems\030\004 \001(\003R\ntotalItems\022\037\n\013total_pages\030\005 \001" +
-      "(\005R\ntotalPages\022b\n\rstatus_counts\030\006 \003(\0132=." +
-      "ecommerce.order.v1.AdminListOrdersRespon" +
-      "se.StatusCountsEntryR\014statusCounts\032?\n\021St" +
-      "atusCountsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005val" +
-      "ue\030\002 \001(\003R\005value:\0028\001\"J\n\024AdminGetOrderRequ" +
-      "est\022\027\n\007user_id\030\001 \001(\tR\006userId\022\031\n\010order_id" +
-      "\030\002 \001(\tR\007orderId\"\202\001\n\025AdminGetOrderRespons" +
-      "e\0225\n\005order\030\001 \001(\0132\037.ecommerce.order.v1.Or" +
-      "derDetailR\005order\0222\n\025allowed_next_statuse" +
-      "s\030\002 \003(\tR\023allowedNextStatuses\"\215\002\n\035AdminUp" +
-      "dateOrderStatusRequest\022\027\n\007user_id\030\001 \001(\tR" +
-      "\006userId\022\031\n\010order_id\030\002 \001(\tR\007orderId\022\'\n\017ex" +
-      "pected_status\030\003 \001(\tR\016expectedStatus\022#\n\rt" +
-      "arget_status\030\004 \001(\tR\014targetStatus\022\026\n\006reas" +
-      "on\030\005 \001(\tR\006reason\022)\n\020shipping_carrier\030\006 \001" +
-      "(\tR\017shippingCarrier\022\'\n\017tracking_number\030\007" +
-      " \001(\tR\016trackingNumber\"\213\001\n\036AdminUpdateOrde" +
-      "rStatusResponse\0225\n\005order\030\001 \001(\0132\037.ecommer" +
-      "ce.order.v1.OrderDetailR\005order\0222\n\025allowe" +
-      "d_next_statuses\030\002 \003(\tR\023allowedNextStatus" +
-      "es2\325\005\n\014OrderService\022^\n\013CreateOrder\022&.eco" +
-      "mmerce.order.v1.CreateOrderRequest\032\'.eco" +
-      "mmerce.order.v1.CreateOrderResponse\022U\n\010G" +
-      "etOrder\022#.ecommerce.order.v1.GetOrderReq" +
-      "uest\032$.ecommerce.order.v1.GetOrderRespon" +
-      "se\022[\n\nListOrders\022%.ecommerce.order.v1.Li" +
-      "stOrdersRequest\032&.ecommerce.order.v1.Lis" +
-      "tOrdersResponse\022^\n\013CancelOrder\022&.ecommer" +
-      "ce.order.v1.CancelOrderRequest\032\'.ecommer" +
-      "ce.order.v1.CancelOrderResponse\022j\n\017Admin" +
-      "ListOrders\022*.ecommerce.order.v1.AdminLis" +
-      "tOrdersRequest\032+.ecommerce.order.v1.Admi" +
-      "nListOrdersResponse\022d\n\rAdminGetOrder\022(.e" +
-      "commerce.order.v1.AdminGetOrderRequest\032)" +
-      ".ecommerce.order.v1.AdminGetOrderRespons" +
-      "e\022\177\n\026AdminUpdateOrderStatus\0221.ecommerce." +
-      "order.v1.AdminUpdateOrderStatusRequest\0322" +
-      ".ecommerce.order.v1.AdminUpdateOrderStat" +
-      "usResponseBS\n com.ecommerce.contracts.or" +
-      "der.v1P\001Z-ecommerce.local/contracts/go/o" +
-      "rder/v1;orderv1b\006proto3"
+      "ber\022&\n\017refund_trans_id\030\026 \001(\tR\rrefundTran" +
+      "sId\022*\n\021refund_last_error\030\027 \001(\tR\017refundLa" +
+      "stError\022\037\n\013refunded_at\030\030 \001(\tR\nrefundedAt" +
+      "\022*\n\021refund_actor_type\030\031 \001(\tR\017refundActor" +
+      "Type\022#\n\rrefund_reason\030\032 \001(\tR\014refundReaso" +
+      "n\"\373\001\n\021OrderStatusChange\022\037\n\013from_status\030\001" +
+      " \001(\tR\nfromStatus\022\033\n\tto_status\030\002 \001(\tR\010toS" +
+      "tatus\022\035\n\nactor_type\030\003 \001(\tR\tactorType\022\026\n\006" +
+      "reason\030\004 \001(\tR\006reason\022)\n\020shipping_carrier" +
+      "\030\005 \001(\tR\017shippingCarrier\022\'\n\017tracking_numb" +
+      "er\030\006 \001(\tR\016trackingNumber\022\035\n\ncreated_at\030\007" +
+      " \001(\tR\tcreatedAt\"\327\001\n\023CreateOrderResponse\022" +
+      "\031\n\010order_id\030\001 \001(\tR\007orderId\022\026\n\006status\030\002 \001" +
+      "(\tR\006status\022=\n\014total_amount\030\003 \001(\0132\032.ecomm" +
+      "erce.common.v1.MoneyR\013totalAmount\0225\n\005ord" +
+      "er\030\004 \001(\0132\037.ecommerce.order.v1.OrderDetai" +
+      "lR\005order\022\027\n\007pay_url\030\005 \001(\tR\006payUrl\"E\n\017Get" +
+      "OrderRequest\022\027\n\007user_id\030\001 \001(\tR\006userId\022\031\n" +
+      "\010order_id\030\002 \001(\tR\007orderId\"I\n\020GetOrderResp" +
+      "onse\0225\n\005order\030\001 \001(\0132\037.ecommerce.order.v1" +
+      ".OrderDetailR\005order\"u\n\021ListOrdersRequest" +
+      "\022\027\n\007user_id\030\001 \001(\tR\006userId\022\026\n\006status\030\002 \001(" +
+      "\tR\006status\022\022\n\004page\030\003 \001(\005R\004page\022\033\n\tpage_si" +
+      "ze\030\004 \001(\005R\010pageSize\"\276\001\n\022ListOrdersRespons" +
+      "e\0225\n\005items\030\001 \003(\0132\037.ecommerce.order.v1.Or" +
+      "derDetailR\005items\022\022\n\004page\030\002 \001(\005R\004page\022\033\n\t" +
+      "page_size\030\003 \001(\005R\010pageSize\022\037\n\013total_items" +
+      "\030\004 \001(\003R\ntotalItems\022\037\n\013total_pages\030\005 \001(\005R" +
+      "\ntotalPages\"`\n\022CancelOrderRequest\022\027\n\007use" +
+      "r_id\030\001 \001(\tR\006userId\022\031\n\010order_id\030\002 \001(\tR\007or" +
+      "derId\022\026\n\006reason\030\003 \001(\tR\006reason\"L\n\023CancelO" +
+      "rderResponse\0225\n\005order\030\001 \001(\0132\037.ecommerce." +
+      "order.v1.OrderDetailR\005order\"\220\001\n\026AdminLis" +
+      "tOrdersRequest\022\027\n\007user_id\030\001 \001(\tR\006userId\022" +
+      "\026\n\006status\030\002 \001(\tR\006status\022\024\n\005query\030\003 \001(\tR\005" +
+      "query\022\022\n\004page\030\004 \001(\005R\004page\022\033\n\tpage_size\030\005" +
+      " \001(\005R\010pageSize\"\350\002\n\027AdminListOrdersRespon" +
+      "se\0225\n\005items\030\001 \003(\0132\037.ecommerce.order.v1.O" +
+      "rderDetailR\005items\022\022\n\004page\030\002 \001(\005R\004page\022\033\n" +
+      "\tpage_size\030\003 \001(\005R\010pageSize\022\037\n\013total_item" +
+      "s\030\004 \001(\003R\ntotalItems\022\037\n\013total_pages\030\005 \001(\005" +
+      "R\ntotalPages\022b\n\rstatus_counts\030\006 \003(\0132=.ec" +
+      "ommerce.order.v1.AdminListOrdersResponse" +
+      ".StatusCountsEntryR\014statusCounts\032?\n\021Stat" +
+      "usCountsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value" +
+      "\030\002 \001(\003R\005value:\0028\001\"J\n\024AdminGetOrderReques" +
+      "t\022\027\n\007user_id\030\001 \001(\tR\006userId\022\031\n\010order_id\030\002" +
+      " \001(\tR\007orderId\"\202\001\n\025AdminGetOrderResponse\022" +
+      "5\n\005order\030\001 \001(\0132\037.ecommerce.order.v1.Orde" +
+      "rDetailR\005order\0222\n\025allowed_next_statuses\030" +
+      "\002 \003(\tR\023allowedNextStatuses\"\215\002\n\035AdminUpda" +
+      "teOrderStatusRequest\022\027\n\007user_id\030\001 \001(\tR\006u" +
+      "serId\022\031\n\010order_id\030\002 \001(\tR\007orderId\022\'\n\017expe" +
+      "cted_status\030\003 \001(\tR\016expectedStatus\022#\n\rtar" +
+      "get_status\030\004 \001(\tR\014targetStatus\022\026\n\006reason" +
+      "\030\005 \001(\tR\006reason\022)\n\020shipping_carrier\030\006 \001(\t" +
+      "R\017shippingCarrier\022\'\n\017tracking_number\030\007 \001" +
+      "(\tR\016trackingNumber\"\213\001\n\036AdminUpdateOrderS" +
+      "tatusResponse\0225\n\005order\030\001 \001(\0132\037.ecommerce" +
+      ".order.v1.OrderDetailR\005order\0222\n\025allowed_" +
+      "next_statuses\030\002 \003(\tR\023allowedNextStatuses" +
+      "\"e\n\027AdminRetryRefundRequest\022\027\n\007user_id\030\001" +
+      " \001(\tR\006userId\022\031\n\010order_id\030\002 \001(\tR\007orderId\022" +
+      "\026\n\006reason\030\003 \001(\tR\006reason\"\205\001\n\030AdminRetryRe" +
+      "fundResponse\0225\n\005order\030\001 \001(\0132\037.ecommerce." +
+      "order.v1.OrderDetailR\005order\0222\n\025allowed_n" +
+      "ext_statuses\030\002 \003(\tR\023allowedNextStatuses2" +
+      "\304\006\n\014OrderService\022^\n\013CreateOrder\022&.ecomme" +
+      "rce.order.v1.CreateOrderRequest\032\'.ecomme" +
+      "rce.order.v1.CreateOrderResponse\022U\n\010GetO" +
+      "rder\022#.ecommerce.order.v1.GetOrderReques" +
+      "t\032$.ecommerce.order.v1.GetOrderResponse\022" +
+      "[\n\nListOrders\022%.ecommerce.order.v1.ListO" +
+      "rdersRequest\032&.ecommerce.order.v1.ListOr" +
+      "dersResponse\022^\n\013CancelOrder\022&.ecommerce." +
+      "order.v1.CancelOrderRequest\032\'.ecommerce." +
+      "order.v1.CancelOrderResponse\022j\n\017AdminLis" +
+      "tOrders\022*.ecommerce.order.v1.AdminListOr" +
+      "dersRequest\032+.ecommerce.order.v1.AdminLi" +
+      "stOrdersResponse\022d\n\rAdminGetOrder\022(.ecom" +
+      "merce.order.v1.AdminGetOrderRequest\032).ec" +
+      "ommerce.order.v1.AdminGetOrderResponse\022\177" +
+      "\n\026AdminUpdateOrderStatus\0221.ecommerce.ord" +
+      "er.v1.AdminUpdateOrderStatusRequest\0322.ec" +
+      "ommerce.order.v1.AdminUpdateOrderStatusR" +
+      "esponse\022m\n\020AdminRetryRefund\022+.ecommerce." +
+      "order.v1.AdminRetryRefundRequest\032,.ecomm" +
+      "erce.order.v1.AdminRetryRefundResponseBS" +
+      "\n com.ecommerce.contracts.order.v1P\001Z-ec" +
+      "ommerce.local/contracts/go/order/v1;orde" +
+      "rv1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -278,7 +302,7 @@ public final class Order {
     internal_static_ecommerce_order_v1_OrderDetail_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_order_v1_OrderDetail_descriptor,
-        new java.lang.String[] { "OrderId", "OrderCode", "UserId", "Status", "PaymentMethod", "PaymentStatus", "ShippingAddress", "Items", "Subtotal", "ShippingFee", "TotalAmount", "Note", "PayUrl", "CancelReason", "PaymentExpiresAt", "CreatedAt", "UpdatedAt", "StatusHistory", "AutoConfirmAt", "ShippingCarrier", "TrackingNumber", });
+        new java.lang.String[] { "OrderId", "OrderCode", "UserId", "Status", "PaymentMethod", "PaymentStatus", "ShippingAddress", "Items", "Subtotal", "ShippingFee", "TotalAmount", "Note", "PayUrl", "CancelReason", "PaymentExpiresAt", "CreatedAt", "UpdatedAt", "StatusHistory", "AutoConfirmAt", "ShippingCarrier", "TrackingNumber", "RefundTransId", "RefundLastError", "RefundedAt", "RefundActorType", "RefundReason", });
     internal_static_ecommerce_order_v1_OrderStatusChange_descriptor =
       getDescriptor().getMessageTypes().get(4);
     internal_static_ecommerce_order_v1_OrderStatusChange_fieldAccessorTable = new
@@ -368,6 +392,18 @@ public final class Order {
     internal_static_ecommerce_order_v1_AdminUpdateOrderStatusResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_order_v1_AdminUpdateOrderStatusResponse_descriptor,
+        new java.lang.String[] { "Order", "AllowedNextStatuses", });
+    internal_static_ecommerce_order_v1_AdminRetryRefundRequest_descriptor =
+      getDescriptor().getMessageTypes().get(18);
+    internal_static_ecommerce_order_v1_AdminRetryRefundRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_order_v1_AdminRetryRefundRequest_descriptor,
+        new java.lang.String[] { "UserId", "OrderId", "Reason", });
+    internal_static_ecommerce_order_v1_AdminRetryRefundResponse_descriptor =
+      getDescriptor().getMessageTypes().get(19);
+    internal_static_ecommerce_order_v1_AdminRetryRefundResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_order_v1_AdminRetryRefundResponse_descriptor,
         new java.lang.String[] { "Order", "AllowedNextStatuses", });
     com.ecommerce.contracts.common.v1.Common.getDescriptor();
   }

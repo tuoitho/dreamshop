@@ -11,6 +11,7 @@ option java_package = "com.ecommerce.contracts.payment.v1";
 service PaymentService {
   rpc CreatePaymentSession(CreatePaymentSessionRequest) returns (CreatePaymentSessionResponse);
   rpc HandleMomoCallback(HandleMomoCallbackRequest) returns (HandleMomoCallbackResponse);
+  rpc RetryRefund(RetryRefundRequest) returns (RetryRefundResponse);
 }
 
 message CreatePaymentSessionRequest {
@@ -48,4 +49,16 @@ message HandleMomoCallbackResponse {
   string order_id = 1;
   string payment_status = 2;
   string redirect_result = 3;
+}
+
+message RetryRefundRequest {
+  string order_id = 1;
+  string reason = 2;
+}
+
+message RetryRefundResponse {
+  string order_id = 1;
+  string payment_status = 2;
+  string refund_trans_id = 3;
+  string message = 4;
 }
