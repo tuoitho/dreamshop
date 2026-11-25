@@ -296,4 +296,20 @@ func TestRetryRefundMapsPreconditionAndGatewayErrors(t *testing.T) {
 	if storeRej.completeManualCalls != 1 || storeRej.lastCompleteManualRes.Succeeded || !storeRej.lastCompleteManualRes.RotateIDsOnNextAttempt {
 		t.Fatalf("expected persisted definite rejection with RotateIDsOnNextAttempt=true, got calls=%d res=%+v", storeRej.completeManualCalls, storeRej.lastCompleteManualRes)
 	}
+
+	// Gateway 503 and internal DB errors must not leak internal URLs or SQL error strings in gRPC status message.
+	_, err = NewServer(store503, client503, nil).RetryRefund(context.Background(), &paymentv1.RetryRefundRequest{OrderId: "ord-503"})
+	st503, _ := status.FromError(err)
+	if st503.Message() != "MoMo payment gateway is temporarily unavailable" {
+		t.Fatalf("expected sanitized gateway unavailable message, got %q", st503.Message())
+	}
+
+	storeInternal := &spyPaymentStore{
+		beginManualErr: status.Error(codes.Internal, "pq: relation payment_refunds does not exist"),
+	}
+	_, err = NewServer(storeInternal, momoMock, nil).RetryRefund(context.Background(), &paymentv1.RetryRefundRequest{OrderId: "ord-int"})
+	stInt, _ := status.FromError(err)
+	if stInt.Code() != codes.Internal || stInt.Message() != "payment operation failed" {
+		t.Fatalf("expected sanitized Internal error without raw DB text, got code=%v msg=%q", stInt.Code(), stInt.Message())
+	}
 }

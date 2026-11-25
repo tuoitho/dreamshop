@@ -276,11 +276,15 @@ func mapPaymentError(err error) error {
 	case errors.Is(err, domain.ErrPaymentSessionInProgress):
 		return statusWithReason(codes.Aborted, "PAYMENT_SESSION_IN_PROGRESS", err.Error())
 	case errors.Is(err, domain.ErrPaymentGatewayRejected) || errors.As(err, &rejErr):
-		return statusWithReason(codes.FailedPrecondition, "PAYMENT_GATEWAY_REJECTED", err.Error())
+		msg := "MoMo payment gateway rejected request"
+		if rejErr != nil && strings.TrimSpace(rejErr.Message) != "" {
+			msg = strings.TrimSpace(rejErr.Message)
+		}
+		return statusWithReason(codes.FailedPrecondition, "PAYMENT_GATEWAY_REJECTED", msg)
 	case errors.Is(err, momo.ErrGatewayUnavailable):
-		return statusWithReason(codes.Unavailable, "PAYMENT_GATEWAY_UNAVAILABLE", err.Error())
+		return statusWithReason(codes.Unavailable, "PAYMENT_GATEWAY_UNAVAILABLE", "MoMo payment gateway is temporarily unavailable")
 	default:
-		return status.Errorf(codes.Internal, "payment operation failed: %v", err)
+		return status.Error(codes.Internal, "payment operation failed")
 	}
 }
 

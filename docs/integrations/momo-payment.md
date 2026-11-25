@@ -134,5 +134,5 @@ accessKey=$accessKey&amount=$amount&description=$description&orderId=$orderId&pa
 
 - Nút **"Hoàn tiền thủ công"** (`POST /api/v1/admin/orders/{orderId}/refund` $\rightarrow$ `OrderService.AdminRetryRefund` $\rightarrow$ `PaymentService.RetryRefund`) chỉ mở khi đơn có `status = CANCELLED`, `paymentMethod = MOMO`, `paymentStatus = REFUND_FAILED` và tài khoản có quyền `order.admin.update`.
 - Kết quả trả về đồng bộ cho quản trị viên (cập nhật ngay `REFUNDED` cùng audit `ADMIN` hoặc lưu `refund_last_error` mới nhất nếu MoMo vẫn lỗi).
-- **Backfill dữ liệu cũ (Option 1)**: migration `000002` (`payment_db`) và `V3` (`order_db`) chuyển các đơn `REFUND_REQUIRED` đã tồn tại từ trước sang `REFUND_FAILED` (không tự động chi tiền khi khởi động) để quản trị viên chủ động bấm **"Hoàn tiền thủ công"** trên `admin-fe`.
+- **Backfill dữ liệu cũ**: migration `000002` (`payment_db`) và `V3` (`order_db`) chuyển các đơn `REFUND_REQUIRED` đã tồn tại từ trước sang `REFUND_FAILED` (không tự động chi tiền khi khởi động) để quản trị viên chủ động bấm **"Hoàn tiền thủ công"** trên `admin-fe`.
 - **Thứ tự triển khai Production**: deploy `order-service` (migration `V3` và RabbitMQ binding cho `payment.refunded` / `payment.refund_failed`) **trước** `payment-service`, sau đó `bff-service`, rồi `admin-fe` và `ecommerce-fe`.

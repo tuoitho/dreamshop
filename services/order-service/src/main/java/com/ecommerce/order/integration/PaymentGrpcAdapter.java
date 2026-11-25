@@ -103,7 +103,7 @@ public class PaymentGrpcAdapter {
             ErrorInfo info = InventoryGrpcAdapter.extractErrorInfo(ex);
             String errorReason = info != null ? info.getReason() : "";
             String desc = ex.getStatus().getDescription() == null ? "" : ex.getStatus().getDescription().trim();
-            return switch (errorReason) {
+            switch (errorReason) {
                 case "PAYMENT_REFUND_NOT_FOUND" -> throw new DomainException(
                         Status.Code.FAILED_PRECONDITION,
                         "ORDER_REFUND_NOT_ELIGIBLE",
@@ -120,11 +120,23 @@ public class PaymentGrpcAdapter {
                         Status.Code.FAILED_PRECONDITION,
                         "PAYMENT_GATEWAY_REJECTED",
                         desc.isEmpty() ? "Payment gateway rejected refund" : desc);
-                default -> throw new DomainException(
+                case "PAYMENT_GATEWAY_UNAVAILABLE" -> throw new DomainException(
                         Status.Code.UNAVAILABLE,
                         "PAYMENT_GATEWAY_UNAVAILABLE",
-                        desc.isEmpty() ? "Payment service is unavailable" : desc);
-            };
+                        "Payment gateway is temporarily unavailable");
+                default -> {
+                    if (ex.getStatus().getCode() == Status.Code.INTERNAL) {
+                        throw new DomainException(
+                                Status.Code.INTERNAL,
+                                "PAYMENT_INTERNAL_ERROR",
+                                "Payment service encountered an internal error");
+                    }
+                    throw new DomainException(
+                            Status.Code.UNAVAILABLE,
+                            "PAYMENT_GATEWAY_UNAVAILABLE",
+                            "Payment service is unavailable");
+                }
+            }
         }
     }
 }

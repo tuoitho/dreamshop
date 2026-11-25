@@ -431,60 +431,6 @@ func (s *Store) CancelPayment(ctx context.Context, orderID, reason string) (stri
 	return nextStatus, nil
 }
 
-func (s *Store) MarkRefundRequired(ctx context.Context, orderID, reason string) (string, error) {
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return "", fmt.Errorf("begin mark refund_required tx: %w", err)
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
-
-	tag, err := tx.Exec(ctx, `
-		INSERT INTO payments (order_id, status, momo_order_id, momo_request_id, cancel_reason)
-		VALUES ($1, $2, $1, 'tombstone:' || $1, $3)
-		ON CONFLICT (order_id) DO NOTHING`,
-		orderID,
-		domain.StatusRefundRequired,
-		reason,
-	)
-	if err != nil {
-		return "", fmt.Errorf("insert refund_required tombstone: %w", err)
-	}
-	if tag.RowsAffected() == 1 {
-		if err := tx.Commit(ctx); err != nil {
-			return "", fmt.Errorf("commit refund_required tombstone: %w", err)
-		}
-		return domain.StatusRefundRequired, nil
-	}
-
-	var current string
-	if err := tx.QueryRow(ctx, `
-		SELECT status
-		FROM payments
-		WHERE order_id = $1
-		FOR UPDATE`,
-		orderID,
-	).Scan(&current); err != nil {
-		return "", fmt.Errorf("lock payment for refund_required: %w", err)
-	}
-
-	if _, err := tx.Exec(ctx, `
-		UPDATE payments
-		SET status = $2,
-		    cancel_reason = CASE WHEN cancel_reason = '' THEN $3 ELSE cancel_reason END,
-		    updated_at = now()
-		WHERE order_id = $1`,
-		orderID,
-		domain.StatusRefundRequired,
-		reason,
-	); err != nil {
-		return "", fmt.Errorf("update payment refund_required: %w", err)
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return "", fmt.Errorf("commit payment refund_required: %w", err)
-	}
-	return domain.StatusRefundRequired, nil
-}
-
 func (s *Store) GetByOrderID(ctx context.Context, orderID string) (*domain.Payment, error) {
 	var p domain.Payment
 	err := s.pool.QueryRow(ctx, `
