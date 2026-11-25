@@ -9,20 +9,24 @@ import (
 )
 
 type Config struct {
-	HTTPAddr           string
-	GRPCAddr           string
-	DatabaseURL        string
-	RabbitMQURL        string
-	OutboxPollInterval time.Duration
-	MomoPartnerCode    string
-	MomoAccessKey      string
-	MomoSecretKey      string
-	MomoAPIEndpoint    string
-	MomoConnectTimeout time.Duration
-	MomoReadTimeout    time.Duration
-	MomoRedirectURL    string
-	MomoIPNURL         string
-	MomoMockEnabled    bool
+	HTTPAddr              string
+	GRPCAddr              string
+	DatabaseURL           string
+	RabbitMQURL           string
+	OutboxPollInterval    time.Duration
+	MomoPartnerCode       string
+	MomoAccessKey         string
+	MomoSecretKey         string
+	MomoAPIEndpoint       string
+	MomoRefundEndpoint    string
+	MomoConnectTimeout    time.Duration
+	MomoReadTimeout       time.Duration
+	MomoRedirectURL       string
+	MomoIPNURL            string
+	MomoMockEnabled       bool
+	RefundMaxAutoAttempts int
+	RefundPollInterval    time.Duration
+	RefundRetryBackoff    time.Duration
 }
 
 func Load() (Config, error) {
@@ -47,6 +51,18 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	refundMaxAutoAttempts, err := intEnv("PAYMENT_REFUND_MAX_AUTO_ATTEMPTS", 3)
+	if err != nil {
+		return Config{}, err
+	}
+	refundPollInterval, err := durationEnv("PAYMENT_REFUND_POLL_INTERVAL", 2*time.Second)
+	if err != nil {
+		return Config{}, err
+	}
+	refundRetryBackoff, err := durationEnv("PAYMENT_REFUND_RETRY_BACKOFF", 10*time.Second)
+	if err != nil {
+		return Config{}, err
+	}
 
 	redirectURL := stringEnv("MOMO_REDIRECT_URL", "https://shop.example.com/api/v1/payments/momo-redirect")
 	ipnURL := stringEnv("MOMO_IPN_URL", "https://shop.example.com/api/v1/payments/momo-ipn")
@@ -59,22 +75,51 @@ func Load() (Config, error) {
 		}
 	}
 
+	apiEndpoint := stringEnv("MOMO_API_ENDPOINT", "https://test-payment.momo.vn/v2/gateway/api/create")
+	refundEndpoint := deriveRefundEndpoint(apiEndpoint, strings.TrimSpace(os.Getenv("MOMO_REFUND_ENDPOINT")))
+
 	return Config{
-		HTTPAddr:           stringEnv("HTTP_ADDR", ":8086"),
-		GRPCAddr:           stringEnv("GRPC_ADDR", "127.0.0.1:50056"),
-		DatabaseURL:        dbURL,
-		RabbitMQURL:        strings.TrimSpace(os.Getenv("RABBITMQ_URL")),
-		OutboxPollInterval: pollInterval,
-		MomoPartnerCode:    stringEnv("MOMO_PARTNER_CODE", "MOMO"),
-		MomoAccessKey:      strings.TrimSpace(os.Getenv("MOMO_ACCESS_KEY")),
-		MomoSecretKey:      strings.TrimSpace(os.Getenv("MOMO_SECRET_KEY")),
-		MomoAPIEndpoint:    stringEnv("MOMO_API_ENDPOINT", "https://test-payment.momo.vn/v2/gateway/api/create"),
-		MomoConnectTimeout: connectTimeout,
-		MomoReadTimeout:    readTimeout,
-		MomoRedirectURL:    redirectURL,
-		MomoIPNURL:         ipnURL,
-		MomoMockEnabled:    mockEnabled,
+		HTTPAddr:              stringEnv("HTTP_ADDR", ":8086"),
+		GRPCAddr:              stringEnv("GRPC_ADDR", "127.0.0.1:50056"),
+		DatabaseURL:           dbURL,
+		RabbitMQURL:           strings.TrimSpace(os.Getenv("RABBITMQ_URL")),
+		OutboxPollInterval:    pollInterval,
+		MomoPartnerCode:       stringEnv("MOMO_PARTNER_CODE", "MOMO"),
+		MomoAccessKey:         strings.TrimSpace(os.Getenv("MOMO_ACCESS_KEY")),
+		MomoSecretKey:         strings.TrimSpace(os.Getenv("MOMO_SECRET_KEY")),
+		MomoAPIEndpoint:       apiEndpoint,
+		MomoRefundEndpoint:    refundEndpoint,
+		MomoConnectTimeout:    connectTimeout,
+		MomoReadTimeout:       readTimeout,
+		MomoRedirectURL:       redirectURL,
+		MomoIPNURL:            ipnURL,
+		MomoMockEnabled:       mockEnabled,
+		RefundMaxAutoAttempts: refundMaxAutoAttempts,
+		RefundPollInterval:    refundPollInterval,
+		RefundRetryBackoff:    refundRetryBackoff,
 	}, nil
+}
+
+func deriveRefundEndpoint(apiEndpoint, explicit string) string {
+	if explicit != "" {
+		return explicit
+	}
+	if strings.HasSuffix(apiEndpoint, "/create") {
+		return strings.TrimSuffix(apiEndpoint, "/create") + "/refund"
+	}
+	return "https://test-payment.momo.vn/v2/gateway/api/refund"
+}
+
+func intEnv(key string, fallback int) (int, error) {
+	val := strings.TrimSpace(os.Getenv(key))
+	if val == "" {
+		return fallback, nil
+	}
+	n, err := strconv.Atoi(val)
+	if err != nil || n <= 0 {
+		return 0, fmt.Errorf("invalid %s=%q", key, val)
+	}
+	return n, nil
 }
 
 func stringEnv(key, fallback string) string {

@@ -36,6 +36,30 @@ type CallbackSignParams struct {
 	TransID      string
 }
 
+type RefundSignParams struct {
+	AccessKey   string
+	Amount      int64
+	Description string
+	OrderID     string
+	PartnerCode string
+	RequestID   string
+	TransID     int64
+}
+
+func SignRefundRequest(p RefundSignParams, secret string) string {
+	raw := fmt.Sprintf(
+		"accessKey=%s&amount=%d&description=%s&orderId=%s&partnerCode=%s&requestId=%s&transId=%d",
+		p.AccessKey,
+		p.Amount,
+		p.Description,
+		p.OrderID,
+		p.PartnerCode,
+		p.RequestID,
+		p.TransID,
+	)
+	return hex.EncodeToString(computeHMAC(raw, secret))
+}
+
 func SignCreateRequest(p CreateSignParams, secret string) string {
 	raw := fmt.Sprintf(
 		"accessKey=%s&amount=%d&extraData=%s&ipnUrl=%s&orderId=%s&orderInfo=%s&partnerCode=%s&redirectUrl=%s&requestId=%s&requestType=captureWallet",

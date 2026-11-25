@@ -67,3 +67,26 @@ func TestSignCreateRequestAndVerifyCallbackSignature(t *testing.T) {
 		t.Fatal("VerifyCallbackSignature accepted forged signature")
 	}
 }
+
+func TestSignRefundRequestMatchesMoMoV2RawHash(t *testing.T) {
+	secret := "test-momo-secret-key"
+	params := RefundSignParams{
+		AccessKey:   "MOMO_ACCESS",
+		Amount:      150000,
+		Description: "Hoan tien don hang ORD-20261125-ABC123",
+		OrderID:     "REFUND0123456789ABCDEF0123456789ABCDEF",
+		PartnerCode: "MOMO",
+		RequestID:   "REFREQ0123456789ABCDEF012345",
+		TransID:     2314756173,
+	}
+
+	rawExpected := "accessKey=MOMO_ACCESS&amount=150000&description=Hoan tien don hang ORD-20261125-ABC123&orderId=REFUND0123456789ABCDEF0123456789ABCDEF&partnerCode=MOMO&requestId=REFREQ0123456789ABCDEF012345&transId=2314756173"
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(rawExpected))
+	want := hex.EncodeToString(mac.Sum(nil))
+
+	got := SignRefundRequest(params, secret)
+	if got != want {
+		t.Fatalf("SignRefundRequest() = %q, want %q", got, want)
+	}
+}

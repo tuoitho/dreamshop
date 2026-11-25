@@ -128,3 +128,160 @@ func TestClientRealHTTPHandlesSuccessRejectionAndTimeout(t *testing.T) {
 		t.Fatalf("expected ErrGatewayUnavailable on timeout, got %v", err)
 	}
 }
+
+func TestClientRefundMockModeSucceedsWithoutHTTP(t *testing.T) {
+	client := NewClient(ClientConfig{
+		PartnerCode: "MOMO",
+		MockEnabled: true,
+	})
+
+	resp, err := client.Refund(context.Background(), RefundRequest{
+		OrderID:     "REFUND11111111111111111111111111111111",
+		RequestID:   "REFREQ111111111111111111111111",
+		OrigTransID: "mock-123",
+		AmountMinor: 150000,
+		Description: "Hoan tien don hang ORD-1",
+	})
+	if err != nil {
+		t.Fatalf("Refund mock: %v", err)
+	}
+	if resp.ResultCode != 0 || resp.RefundTransID == "" {
+		t.Fatalf("unexpected mock refund response: %+v", resp)
+	}
+}
+
+func TestClientRefundRealModeSendsSignedPayloadAndParsesNumericTransID(t *testing.T) {
+	var captured map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		dec := json.NewDecoder(r.Body)
+		dec.UseNumber()
+		if err := dec.Decode(&captured); err != nil {
+			t.Errorf("decode body: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"resultCode":0,"message":"Thành công","transId":144518121}`))
+	}))
+	defer srv.Close()
+
+	client := NewClient(ClientConfig{
+		PartnerCode:    "MOMO",
+		AccessKey:      "TEST_ACCESS",
+		SecretKey:      "TEST_SECRET",
+		RefundEndpoint: srv.URL,
+		ConnectTimeout: time.Second,
+		ReadTimeout:    2 * time.Second,
+	})
+
+	resp, err := client.Refund(context.Background(), RefundRequest{
+		OrderID:     "REFUND22222222222222222222222222222222",
+		RequestID:   "REFREQ222222222222222222222222",
+		OrigTransID: "9988776655",
+		AmountMinor: 250000,
+		Description: "Hoan tien don hang ORD-2",
+	})
+	if err != nil {
+		t.Fatalf("Refund real: %v", err)
+	}
+	if resp.ResultCode != 0 || resp.RefundTransID != "144518121" {
+		t.Fatalf("unexpected refund response: %+v", resp)
+	}
+
+	wantSig := SignRefundRequest(RefundSignParams{
+		AccessKey:   "TEST_ACCESS",
+		Amount:      250000,
+		Description: "Hoan tien don hang ORD-2",
+		OrderID:     "REFUND22222222222222222222222222222222",
+		PartnerCode: "MOMO",
+		RequestID:   "REFREQ222222222222222222222222",
+		TransID:     9988776655,
+	}, "TEST_SECRET")
+	if captured["partnerCode"] != "MOMO" ||
+		captured["orderId"] != "REFUND22222222222222222222222222222222" ||
+		captured["requestId"] != "REFREQ222222222222222222222222" ||
+		captured["lang"] != "vi" ||
+		captured["description"] != "Hoan tien don hang ORD-2" ||
+		captured["signature"] != wantSig {
+		t.Fatalf("unexpected payload: %+v", captured)
+	}
+	if amt, ok := captured["amount"].(json.Number); !ok || amt.String() != "250000" {
+		t.Fatalf("expected numeric amount 250000, got %#v", captured["amount"])
+	}
+	if tid, ok := captured["transId"].(json.Number); !ok || tid.String() != "9988776655" {
+		t.Fatalf("expected numeric transId 9988776655, got %#v", captured["transId"])
+	}
+}
+
+func TestClientRefundRealModeHandlesErrorsAndClassification(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		switch body["orderId"] {
+		case "REFUND503":
+			w.WriteHeader(http.StatusServiceUnavailable)
+		case "REFUND1080":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"resultCode":1080,"message":"Refund rejected"}`))
+		case "REFUND7000":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"resultCode":7000,"message":"Transaction is being processed"}`))
+		}
+	}))
+	defer srv.Close()
+
+	client := NewClient(ClientConfig{
+		PartnerCode:    "MOMO",
+		AccessKey:      "TEST_ACCESS",
+		SecretKey:      "TEST_SECRET",
+		RefundEndpoint: srv.URL,
+		ConnectTimeout: time.Second,
+		ReadTimeout:    2 * time.Second,
+	})
+
+	_, err := client.Refund(context.Background(), RefundRequest{
+		OrderID:     "REFUNDINVALID",
+		RequestID:   "REFREQINVALID",
+		OrigTransID: "not-a-number",
+		AmountMinor: 100000,
+		Description: "Hoan tien",
+	})
+	var rejErr *GatewayRejectedError
+	if !errors.As(err, &rejErr) || IsAmbiguousRefundError(err) {
+		t.Fatalf("expected non-ambiguous GatewayRejectedError for non-numeric transId, got %v", err)
+	}
+
+	_, err = client.Refund(context.Background(), RefundRequest{
+		OrderID:     "REFUND503",
+		RequestID:   "REFREQ503",
+		OrigTransID: "123456",
+		AmountMinor: 100000,
+		Description: "Hoan tien",
+	})
+	if !errors.Is(err, ErrGatewayUnavailable) || !IsAmbiguousRefundError(err) {
+		t.Fatalf("expected ambiguous ErrGatewayUnavailable on HTTP 503, got %v", err)
+	}
+
+	_, err = client.Refund(context.Background(), RefundRequest{
+		OrderID:     "REFUND1080",
+		RequestID:   "REFREQ1080",
+		OrigTransID: "123456",
+		AmountMinor: 100000,
+		Description: "Hoan tien",
+	})
+	if !errors.As(err, &rejErr) || rejErr.ResultCode != 1080 || IsAmbiguousRefundError(err) {
+		t.Fatalf("expected non-ambiguous GatewayRejectedError(1080), got %v", err)
+	}
+
+	_, err = client.Refund(context.Background(), RefundRequest{
+		OrderID:     "REFUND7000",
+		RequestID:   "REFREQ7000",
+		OrigTransID: "123456",
+		AmountMinor: 100000,
+		Description: "Hoan tien",
+	})
+	if !errors.As(err, &rejErr) || rejErr.ResultCode != 7000 || !IsAmbiguousRefundError(err) {
+		t.Fatalf("expected ambiguous GatewayRejectedError(7000), got %v", err)
+	}
+}

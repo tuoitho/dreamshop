@@ -30,6 +30,7 @@ type ClientConfig struct {
 	AccessKey      string
 	SecretKey      string
 	APIEndpoint    string
+	RefundEndpoint string
 	RedirectURL    string
 	IPNURL         string
 	ConnectTimeout time.Duration
@@ -42,6 +43,34 @@ type CreateSessionRequest struct {
 	OrderCode   string
 	RequestID   string
 	AmountMinor int64
+}
+
+type RefundRequest struct {
+	OrderID     string
+	RequestID   string
+	OrigTransID string
+	AmountMinor int64
+	Description string
+}
+
+type RefundResponse struct {
+	ResultCode    int32
+	Message       string
+	RefundTransID string
+}
+
+func IsAmbiguousRefundError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, ErrGatewayUnavailable) {
+		return true
+	}
+	var rej *GatewayRejectedError
+	if errors.As(err, &rej) {
+		return rej.ResultCode == 7000 || rej.ResultCode == 9000
+	}
+	return true
 }
 
 type Client struct {
@@ -65,6 +94,13 @@ func NewClient(cfg ClientConfig) *Client {
 		}
 		if cfg.SecretKey == "" {
 			cfg.SecretKey = "local-momo-mock-secret"
+		}
+	}
+	if strings.TrimSpace(cfg.RefundEndpoint) == "" {
+		if strings.HasSuffix(cfg.APIEndpoint, "/create") {
+			cfg.RefundEndpoint = strings.TrimSuffix(cfg.APIEndpoint, "/create") + "/refund"
+		} else {
+			cfg.RefundEndpoint = "https://test-payment.momo.vn/v2/gateway/api/refund"
 		}
 	}
 
@@ -169,6 +205,117 @@ func (c *Client) CreateSession(ctx context.Context, req CreateSessionRequest) (s
 		return "", fmt.Errorf("%w: empty payUrl", ErrGatewayUnavailable)
 	}
 	return parsed.PayURL, nil
+}
+
+func (c *Client) Refund(ctx context.Context, req RefundRequest) (*RefundResponse, error) {
+	description := truncateRunes(strings.TrimSpace(req.Description), 255)
+	if description == "" {
+		description = "Hoan tien don hang"
+	}
+
+	if c.cfg.MockEnabled {
+		return &RefundResponse{
+			ResultCode:    0,
+			Message:       "Successful.",
+			RefundTransID: fmt.Sprintf("mock-refund-%d", time.Now().UnixNano()),
+		}, nil
+	}
+
+	if c.cfg.AccessKey == "" || c.cfg.SecretKey == "" {
+		return nil, fmt.Errorf("%w: missing MoMo credentials", ErrGatewayUnavailable)
+	}
+
+	origTransID, err := strconv.ParseInt(strings.TrimSpace(req.OrigTransID), 10, 64)
+	if err != nil || origTransID <= 0 {
+		return nil, &GatewayRejectedError{
+			ResultCode: -1,
+			Message:    "invalid original momo transId",
+		}
+	}
+
+	signature := SignRefundRequest(RefundSignParams{
+		AccessKey:   c.cfg.AccessKey,
+		Amount:      req.AmountMinor,
+		Description: description,
+		OrderID:     req.OrderID,
+		PartnerCode: c.cfg.PartnerCode,
+		RequestID:   req.RequestID,
+		TransID:     origTransID,
+	}, c.cfg.SecretKey)
+
+	payload := map[string]any{
+		"partnerCode": c.cfg.PartnerCode,
+		"orderId":     req.OrderID,
+		"requestId":   req.RequestID,
+		"amount":      req.AmountMinor,
+		"transId":     origTransID,
+		"lang":        "vi",
+		"description": description,
+		"signature":   signature,
+	}
+
+	rawBody, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("marshal momo refund request: %w", err)
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.cfg.RefundEndpoint, bytes.NewReader(rawBody))
+	if err != nil {
+		return nil, fmt.Errorf("%w: build refund request: %v", ErrGatewayUnavailable, err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrGatewayUnavailable, err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("%w: unexpected HTTP status %d", ErrGatewayUnavailable, resp.StatusCode)
+	}
+
+	var parsed struct {
+		ResultCode int32           `json:"resultCode"`
+		Message    string          `json:"message"`
+		TransID    json.RawMessage `json:"transId"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
+		return nil, fmt.Errorf("%w: decode refund response: %v", ErrGatewayUnavailable, err)
+	}
+
+	if parsed.ResultCode != 0 {
+		return nil, &GatewayRejectedError{
+			ResultCode: parsed.ResultCode,
+			Message:    parsed.Message,
+		}
+	}
+
+	return &RefundResponse{
+		ResultCode:    parsed.ResultCode,
+		Message:       parsed.Message,
+		RefundTransID: parseRawTransID(parsed.TransID),
+	}, nil
+}
+
+func parseRawTransID(raw json.RawMessage) string {
+	trimmed := strings.TrimSpace(string(raw))
+	if trimmed == "" || trimmed == "null" {
+		return ""
+	}
+	var asStr string
+	if err := json.Unmarshal(raw, &asStr); err == nil {
+		return strings.TrimSpace(asStr)
+	}
+	return trimmed
+}
+
+func truncateRunes(s string, max int) string {
+	runes := []rune(s)
+	if len(runes) <= max {
+		return s
+	}
+	return string(runes[:max])
 }
 
 func (c *Client) buildSignedMockRedirectURL(req CreateSessionRequest, orderInfo string) (string, error) {
