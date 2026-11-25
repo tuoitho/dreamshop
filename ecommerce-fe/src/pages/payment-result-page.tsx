@@ -180,15 +180,41 @@ export default function PaymentResultPage() {
     )
   }
 
-  if (order?.status === "CANCELLED" && order.paymentStatus === "REFUND_REQUIRED") {
+  if (order?.status === "CANCELLED" && order.paymentStatus === "REFUNDED") {
+    return (
+      <main className="mx-auto max-w-2xl px-4 py-12">
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-8 text-center">
+          <CheckCircle2 className="mx-auto mb-4 size-14 text-emerald-600" />
+          <h1 className="text-2xl font-extrabold tracking-tight">Đã hoàn tiền</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Khoản thanh toán MoMo cho đơn{" "}
+            <span className="font-mono font-semibold text-foreground">{order.orderCode}</span> đã được hoàn lại thành công.
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Button asChild>
+              <Link to={`/don-hang/${order.orderId}`}>Xem chi tiết đơn hàng</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/don-hang">Đơn mua của tôi</Link>
+            </Button>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  if (
+    order?.status === "CANCELLED" &&
+    (order.paymentStatus === "REFUND_REQUIRED" || order.paymentStatus === "REFUND_FAILED")
+  ) {
     return (
       <main className="mx-auto max-w-2xl px-4 py-12">
         <div className="rounded-2xl border border-amber-500/40 bg-amber-500/5 p-8 text-center">
           <AlertTriangle className="mx-auto mb-4 size-14 text-amber-600" />
-          <h1 className="text-2xl font-extrabold tracking-tight">Đơn hàng đang đối soát hoàn tiền</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight">Đơn hàng đang xử lý hoàn tiền</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Giao dịch thanh toán cho đơn{" "}
-            <span className="font-mono font-semibold text-foreground">{order.orderCode}</span> ghi nhận sau khi đơn hàng đã hủy hoặc hết hạn giữ chỗ. Hệ thống đã ghi nhận yêu cầu đối soát tự động với cổng thanh toán.
+            Hệ thống đã ghi nhận yêu cầu đối soát MoMo cho đơn{" "}
+            <span className="font-mono font-semibold text-foreground">{order.orderCode}</span> và đang tiến hành xử lý.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Button asChild>

@@ -261,7 +261,14 @@ export interface OrderStatusChange {
   createdAt: string
 }
 
-export type PaymentStatus = "UNPAID" | "PENDING" | "PAID" | "FAILED" | "REFUND_REQUIRED"
+export type PaymentStatus =
+  | "UNPAID"
+  | "PENDING"
+  | "PAID"
+  | "FAILED"
+  | "REFUND_REQUIRED"
+  | "REFUNDED"
+  | "REFUND_FAILED"
 
 export interface OrderItemSnapshot {
   cartItemId?: string
@@ -301,6 +308,8 @@ export interface OrderDetail {
   autoConfirmAt?: string
   shippingCarrier?: string
   trackingNumber?: string
+  refundTransId?: string
+  refundedAt?: string
   createdAt: string
   updatedAt: string
   /** Present on single-order reads; list responses return an empty array. */

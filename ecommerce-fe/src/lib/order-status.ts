@@ -50,9 +50,15 @@ export function actorLabel(actorType: string): string {
 }
 
 export function getOrderStatusMeta(status: string, paymentStatus: string): { label: string; className: string } {
-  if (status === "CANCELLED" && paymentStatus === "REFUND_REQUIRED") {
+  if (status === "CANCELLED" && paymentStatus === "REFUNDED") {
     return {
-      label: "Đã hủy • Cần hoàn tiền",
+      label: "Đã hủy • Đã hoàn tiền",
+      className: "border-emerald-500/40 bg-emerald-500/15 text-emerald-800 dark:text-emerald-300",
+    }
+  }
+  if (status === "CANCELLED" && (paymentStatus === "REFUND_REQUIRED" || paymentStatus === "REFUND_FAILED")) {
+    return {
+      label: "Đã hủy • Đang hoàn tiền",
       className: "border-amber-500/40 bg-amber-500/15 text-amber-800 dark:text-amber-300",
     }
   }

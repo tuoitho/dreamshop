@@ -50,7 +50,10 @@ function formatPaymentStatus(paymentStatus: string): string {
     case "FAILED":
       return "Thanh toán thất bại"
     case "REFUND_REQUIRED":
-      return "Đang đối soát hoàn tiền"
+    case "REFUND_FAILED":
+      return "Đang xử lý hoàn tiền"
+    case "REFUNDED":
+      return "Đã hoàn tiền"
     default:
       return paymentStatus
   }
@@ -176,17 +179,36 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      {order.status === "CANCELLED" && order.paymentStatus === "REFUND_REQUIRED" && (
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200">
-          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600" />
+      {order.status === "CANCELLED" && order.paymentStatus === "REFUNDED" && (
+        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-900 dark:text-emerald-200">
+          <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600" />
           <div>
-            <p className="font-bold">Đơn hàng đang đối soát hoàn tiền</p>
+            <p className="font-bold">Đơn hàng đã được hoàn tiền</p>
             <p className="mt-0.5">
-              Khoản thanh toán MoMo đến sau thời điểm đơn hàng hết hạn giữ chỗ. Hệ thống đã ghi nhận yêu cầu hoàn tiền cho giao dịch này.
+              Khoản thanh toán MoMo cho đơn hàng này đã được hoàn lại thành công.
+              {order.refundTransId && (
+                <>
+                  {" "}
+                  Mã giao dịch hoàn tiền: <span className="font-mono font-semibold">{order.refundTransId}</span>.
+                </>
+              )}
             </p>
           </div>
         </div>
       )}
+
+      {order.status === "CANCELLED" &&
+        (order.paymentStatus === "REFUND_REQUIRED" || order.paymentStatus === "REFUND_FAILED") && (
+          <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200">
+            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600" />
+            <div>
+              <p className="font-bold">Đơn hàng đang xử lý hoàn tiền</p>
+              <p className="mt-0.5">
+                Hệ thống đã ghi nhận yêu cầu hoàn tiền MoMo cho đơn hàng này và đang tiến hành xử lý.
+              </p>
+            </div>
+          </div>
+        )}
 
       <div className="rounded-2xl border bg-card p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
