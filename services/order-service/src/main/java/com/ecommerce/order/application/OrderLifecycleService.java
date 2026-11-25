@@ -1,5 +1,6 @@
 package com.ecommerce.order.application;
 
+import com.ecommerce.contracts.order.v1.AdminRetryRefundResponse;
 import com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse;
 import com.ecommerce.contracts.order.v1.OrderDetail;
 import com.ecommerce.order.common.DomainException;
@@ -10,6 +11,7 @@ import com.ecommerce.order.domain.OrderTransitions;
 import com.ecommerce.order.domain.PaymentMethod;
 import com.ecommerce.order.domain.PaymentStatus;
 import com.ecommerce.order.integration.AuthorizationGrpcAdapter;
+import com.ecommerce.order.integration.PaymentGrpcAdapter;
 import com.ecommerce.order.persistence.OrderEntity;
 import com.ecommerce.order.persistence.OrderRepository;
 import com.ecommerce.order.persistence.OrderStatusHistoryRepository;
@@ -32,19 +34,26 @@ public class OrderLifecycleService {
     private final OrderStatusHistoryRepository statusHistoryRepository;
     private final OrderTransactionStepService txStepService;
     private final AuthorizationGrpcAdapter authorizationAdapter;
+    private final PaymentGrpcAdapter paymentGrpcAdapter;
     private final TransactionTemplate transactionTemplate;
+    private final TransactionTemplate readOnlyTx;
 
     public OrderLifecycleService(
             OrderRepository orderRepository,
             OrderStatusHistoryRepository statusHistoryRepository,
             OrderTransactionStepService txStepService,
             AuthorizationGrpcAdapter authorizationAdapter,
+            PaymentGrpcAdapter paymentGrpcAdapter,
             PlatformTransactionManager transactionManager) {
         this.orderRepository = orderRepository;
         this.statusHistoryRepository = statusHistoryRepository;
         this.txStepService = txStepService;
         this.authorizationAdapter = authorizationAdapter;
+        this.paymentGrpcAdapter = paymentGrpcAdapter;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+        TransactionTemplate ro = new TransactionTemplate(transactionManager);
+        ro.setReadOnly(true);
+        this.readOnlyTx = ro;
     }
 
     @Transactional
@@ -145,6 +154,87 @@ public class OrderLifecycleService {
                     .forEach(next -> builder.addAllowedNextStatuses(next.name()));
             return builder.build();
         });
+    }
+
+    public AdminRetryRefundResponse retryRefundByAdmin(String rawUserId, String rawOrderId, String reason) {
+        UUID adminId = AdminRequests.requiredUuid(rawUserId, "user_id");
+        UUID orderId = AdminRequests.requiredUuid(rawOrderId, "order_id");
+        String cleanReason = trimToLimit(reason, MAX_REASON_LENGTH, "reason");
+        if (!authorizationAdapter.hasPermission(adminId, UPDATE_PERMISSION)) {
+            throw new DomainException(
+                    Status.Code.PERMISSION_DENIED, "ORDER_PERMISSION_DENIED", "Missing " + UPDATE_PERMISSION + " permission");
+        }
+
+        readOnlyTx.executeWithoutResult(tx -> {
+            OrderEntity order = orderRepository.findById(orderId)
+                    .orElseThrow(() -> new DomainException(Status.Code.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found"));
+            if (order.getStatus() != OrderStatus.CANCELLED || order.getPaymentMethod() != PaymentMethod.MOMO) {
+                throw new DomainException(
+                        Status.Code.FAILED_PRECONDITION,
+                        "ORDER_REFUND_NOT_ELIGIBLE",
+                        "Only cancelled MoMo orders can be manually refunded");
+            }
+            if (order.getPaymentStatus() == PaymentStatus.REFUND_REQUIRED) {
+                throw new DomainException(
+                        Status.Code.FAILED_PRECONDITION,
+                        "REFUND_AUTO_RETRY_IN_PROGRESS",
+                        "Automatic refund retry is still in progress");
+            }
+            if (order.getPaymentStatus() != PaymentStatus.REFUND_FAILED) {
+                throw new DomainException(
+                        Status.Code.FAILED_PRECONDITION,
+                        "ORDER_REFUND_NOT_ELIGIBLE",
+                        "Manual refund is only allowed after automatic retries fail");
+            }
+        });
+
+        PaymentGrpcAdapter.RetryRefundOutcome outcome;
+        try {
+            outcome = paymentGrpcAdapter.retryRefund(orderId, cleanReason);
+        } catch (DomainException ex) {
+            if ("PAYMENT_GATEWAY_REJECTED".equals(ex.reason()) || "PAYMENT_GATEWAY_UNAVAILABLE".equals(ex.reason())) {
+                String latestError = truncate(ex.getMessage(), 255);
+                transactionTemplate.executeWithoutResult(tx -> orderRepository.findByIdForUpdate(orderId).ifPresent(o -> {
+                    if (o.getPaymentStatus() == PaymentStatus.REFUND_FAILED) {
+                        o.setRefundLastError(latestError);
+                        o.setUpdatedAt(Instant.now());
+                        orderRepository.saveAndFlush(o);
+                    }
+                }));
+            }
+            throw ex;
+        }
+
+        return transactionTemplate.execute(tx -> {
+            OrderEntity order = orderRepository.findByIdForUpdate(orderId)
+                    .orElseThrow(() -> new DomainException(Status.Code.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found"));
+            Instant now = Instant.now();
+            order.setPaymentStatus(PaymentStatus.REFUNDED);
+            if (outcome.refundTransId() != null && !outcome.refundTransId().isBlank()) {
+                order.setRefundTransId(truncate(outcome.refundTransId().trim(), 64));
+            }
+            order.setRefundLastError("");
+            order.setRefundedAt(now);
+            order.setRefundActorType("ADMIN");
+            order.setRefundActorId(adminId);
+            order.setRefundReason(cleanReason);
+            order.setUpdatedAt(now);
+            orderRepository.saveAndFlush(order);
+
+            AdminRetryRefundResponse.Builder builder = AdminRetryRefundResponse.newBuilder()
+                    .setOrder(OrderProtoMapper.toAdminOrderDetail(
+                            order, statusHistoryRepository.findByOrderIdOrderByCreatedAtAsc(orderId)));
+            OrderTransitions.adminTargets(order.getStatus())
+                    .forEach(next -> builder.addAllowedNextStatuses(next.name()));
+            return builder.build();
+        });
+    }
+
+    private static String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value == null ? "" : value;
+        }
+        return value.substring(0, maxLength);
     }
 
     /**

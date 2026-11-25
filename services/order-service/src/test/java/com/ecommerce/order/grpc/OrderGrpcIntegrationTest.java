@@ -12,6 +12,8 @@ import com.ecommerce.contracts.catalog.v1.GetProductResponse;
 import com.ecommerce.contracts.catalog.v1.ProductVariant;
 import com.ecommerce.contracts.common.v1.Money;
 import com.ecommerce.contracts.order.v1.AdminGetOrderRequest;
+import com.ecommerce.contracts.order.v1.AdminRetryRefundRequest;
+import com.ecommerce.contracts.order.v1.AdminRetryRefundResponse;
 import com.ecommerce.contracts.order.v1.CreateOrderRequest;
 import com.ecommerce.contracts.order.v1.CreateOrderResponse;
 import com.ecommerce.contracts.order.v1.GetOrderRequest;
@@ -21,10 +23,15 @@ import com.ecommerce.contracts.order.v1.OrderItem;
 import com.ecommerce.contracts.order.v1.OrderServiceGrpc;
 import com.ecommerce.contracts.order.v1.ShippingAddressSnapshot;
 import com.ecommerce.order.config.RabbitMqConfig;
+import com.ecommerce.order.domain.OrderStatus;
+import com.ecommerce.order.domain.PaymentMethod;
+import com.ecommerce.order.domain.PaymentStatus;
 import com.ecommerce.order.integration.AuthorizationGrpcAdapter;
 import com.ecommerce.order.integration.CatalogGrpcAdapter;
 import com.ecommerce.order.integration.InventoryGrpcAdapter;
 import com.ecommerce.order.integration.PaymentGrpcAdapter;
+import com.ecommerce.order.persistence.OrderRepository;
+import com.ecommerce.order.support.OrderFixtures;
 import com.ecommerce.order.support.PostgresRabbitIntegrationTestSupport;
 import com.google.rpc.ErrorInfo;
 import io.grpc.ManagedChannel;
@@ -64,6 +71,9 @@ class OrderGrpcIntegrationTest extends PostgresRabbitIntegrationTestSupport {
 
     @Autowired
     JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    OrderRepository orderRepository;
 
     @MockitoBean
     AuthorizationGrpcAdapter authorizationAdapter;
@@ -137,10 +147,17 @@ class OrderGrpcIntegrationTest extends PostgresRabbitIntegrationTestSupport {
                 .thenReturn("https://momo.test/pay/e2e");
 
         // Not auto-delete: each timed-out receive() cancels its consumer, which would drop an auto-delete queue.
+        TopicExchange eventsExchange = new TopicExchange(RabbitMqConfig.EXCHANGE_NAME, true, false);
+        Queue probePlacedQueue = new Queue("probe.order.placed." + UUID.randomUUID(), false, false, false);
+        rabbitAdmin.declareQueue(probePlacedQueue);
+        rabbitAdmin.declareBinding(BindingBuilder.bind(probePlacedQueue)
+                .to(eventsExchange)
+                .with("order.placed"));
+
         Queue probeQueue = new Queue("probe.order.confirmed." + UUID.randomUUID(), false, false, false);
         rabbitAdmin.declareQueue(probeQueue);
         rabbitAdmin.declareBinding(BindingBuilder.bind(probeQueue)
-                .to(new TopicExchange(RabbitMqConfig.EXCHANGE_NAME, true, false))
+                .to(eventsExchange)
                 .with("order.confirmed"));
 
         OrderServiceGrpc.OrderServiceBlockingStub stub = OrderServiceGrpc.newBlockingStub(channel);
@@ -171,6 +188,15 @@ class OrderGrpcIntegrationTest extends PostgresRabbitIntegrationTestSupport {
 
         assertThat(created.getStatus()).isEqualTo("PENDING_PAYMENT");
         assertThat(created.getPayUrl()).isEqualTo("https://momo.test/pay/e2e");
+
+        Message placedMsg = null;
+        Instant placedDeadline = Instant.now().plus(Duration.ofSeconds(8));
+        while (Instant.now().isBefore(placedDeadline) && placedMsg == null) {
+            placedMsg = rabbitTemplate.receive(probePlacedQueue.getName(), 250);
+        }
+        assertThat(placedMsg).isNotNull();
+        String placedBody = new String(placedMsg.getBody(), StandardCharsets.UTF_8);
+        assertThat(placedBody).contains("\"OrderPlaced\"").contains(created.getOrderId()).contains("ci-e2e-1");
 
         // Publish payment.succeeded to RabbitMQ -> PaymentEventConsumer -> OutboxRelayScheduler -> order.confirmed
         String payload = """
@@ -217,5 +243,31 @@ class OrderGrpcIntegrationTest extends PostgresRabbitIntegrationTestSupport {
                 .build());
         assertThat(listed.getTotalItems()).isEqualTo(1L);
         assertThat(listed.getItems(0).getOrderId()).isEqualTo(created.getOrderId());
+    }
+
+    @Test
+    void adminRetryRefundOverGrpcUpdatesOrderToRefunded() {
+        UUID adminId = UUID.randomUUID();
+        UUID orderId = OrderFixtures.seedOrder(
+                orderRepository,
+                UUID.randomUUID(),
+                "ORD-20261125-GRPC-RF",
+                OrderStatus.CANCELLED,
+                PaymentMethod.MOMO,
+                PaymentStatus.REFUND_FAILED);
+        when(paymentAdapter.retryRefund(eq(orderId), eq("Admin gRPC retry")))
+                .thenReturn(new PaymentGrpcAdapter.RetryRefundOutcome("REFUNDED", "momo-grpc-ref-1", "Successful."));
+
+        OrderServiceGrpc.OrderServiceBlockingStub stub = OrderServiceGrpc.newBlockingStub(channel);
+        AdminRetryRefundResponse resp = stub.adminRetryRefund(AdminRetryRefundRequest.newBuilder()
+                .setUserId(adminId.toString())
+                .setOrderId(orderId.toString())
+                .setReason("Admin gRPC retry")
+                .build());
+
+        assertThat(resp.getOrder().getPaymentStatus()).isEqualTo("REFUNDED");
+        assertThat(resp.getOrder().getRefundTransId()).isEqualTo("momo-grpc-ref-1");
+        assertThat(resp.getOrder().getRefundActorType()).isEqualTo("ADMIN");
+        assertThat(resp.getOrder().getRefundReason()).isEqualTo("Admin gRPC retry");
     }
 }

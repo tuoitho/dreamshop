@@ -4,6 +4,8 @@ import com.ecommerce.contracts.order.v1.AdminGetOrderRequest;
 import com.ecommerce.contracts.order.v1.AdminGetOrderResponse;
 import com.ecommerce.contracts.order.v1.AdminListOrdersRequest;
 import com.ecommerce.contracts.order.v1.AdminListOrdersResponse;
+import com.ecommerce.contracts.order.v1.AdminRetryRefundRequest;
+import com.ecommerce.contracts.order.v1.AdminRetryRefundResponse;
 import com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusRequest;
 import com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse;
 import com.ecommerce.contracts.order.v1.CancelOrderRequest;
@@ -152,6 +154,25 @@ public class OrderGrpcService extends OrderServiceImplBase {
             responseObserver.onError(GrpcErrorMapper.toStatusException(ex));
         } catch (RuntimeException ex) {
             log.error("Unexpected failure in AdminUpdateOrderStatus traceId={}", MDC.get("trace_id"), ex);
+            responseObserver.onError(GrpcErrorMapper.internalError());
+        }
+    }
+
+    @Override
+    public void adminRetryRefund(
+            AdminRetryRefundRequest request,
+            StreamObserver<AdminRetryRefundResponse> responseObserver) {
+        try {
+            AdminRetryRefundResponse response = lifecycleService.retryRefundByAdmin(
+                    request.getUserId(),
+                    request.getOrderId(),
+                    request.getReason());
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (DomainException ex) {
+            responseObserver.onError(GrpcErrorMapper.toStatusException(ex));
+        } catch (RuntimeException ex) {
+            log.error("Unexpected failure in AdminRetryRefund traceId={}", MDC.get("trace_id"), ex);
             responseObserver.onError(GrpcErrorMapper.internalError());
         }
     }

@@ -7,16 +7,20 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.ecommerce.contracts.order.v1.AdminGetOrderResponse;
 import com.ecommerce.contracts.order.v1.AdminListOrdersResponse;
+import com.ecommerce.contracts.order.v1.AdminRetryRefundResponse;
 import com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse;
 import com.ecommerce.order.common.DomainException;
 import com.ecommerce.order.domain.OrderStatus;
 import com.ecommerce.order.domain.PaymentMethod;
 import com.ecommerce.order.domain.PaymentStatus;
 import com.ecommerce.order.integration.AuthorizationGrpcAdapter;
+import com.ecommerce.order.integration.PaymentGrpcAdapter;
+import io.grpc.Status;
 import com.ecommerce.order.persistence.OrderEntity;
 import com.ecommerce.order.persistence.OrderRepository;
 import com.ecommerce.order.support.PostgresRabbitIntegrationTestSupport;
@@ -45,12 +49,15 @@ class OrderAdminServiceTest extends PostgresRabbitIntegrationTestSupport {
     @MockitoBean
     AuthorizationGrpcAdapter authorizationAdapter;
 
+    @MockitoBean
+    PaymentGrpcAdapter paymentGrpcAdapter;
+
     private final UUID adminId = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
         jdbcTemplate.execute("TRUNCATE TABLE order_items, orders, idempotency_records, outbox_events, processed_events CASCADE");
-        reset(authorizationAdapter);
+        reset(authorizationAdapter, paymentGrpcAdapter);
         when(authorizationAdapter.hasPermission(eq(adminId), eq("order.admin.view"))).thenReturn(true);
         when(authorizationAdapter.hasPermission(eq(adminId), eq("order.admin.update"))).thenReturn(true);
     }
@@ -201,6 +208,83 @@ class OrderAdminServiceTest extends PostgresRabbitIntegrationTestSupport {
                 String.class, orderId.toString()))
                 .containsExactly("order.payment.refund_requested", "order.stock.restock_requested");
         assertThat(historyOf(jdbcTemplate, orderId)).containsExactly("PREPARING>CANCELLED:ADMIN");
+    }
+
+    @Test
+    void adminRetryRefundRequiresPermissionAndRefundFailedStatus() {
+        UUID refundRequiredId = seedOrder(orderRepository, UUID.randomUUID(), "ORD-20261125-RREQ",
+                OrderStatus.CANCELLED, PaymentMethod.MOMO, PaymentStatus.REFUND_REQUIRED);
+        UUID paidId = seedOrder(orderRepository, UUID.randomUUID(), "ORD-20261125-RPAID",
+                OrderStatus.CONFIRMED, PaymentMethod.MOMO, PaymentStatus.PAID);
+        UUID codId = seedOrder(orderRepository, UUID.randomUUID(), "ORD-20261125-RCOD",
+                OrderStatus.CANCELLED, PaymentMethod.COD, PaymentStatus.UNPAID);
+        UUID refundedId = seedOrder(orderRepository, UUID.randomUUID(), "ORD-20261125-RDONE",
+                OrderStatus.CANCELLED, PaymentMethod.MOMO, PaymentStatus.REFUNDED);
+        UUID refundFailedId = seedOrder(orderRepository, UUID.randomUUID(), "ORD-20261125-RFAIL",
+                OrderStatus.CANCELLED, PaymentMethod.MOMO, PaymentStatus.REFUND_FAILED);
+
+        String stranger = UUID.randomUUID().toString();
+        assertReason(() -> lifecycleService.retryRefundByAdmin(stranger, refundFailedId.toString(), "retry"),
+                "ORDER_PERMISSION_DENIED");
+        assertReason(() -> lifecycleService.retryRefundByAdmin(adminId.toString(), refundRequiredId.toString(), "retry"),
+                "REFUND_AUTO_RETRY_IN_PROGRESS");
+        assertReason(() -> lifecycleService.retryRefundByAdmin(adminId.toString(), paidId.toString(), "retry"),
+                "ORDER_REFUND_NOT_ELIGIBLE");
+        assertReason(() -> lifecycleService.retryRefundByAdmin(adminId.toString(), codId.toString(), "retry"),
+                "ORDER_REFUND_NOT_ELIGIBLE");
+        assertReason(() -> lifecycleService.retryRefundByAdmin(adminId.toString(), refundedId.toString(), "retry"),
+                "ORDER_REFUND_NOT_ELIGIBLE");
+
+        verifyNoInteractions(paymentGrpcAdapter);
+    }
+
+    @Test
+    void adminRetryRefundSuccessUpdatesOrderToRefundedWithAdminAudit() {
+        UUID orderId = seedOrder(orderRepository, UUID.randomUUID(), "ORD-20261125-ROK",
+                OrderStatus.CANCELLED, PaymentMethod.MOMO, PaymentStatus.REFUND_FAILED);
+        OrderEntity seeded = orderRepository.findById(orderId).orElseThrow();
+        seeded.setRefundLastError("old error");
+        orderRepository.saveAndFlush(seeded);
+
+        when(paymentGrpcAdapter.retryRefund(eq(orderId), eq("MoMo recovered")))
+                .thenReturn(new PaymentGrpcAdapter.RetryRefundOutcome("REFUNDED", "momo-ref-1", "Successful."));
+
+        int historyBefore = historyOf(jdbcTemplate, orderId).size();
+        AdminRetryRefundResponse resp = lifecycleService.retryRefundByAdmin(
+                adminId.toString(), orderId.toString(), "  MoMo recovered  ");
+
+        assertThat(resp.getOrder().getPaymentStatus()).isEqualTo("REFUNDED");
+        assertThat(resp.getOrder().getRefundTransId()).isEqualTo("momo-ref-1");
+        assertThat(resp.getOrder().getRefundActorType()).isEqualTo("ADMIN");
+        assertThat(resp.getOrder().getRefundReason()).isEqualTo("MoMo recovered");
+        assertThat(resp.getOrder().getRefundLastError()).isEmpty();
+        assertThat(resp.getOrder().getRefundedAt()).isNotBlank();
+
+        OrderEntity updated = orderRepository.findById(orderId).orElseThrow();
+        assertThat(updated.getPaymentStatus()).isEqualTo(PaymentStatus.REFUNDED);
+        assertThat(updated.getRefundTransId()).isEqualTo("momo-ref-1");
+        assertThat(updated.getRefundActorType()).isEqualTo("ADMIN");
+        assertThat(updated.getRefundActorId()).isEqualTo(adminId);
+        assertThat(updated.getRefundReason()).isEqualTo("MoMo recovered");
+        assertThat(updated.getRefundLastError()).isEmpty();
+        assertThat(historyOf(jdbcTemplate, orderId)).hasSize(historyBefore);
+    }
+
+    @Test
+    void adminRetryRefundGatewayFailurePersistsLatestErrorAndRethrows() {
+        UUID orderId = seedOrder(orderRepository, UUID.randomUUID(), "ORD-20261125-RERR",
+                OrderStatus.CANCELLED, PaymentMethod.MOMO, PaymentStatus.REFUND_FAILED);
+
+        when(paymentGrpcAdapter.retryRefund(eq(orderId), eq("retry now")))
+                .thenThrow(new DomainException(
+                        Status.Code.UNAVAILABLE, "PAYMENT_GATEWAY_UNAVAILABLE", "MoMo 503 outage"));
+
+        assertReason(() -> lifecycleService.retryRefundByAdmin(adminId.toString(), orderId.toString(), "retry now"),
+                "PAYMENT_GATEWAY_UNAVAILABLE");
+
+        OrderEntity reloaded = orderRepository.findById(orderId).orElseThrow();
+        assertThat(reloaded.getPaymentStatus()).isEqualTo(PaymentStatus.REFUND_FAILED);
+        assertThat(reloaded.getRefundLastError()).isEqualTo("MoMo 503 outage");
     }
 
     private AdminUpdateOrderStatusResponse update(String userId, UUID orderId, String expected, String target, String reason) {
