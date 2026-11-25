@@ -37,7 +37,7 @@ func (f *fakeCompensationHandler) CancelPayment(_ context.Context, orderID, reas
 	return "CANCELLED", nil
 }
 
-func (f *fakeCompensationHandler) MarkRefundRequired(_ context.Context, orderID, reason string) (string, error) {
+func (f *fakeCompensationHandler) RequestRefund(_ context.Context, orderID, reason string) (bool, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.refunded == nil {
@@ -50,7 +50,7 @@ func (f *fakeCompensationHandler) MarkRefundRequired(_ context.Context, orderID,
 		default:
 		}
 	}
-	return "REFUND_REQUIRED", nil
+	return true, nil
 }
 
 func TestDispatchCompensationRoutesCancelAndRefundEvents(t *testing.T) {
@@ -83,6 +83,49 @@ func TestDispatchCompensationRoutesCancelAndRefundEvents(t *testing.T) {
 
 	if h.cancelled["ord-c-1"] != "USER_CANCELLED" || h.refunded["ord-r-1"] != "LATE_MOMO_SUCCESS" {
 		t.Fatalf("unexpected compensation state: cancelled=%v refunded=%v", h.cancelled, h.refunded)
+	}
+}
+
+type fakeRefundRequestStore struct {
+	queued      bool
+	lastOrderID string
+	lastReason  string
+	lastMaxAuto int
+}
+
+func (f *fakeRefundRequestStore) CancelPayment(_ context.Context, _, _ string) (string, error) {
+	return "CANCELLED", nil
+}
+
+func (f *fakeRefundRequestStore) RequestRefund(_ context.Context, orderID, reason string, maxAutoAttempts int) (bool, error) {
+	f.lastOrderID = orderID
+	f.lastReason = reason
+	f.lastMaxAuto = maxAutoAttempts
+	return f.queued, nil
+}
+
+func TestCompensationAdapterWakesRefundWorkerWhenQueued(t *testing.T) {
+	st := &fakeRefundRequestStore{queued: true}
+	notifier := &fakeOutboxNotifier{}
+	adapter := NewCompensationAdapter(st, 3, notifier)
+
+	body, _ := json.Marshal(map[string]any{
+		"eventId":     "evt-ref-wake-1",
+		"eventType":   "RefundRequested",
+		"aggregateId": "ord-wake-1",
+		"data": map[string]any{
+			"orderId": "ord-wake-1",
+			"reason":  "USER_CANCELLED",
+		},
+	})
+	if err := DispatchMessage(context.Background(), adapter, RoutingKeyRefundRequested, body); err != nil {
+		t.Fatalf("DispatchMessage: %v", err)
+	}
+	if st.lastOrderID != "ord-wake-1" || st.lastReason != "USER_CANCELLED" || st.lastMaxAuto != 3 {
+		t.Fatalf("unexpected RequestRefund args: %+v", st)
+	}
+	if notifier.count != 1 {
+		t.Fatalf("expected refund notifier to wake once when queued=true, got %d", notifier.count)
 	}
 }
 
@@ -151,7 +194,7 @@ func TestOutboxRelayAndConsumerLiveIntegration(t *testing.T) {
 	}
 
 	relay := NewOutboxRelay(repo, rabbitURL, 5*time.Second)
-	compConsumer, err := NewConsumer(rabbitURL, repo)
+	compConsumer, err := NewConsumer(rabbitURL, NewCompensationAdapter(repo, 3, nil))
 	if err != nil {
 		t.Fatalf("NewConsumer: %v", err)
 	}

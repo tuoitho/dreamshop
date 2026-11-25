@@ -24,6 +24,8 @@ type PaymentStore interface {
 	BeginCreateSession(ctx context.Context, in domain.CreateSessionInput) (*domain.BeginSessionOutcome, error)
 	CompleteCreateSession(ctx context.Context, orderID, payURL string, resultCode int32, resultMessage string, gatewayErr error) (string, error)
 	RecordMomoCallback(ctx context.Context, in domain.CallbackInput) (*domain.CallbackOutcome, error)
+	BeginManualRefund(ctx context.Context, orderID, reason string) (*domain.ManualRefundBeginOutcome, error)
+	CompleteManualRefund(ctx context.Context, orderID string, res domain.RefundAttemptResult) (bool, error)
 }
 
 type OutboxNotifier interface {
@@ -181,11 +183,92 @@ func (s *Server) HandleMomoCallback(
 	}, nil
 }
 
+func (s *Server) RetryRefund(
+	ctx context.Context,
+	req *paymentv1.RetryRefundRequest,
+) (*paymentv1.RetryRefundResponse, error) {
+	orderID := strings.TrimSpace(req.GetOrderId())
+	if orderID == "" {
+		return nil, statusWithReason(codes.InvalidArgument, "INVALID_PARAMETER", "order_id is required")
+	}
+
+	begin, err := s.store.BeginManualRefund(ctx, orderID, strings.TrimSpace(req.GetReason()))
+	if err != nil {
+		return nil, mapPaymentError(err)
+	}
+	if begin.AlreadyRefunded {
+		return &paymentv1.RetryRefundResponse{
+			OrderId:       orderID,
+			PaymentStatus: domain.StatusRefunded,
+			RefundTransId: begin.RefundTransID,
+			Message:       "Already refunded",
+		}, nil
+	}
+
+	job := begin.Job
+	resp, callErr := s.momoClient.Refund(ctx, momo.RefundRequest{
+		OrderID:     job.RefundOrderID,
+		RequestID:   job.RefundRequestID,
+		OrigTransID: job.MomoTransID,
+		AmountMinor: job.AmountMinor,
+		Description: job.Description,
+	})
+
+	var attemptRes domain.RefundAttemptResult
+	if callErr == nil {
+		attemptRes = domain.RefundAttemptResult{
+			Succeeded:     true,
+			RefundTransID: resp.RefundTransID,
+			ResultCode:    resp.ResultCode,
+			ResultMessage: resp.Message,
+		}
+	} else {
+		attemptRes = domain.RefundAttemptResult{
+			Succeeded:              false,
+			ResultCode:             -1,
+			LastError:              callErr.Error(),
+			RotateIDsOnNextAttempt: !momo.IsAmbiguousRefundError(callErr),
+		}
+		var rej *momo.GatewayRejectedError
+		if errors.As(callErr, &rej) {
+			attemptRes.ResultCode = rej.ResultCode
+			attemptRes.ResultMessage = rej.Message
+		}
+	}
+
+	completeCtx, cancelComplete := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
+	defer cancelComplete()
+	outboxInserted, completeErr := s.store.CompleteManualRefund(completeCtx, orderID, attemptRes)
+	if completeErr != nil {
+		return nil, mapPaymentError(completeErr)
+	}
+	if outboxInserted && s.notifier != nil {
+		s.notifier.Notify()
+	}
+
+	if callErr != nil {
+		return nil, mapPaymentError(callErr)
+	}
+
+	return &paymentv1.RetryRefundResponse{
+		OrderId:       orderID,
+		PaymentStatus: domain.StatusRefunded,
+		RefundTransId: resp.RefundTransID,
+		Message:       resp.Message,
+	}, nil
+}
+
 func mapPaymentError(err error) error {
 	var rejErr *momo.GatewayRejectedError
 	switch {
 	case errors.Is(err, domain.ErrPaymentNotFound):
 		return statusWithReason(codes.NotFound, "PAYMENT_NOT_FOUND", err.Error())
+	case errors.Is(err, domain.ErrRefundNotFound):
+		return statusWithReason(codes.NotFound, "PAYMENT_REFUND_NOT_FOUND", err.Error())
+	case errors.Is(err, domain.ErrRefundAutoRetryInProgress):
+		return statusWithReason(codes.FailedPrecondition, "REFUND_AUTO_RETRY_IN_PROGRESS", err.Error())
+	case errors.Is(err, domain.ErrRefundInProgress):
+		return statusWithReason(codes.Aborted, "REFUND_IN_PROGRESS", err.Error())
 	case errors.Is(err, domain.ErrPaymentAmountMismatch):
 		return statusWithReason(codes.InvalidArgument, "PAYMENT_AMOUNT_MISMATCH", err.Error())
 	case errors.Is(err, domain.ErrPaymentAlreadyCancelled):

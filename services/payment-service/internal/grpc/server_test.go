@@ -3,6 +3,8 @@ package grpc
 import (
 	"context"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -19,7 +21,21 @@ import (
 )
 
 type spyPaymentStore struct {
-	callbackCalls int
+	callbackCalls          int
+	beginManualOutcome     *domain.ManualRefundBeginOutcome
+	beginManualErr         error
+	completeManualCalls    int
+	lastCompleteManualRes  domain.RefundAttemptResult
+	completeManualOutbox   bool
+	completeManualErr      error
+}
+
+type spyNotifier struct {
+	count int
+}
+
+func (n *spyNotifier) Notify() {
+	n.count++
 }
 
 func (s *spyPaymentStore) BeginCreateSession(_ context.Context, in domain.CreateSessionInput) (*domain.BeginSessionOutcome, error) {
@@ -40,6 +56,19 @@ func (s *spyPaymentStore) RecordMomoCallback(_ context.Context, in domain.Callba
 		Status:         "SUCCEEDED",
 		OutboxInserted: true,
 	}, nil
+}
+
+func (s *spyPaymentStore) BeginManualRefund(_ context.Context, _, _ string) (*domain.ManualRefundBeginOutcome, error) {
+	if s.beginManualErr != nil {
+		return nil, s.beginManualErr
+	}
+	return s.beginManualOutcome, nil
+}
+
+func (s *spyPaymentStore) CompleteManualRefund(_ context.Context, _ string, res domain.RefundAttemptResult) (bool, error) {
+	s.completeManualCalls++
+	s.lastCompleteManualRes = res
+	return s.completeManualOutbox, s.completeManualErr
 }
 
 func TestHandleMomoCallbackRejectsForgedSignatureBeforeStoreAccess(t *testing.T) {
@@ -120,5 +149,151 @@ func TestHandleMomoCallbackRejectsForgedSignatureBeforeStoreAccess(t *testing.T)
 	})
 	if err != nil || createResp.GetPayUrl() == "" || createResp.GetStatus() != "PENDING" {
 		t.Fatalf("CreatePaymentSession: resp=%+v err=%v", createResp, err)
+	}
+}
+
+func extractErrorReason(err error) (codes.Code, string) {
+	st, ok := status.FromError(err)
+	if !ok {
+		return codes.Unknown, ""
+	}
+	for _, d := range st.Proto().GetDetails() {
+		if d.MessageIs(&errdetails.ErrorInfo{}) {
+			info := &errdetails.ErrorInfo{}
+			if err := d.UnmarshalTo(info); err == nil {
+				return st.Code(), info.GetReason()
+			}
+		}
+	}
+	return st.Code(), ""
+}
+
+func TestRetryRefundSucceedsAndNotifiesOutbox(t *testing.T) {
+	store := &spyPaymentStore{
+		beginManualOutcome: &domain.ManualRefundBeginOutcome{
+			Job: &domain.RefundJob{
+				OrderID:         "ord-manual-1",
+				MomoTransID:     "mock-123",
+				RefundOrderID:   "REFUNDMANUAL1",
+				RefundRequestID: "REFREQMANUAL1",
+				Description:     "Hoan tien don hang ORD-M1",
+				AmountMinor:     150000,
+			},
+		},
+		completeManualOutbox: true,
+	}
+	notifier := &spyNotifier{}
+	momoClient := momo.NewClient(momo.ClientConfig{PartnerCode: "MOMO", MockEnabled: true})
+	srv := NewServer(store, momoClient, notifier)
+
+	resp, err := srv.RetryRefund(context.Background(), &paymentv1.RetryRefundRequest{
+		OrderId: "ord-manual-1",
+		Reason:  "Admin manual retry",
+	})
+	if err != nil {
+		t.Fatalf("RetryRefund: %v", err)
+	}
+	if resp.GetPaymentStatus() != domain.StatusRefunded || resp.GetRefundTransId() == "" {
+		t.Fatalf("unexpected RetryRefund response: %+v", resp)
+	}
+	if store.completeManualCalls != 1 || !store.lastCompleteManualRes.Succeeded {
+		t.Fatalf("expected CompleteManualRefund(Succeeded=true), calls=%d res=%+v", store.completeManualCalls, store.lastCompleteManualRes)
+	}
+	if notifier.count != 1 {
+		t.Fatalf("expected notifier.Notify() once, got %d", notifier.count)
+	}
+}
+
+func TestRetryRefundMapsPreconditionAndGatewayErrors(t *testing.T) {
+	momoMock := momo.NewClient(momo.ClientConfig{PartnerCode: "MOMO", MockEnabled: true})
+
+	cases := []struct {
+		name       string
+		err        error
+		wantCode   codes.Code
+		wantReason string
+	}{
+		{"not found", domain.ErrRefundNotFound, codes.NotFound, "PAYMENT_REFUND_NOT_FOUND"},
+		{"auto retry in progress", domain.ErrRefundAutoRetryInProgress, codes.FailedPrecondition, "REFUND_AUTO_RETRY_IN_PROGRESS"},
+		{"in progress", domain.ErrRefundInProgress, codes.Aborted, "REFUND_IN_PROGRESS"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := NewServer(&spyPaymentStore{beginManualErr: tc.err}, momoMock, nil)
+			_, err := srv.RetryRefund(context.Background(), &paymentv1.RetryRefundRequest{OrderId: "ord-1"})
+			code, reason := extractErrorReason(err)
+			if code != tc.wantCode || reason != tc.wantReason {
+				t.Fatalf("got (%v, %q), want (%v, %q)", code, reason, tc.wantCode, tc.wantReason)
+			}
+		})
+	}
+
+	// Already refunded returns idempotent REFUNDED without calling CompleteManualRefund.
+	alreadyStore := &spyPaymentStore{
+		beginManualOutcome: &domain.ManualRefundBeginOutcome{
+			AlreadyRefunded: true,
+			RefundTransID:   "momo-already-1",
+		},
+	}
+	srvAlready := NewServer(alreadyStore, momoMock, nil)
+	resp, err := srvAlready.RetryRefund(context.Background(), &paymentv1.RetryRefundRequest{OrderId: "ord-already"})
+	if err != nil || resp.GetPaymentStatus() != domain.StatusRefunded || resp.GetRefundTransId() != "momo-already-1" {
+		t.Fatalf("unexpected already refunded response: %+v err=%v", resp, err)
+	}
+	if alreadyStore.completeManualCalls != 0 {
+		t.Fatalf("expected 0 CompleteManualRefund calls for already refunded, got %d", alreadyStore.completeManualCalls)
+	}
+
+	// Gateway 503 -> persists failure and returns Unavailable / PAYMENT_GATEWAY_UNAVAILABLE.
+	gw503 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer gw503.Close()
+
+	store503 := &spyPaymentStore{
+		beginManualOutcome: &domain.ManualRefundBeginOutcome{
+			Job: &domain.RefundJob{
+				OrderID: "ord-503", MomoTransID: "123456", RefundOrderID: "REF503", RefundRequestID: "REQ503",
+				Description: "Hoan tien", AmountMinor: 100000,
+			},
+		},
+	}
+	client503 := momo.NewClient(momo.ClientConfig{
+		PartnerCode: "MOMO", AccessKey: "A", SecretKey: "S", RefundEndpoint: gw503.URL,
+	})
+	_, err = NewServer(store503, client503, nil).RetryRefund(context.Background(), &paymentv1.RetryRefundRequest{OrderId: "ord-503"})
+	code, reason := extractErrorReason(err)
+	if code != codes.Unavailable || reason != "PAYMENT_GATEWAY_UNAVAILABLE" {
+		t.Fatalf("503: got (%v, %q), want (Unavailable, PAYMENT_GATEWAY_UNAVAILABLE)", code, reason)
+	}
+	if store503.completeManualCalls != 1 || store503.lastCompleteManualRes.Succeeded || store503.lastCompleteManualRes.RotateIDsOnNextAttempt {
+		t.Fatalf("expected persisted ambiguous failure on 503, got calls=%d res=%+v", store503.completeManualCalls, store503.lastCompleteManualRes)
+	}
+
+	// Gateway definite rejection -> persists failure with RotateIDsOnNextAttempt=true and returns FailedPrecondition / PAYMENT_GATEWAY_REJECTED.
+	gwRej := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"resultCode":1080,"message":"Refund rejected"}`))
+	}))
+	defer gwRej.Close()
+
+	storeRej := &spyPaymentStore{
+		beginManualOutcome: &domain.ManualRefundBeginOutcome{
+			Job: &domain.RefundJob{
+				OrderID: "ord-rej", MomoTransID: "123456", RefundOrderID: "REFREJ", RefundRequestID: "REQREJ",
+				Description: "Hoan tien", AmountMinor: 100000,
+			},
+		},
+	}
+	clientRej := momo.NewClient(momo.ClientConfig{
+		PartnerCode: "MOMO", AccessKey: "A", SecretKey: "S", RefundEndpoint: gwRej.URL,
+	})
+	_, err = NewServer(storeRej, clientRej, nil).RetryRefund(context.Background(), &paymentv1.RetryRefundRequest{OrderId: "ord-rej"})
+	code, reason = extractErrorReason(err)
+	if code != codes.FailedPrecondition || reason != "PAYMENT_GATEWAY_REJECTED" {
+		t.Fatalf("reject: got (%v, %q), want (FailedPrecondition, PAYMENT_GATEWAY_REJECTED)", code, reason)
+	}
+	if storeRej.completeManualCalls != 1 || storeRej.lastCompleteManualRes.Succeeded || !storeRej.lastCompleteManualRes.RotateIDsOnNextAttempt {
+		t.Fatalf("expected persisted definite rejection with RotateIDsOnNextAttempt=true, got calls=%d res=%+v", storeRej.completeManualCalls, storeRej.lastCompleteManualRes)
 	}
 }
