@@ -36,6 +36,7 @@ type Client interface {
 	AdminListOrders(ctx context.Context, userID, statusFilter, query string, page, pageSize int32) (*orderv1.AdminListOrdersResponse, error)
 	AdminGetOrder(ctx context.Context, userID, orderID string) (*orderv1.AdminGetOrderResponse, error)
 	AdminUpdateOrderStatus(ctx context.Context, req *orderv1.AdminUpdateOrderStatusRequest) (*orderv1.AdminUpdateOrderStatusResponse, error)
+	AdminRetryRefund(ctx context.Context, req *orderv1.AdminRetryRefundRequest) (*orderv1.AdminRetryRefundResponse, error)
 }
 
 type client struct {
@@ -127,6 +128,13 @@ func (c *client) AdminUpdateOrderStatus(ctx context.Context, req *orderv1.AdminU
 	ctx, cancel := c.withTimeout(ctx)
 	defer cancel()
 	resp, err := c.svc.AdminUpdateOrderStatus(ctx, req)
+	return resp, mapError(err)
+}
+
+func (c *client) AdminRetryRefund(ctx context.Context, req *orderv1.AdminRetryRefundRequest) (*orderv1.AdminRetryRefundResponse, error) {
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+	resp, err := c.svc.AdminRetryRefund(ctx, req)
 	return resp, mapError(err)
 }
 

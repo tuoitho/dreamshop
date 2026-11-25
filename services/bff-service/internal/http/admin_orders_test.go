@@ -149,3 +149,78 @@ func TestAdminOrderErrorsMapToStableCodes(t *testing.T) {
 		}
 	}
 }
+
+func TestAdminRetryRefundForwardsReasonAndReturnsUpdatedOrder(t *testing.T) {
+	var capturedReqs []*orderv1.AdminRetryRefundRequest
+	client := &fakeOrderClient{
+		adminRetryRefundFn: func(_ context.Context, req *orderv1.AdminRetryRefundRequest) (*orderv1.AdminRetryRefundResponse, error) {
+			capturedReqs = append(capturedReqs, req)
+			detail := orderDetailFixture()
+			detail.Status = "CANCELLED"
+			detail.PaymentStatus = "REFUNDED"
+			detail.RefundTransId = "momo-ref-99"
+			detail.RefundActorType = "ADMIN"
+			detail.RefundedAt = "2026-11-25T10:00:00Z"
+			detail.RefundReason = req.GetReason()
+			return &orderv1.AdminRetryRefundResponse{Order: detail, AllowedNextStatuses: []string{}}, nil
+		},
+	}
+
+	rec := serveAdminOrders(t, client, http.MethodPost, "/api/v1/admin/orders/ord-123/refund",
+		`{"reason":"MoMo đã hoạt động lại"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	body := decodeBody(t, rec)
+	if body["message"] != "Hoàn tiền đơn hàng thành công" {
+		t.Fatalf("unexpected message: %v", body["message"])
+	}
+	orderMap := body["data"].(map[string]any)["order"].(map[string]any)
+	if orderMap["paymentStatus"] != "REFUNDED" ||
+		orderMap["refundTransId"] != "momo-ref-99" ||
+		orderMap["refundActorType"] != "ADMIN" ||
+		orderMap["refundedAt"] != "2026-11-25T10:00:00Z" ||
+		orderMap["refundReason"] != "MoMo đã hoạt động lại" {
+		t.Fatalf("unexpected order refund fields: %v", orderMap)
+	}
+
+	// Empty body is also allowed.
+	recEmpty := serveAdminOrders(t, client, http.MethodPost, "/api/v1/admin/orders/ord-123/refund", "")
+	if recEmpty.Code != http.StatusOK {
+		t.Fatalf("expected 200 on empty body, got %d: %s", recEmpty.Code, recEmpty.Body.String())
+	}
+	if len(capturedReqs) != 2 || capturedReqs[0].GetUserId() != "admin-1" || capturedReqs[0].GetOrderId() != "ord-123" || capturedReqs[1].GetReason() != "" {
+		t.Fatalf("unexpected captured requests: %+v", capturedReqs)
+	}
+}
+
+func TestAdminRetryRefundMapsConflictAndUnavailableErrors(t *testing.T) {
+	for _, tc := range []struct {
+		grpc   codes.Code
+		reason string
+		status int
+		code   string
+	}{
+		{codes.FailedPrecondition, "REFUND_AUTO_RETRY_IN_PROGRESS", http.StatusConflict, "REFUND_AUTO_RETRY_IN_PROGRESS"},
+		{codes.FailedPrecondition, "ORDER_REFUND_NOT_ELIGIBLE", http.StatusConflict, "ORDER_REFUND_NOT_ELIGIBLE"},
+		{codes.Aborted, "REFUND_IN_PROGRESS", http.StatusConflict, "REFUND_IN_PROGRESS"},
+		{codes.FailedPrecondition, "PAYMENT_GATEWAY_REJECTED", http.StatusConflict, "PAYMENT_GATEWAY_REJECTED"},
+		{codes.Unavailable, "PAYMENT_GATEWAY_UNAVAILABLE", http.StatusServiceUnavailable, "PAYMENT_GATEWAY_UNAVAILABLE"},
+	} {
+		client := &fakeOrderClient{
+			adminRetryRefundFn: func(context.Context, *orderv1.AdminRetryRefundRequest) (*orderv1.AdminRetryRefundResponse, error) {
+				return nil, &orderclient.ServiceError{GRPCStatus: tc.grpc, Reason: tc.reason, Message: "err msg"}
+			},
+		}
+		rec := serveAdminOrders(t, client, http.MethodPost, "/api/v1/admin/orders/ord-123/refund", `{}`)
+		if rec.Code != tc.status || decodeBody(t, rec)["code"] != tc.code {
+			t.Fatalf("%s: got %d %s, want %d %s", tc.reason, rec.Code, rec.Body.String(), tc.status, tc.code)
+		}
+	}
+
+	// Unknown JSON field returns 400 INVALID_PARAMETER.
+	recUnknown := serveAdminOrders(t, &fakeOrderClient{}, http.MethodPost, "/api/v1/admin/orders/ord-123/refund", `{"unknownField":1}`)
+	if recUnknown.Code != http.StatusBadRequest || decodeBody(t, recUnknown)["code"] != "INVALID_PARAMETER" {
+		t.Fatalf("expected 400 INVALID_PARAMETER on unknown field, got %d: %s", recUnknown.Code, recUnknown.Body.String())
+	}
+}

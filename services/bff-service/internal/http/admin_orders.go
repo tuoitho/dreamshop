@@ -1,6 +1,9 @@
 package http
 
 import (
+	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -31,6 +34,10 @@ type adminUpdateOrderStatusInput struct {
 	TrackingNumber  string `json:"trackingNumber"`
 }
 
+type adminRetryRefundInput struct {
+	Reason string `json:"reason"`
+}
+
 // AdminOrdersHandler adapts the order-service administrator RPCs to REST.
 // Order-service authorizes every call with order.admin.view or order.admin.update.
 type AdminOrdersHandler struct {
@@ -45,6 +52,7 @@ func (h *AdminOrdersHandler) Register(mux *http.ServeMux) {
 	mux.Handle("GET /api/v1/admin/orders", correlateTrace(RequireCaller(http.HandlerFunc(h.list))))
 	mux.Handle("GET /api/v1/admin/orders/{orderId}", correlateTrace(RequireCaller(http.HandlerFunc(h.get))))
 	mux.Handle("POST /api/v1/admin/orders/{orderId}/status", correlateTrace(RequireCaller(http.HandlerFunc(h.updateStatus))))
+	mux.Handle("POST /api/v1/admin/orders/{orderId}/refund", correlateTrace(RequireCaller(http.HandlerFunc(h.retryRefund))))
 }
 
 func (h *AdminOrdersHandler) list(w http.ResponseWriter, r *http.Request) {
@@ -123,6 +131,30 @@ func (h *AdminOrdersHandler) updateStatus(w http.ResponseWriter, r *http.Request
 	}
 	writeEnvelope(w, http.StatusOK, newAdminOrderDataJSON(resp.GetOrder(), resp.GetAllowedNextStatuses()),
 		"Cập nhật trạng thái đơn hàng thành công")
+}
+
+func (h *AdminOrdersHandler) retryRefund(w http.ResponseWriter, r *http.Request) {
+	var input adminRetryRefundInput
+	if r.Body != nil {
+		decoder := json.NewDecoder(r.Body)
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&input); err != nil && !errors.Is(err, io.EOF) {
+			writeError(w, r, http.StatusBadRequest, "INVALID_PARAMETER", "Invalid refund request body.", nil)
+			return
+		}
+	}
+
+	resp, err := h.orders.AdminRetryRefund(r.Context(), &orderv1.AdminRetryRefundRequest{
+		UserId:  callerID(r),
+		OrderId: strings.TrimSpace(r.PathValue("orderId")),
+		Reason:  strings.TrimSpace(input.Reason),
+	})
+	if err != nil {
+		writeOrderServiceError(w, r, err)
+		return
+	}
+	writeEnvelope(w, http.StatusOK, newAdminOrderDataJSON(resp.GetOrder(), resp.GetAllowedNextStatuses()),
+		"Hoàn tiền đơn hàng thành công")
 }
 
 func newAdminOrderDataJSON(detail *orderv1.OrderDetail, allowed []string) adminOrderDataJSON {

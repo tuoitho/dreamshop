@@ -129,6 +129,9 @@ func (fakeOrderClient) AdminGetOrder(context.Context, string, string) (*orderv1.
 func (fakeOrderClient) AdminUpdateOrderStatus(context.Context, *orderv1.AdminUpdateOrderStatusRequest) (*orderv1.AdminUpdateOrderStatusResponse, error) {
 	return &orderv1.AdminUpdateOrderStatusResponse{Order: &orderv1.OrderDetail{OrderId: "ord-1"}}, nil
 }
+func (fakeOrderClient) AdminRetryRefund(context.Context, *orderv1.AdminRetryRefundRequest) (*orderv1.AdminRetryRefundResponse, error) {
+	return &orderv1.AdminRetryRefundResponse{Order: &orderv1.OrderDetail{OrderId: "ord-1", PaymentStatus: "REFUNDED"}}, nil
+}
 
 type fakePaymentClient struct{}
 
@@ -164,6 +167,8 @@ func TestBuildMuxMakesCanonicalRoutesReachableAndRejectsLegacyPaths(t *testing.T
 		{method: http.MethodGet, path: "/api/v1/admin/inventory", caller: "admin-1", status: http.StatusOK},
 		{method: http.MethodGet, path: "/api/v1/admin/orders", caller: "admin-1", status: http.StatusOK},
 		{method: http.MethodGet, path: "/api/v1/admin/orders", status: http.StatusUnauthorized},
+		{method: http.MethodPost, path: "/api/v1/admin/orders/ord-1/refund", caller: "admin-1", status: http.StatusOK},
+		{method: http.MethodPost, path: "/api/v1/admin/orders/ord-1/refund", status: http.StatusUnauthorized},
 		{method: http.MethodGet, path: "/", caller: "user-1", status: http.StatusNotFound},
 		{method: http.MethodGet, path: "/products", status: http.StatusNotFound},
 		{method: http.MethodGet, path: "/api/v1/cart/unknown", caller: "user-1", status: http.StatusNotFound},

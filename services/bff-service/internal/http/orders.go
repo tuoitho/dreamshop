@@ -65,6 +65,11 @@ type orderDetailJSON struct {
 	AutoConfirmAt    string              `json:"autoConfirmAt,omitempty"`
 	ShippingCarrier  string              `json:"shippingCarrier,omitempty"`
 	TrackingNumber   string              `json:"trackingNumber,omitempty"`
+	RefundTransID    string              `json:"refundTransId,omitempty"`
+	RefundLastError  string              `json:"refundLastError,omitempty"`
+	RefundedAt       string              `json:"refundedAt,omitempty"`
+	RefundActorType  string              `json:"refundActorType,omitempty"`
+	RefundReason     string              `json:"refundReason,omitempty"`
 	// Filled only by single-order reads; list responses return an empty array.
 	StatusHistory []orderStatusChangeJSON `json:"statusHistory"`
 }
@@ -316,6 +321,9 @@ func writeOrderServiceError(w http.ResponseWriter, r *http.Request, err error) {
 			"ORDER_NOT_CANCELLABLE",
 			"ORDER_INVALID_TRANSITION",
 			"ORDER_STATUS_CONFLICT",
+			"ORDER_REFUND_NOT_ELIGIBLE",
+			"REFUND_AUTO_RETRY_IN_PROGRESS",
+			"REFUND_IN_PROGRESS",
 			"PAYMENT_GATEWAY_REJECTED",
 			"REQUEST_IN_PROGRESS",
 			"IDEMPOTENCY_KEY_REUSED":
@@ -425,6 +433,11 @@ func newOrderDetailJSON(detail *orderv1.OrderDetail) orderDetailJSON {
 		AutoConfirmAt:    detail.GetAutoConfirmAt(),
 		ShippingCarrier:  detail.GetShippingCarrier(),
 		TrackingNumber:   detail.GetTrackingNumber(),
+		RefundTransID:    detail.GetRefundTransId(),
+		RefundLastError:  detail.GetRefundLastError(),
+		RefundedAt:       detail.GetRefundedAt(),
+		RefundActorType:  detail.GetRefundActorType(),
+		RefundReason:     detail.GetRefundReason(),
 		StatusHistory:    history,
 	}
 }
