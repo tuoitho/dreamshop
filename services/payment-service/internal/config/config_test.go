@@ -29,6 +29,9 @@ func TestLoadAppliesSafeDefaultsWithoutKongPort(t *testing.T) {
 	if cfg.MomoRefundEndpoint != "https://test-payment.momo.vn/v2/gateway/api/refund" {
 		t.Fatalf("unexpected default MomoRefundEndpoint: %q", cfg.MomoRefundEndpoint)
 	}
+	if cfg.MomoRequestType != "captureWallet" {
+		t.Fatalf("unexpected default MomoRequestType: %q", cfg.MomoRequestType)
+	}
 	if cfg.RefundMaxAutoAttempts != 3 || cfg.RefundPollInterval != 2*time.Second || cfg.RefundRetryBackoff != 10*time.Second {
 		t.Fatalf("unexpected refund defaults: max=%d poll=%s backoff=%s", cfg.RefundMaxAutoAttempts, cfg.RefundPollInterval, cfg.RefundRetryBackoff)
 	}

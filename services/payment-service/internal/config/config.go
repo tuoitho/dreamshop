@@ -19,6 +19,7 @@ type Config struct {
 	MomoSecretKey         string
 	MomoAPIEndpoint       string
 	MomoRefundEndpoint    string
+	MomoRequestType       string
 	MomoConnectTimeout    time.Duration
 	MomoReadTimeout       time.Duration
 	MomoRedirectURL       string
@@ -89,6 +90,7 @@ func Load() (Config, error) {
 		MomoSecretKey:         strings.TrimSpace(os.Getenv("MOMO_SECRET_KEY")),
 		MomoAPIEndpoint:       apiEndpoint,
 		MomoRefundEndpoint:    refundEndpoint,
+		MomoRequestType:       stringEnv("MOMO_REQUEST_TYPE", "captureWallet"),
 		MomoConnectTimeout:    connectTimeout,
 		MomoReadTimeout:       readTimeout,
 		MomoRedirectURL:       redirectURL,

@@ -53,6 +53,7 @@ func main() {
 		SecretKey:      cfg.MomoSecretKey,
 		APIEndpoint:    cfg.MomoAPIEndpoint,
 		RefundEndpoint: cfg.MomoRefundEndpoint,
+		RequestType:    cfg.MomoRequestType,
 		RedirectURL:    cfg.MomoRedirectURL,
 		IPNURL:         cfg.MomoIPNURL,
 		ConnectTimeout: cfg.MomoConnectTimeout,

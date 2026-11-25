@@ -18,6 +18,7 @@ type CreateSignParams struct {
 	PartnerCode string
 	RedirectURL string
 	RequestID   string
+	RequestType string
 }
 
 type CallbackSignParams struct {
@@ -61,8 +62,12 @@ func SignRefundRequest(p RefundSignParams, secret string) string {
 }
 
 func SignCreateRequest(p CreateSignParams, secret string) string {
+	reqType := strings.TrimSpace(p.RequestType)
+	if reqType == "" {
+		reqType = "captureWallet"
+	}
 	raw := fmt.Sprintf(
-		"accessKey=%s&amount=%d&extraData=%s&ipnUrl=%s&orderId=%s&orderInfo=%s&partnerCode=%s&redirectUrl=%s&requestId=%s&requestType=captureWallet",
+		"accessKey=%s&amount=%d&extraData=%s&ipnUrl=%s&orderId=%s&orderInfo=%s&partnerCode=%s&redirectUrl=%s&requestId=%s&requestType=%s",
 		p.AccessKey,
 		p.Amount,
 		p.ExtraData,
@@ -72,6 +77,7 @@ func SignCreateRequest(p CreateSignParams, secret string) string {
 		p.PartnerCode,
 		p.RedirectURL,
 		p.RequestID,
+		reqType,
 	)
 	return hex.EncodeToString(computeHMAC(raw, secret))
 }

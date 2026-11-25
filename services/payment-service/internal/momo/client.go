@@ -31,6 +31,7 @@ type ClientConfig struct {
 	SecretKey      string
 	APIEndpoint    string
 	RefundEndpoint string
+	RequestType    string
 	RedirectURL    string
 	IPNURL         string
 	ConnectTimeout time.Duration
@@ -103,6 +104,9 @@ func NewClient(cfg ClientConfig) *Client {
 			cfg.RefundEndpoint = "https://test-payment.momo.vn/v2/gateway/api/refund"
 		}
 	}
+	if strings.TrimSpace(cfg.RequestType) == "" {
+		cfg.RequestType = "captureWallet"
+	}
 
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
@@ -148,6 +152,7 @@ func (c *Client) CreateSession(ctx context.Context, req CreateSessionRequest) (s
 		PartnerCode: c.cfg.PartnerCode,
 		RedirectURL: c.cfg.RedirectURL,
 		RequestID:   req.RequestID,
+		RequestType: c.cfg.RequestType,
 	}, c.cfg.SecretKey)
 
 	payload := map[string]any{
@@ -160,7 +165,7 @@ func (c *Client) CreateSession(ctx context.Context, req CreateSessionRequest) (s
 		"redirectUrl": c.cfg.RedirectURL,
 		"ipnUrl":      c.cfg.IPNURL,
 		"extraData":   "",
-		"requestType": "captureWallet",
+		"requestType": c.cfg.RequestType,
 		"lang":        "vi",
 		"signature":   signature,
 	}
