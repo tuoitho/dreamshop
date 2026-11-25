@@ -25,12 +25,14 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -333,9 +335,16 @@ public class OrderSagaOrchestrator {
         if (items == null || items.isEmpty()) {
             throw new DomainException(Status.Code.INVALID_ARGUMENT, "INVALID_PARAMETER", "items must not be empty");
         }
+        Set<String> seenSkuIds = new HashSet<>(items.size());
         for (OrderItem item : items) {
             requireNonBlank(item.getProductId(), "items.product_id");
-            requireNonBlank(item.getSkuId(), "items.sku_id");
+            String skuId = requireNonBlank(item.getSkuId(), "items.sku_id");
+            if (!seenSkuIds.add(skuId)) {
+                throw new DomainException(
+                        Status.Code.INVALID_ARGUMENT,
+                        "INVALID_PARAMETER",
+                        "Duplicate items.sku_id: " + skuId);
+            }
             if (item.getQuantity() <= 0) {
                 throw new DomainException(Status.Code.INVALID_ARGUMENT, "INVALID_PARAMETER", "items.quantity must be positive");
             }

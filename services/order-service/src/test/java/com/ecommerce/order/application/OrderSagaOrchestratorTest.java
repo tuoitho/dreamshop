@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.ecommerce.contracts.catalog.v1.GetProductResponse;
@@ -72,6 +73,37 @@ class OrderSagaOrchestratorTest extends PostgresRabbitIntegrationTestSupport {
         jdbcTemplate.execute("TRUNCATE TABLE order_items, orders, idempotency_records, outbox_events, processed_events CASCADE");
         reset(authorizationAdapter, catalogAdapter, inventoryAdapter, paymentAdapter);
         when(authorizationAdapter.hasPermission(any(UUID.class), eq("order.create"))).thenReturn(true);
+    }
+
+    @Test
+    void duplicateSkuIdRejectsBeforeDownstreamCallsAndDatabaseWrites() {
+        UUID userId = UUID.randomUUID();
+        CreateOrderRequest req = buildRequest(userId, "idem-dup-sku", "COD", "p-dup", "p-dup-v1", "Phone", "Black", 200_000L, 1L)
+                .toBuilder()
+                .addItems(OrderItem.newBuilder()
+                        .setCartItemId("ci-p-dup-v1-2")
+                        .setProductId("p-dup")
+                        .setSkuId(" p-dup-v1 ")
+                        .setQuantity(2)
+                        .setExpectedName("Phone")
+                        .setVariantLabel("Black")
+                        .setExpectedProductVersion(1L)
+                        .setUnitPrice(Money.newBuilder().setCurrency("VND").setAmountMinor(200_000L).build())
+                        .build())
+                .build();
+
+        assertThatThrownBy(() -> orchestrator.createOrder(req))
+                .isInstanceOf(DomainException.class)
+                .satisfies(ex -> {
+                    DomainException de = (DomainException) ex;
+                    assertThat(de.grpcCode()).isEqualTo(Status.Code.INVALID_ARGUMENT);
+                    assertThat(de.reason()).isEqualTo("INVALID_PARAMETER");
+                    assertThat(de.getMessage()).contains("p-dup-v1");
+                });
+
+        verifyNoInteractions(authorizationAdapter, catalogAdapter, inventoryAdapter, paymentAdapter);
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM orders", Integer.class)).isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM idempotency_records", Integer.class)).isZero();
     }
 
     @Test
