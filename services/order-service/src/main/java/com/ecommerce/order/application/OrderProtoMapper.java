@@ -47,7 +47,9 @@ public final class OrderProtoMapper {
                 .setUpdatedAt(order.getUpdatedAt() != null ? order.getUpdatedAt().toString() : "")
                 .setAutoConfirmAt(order.getAutoConfirmAt() != null ? order.getAutoConfirmAt().toString() : "")
                 .setShippingCarrier(nullToEmpty(order.getShippingCarrier()))
-                .setTrackingNumber(nullToEmpty(order.getTrackingNumber()));
+                .setTrackingNumber(nullToEmpty(order.getTrackingNumber()))
+                .setRefundTransId(nullToEmpty(order.getRefundTransId()))
+                .setRefundedAt(order.getRefundedAt() != null ? order.getRefundedAt().toString() : "");
 
         if (order.getItems() != null) {
             for (OrderItemEntity item : order.getItems()) {
@@ -97,6 +99,22 @@ public final class OrderProtoMapper {
                     .build());
         }
         return builder.build();
+    }
+
+    public static OrderDetail toAdminOrderDetail(OrderEntity order) {
+        return withAdminRefundFields(toOrderDetail(order), order);
+    }
+
+    public static OrderDetail toAdminOrderDetail(OrderEntity order, List<OrderStatusHistoryEntity> history) {
+        return withAdminRefundFields(toOrderDetail(order, history), order);
+    }
+
+    private static OrderDetail withAdminRefundFields(OrderDetail base, OrderEntity order) {
+        return base.toBuilder()
+                .setRefundLastError(nullToEmpty(order.getRefundLastError()))
+                .setRefundActorType(nullToEmpty(order.getRefundActorType()))
+                .setRefundReason(nullToEmpty(order.getRefundReason()))
+                .build();
     }
 
     public static CreateOrderResponse toCreateOrderResponse(OrderEntity order) {

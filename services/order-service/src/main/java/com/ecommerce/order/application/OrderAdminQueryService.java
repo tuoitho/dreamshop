@@ -56,7 +56,7 @@ public class OrderAdminQueryService {
             OrderEntity order = orderRepository.findById(orderId)
                     .orElseThrow(() -> new DomainException(Status.Code.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found"));
             AdminGetOrderResponse.Builder builder = AdminGetOrderResponse.newBuilder()
-                    .setOrder(OrderProtoMapper.toOrderDetail(
+                    .setOrder(OrderProtoMapper.toAdminOrderDetail(
                             order, statusHistoryRepository.findByOrderIdOrderByCreatedAtAsc(orderId)));
             OrderTransitions.adminTargets(order.getStatus())
                     .forEach(next -> builder.addAllowedNextStatuses(next.name()));
@@ -84,7 +84,7 @@ public class OrderAdminQueryService {
                 .setTotalItems(result.getTotalElements())
                 .setTotalPages(result.getTotalPages());
         for (OrderEntity entity : result.getContent()) {
-            builder.addItems(OrderProtoMapper.toOrderDetail(entity));
+            builder.addItems(OrderProtoMapper.toAdminOrderDetail(entity));
         }
         for (OrderStatus status : OrderStatus.values()) {
             builder.putStatusCounts(status.name(), 0L);

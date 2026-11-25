@@ -131,7 +131,40 @@ public class PaymentEventConsumer {
                         now);
                 txStepService.registerOutboxWakeupAfterCommit();
             }
+        } else if (RabbitMqConfig.RK_PAYMENT_REFUNDED.equals(routingKey) || "PaymentRefunded".equals(eventType)) {
+            if (order.getPaymentStatus() == PaymentStatus.REFUND_REQUIRED
+                    || order.getPaymentStatus() == PaymentStatus.REFUND_FAILED
+                    || order.getPaymentStatus() == PaymentStatus.PAID) {
+                order.setPaymentStatus(PaymentStatus.REFUNDED);
+                String refundTransId = stringValue(data.get("refundTransId"));
+                if (!refundTransId.isEmpty()) {
+                    order.setRefundTransId(truncate(refundTransId, 64));
+                }
+                order.setRefundLastError("");
+                if (order.getRefundedAt() == null) {
+                    order.setRefundedAt(now);
+                }
+                if (order.getRefundActorType() == null || order.getRefundActorType().isEmpty()) {
+                    order.setRefundActorType("SYSTEM");
+                }
+                order.setUpdatedAt(now);
+                orderRepository.saveAndFlush(order);
+            }
+        } else if (RabbitMqConfig.RK_PAYMENT_REFUND_FAILED.equals(routingKey) || "PaymentRefundFailed".equals(eventType)) {
+            if (order.getPaymentStatus() == PaymentStatus.REFUND_REQUIRED) {
+                order.setPaymentStatus(PaymentStatus.REFUND_FAILED);
+                order.setRefundLastError(truncate(stringValue(data.get("message")), 255));
+                order.setUpdatedAt(now);
+                orderRepository.saveAndFlush(order);
+            }
         }
+    }
+
+    private static String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value == null ? "" : value;
+        }
+        return value.substring(0, maxLength);
     }
 
     private static String stringValue(Object obj) {

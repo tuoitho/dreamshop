@@ -162,4 +162,113 @@ class OrderMigrationAndLockingTest extends PostgresRabbitIntegrationTestSupport 
             assertThat(entry.getReason()).isEmpty();
         });
     }
+
+    @Test
+    void persistsRefundStatusesAuditColumnsAndSupportsBackfillUpdate() {
+        UUID refundedId = UUID.randomUUID();
+        UUID failedId = UUID.randomUUID();
+        UUID adminId = UUID.randomUUID();
+        Instant refundedAt = Instant.parse("2026-11-25T05:00:00Z");
+
+        orderRepository.saveAndFlush(OrderEntity.builder()
+                .id(refundedId)
+                .orderCode("ORD-20261125-REF01")
+                .userId(UUID.randomUUID())
+                .idempotencyKey("idem-ref-1")
+                .status(OrderStatus.CANCELLED)
+                .paymentMethod(PaymentMethod.MOMO)
+                .paymentStatus(PaymentStatus.REFUNDED)
+                .recipientName("Nguyen Van B")
+                .recipientPhone("0901234567")
+                .provinceCode("79")
+                .provinceName("HCM")
+                .wardCode("26734")
+                .wardName("Ben Nghe")
+                .addressLine("1 Le Duan")
+                .subtotalMinor(150_000L)
+                .shippingFeeMinor(0L)
+                .totalAmountMinor(150_000L)
+                .refundTransId("momo-ref-123")
+                .refundLastError("")
+                .refundedAt(refundedAt)
+                .refundActorType("ADMIN")
+                .refundActorId(adminId)
+                .refundReason("MoMo recovered")
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build());
+
+        orderRepository.saveAndFlush(OrderEntity.builder()
+                .id(failedId)
+                .orderCode("ORD-20261125-REF02")
+                .userId(UUID.randomUUID())
+                .idempotencyKey("idem-ref-2")
+                .status(OrderStatus.CANCELLED)
+                .paymentMethod(PaymentMethod.MOMO)
+                .paymentStatus(PaymentStatus.REFUND_FAILED)
+                .recipientName("Nguyen Van C")
+                .recipientPhone("0901234567")
+                .provinceCode("79")
+                .provinceName("HCM")
+                .wardCode("26734")
+                .wardName("Ben Nghe")
+                .addressLine("2 Le Duan")
+                .subtotalMinor(150_000L)
+                .shippingFeeMinor(0L)
+                .totalAmountMinor(150_000L)
+                .refundLastError("gateway 503")
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build());
+
+        OrderEntity reloadedRefunded = orderRepository.findById(refundedId).orElseThrow();
+        assertThat(reloadedRefunded.getPaymentStatus()).isEqualTo(PaymentStatus.REFUNDED);
+        assertThat(reloadedRefunded.getRefundTransId()).isEqualTo("momo-ref-123");
+        assertThat(reloadedRefunded.getRefundedAt()).isEqualTo(refundedAt);
+        assertThat(reloadedRefunded.getRefundActorType()).isEqualTo("ADMIN");
+        assertThat(reloadedRefunded.getRefundActorId()).isEqualTo(adminId);
+        assertThat(reloadedRefunded.getRefundReason()).isEqualTo("MoMo recovered");
+
+        OrderEntity reloadedFailed = orderRepository.findById(failedId).orElseThrow();
+        assertThat(reloadedFailed.getPaymentStatus()).isEqualTo(PaymentStatus.REFUND_FAILED);
+        assertThat(reloadedFailed.getRefundLastError()).isEqualTo("gateway 503");
+
+        // Verify V3 backfill SQL semantics on a CANCELLED + MOMO + REFUND_REQUIRED row.
+        UUID legacyId = UUID.randomUUID();
+        orderRepository.saveAndFlush(OrderEntity.builder()
+                .id(legacyId)
+                .orderCode("ORD-20261125-LEG01")
+                .userId(UUID.randomUUID())
+                .idempotencyKey("idem-leg-1")
+                .status(OrderStatus.CANCELLED)
+                .paymentMethod(PaymentMethod.MOMO)
+                .paymentStatus(PaymentStatus.REFUND_REQUIRED)
+                .recipientName("Legacy")
+                .recipientPhone("0901234567")
+                .provinceCode("79")
+                .provinceName("HCM")
+                .wardCode("26734")
+                .wardName("Ben Nghe")
+                .addressLine("3 Le Duan")
+                .subtotalMinor(100_000L)
+                .shippingFeeMinor(0L)
+                .totalAmountMinor(100_000L)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build());
+
+        int updated = jdbcTemplate.update("""
+                UPDATE orders
+                SET payment_status = 'REFUND_FAILED',
+                    refund_last_error = 'Đơn cần hoàn tiền phát sinh trước khi bật hoàn tiền tự động',
+                    updated_at = now()
+                WHERE status = 'CANCELLED'
+                  AND payment_method = 'MOMO'
+                  AND payment_status = 'REFUND_REQUIRED'
+                """);
+        assertThat(updated).isEqualTo(1);
+        OrderEntity backfilled = orderRepository.findById(legacyId).orElseThrow();
+        assertThat(backfilled.getPaymentStatus()).isEqualTo(PaymentStatus.REFUND_FAILED);
+        assertThat(backfilled.getRefundLastError()).isNotBlank();
+    }
 }

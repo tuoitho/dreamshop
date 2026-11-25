@@ -26,6 +26,8 @@ public class RabbitMqConfig {
     public static final String RK_PAYMENT_REFUND_REQUESTED = "order.payment.refund_requested";
     public static final String RK_PAYMENT_SUCCEEDED = "payment.succeeded";
     public static final String RK_PAYMENT_FAILED = "payment.failed";
+    public static final String RK_PAYMENT_REFUNDED = "payment.refunded";
+    public static final String RK_PAYMENT_REFUND_FAILED = "payment.refund_failed";
 
     @Bean
     public RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory) {
@@ -80,5 +82,23 @@ public class RabbitMqConfig {
         return BindingBuilder.bind(paymentEventsQueue)
                 .to(eventsExchange)
                 .with(RK_PAYMENT_FAILED);
+    }
+
+    @Bean
+    public Binding paymentRefundedBinding(
+            @Qualifier("paymentEventsQueue") Queue paymentEventsQueue,
+            @Qualifier("eventsExchange") TopicExchange eventsExchange) {
+        return BindingBuilder.bind(paymentEventsQueue)
+                .to(eventsExchange)
+                .with(RK_PAYMENT_REFUNDED);
+    }
+
+    @Bean
+    public Binding paymentRefundFailedBinding(
+            @Qualifier("paymentEventsQueue") Queue paymentEventsQueue,
+            @Qualifier("eventsExchange") TopicExchange eventsExchange) {
+        return BindingBuilder.bind(paymentEventsQueue)
+                .to(eventsExchange)
+                .with(RK_PAYMENT_REFUND_FAILED);
     }
 }

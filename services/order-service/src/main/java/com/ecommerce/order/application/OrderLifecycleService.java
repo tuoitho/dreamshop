@@ -139,7 +139,7 @@ public class OrderLifecycleService {
             }
 
             AdminUpdateOrderStatusResponse.Builder builder = AdminUpdateOrderStatusResponse.newBuilder()
-                    .setOrder(OrderProtoMapper.toOrderDetail(
+                    .setOrder(OrderProtoMapper.toAdminOrderDetail(
                             order, statusHistoryRepository.findByOrderIdOrderByCreatedAtAsc(orderId)));
             OrderTransitions.adminTargets(order.getStatus())
                     .forEach(next -> builder.addAllowedNextStatuses(next.name()));
