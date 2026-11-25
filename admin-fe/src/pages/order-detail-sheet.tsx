@@ -1,7 +1,16 @@
-import { AlertCircle, Loader2, RefreshCw } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
+import { AlertCircle, CheckCircle2, Loader2, RefreshCw, RotateCcw } from "lucide-react"
+import { useCallback, useEffect, useState, type FormEvent } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import {
   Sheet,
@@ -10,7 +19,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { getAdminOrder, toClientError } from "@/lib/api"
+import { Textarea } from "@/components/ui/textarea"
+import { getAdminOrder, retryAdminOrderRefund, toClientError } from "@/lib/api"
 import { formatCurrencyVnd, formatDateTime } from "@/lib/format"
 import {
   ACTOR_LABELS,
@@ -35,6 +45,9 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, canUpdate, onMut
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false)
+  const [refundReason, setRefundReason] = useState("")
+  const [refundSubmitting, setRefundSubmitting] = useState(false)
 
   const loadOrder = useCallback(
     async (signal?: AbortSignal) => {
@@ -67,6 +80,28 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, canUpdate, onMut
   const order = view?.order
   const address = order?.shippingAddress
   const canChangeStatus = canUpdate && (view?.allowedNextStatuses.length ?? 0) > 0
+  const canManualRefund =
+    canUpdate &&
+    order?.status === "CANCELLED" &&
+    order?.paymentMethod === "MOMO" &&
+    order?.paymentStatus === "REFUND_FAILED"
+
+  const handleManualRefund = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!order || refundSubmitting) return
+    setRefundSubmitting(true)
+    try {
+      const next = await retryAdminOrderRefund(order.orderId, refundReason)
+      setView(next)
+      setRefundDialogOpen(false)
+      setRefundReason("")
+      onMutated()
+    } catch {
+      void loadOrder()
+    } finally {
+      setRefundSubmitting(false)
+    }
+  }
 
   return (
     <>
@@ -121,8 +156,57 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, canUpdate, onMut
                       Cập nhật trạng thái
                     </Button>
                   )}
+                  {canManualRefund && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => {
+                        setRefundReason("")
+                        setRefundDialogOpen(true)
+                      }}
+                      disabled={refundSubmitting}
+                    >
+                      <RotateCcw className="size-3.5" />
+                      Hoàn tiền thủ công
+                    </Button>
+                  )}
                 </div>
               </section>
+
+              {order.paymentStatus === "REFUND_FAILED" && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs text-red-900"
+                >
+                  <AlertCircle className="mt-0.5 size-4 shrink-0 text-red-600" />
+                  <div className="space-y-1">
+                    <p className="font-semibold">Hoàn tiền tự động thất bại sau 3 lần thử.</p>
+                    {order.refundLastError && (
+                      <p className="text-red-800">Lỗi gần nhất: {order.refundLastError}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {order.paymentStatus === "REFUNDED" && (
+                <div className="flex items-start gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-xs text-emerald-900">
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+                  <div className="space-y-1">
+                    <p className="font-semibold">Đã hoàn tiền MoMo thành công</p>
+                    {order.refundTransId && (
+                      <p>
+                        Mã giao dịch hoàn tiền: <span className="font-mono font-medium">{order.refundTransId}</span>
+                      </p>
+                    )}
+                    {order.refundedAt && <p>Thời gian hoàn tiền: {formatDateTime(order.refundedAt)}</p>}
+                    {order.refundActorType && (
+                      <p>Thực hiện bởi: {ACTOR_LABELS[order.refundActorType]}</p>
+                    )}
+                    {order.refundReason && <p>Ghi chú hoàn tiền: {order.refundReason}</p>}
+                  </div>
+                </div>
+              )}
 
               <section className="space-y-1 text-sm">
                 <h3 className="font-semibold text-foreground">Giao hàng</h3>
@@ -231,6 +315,48 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, canUpdate, onMut
             onMutated()
           }}
         />
+      )}
+
+      {order && (
+        <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
+          <DialogContent className="sm:max-w-[440px]">
+            <DialogHeader>
+              <DialogTitle>Xác nhận hoàn tiền thủ công</DialogTitle>
+              <DialogDescription>
+                Gửi yêu cầu hoàn tiền toàn bộ đơn{" "}
+                <span className="font-mono font-medium text-foreground">{order.orderCode}</span> (
+                <span className="font-mono font-medium text-foreground">{formatCurrencyVnd(order.totalAmount)}</span>) qua
+                MoMo.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={(e) => void handleManualRefund(e)} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="manual-refund-reason">Lý do hoàn tiền (không bắt buộc)</Label>
+                <Textarea
+                  id="manual-refund-reason"
+                  value={refundReason}
+                  maxLength={128}
+                  onChange={(e) => setRefundReason(e.target.value)}
+                  rows={3}
+                  placeholder="Ví dụ: MoMo đã hoạt động trở lại"
+                />
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setRefundDialogOpen(false)}
+                  disabled={refundSubmitting}
+                >
+                  Hủy
+                </Button>
+                <Button type="submit" variant="destructive" disabled={refundSubmitting}>
+                  {refundSubmitting ? "Đang hoàn tiền…" : "Xác nhận hoàn tiền"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       )}
     </>
   )

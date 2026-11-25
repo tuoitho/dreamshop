@@ -286,7 +286,14 @@ export type OrderStatus =
 
 export type OrderPaymentMethod = "COD" | "MOMO"
 
-export type OrderPaymentStatus = "UNPAID" | "PENDING" | "PAID" | "FAILED" | "REFUND_REQUIRED"
+export type OrderPaymentStatus =
+  | "UNPAID"
+  | "PENDING"
+  | "PAID"
+  | "FAILED"
+  | "REFUND_REQUIRED"
+  | "REFUNDED"
+  | "REFUND_FAILED"
 
 export type OrderActorType = "SYSTEM" | "CUSTOMER" | "ADMIN"
 
@@ -347,6 +354,11 @@ export interface AdminOrder {
   autoConfirmAt?: string
   shippingCarrier?: string
   trackingNumber?: string
+  refundTransId?: string
+  refundLastError?: string
+  refundedAt?: string
+  refundActorType?: "SYSTEM" | "ADMIN"
+  refundReason?: string
   createdAt: string
   updatedAt: string
   statusHistory: AdminOrderStatusChange[]

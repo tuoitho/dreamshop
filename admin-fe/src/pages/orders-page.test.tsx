@@ -175,4 +175,82 @@ describe("OrdersPage", () => {
     expect(await screen.findByRole("list", { name: /lịch sử trạng thái/i })).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /cập nhật trạng thái/i })).not.toBeInTheDocument()
   })
+
+  it("shows manual refund action for REFUND_FAILED MoMo orders and updates to REFUNDED on confirm", async () => {
+    const failedOrder: AdminOrder = {
+      ...sampleOrder,
+      orderId: "ord-ref-fail",
+      orderCode: "ORD-20261125-RFAIL",
+      status: "CANCELLED",
+      paymentMethod: "MOMO",
+      paymentStatus: "REFUND_FAILED",
+      refundLastError: "momo gateway 503",
+    }
+    const refundedOrder: AdminOrder = {
+      ...failedOrder,
+      paymentStatus: "REFUNDED",
+      refundTransId: "momo-ref-777",
+      refundLastError: "",
+      refundedAt: "2026-11-25T10:30:00Z",
+      refundActorType: "ADMIN",
+      refundReason: "MoMo đã phục hồi",
+    }
+
+    const listSpy = vi.spyOn(api, "listAdminOrders").mockResolvedValue({
+      ...samplePage,
+      items: [failedOrder],
+    })
+    vi.spyOn(api, "getAdminOrder").mockResolvedValue({
+      order: failedOrder,
+      allowedNextStatuses: [],
+    })
+    const refundSpy = vi.spyOn(api, "retryAdminOrderRefund").mockResolvedValue({
+      order: refundedOrder,
+      allowedNextStatuses: [],
+    })
+
+    renderPage(["order.admin.view", "order.admin.update"])
+    await userEvent.click(await screen.findByRole("button", { name: /xem đơn ORD-20261125-RFAIL/i }))
+
+    expect(await screen.findByText(/momo gateway 503/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/Hoàn tiền thất bại/i).length).toBeGreaterThan(0)
+
+    await userEvent.click(screen.getByRole("button", { name: /hoàn tiền thủ công/i }))
+    const reasonInput = await screen.findByLabelText(/lý do hoàn tiền/i)
+    await userEvent.type(reasonInput, "MoMo đã phục hồi")
+    await userEvent.click(screen.getByRole("button", { name: /xác nhận hoàn tiền/i }))
+
+    await waitFor(() => expect(refundSpy).toHaveBeenCalledWith("ord-ref-fail", "MoMo đã phục hồi"))
+    expect(await screen.findByText(/momo-ref-777/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/Đã hoàn tiền/i).length).toBeGreaterThan(0)
+    expect(listSpy).toHaveBeenCalledTimes(2)
+  })
+
+  it("hides manual refund button for REFUND_REQUIRED, REFUNDED, or missing order.admin.update", async () => {
+    const cases: Array<{ label: string; paymentStatus: AdminOrder["paymentStatus"]; perms: string[] }> = [
+      { label: "REFUND_REQUIRED", paymentStatus: "REFUND_REQUIRED", perms: ["order.admin.view", "order.admin.update"] },
+      { label: "REFUNDED", paymentStatus: "REFUNDED", perms: ["order.admin.view", "order.admin.update"] },
+      { label: "missing perm", paymentStatus: "REFUND_FAILED", perms: ["order.admin.view"] },
+    ]
+
+    for (const tc of cases) {
+      vi.restoreAllMocks()
+      const ord: AdminOrder = {
+        ...sampleOrder,
+        orderId: `ord-${tc.label}`,
+        orderCode: `ORD-${tc.label}`,
+        status: "CANCELLED",
+        paymentMethod: "MOMO",
+        paymentStatus: tc.paymentStatus,
+      }
+      vi.spyOn(api, "listAdminOrders").mockResolvedValue({ ...samplePage, items: [ord] })
+      vi.spyOn(api, "getAdminOrder").mockResolvedValue({ order: ord, allowedNextStatuses: [] })
+
+      const { unmount } = renderPage(tc.perms)
+      await userEvent.click(await screen.findByRole("button", { name: new RegExp(`xem đơn ${ord.orderCode}`, "i") }))
+      expect(await screen.findByRole("list", { name: /lịch sử trạng thái/i })).toBeInTheDocument()
+      expect(screen.queryByRole("button", { name: /hoàn tiền thủ công/i })).not.toBeInTheDocument()
+      unmount()
+    }
+  })
 })

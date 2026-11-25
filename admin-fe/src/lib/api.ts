@@ -387,6 +387,23 @@ export async function updateAdminOrderStatus(
   }
 }
 
+export async function retryAdminOrderRefund(
+  orderId: string,
+  reason?: string
+): Promise<AdminOrderView> {
+  try {
+    const trimmed = reason?.trim()
+    const body = trimmed ? { reason: trimmed } : {}
+    const { data } = await http.post<ApiResponse<AdminOrderView>>(
+      `/admin/orders/${encodeURIComponent(orderId)}/refund`,
+      body
+    )
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
 // --- Admin Users ---
 
 export async function listAdminUsers(

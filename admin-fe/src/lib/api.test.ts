@@ -11,6 +11,7 @@ import {
   listAdminOrders,
   listAdminProducts,
   refreshHttp,
+  retryAdminOrderRefund,
   setSkuStock,
   updateAdminOrderStatus,
 } from "./api"
@@ -298,5 +299,41 @@ describe("admin api client", () => {
     expect(page.statusCounts.SHIPPING).toBe(2)
     expect(view.allowedNextStatuses).toEqual(["DELIVERED"])
     expect(updated.order.status).toBe("SHIPPING")
+  })
+
+  it("posts manual refund retry to /admin/orders/{orderId}/refund", async () => {
+    setAccessToken("valid-token")
+    let captured: { method?: string; url?: string; body: unknown } | undefined
+
+    http.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
+      captured = {
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        body: typeof config.data === "string" ? JSON.parse(config.data) : config.data,
+      }
+      return {
+        data: {
+          data: {
+            order: { orderId: "ord-1", status: "CANCELLED", paymentStatus: "REFUNDED", refundTransId: "momo-ref-1" },
+            allowedNextStatuses: [],
+          },
+          message: "Hoàn tiền đơn hàng thành công",
+        },
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        config,
+      }
+    }
+
+    const res = await retryAdminOrderRefund("ord-1", "Thử lại sau sự cố")
+
+    expect(captured).toEqual({
+      method: "POST",
+      url: "/admin/orders/ord-1/refund",
+      body: { reason: "Thử lại sau sự cố" },
+    })
+    expect(res.order.paymentStatus).toBe("REFUNDED")
+    expect(res.order.refundTransId).toBe("momo-ref-1")
   })
 })

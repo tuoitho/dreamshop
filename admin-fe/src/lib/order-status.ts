@@ -19,6 +19,8 @@ export const PAYMENT_STATUS_LABELS: Record<OrderPaymentStatus, string> = {
   PAID: "Đã thanh toán",
   FAILED: "Thanh toán thất bại",
   REFUND_REQUIRED: "Cần hoàn tiền",
+  REFUNDED: "Đã hoàn tiền",
+  REFUND_FAILED: "Hoàn tiền thất bại",
 }
 
 export const ACTOR_LABELS: Record<OrderActorType, string> = {
@@ -61,9 +63,11 @@ export function orderStatusBadgeVariant(status: OrderStatus): BadgeProps["varian
 export function paymentStatusBadgeVariant(status: OrderPaymentStatus): BadgeProps["variant"] {
   switch (status) {
     case "PAID":
+    case "REFUNDED":
       return "success"
     case "FAILED":
     case "REFUND_REQUIRED":
+    case "REFUND_FAILED":
       return "destructive"
     case "PENDING":
       return "warning"
