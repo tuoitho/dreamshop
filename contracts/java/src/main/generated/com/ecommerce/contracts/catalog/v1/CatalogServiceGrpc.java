@@ -294,6 +294,285 @@ public final class CatalogServiceGrpc {
     return getCreateProductMediaUploadMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.ListProductReviewsRequest,
+      com.ecommerce.contracts.catalog.v1.ListProductReviewsResponse> getListProductReviewsMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "ListProductReviews",
+      requestType = com.ecommerce.contracts.catalog.v1.ListProductReviewsRequest.class,
+      responseType = com.ecommerce.contracts.catalog.v1.ListProductReviewsResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.ListProductReviewsRequest,
+      com.ecommerce.contracts.catalog.v1.ListProductReviewsResponse> getListProductReviewsMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.ListProductReviewsRequest, com.ecommerce.contracts.catalog.v1.ListProductReviewsResponse> getListProductReviewsMethod;
+    if ((getListProductReviewsMethod = CatalogServiceGrpc.getListProductReviewsMethod) == null) {
+      synchronized (CatalogServiceGrpc.class) {
+        if ((getListProductReviewsMethod = CatalogServiceGrpc.getListProductReviewsMethod) == null) {
+          CatalogServiceGrpc.getListProductReviewsMethod = getListProductReviewsMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.catalog.v1.ListProductReviewsRequest, com.ecommerce.contracts.catalog.v1.ListProductReviewsResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "ListProductReviews"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.ListProductReviewsRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.ListProductReviewsResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new CatalogServiceMethodDescriptorSupplier("ListProductReviews"))
+              .build();
+        }
+      }
+    }
+    return getListProductReviewsMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.GetReviewEligibilityRequest,
+      com.ecommerce.contracts.catalog.v1.GetReviewEligibilityResponse> getGetReviewEligibilityMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "GetReviewEligibility",
+      requestType = com.ecommerce.contracts.catalog.v1.GetReviewEligibilityRequest.class,
+      responseType = com.ecommerce.contracts.catalog.v1.GetReviewEligibilityResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.GetReviewEligibilityRequest,
+      com.ecommerce.contracts.catalog.v1.GetReviewEligibilityResponse> getGetReviewEligibilityMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.GetReviewEligibilityRequest, com.ecommerce.contracts.catalog.v1.GetReviewEligibilityResponse> getGetReviewEligibilityMethod;
+    if ((getGetReviewEligibilityMethod = CatalogServiceGrpc.getGetReviewEligibilityMethod) == null) {
+      synchronized (CatalogServiceGrpc.class) {
+        if ((getGetReviewEligibilityMethod = CatalogServiceGrpc.getGetReviewEligibilityMethod) == null) {
+          CatalogServiceGrpc.getGetReviewEligibilityMethod = getGetReviewEligibilityMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.catalog.v1.GetReviewEligibilityRequest, com.ecommerce.contracts.catalog.v1.GetReviewEligibilityResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "GetReviewEligibility"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.GetReviewEligibilityRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.GetReviewEligibilityResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new CatalogServiceMethodDescriptorSupplier("GetReviewEligibility"))
+              .build();
+        }
+      }
+    }
+    return getGetReviewEligibilityMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.CreateProductReviewRequest,
+      com.ecommerce.contracts.catalog.v1.CreateProductReviewResponse> getCreateProductReviewMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "CreateProductReview",
+      requestType = com.ecommerce.contracts.catalog.v1.CreateProductReviewRequest.class,
+      responseType = com.ecommerce.contracts.catalog.v1.CreateProductReviewResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.CreateProductReviewRequest,
+      com.ecommerce.contracts.catalog.v1.CreateProductReviewResponse> getCreateProductReviewMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.CreateProductReviewRequest, com.ecommerce.contracts.catalog.v1.CreateProductReviewResponse> getCreateProductReviewMethod;
+    if ((getCreateProductReviewMethod = CatalogServiceGrpc.getCreateProductReviewMethod) == null) {
+      synchronized (CatalogServiceGrpc.class) {
+        if ((getCreateProductReviewMethod = CatalogServiceGrpc.getCreateProductReviewMethod) == null) {
+          CatalogServiceGrpc.getCreateProductReviewMethod = getCreateProductReviewMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.catalog.v1.CreateProductReviewRequest, com.ecommerce.contracts.catalog.v1.CreateProductReviewResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "CreateProductReview"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.CreateProductReviewRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.CreateProductReviewResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new CatalogServiceMethodDescriptorSupplier("CreateProductReview"))
+              .build();
+        }
+      }
+    }
+    return getCreateProductReviewMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.UpdateProductReviewRequest,
+      com.ecommerce.contracts.catalog.v1.UpdateProductReviewResponse> getUpdateProductReviewMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "UpdateProductReview",
+      requestType = com.ecommerce.contracts.catalog.v1.UpdateProductReviewRequest.class,
+      responseType = com.ecommerce.contracts.catalog.v1.UpdateProductReviewResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.UpdateProductReviewRequest,
+      com.ecommerce.contracts.catalog.v1.UpdateProductReviewResponse> getUpdateProductReviewMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.UpdateProductReviewRequest, com.ecommerce.contracts.catalog.v1.UpdateProductReviewResponse> getUpdateProductReviewMethod;
+    if ((getUpdateProductReviewMethod = CatalogServiceGrpc.getUpdateProductReviewMethod) == null) {
+      synchronized (CatalogServiceGrpc.class) {
+        if ((getUpdateProductReviewMethod = CatalogServiceGrpc.getUpdateProductReviewMethod) == null) {
+          CatalogServiceGrpc.getUpdateProductReviewMethod = getUpdateProductReviewMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.catalog.v1.UpdateProductReviewRequest, com.ecommerce.contracts.catalog.v1.UpdateProductReviewResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "UpdateProductReview"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.UpdateProductReviewRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.UpdateProductReviewResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new CatalogServiceMethodDescriptorSupplier("UpdateProductReview"))
+              .build();
+        }
+      }
+    }
+    return getUpdateProductReviewMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.DeleteProductReviewRequest,
+      com.ecommerce.contracts.catalog.v1.DeleteProductReviewResponse> getDeleteProductReviewMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "DeleteProductReview",
+      requestType = com.ecommerce.contracts.catalog.v1.DeleteProductReviewRequest.class,
+      responseType = com.ecommerce.contracts.catalog.v1.DeleteProductReviewResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.DeleteProductReviewRequest,
+      com.ecommerce.contracts.catalog.v1.DeleteProductReviewResponse> getDeleteProductReviewMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.DeleteProductReviewRequest, com.ecommerce.contracts.catalog.v1.DeleteProductReviewResponse> getDeleteProductReviewMethod;
+    if ((getDeleteProductReviewMethod = CatalogServiceGrpc.getDeleteProductReviewMethod) == null) {
+      synchronized (CatalogServiceGrpc.class) {
+        if ((getDeleteProductReviewMethod = CatalogServiceGrpc.getDeleteProductReviewMethod) == null) {
+          CatalogServiceGrpc.getDeleteProductReviewMethod = getDeleteProductReviewMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.catalog.v1.DeleteProductReviewRequest, com.ecommerce.contracts.catalog.v1.DeleteProductReviewResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "DeleteProductReview"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.DeleteProductReviewRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.DeleteProductReviewResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new CatalogServiceMethodDescriptorSupplier("DeleteProductReview"))
+              .build();
+        }
+      }
+    }
+    return getDeleteProductReviewMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadRequest,
+      com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadResponse> getCreateReviewMediaUploadMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "CreateReviewMediaUpload",
+      requestType = com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadRequest.class,
+      responseType = com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadRequest,
+      com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadResponse> getCreateReviewMediaUploadMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadRequest, com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadResponse> getCreateReviewMediaUploadMethod;
+    if ((getCreateReviewMediaUploadMethod = CatalogServiceGrpc.getCreateReviewMediaUploadMethod) == null) {
+      synchronized (CatalogServiceGrpc.class) {
+        if ((getCreateReviewMediaUploadMethod = CatalogServiceGrpc.getCreateReviewMediaUploadMethod) == null) {
+          CatalogServiceGrpc.getCreateReviewMediaUploadMethod = getCreateReviewMediaUploadMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadRequest, com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "CreateReviewMediaUpload"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new CatalogServiceMethodDescriptorSupplier("CreateReviewMediaUpload"))
+              .build();
+        }
+      }
+    }
+    return getCreateReviewMediaUploadMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.ListAdminReviewsRequest,
+      com.ecommerce.contracts.catalog.v1.ListAdminReviewsResponse> getListAdminReviewsMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "ListAdminReviews",
+      requestType = com.ecommerce.contracts.catalog.v1.ListAdminReviewsRequest.class,
+      responseType = com.ecommerce.contracts.catalog.v1.ListAdminReviewsResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.ListAdminReviewsRequest,
+      com.ecommerce.contracts.catalog.v1.ListAdminReviewsResponse> getListAdminReviewsMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.ListAdminReviewsRequest, com.ecommerce.contracts.catalog.v1.ListAdminReviewsResponse> getListAdminReviewsMethod;
+    if ((getListAdminReviewsMethod = CatalogServiceGrpc.getListAdminReviewsMethod) == null) {
+      synchronized (CatalogServiceGrpc.class) {
+        if ((getListAdminReviewsMethod = CatalogServiceGrpc.getListAdminReviewsMethod) == null) {
+          CatalogServiceGrpc.getListAdminReviewsMethod = getListAdminReviewsMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.catalog.v1.ListAdminReviewsRequest, com.ecommerce.contracts.catalog.v1.ListAdminReviewsResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "ListAdminReviews"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.ListAdminReviewsRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.ListAdminReviewsResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new CatalogServiceMethodDescriptorSupplier("ListAdminReviews"))
+              .build();
+        }
+      }
+    }
+    return getListAdminReviewsMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.SetReviewVisibilityRequest,
+      com.ecommerce.contracts.catalog.v1.SetReviewVisibilityResponse> getSetReviewVisibilityMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "SetReviewVisibility",
+      requestType = com.ecommerce.contracts.catalog.v1.SetReviewVisibilityRequest.class,
+      responseType = com.ecommerce.contracts.catalog.v1.SetReviewVisibilityResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.SetReviewVisibilityRequest,
+      com.ecommerce.contracts.catalog.v1.SetReviewVisibilityResponse> getSetReviewVisibilityMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.SetReviewVisibilityRequest, com.ecommerce.contracts.catalog.v1.SetReviewVisibilityResponse> getSetReviewVisibilityMethod;
+    if ((getSetReviewVisibilityMethod = CatalogServiceGrpc.getSetReviewVisibilityMethod) == null) {
+      synchronized (CatalogServiceGrpc.class) {
+        if ((getSetReviewVisibilityMethod = CatalogServiceGrpc.getSetReviewVisibilityMethod) == null) {
+          CatalogServiceGrpc.getSetReviewVisibilityMethod = getSetReviewVisibilityMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.catalog.v1.SetReviewVisibilityRequest, com.ecommerce.contracts.catalog.v1.SetReviewVisibilityResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "SetReviewVisibility"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.SetReviewVisibilityRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.SetReviewVisibilityResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new CatalogServiceMethodDescriptorSupplier("SetReviewVisibility"))
+              .build();
+        }
+      }
+    }
+    return getSetReviewVisibilityMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.ReplyProductReviewRequest,
+      com.ecommerce.contracts.catalog.v1.ReplyProductReviewResponse> getReplyProductReviewMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "ReplyProductReview",
+      requestType = com.ecommerce.contracts.catalog.v1.ReplyProductReviewRequest.class,
+      responseType = com.ecommerce.contracts.catalog.v1.ReplyProductReviewResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.ReplyProductReviewRequest,
+      com.ecommerce.contracts.catalog.v1.ReplyProductReviewResponse> getReplyProductReviewMethod() {
+    io.grpc.MethodDescriptor<com.ecommerce.contracts.catalog.v1.ReplyProductReviewRequest, com.ecommerce.contracts.catalog.v1.ReplyProductReviewResponse> getReplyProductReviewMethod;
+    if ((getReplyProductReviewMethod = CatalogServiceGrpc.getReplyProductReviewMethod) == null) {
+      synchronized (CatalogServiceGrpc.class) {
+        if ((getReplyProductReviewMethod = CatalogServiceGrpc.getReplyProductReviewMethod) == null) {
+          CatalogServiceGrpc.getReplyProductReviewMethod = getReplyProductReviewMethod =
+              io.grpc.MethodDescriptor.<com.ecommerce.contracts.catalog.v1.ReplyProductReviewRequest, com.ecommerce.contracts.catalog.v1.ReplyProductReviewResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "ReplyProductReview"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.ReplyProductReviewRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.ecommerce.contracts.catalog.v1.ReplyProductReviewResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new CatalogServiceMethodDescriptorSupplier("ReplyProductReview"))
+              .build();
+        }
+      }
+    }
+    return getReplyProductReviewMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -404,6 +683,69 @@ public final class CatalogServiceGrpc {
         io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCreateProductMediaUploadMethod(), responseObserver);
     }
+
+    /**
+     */
+    default void listProductReviews(com.ecommerce.contracts.catalog.v1.ListProductReviewsRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.ListProductReviewsResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListProductReviewsMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void getReviewEligibility(com.ecommerce.contracts.catalog.v1.GetReviewEligibilityRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.GetReviewEligibilityResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetReviewEligibilityMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void createProductReview(com.ecommerce.contracts.catalog.v1.CreateProductReviewRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.CreateProductReviewResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCreateProductReviewMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void updateProductReview(com.ecommerce.contracts.catalog.v1.UpdateProductReviewRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.UpdateProductReviewResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateProductReviewMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void deleteProductReview(com.ecommerce.contracts.catalog.v1.DeleteProductReviewRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.DeleteProductReviewResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDeleteProductReviewMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void createReviewMediaUpload(com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCreateReviewMediaUploadMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void listAdminReviews(com.ecommerce.contracts.catalog.v1.ListAdminReviewsRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.ListAdminReviewsResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListAdminReviewsMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void setReviewVisibility(com.ecommerce.contracts.catalog.v1.SetReviewVisibilityRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.SetReviewVisibilityResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSetReviewVisibilityMethod(), responseObserver);
+    }
+
+    /**
+     */
+    default void replyProductReview(com.ecommerce.contracts.catalog.v1.ReplyProductReviewRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.ReplyProductReviewResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getReplyProductReviewMethod(), responseObserver);
+    }
   }
 
   /**
@@ -504,6 +846,78 @@ public final class CatalogServiceGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getCreateProductMediaUploadMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     */
+    public void listProductReviews(com.ecommerce.contracts.catalog.v1.ListProductReviewsRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.ListProductReviewsResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListProductReviewsMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void getReviewEligibility(com.ecommerce.contracts.catalog.v1.GetReviewEligibilityRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.GetReviewEligibilityResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetReviewEligibilityMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void createProductReview(com.ecommerce.contracts.catalog.v1.CreateProductReviewRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.CreateProductReviewResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getCreateProductReviewMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void updateProductReview(com.ecommerce.contracts.catalog.v1.UpdateProductReviewRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.UpdateProductReviewResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdateProductReviewMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void deleteProductReview(com.ecommerce.contracts.catalog.v1.DeleteProductReviewRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.DeleteProductReviewResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getDeleteProductReviewMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void createReviewMediaUpload(com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getCreateReviewMediaUploadMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void listAdminReviews(com.ecommerce.contracts.catalog.v1.ListAdminReviewsRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.ListAdminReviewsResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListAdminReviewsMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void setReviewVisibility(com.ecommerce.contracts.catalog.v1.SetReviewVisibilityRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.SetReviewVisibilityResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getSetReviewVisibilityMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void replyProductReview(com.ecommerce.contracts.catalog.v1.ReplyProductReviewRequest request,
+        io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.ReplyProductReviewResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getReplyProductReviewMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -583,6 +997,69 @@ public final class CatalogServiceGrpc {
     public com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadResponse createProductMediaUpload(com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getCreateProductMediaUploadMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.catalog.v1.ListProductReviewsResponse listProductReviews(com.ecommerce.contracts.catalog.v1.ListProductReviewsRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListProductReviewsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.catalog.v1.GetReviewEligibilityResponse getReviewEligibility(com.ecommerce.contracts.catalog.v1.GetReviewEligibilityRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetReviewEligibilityMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.catalog.v1.CreateProductReviewResponse createProductReview(com.ecommerce.contracts.catalog.v1.CreateProductReviewRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getCreateProductReviewMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.catalog.v1.UpdateProductReviewResponse updateProductReview(com.ecommerce.contracts.catalog.v1.UpdateProductReviewRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdateProductReviewMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.catalog.v1.DeleteProductReviewResponse deleteProductReview(com.ecommerce.contracts.catalog.v1.DeleteProductReviewRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getDeleteProductReviewMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadResponse createReviewMediaUpload(com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getCreateReviewMediaUploadMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.catalog.v1.ListAdminReviewsResponse listAdminReviews(com.ecommerce.contracts.catalog.v1.ListAdminReviewsRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListAdminReviewsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.catalog.v1.SetReviewVisibilityResponse setReviewVisibility(com.ecommerce.contracts.catalog.v1.SetReviewVisibilityRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getSetReviewVisibilityMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public com.ecommerce.contracts.catalog.v1.ReplyProductReviewResponse replyProductReview(com.ecommerce.contracts.catalog.v1.ReplyProductReviewRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getReplyProductReviewMethod(), getCallOptions(), request);
     }
   }
 
@@ -673,6 +1150,78 @@ public final class CatalogServiceGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getCreateProductMediaUploadMethod(), getCallOptions()), request);
     }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.catalog.v1.ListProductReviewsResponse> listProductReviews(
+        com.ecommerce.contracts.catalog.v1.ListProductReviewsRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListProductReviewsMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.catalog.v1.GetReviewEligibilityResponse> getReviewEligibility(
+        com.ecommerce.contracts.catalog.v1.GetReviewEligibilityRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetReviewEligibilityMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.catalog.v1.CreateProductReviewResponse> createProductReview(
+        com.ecommerce.contracts.catalog.v1.CreateProductReviewRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getCreateProductReviewMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.catalog.v1.UpdateProductReviewResponse> updateProductReview(
+        com.ecommerce.contracts.catalog.v1.UpdateProductReviewRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdateProductReviewMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.catalog.v1.DeleteProductReviewResponse> deleteProductReview(
+        com.ecommerce.contracts.catalog.v1.DeleteProductReviewRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getDeleteProductReviewMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadResponse> createReviewMediaUpload(
+        com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getCreateReviewMediaUploadMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.catalog.v1.ListAdminReviewsResponse> listAdminReviews(
+        com.ecommerce.contracts.catalog.v1.ListAdminReviewsRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListAdminReviewsMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.catalog.v1.SetReviewVisibilityResponse> setReviewVisibility(
+        com.ecommerce.contracts.catalog.v1.SetReviewVisibilityRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getSetReviewVisibilityMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.ecommerce.contracts.catalog.v1.ReplyProductReviewResponse> replyProductReview(
+        com.ecommerce.contracts.catalog.v1.ReplyProductReviewRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getReplyProductReviewMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET_PRODUCT = 0;
@@ -684,6 +1233,15 @@ public final class CatalogServiceGrpc {
   private static final int METHODID_CREATE_PRODUCT = 6;
   private static final int METHODID_UPDATE_PRODUCT = 7;
   private static final int METHODID_CREATE_PRODUCT_MEDIA_UPLOAD = 8;
+  private static final int METHODID_LIST_PRODUCT_REVIEWS = 9;
+  private static final int METHODID_GET_REVIEW_ELIGIBILITY = 10;
+  private static final int METHODID_CREATE_PRODUCT_REVIEW = 11;
+  private static final int METHODID_UPDATE_PRODUCT_REVIEW = 12;
+  private static final int METHODID_DELETE_PRODUCT_REVIEW = 13;
+  private static final int METHODID_CREATE_REVIEW_MEDIA_UPLOAD = 14;
+  private static final int METHODID_LIST_ADMIN_REVIEWS = 15;
+  private static final int METHODID_SET_REVIEW_VISIBILITY = 16;
+  private static final int METHODID_REPLY_PRODUCT_REVIEW = 17;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -737,6 +1295,42 @@ public final class CatalogServiceGrpc {
         case METHODID_CREATE_PRODUCT_MEDIA_UPLOAD:
           serviceImpl.createProductMediaUpload((com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadRequest) request,
               (io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadResponse>) responseObserver);
+          break;
+        case METHODID_LIST_PRODUCT_REVIEWS:
+          serviceImpl.listProductReviews((com.ecommerce.contracts.catalog.v1.ListProductReviewsRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.ListProductReviewsResponse>) responseObserver);
+          break;
+        case METHODID_GET_REVIEW_ELIGIBILITY:
+          serviceImpl.getReviewEligibility((com.ecommerce.contracts.catalog.v1.GetReviewEligibilityRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.GetReviewEligibilityResponse>) responseObserver);
+          break;
+        case METHODID_CREATE_PRODUCT_REVIEW:
+          serviceImpl.createProductReview((com.ecommerce.contracts.catalog.v1.CreateProductReviewRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.CreateProductReviewResponse>) responseObserver);
+          break;
+        case METHODID_UPDATE_PRODUCT_REVIEW:
+          serviceImpl.updateProductReview((com.ecommerce.contracts.catalog.v1.UpdateProductReviewRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.UpdateProductReviewResponse>) responseObserver);
+          break;
+        case METHODID_DELETE_PRODUCT_REVIEW:
+          serviceImpl.deleteProductReview((com.ecommerce.contracts.catalog.v1.DeleteProductReviewRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.DeleteProductReviewResponse>) responseObserver);
+          break;
+        case METHODID_CREATE_REVIEW_MEDIA_UPLOAD:
+          serviceImpl.createReviewMediaUpload((com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadResponse>) responseObserver);
+          break;
+        case METHODID_LIST_ADMIN_REVIEWS:
+          serviceImpl.listAdminReviews((com.ecommerce.contracts.catalog.v1.ListAdminReviewsRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.ListAdminReviewsResponse>) responseObserver);
+          break;
+        case METHODID_SET_REVIEW_VISIBILITY:
+          serviceImpl.setReviewVisibility((com.ecommerce.contracts.catalog.v1.SetReviewVisibilityRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.SetReviewVisibilityResponse>) responseObserver);
+          break;
+        case METHODID_REPLY_PRODUCT_REVIEW:
+          serviceImpl.replyProductReview((com.ecommerce.contracts.catalog.v1.ReplyProductReviewRequest) request,
+              (io.grpc.stub.StreamObserver<com.ecommerce.contracts.catalog.v1.ReplyProductReviewResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -819,6 +1413,69 @@ public final class CatalogServiceGrpc {
               com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadRequest,
               com.ecommerce.contracts.catalog.v1.CreateProductMediaUploadResponse>(
                 service, METHODID_CREATE_PRODUCT_MEDIA_UPLOAD)))
+        .addMethod(
+          getListProductReviewsMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.catalog.v1.ListProductReviewsRequest,
+              com.ecommerce.contracts.catalog.v1.ListProductReviewsResponse>(
+                service, METHODID_LIST_PRODUCT_REVIEWS)))
+        .addMethod(
+          getGetReviewEligibilityMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.catalog.v1.GetReviewEligibilityRequest,
+              com.ecommerce.contracts.catalog.v1.GetReviewEligibilityResponse>(
+                service, METHODID_GET_REVIEW_ELIGIBILITY)))
+        .addMethod(
+          getCreateProductReviewMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.catalog.v1.CreateProductReviewRequest,
+              com.ecommerce.contracts.catalog.v1.CreateProductReviewResponse>(
+                service, METHODID_CREATE_PRODUCT_REVIEW)))
+        .addMethod(
+          getUpdateProductReviewMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.catalog.v1.UpdateProductReviewRequest,
+              com.ecommerce.contracts.catalog.v1.UpdateProductReviewResponse>(
+                service, METHODID_UPDATE_PRODUCT_REVIEW)))
+        .addMethod(
+          getDeleteProductReviewMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.catalog.v1.DeleteProductReviewRequest,
+              com.ecommerce.contracts.catalog.v1.DeleteProductReviewResponse>(
+                service, METHODID_DELETE_PRODUCT_REVIEW)))
+        .addMethod(
+          getCreateReviewMediaUploadMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadRequest,
+              com.ecommerce.contracts.catalog.v1.CreateReviewMediaUploadResponse>(
+                service, METHODID_CREATE_REVIEW_MEDIA_UPLOAD)))
+        .addMethod(
+          getListAdminReviewsMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.catalog.v1.ListAdminReviewsRequest,
+              com.ecommerce.contracts.catalog.v1.ListAdminReviewsResponse>(
+                service, METHODID_LIST_ADMIN_REVIEWS)))
+        .addMethod(
+          getSetReviewVisibilityMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.catalog.v1.SetReviewVisibilityRequest,
+              com.ecommerce.contracts.catalog.v1.SetReviewVisibilityResponse>(
+                service, METHODID_SET_REVIEW_VISIBILITY)))
+        .addMethod(
+          getReplyProductReviewMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.ecommerce.contracts.catalog.v1.ReplyProductReviewRequest,
+              com.ecommerce.contracts.catalog.v1.ReplyProductReviewResponse>(
+                service, METHODID_REPLY_PRODUCT_REVIEW)))
         .build();
   }
 
@@ -876,6 +1533,15 @@ public final class CatalogServiceGrpc {
               .addMethod(getCreateProductMethod())
               .addMethod(getUpdateProductMethod())
               .addMethod(getCreateProductMediaUploadMethod())
+              .addMethod(getListProductReviewsMethod())
+              .addMethod(getGetReviewEligibilityMethod())
+              .addMethod(getCreateProductReviewMethod())
+              .addMethod(getUpdateProductReviewMethod())
+              .addMethod(getDeleteProductReviewMethod())
+              .addMethod(getCreateReviewMediaUploadMethod())
+              .addMethod(getListAdminReviewsMethod())
+              .addMethod(getSetReviewVisibilityMethod())
+              .addMethod(getReplyProductReviewMethod())
               .build();
         }
       }

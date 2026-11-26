@@ -18,6 +18,15 @@ service CatalogService {
   rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
   rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse);
   rpc CreateProductMediaUpload(CreateProductMediaUploadRequest) returns (CreateProductMediaUploadResponse);
+  rpc ListProductReviews(ListProductReviewsRequest) returns (ListProductReviewsResponse);
+  rpc GetReviewEligibility(GetReviewEligibilityRequest) returns (GetReviewEligibilityResponse);
+  rpc CreateProductReview(CreateProductReviewRequest) returns (CreateProductReviewResponse);
+  rpc UpdateProductReview(UpdateProductReviewRequest) returns (UpdateProductReviewResponse);
+  rpc DeleteProductReview(DeleteProductReviewRequest) returns (DeleteProductReviewResponse);
+  rpc CreateReviewMediaUpload(CreateReviewMediaUploadRequest) returns (CreateReviewMediaUploadResponse);
+  rpc ListAdminReviews(ListAdminReviewsRequest) returns (ListAdminReviewsResponse);
+  rpc SetReviewVisibility(SetReviewVisibilityRequest) returns (SetReviewVisibilityResponse);
+  rpc ReplyProductReview(ReplyProductReviewRequest) returns (ReplyProductReviewResponse);
 }
 
 message GetProductRequest {
@@ -264,4 +273,174 @@ message UpdateProductRequest {
   repeated ProductVariant variants = 15;
   repeated string details = 16;
   repeated string videos = 17;
+}
+
+message ProductReview {
+  string id = 1;
+  string product_id = 2;
+  string product_name = 3;
+  string user_id = 4;
+  string order_id = 5;
+  string sku_id = 6;
+  string variant_label = 7;
+  string author_name = 8;
+  int32 rating = 9;
+  string comment = 10;
+  repeated string images = 11;
+  bool verified_purchase = 12;
+  bool hidden = 13;
+  string hidden_reason = 14;
+  string admin_reply = 15;
+  string admin_replied_at = 16;
+  string created_at = 17;
+  string updated_at = 18;
+}
+
+message RatingBreakdown {
+  int32 rating = 1;
+  int64 count = 2;
+}
+
+message ReviewRatingSummary {
+  double average_rating = 1;
+  int64 total_reviews = 2;
+  repeated RatingBreakdown breakdown = 3;
+}
+
+message ListProductReviewsRequest {
+  string product_id = 1;
+  int32 rating = 2;
+  bool has_images = 3;
+  string sort = 4;
+  int32 page = 5;
+  int32 page_size = 6;
+}
+
+message ListProductReviewsResponse {
+  repeated ProductReview items = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  int64 total_items = 4;
+  int32 total_pages = 5;
+  ReviewRatingSummary summary = 6;
+}
+
+message EligibleReviewOrder {
+  string order_id = 1;
+  string order_code = 2;
+  string sku_id = 3;
+  string variant_label = 4;
+  string delivered_at = 5;
+  bool reviewed = 6;
+  string review_id = 7;
+}
+
+message GetReviewEligibilityRequest {
+  string user_id = 1;
+  string product_id = 2;
+}
+
+message GetReviewEligibilityResponse {
+  bool can_review = 1;
+  repeated EligibleReviewOrder eligible_orders = 2;
+  repeated ProductReview my_reviews = 3;
+}
+
+message CreateProductReviewRequest {
+  string user_id = 1;
+  string product_id = 2;
+  string order_id = 3;
+  string author_name = 4;
+  int32 rating = 5;
+  string comment = 6;
+  repeated string images = 7;
+}
+
+message CreateProductReviewResponse {
+  ProductReview review = 1;
+  ReviewRatingSummary summary = 2;
+}
+
+message UpdateProductReviewRequest {
+  string user_id = 1;
+  string review_id = 2;
+  int32 rating = 3;
+  string comment = 4;
+  repeated string images = 5;
+}
+
+message UpdateProductReviewResponse {
+  ProductReview review = 1;
+  ReviewRatingSummary summary = 2;
+}
+
+message DeleteProductReviewRequest {
+  string user_id = 1;
+  string review_id = 2;
+}
+
+message DeleteProductReviewResponse {
+  string review_id = 1;
+  string product_id = 2;
+  ReviewRatingSummary summary = 3;
+}
+
+message CreateReviewMediaUploadRequest {
+  string user_id = 1;
+  string filename = 2;
+  string content_type = 3;
+  int64 size_bytes = 4;
+}
+
+message CreateReviewMediaUploadResponse {
+  string upload_id = 1;
+  string media_type = 2;
+  string upload_url = 3;
+  string public_url = 4;
+  string object_key = 5;
+  int32 expires_in_seconds = 6;
+}
+
+message ListAdminReviewsRequest {
+  string user_id = 1;
+  string query = 2;
+  string product_id = 3;
+  int32 rating = 4;
+  string status = 5;
+  string reply_status = 6;
+  int32 page = 7;
+  int32 page_size = 8;
+}
+
+message ListAdminReviewsResponse {
+  repeated ProductReview items = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  int64 total_items = 4;
+  int32 total_pages = 5;
+  int64 visible_count = 6;
+  int64 hidden_count = 7;
+  int64 unreplied_count = 8;
+  double average_rating = 9;
+}
+
+message SetReviewVisibilityRequest {
+  string user_id = 1;
+  string review_id = 2;
+  bool hidden = 3;
+  string reason = 4;
+}
+
+message SetReviewVisibilityResponse {
+  ProductReview review = 1;
+}
+
+message ReplyProductReviewRequest {
+  string user_id = 1;
+  string review_id = 2;
+  string reply = 3;
+}
+
+message ReplyProductReviewResponse {
+  ProductReview review = 1;
 }
