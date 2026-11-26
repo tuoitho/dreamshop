@@ -25,17 +25,21 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class OrderSagaOrchestrator {
     private static final String CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneOffset.UTC);
@@ -47,24 +51,8 @@ public class OrderSagaOrchestrator {
     private final PaymentGrpcAdapter paymentAdapter;
     private final IdempotencyService idempotencyService;
     private final OrderTransactionStepService txStepService;
+    private final OrderLifecycleService lifecycleService;
     private final OrderProperties properties;
-
-    public OrderSagaOrchestrator(
-            AuthorizationGrpcAdapter authorizationAdapter,
-            CatalogGrpcAdapter catalogAdapter,
-            InventoryGrpcAdapter inventoryAdapter,
-            PaymentGrpcAdapter paymentAdapter,
-            IdempotencyService idempotencyService,
-            OrderTransactionStepService txStepService,
-            OrderProperties properties) {
-        this.authorizationAdapter = authorizationAdapter;
-        this.catalogAdapter = catalogAdapter;
-        this.inventoryAdapter = inventoryAdapter;
-        this.paymentAdapter = paymentAdapter;
-        this.idempotencyService = idempotencyService;
-        this.txStepService = txStepService;
-        this.properties = properties;
-    }
 
     public CreateOrderResponse createOrder(CreateOrderRequest request) {
         UUID userId = parseRequiredUuid(request.getUserId(), "user_id");
@@ -247,7 +235,7 @@ public class OrderSagaOrchestrator {
         }
 
         if (paymentMethod == PaymentMethod.COD) {
-            return txStepService.confirmCodOrder(orderId, userId, idempotencyKey);
+            return txStepService.markPendingConfirmation(orderId, userId, idempotencyKey);
         }
 
         String payUrl;
@@ -291,7 +279,7 @@ public class OrderSagaOrchestrator {
         if (!authorizationAdapter.hasPermission(userId, "order.cancel")) {
             throw new DomainException(Status.Code.PERMISSION_DENIED, "ORDER_PERMISSION_DENIED", "Missing order.cancel permission");
         }
-        return txStepService.cancelPendingPaymentOrder(userId, orderId, reason);
+        return lifecycleService.cancelByCustomer(userId, orderId, reason);
     }
 
     private static ProductVariant findVariant(GetProductResponse product, String skuId) {
@@ -347,9 +335,16 @@ public class OrderSagaOrchestrator {
         if (items == null || items.isEmpty()) {
             throw new DomainException(Status.Code.INVALID_ARGUMENT, "INVALID_PARAMETER", "items must not be empty");
         }
+        Set<String> seenSkuIds = new HashSet<>(items.size());
         for (OrderItem item : items) {
             requireNonBlank(item.getProductId(), "items.product_id");
-            requireNonBlank(item.getSkuId(), "items.sku_id");
+            String skuId = requireNonBlank(item.getSkuId(), "items.sku_id");
+            if (!seenSkuIds.add(skuId)) {
+                throw new DomainException(
+                        Status.Code.INVALID_ARGUMENT,
+                        "INVALID_PARAMETER",
+                        "Duplicate items.sku_id: " + skuId);
+            }
             if (item.getQuantity() <= 0) {
                 throw new DomainException(Status.Code.INVALID_ARGUMENT, "INVALID_PARAMETER", "items.quantity must be positive");
             }

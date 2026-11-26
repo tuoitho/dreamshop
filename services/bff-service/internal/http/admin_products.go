@@ -127,12 +127,28 @@ type adminProductVariant struct {
 }
 
 type adminProductDetail struct {
-	productSummary
+	ID               string                `json:"id"`
+	Name             string                `json:"name"`
 	ShortDescription string                `json:"shortDescription"`
 	Description      string                `json:"description"`
-	Details          []string              `json:"details"`
+	Brand            string                `json:"brand"`
+	CategoryID       string                `json:"categoryId"`
+	CategoryName     string                `json:"categoryName"`
+	Price            int64                 `json:"price"`
+	OriginalPrice    int64                 `json:"originalPrice"`
+	MaxPrice         int64                 `json:"maxPrice"`
+	Images           []string              `json:"images"`
 	Videos           []string              `json:"videos"`
+	Rating           float64               `json:"rating"`
+	ReviewCount      int64                 `json:"reviewCount"`
+	SoldCount        int64                 `json:"soldCount"`
+	IsNew            bool                  `json:"isNew"`
+	Badge            string                `json:"badge"`
+	Featured         bool                  `json:"featured"`
+	Emoji            string                `json:"emoji"`
+	ImageHue         []uint32              `json:"imageHue"`
 	Variants         []adminProductVariant `json:"variants"`
+	Details          []string              `json:"details"`
 	Deleted          bool                  `json:"deleted"`
 	Stock            *adminStockSnapshot   `json:"stock"`
 }
@@ -171,12 +187,28 @@ func newAdminProductDetail(resp *catalogv1.GetProductResponse, stockBySku map[st
 
 	base := newProductDetail(resp)
 	return adminProductDetail{
-		productSummary:   base.productSummary,
+		ID:               base.ID,
+		Name:             base.Name,
 		ShortDescription: base.ShortDescription,
 		Description:      base.Description,
-		Details:          base.Details,
+		Brand:            base.Brand,
+		CategoryID:       base.CategoryID,
+		CategoryName:     base.CategoryName,
+		Price:            base.Price,
+		OriginalPrice:    base.OriginalPrice,
+		MaxPrice:         base.MaxPrice,
+		Images:           base.Images,
 		Videos:           stringsOrEmpty(resp.GetVideos()),
+		Rating:           base.Rating,
+		ReviewCount:      base.ReviewCount,
+		SoldCount:        base.SoldCount,
+		IsNew:            base.IsNew,
+		Badge:            base.Badge,
+		Featured:         base.Featured,
+		Emoji:            base.Emoji,
+		ImageHue:         base.ImageHue,
 		Variants:         variants,
+		Details:          base.Details,
 		Deleted:          base.Deleted,
 		Stock:            productStock,
 	}

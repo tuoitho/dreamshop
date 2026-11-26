@@ -687,12 +687,6 @@ export default function ProductDetailPage() {
                       )}
                       aria-pressed={variantIndex === index}
                     >
-                      {variant.colorHex && (
-                        <span
-                          className="size-4 rounded-full border border-black/10"
-                          style={{ backgroundColor: variant.colorHex }}
-                        />
-                      )}
                       {variant.label}
                       {isVariantOutOfStock && (
                         <span className="text-xs text-muted-foreground">(Hết hàng)</span>

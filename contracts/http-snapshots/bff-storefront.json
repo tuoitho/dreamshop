@@ -1,0 +1,212 @@
+{
+  "domain": "bff-storefront",
+  "snapshots": {
+    "bff_unauthenticated_401": {
+      "service": "bff-service",
+      "endpoint": "GET /api/v1/cart",
+      "status": 401,
+      "responseBody": {
+        "code": "UNAUTHORIZED",
+        "message": "Authentication is required.",
+        "traceId": "f1fa549791358c7d"
+      }
+    },
+    "cart_get_200": {
+      "service": "bff-service",
+      "endpoint": "GET /api/v1/cart",
+      "status": 200,
+      "responseBody": {
+        "data": {
+          "degraded": true,
+          "items": [
+            {
+              "availableQuantity": 3,
+              "brand": "Nova",
+              "categoryName": "Phones",
+              "imageEmoji": "📱",
+              "imageHue": [
+                220,
+                260
+              ],
+              "imageUrl": "https://example.test/dt-1.png",
+              "itemId": "item-1",
+              "name": "Nova X",
+              "originalPrice": 21990000,
+              "productId": "dt-1",
+              "productVersion": 4,
+              "quantity": 2,
+              "skuId": "dt-1-v2",
+              "status": "LIMITED",
+              "unitPrice": 18990000,
+              "variantColorHex": "#111111",
+              "variantLabel": "16GB/512GB"
+            }
+          ]
+        },
+        "message": "Cart retrieved."
+      }
+    },
+    "favorites_get_200": {
+      "service": "bff-service",
+      "endpoint": "GET /api/v1/favorites",
+      "status": 200,
+      "responseBody": {
+        "data": {
+          "degraded": false,
+          "items": [
+            {
+              "availableQuantity": 12,
+              "badge": "hot",
+              "brand": "Apple",
+              "categoryId": "dien-thoai",
+              "categoryName": "Điện thoại",
+              "imageEmoji": "📱",
+              "imageHue": [
+                210,
+                250
+              ],
+              "imageUrl": "https://example.test/dt-1.png",
+              "itemId": "fav-1",
+              "maxPrice": 31990000,
+              "name": "iPhone 16 Pro",
+              "originalPrice": 29990000,
+              "price": 26990000,
+              "productId": "dt-1",
+              "rating": 4.9,
+              "reviewCount": 128,
+              "soldCount": 540,
+              "status": "AVAILABLE",
+              "variants": [
+                {
+                  "colorHex": "#1c1c1e",
+                  "label": "Đen Titan 256GB",
+                  "originalPrice": 29990000,
+                  "price": 26990000,
+                  "skuId": "dt-1-v1"
+                }
+              ]
+            }
+          ]
+        },
+        "message": "Favorites retrieved."
+      }
+    },
+    "storefront_product_detail_200": {
+      "service": "bff-service",
+      "endpoint": "GET /api/v1/storefront/products/{id}",
+      "status": 200,
+      "responseBody": {
+        "data": {
+          "availableQuantity": 20,
+          "badge": "hot",
+          "brand": "Nova",
+          "categoryId": "dien-thoai",
+          "categoryName": "Điện thoại",
+          "deleted": false,
+          "description": "Màn hình OLED 120Hz",
+          "details": [],
+          "emoji": "📱",
+          "featured": true,
+          "id": "dt-1",
+          "imageHue": [
+            220,
+            260
+          ],
+          "images": [
+            "https://picsum.photos/seed/dt-1-1/800/800"
+          ],
+          "isNew": false,
+          "maxPrice": 20990000,
+          "name": "Điện thoại Nova X",
+          "originalPrice": 21990000,
+          "price": 18990000,
+          "rating": 4.9,
+          "reviewCount": 1284,
+          "shortDescription": "",
+          "soldCount": 2310,
+          "status": "AVAILABLE",
+          "variants": [
+            {
+              "availableQuantity": 20,
+              "colorHex": "#111111",
+              "label": "Đen 256GB",
+              "originalPrice": 21990000,
+              "price": 18990000,
+              "skuId": "dt-1-v1",
+              "status": "AVAILABLE"
+            }
+          ]
+        },
+        "message": "Product retrieved."
+      }
+    },
+    "storefront_products_200": {
+      "service": "bff-service",
+      "endpoint": "GET /api/v1/storefront/products",
+      "status": 200,
+      "responseBody": {
+        "data": {
+          "items": [
+            {
+              "availableQuantity": 20,
+              "badge": "hot",
+              "brand": "Nova",
+              "categoryId": "dien-thoai",
+              "categoryName": "Điện thoại",
+              "emoji": "📱",
+              "featured": true,
+              "id": "dt-1",
+              "imageHue": [
+                220,
+                260
+              ],
+              "images": [
+                "https://picsum.photos/seed/dt-1-1/800/800"
+              ],
+              "isNew": false,
+              "maxPrice": 20990000,
+              "name": "Điện thoại Nova X",
+              "originalPrice": 21990000,
+              "price": 18990000,
+              "rating": 4.9,
+              "reviewCount": 1284,
+              "soldCount": 2310,
+              "status": "AVAILABLE"
+            },
+            {
+              "availableQuantity": 20,
+              "badge": "new",
+              "brand": "Aero",
+              "categoryId": "laptop",
+              "categoryName": "Laptop",
+              "emoji": "📱",
+              "featured": true,
+              "id": "lt-1",
+              "imageHue": [
+                200,
+                240
+              ],
+              "images": [
+                "https://picsum.photos/seed/dt-1-1/800/800"
+              ],
+              "isNew": false,
+              "maxPrice": 20990000,
+              "name": "Laptop AeroBook Pro 14",
+              "originalPrice": 21990000,
+              "price": 18990000,
+              "rating": 4.9,
+              "reviewCount": 1284,
+              "soldCount": 2310,
+              "status": "AVAILABLE"
+            }
+          ],
+          "page": 1,
+          "pageSize": 20,
+          "totalItems": 2,
+          "totalPages": 1
+        },
+        "message": "Products retrieved."
+      }
+    }
+  }
+}

@@ -1,0 +1,257 @@
+{
+  "domain" : "identity-admin",
+  "snapshots" : {
+    "admin_users_list_200" : {
+      "service" : "identity-service",
+      "endpoint" : "GET /api/v1/admin/users",
+      "status" : 200,
+      "responseBody" : {
+        "data" : {
+          "items" : [ {
+            "userId" : "00000000-0000-0000-0000-000000000092",
+            "email" : "customer1@gmail.com",
+            "fullName" : "Customer One",
+            "status" : "ACTIVE",
+            "roles" : [ "CUSTOMER" ],
+            "createdAt" : "2026-11-25T05:45:32.886131Z",
+            "updatedAt" : "2026-11-25T05:45:32.886131Z"
+          }, {
+            "userId" : "00000000-0000-0000-0000-000000000091",
+            "email" : "admin@example.com",
+            "fullName" : "Super Admin",
+            "status" : "ACTIVE",
+            "roles" : [ "SUPER_ADMIN" ],
+            "createdAt" : "2026-11-25T05:45:32.881617Z",
+            "updatedAt" : "2026-11-25T05:45:32.881617Z"
+          } ],
+          "page" : 1,
+          "pageSize" : 20,
+          "totalItems" : 2,
+          "totalPages" : 1,
+          "activeCount" : 2,
+          "disabledCount" : 0
+        },
+        "message" : "Users retrieved."
+      }
+    },
+    "admin_users_forbidden_403" : {
+      "service" : "identity-service",
+      "endpoint" : "GET /api/v1/admin/users",
+      "status" : 403,
+      "responseBody" : {
+        "code" : "FORBIDDEN",
+        "message" : "Access is denied",
+        "traceId" : "eae66b17e88f4753a24b116d56dcefca"
+      }
+    },
+    "admin_rbac_items_list_200" : {
+      "service" : "identity-service",
+      "endpoint" : "GET /api/v1/admin/rbac/items",
+      "status" : 200,
+      "responseBody" : {
+        "data" : [ {
+          "name" : "address.create",
+          "type" : "PERMISSION",
+          "description" : "Create shipping addresses",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "address.delete",
+          "type" : "PERMISSION",
+          "description" : "Delete shipping addresses",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "address.set-default",
+          "type" : "PERMISSION",
+          "description" : "Set default shipping address",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "address.update",
+          "type" : "PERMISSION",
+          "description" : "Update shipping addresses",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "address.view",
+          "type" : "PERMISSION",
+          "description" : "View shipping addresses",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "cart.clear",
+          "type" : "PERMISSION",
+          "description" : "Clear the current user cart",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "cart.item.add",
+          "type" : "PERMISSION",
+          "description" : "Add products to the current user cart",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "cart.item.remove",
+          "type" : "PERMISSION",
+          "description" : "Remove items from the current user cart",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "cart.item.update",
+          "type" : "PERMISSION",
+          "description" : "Update item quantities in the current user cart",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "cart.view",
+          "type" : "PERMISSION",
+          "description" : "View the current user cart",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "favorite.manage",
+          "type" : "PERMISSION",
+          "description" : "Manage product favorites for the current user",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "inventory.update",
+          "type" : "PERMISSION",
+          "description" : "Adjust and set inventory stock quantities",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "inventory.view",
+          "type" : "PERMISSION",
+          "description" : "View inventory stock levels",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "product.create",
+          "type" : "PERMISSION",
+          "description" : "Create catalog products",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "product.delete",
+          "type" : "PERMISSION",
+          "description" : "Soft delete or restore catalog products",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "product.update",
+          "type" : "PERMISSION",
+          "description" : "Update catalog products",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "product.view",
+          "type" : "PERMISSION",
+          "description" : "View all catalog products including soft-deleted items",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "rbac.manage",
+          "type" : "PERMISSION",
+          "description" : "Manage RBAC items",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "rbac.view",
+          "type" : "PERMISSION",
+          "description" : "View RBAC items",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "user.role.assign",
+          "type" : "PERMISSION",
+          "description" : "Assign user roles",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "user.status.update",
+          "type" : "PERMISSION",
+          "description" : "Update user status",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "user.view",
+          "type" : "PERMISSION",
+          "description" : "View users",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "ADMIN",
+          "type" : "ROLE",
+          "description" : "Administrator role",
+          "systemItem" : true,
+          "directChildren" : [ "inventory.update", "inventory.view", "product.create", "product.delete", "product.update", "product.view", "rbac.manage", "rbac.view", "user.role.assign", "user.status.update", "user.view" ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "CUSTOMER",
+          "type" : "ROLE",
+          "description" : "Customer role",
+          "systemItem" : true,
+          "directChildren" : [ "address.create", "address.delete", "address.set-default", "address.update", "address.view", "cart.clear", "cart.item.add", "cart.item.remove", "cart.item.update", "cart.view", "favorite.manage" ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        }, {
+          "name" : "SUPER_ADMIN",
+          "type" : "ROLE",
+          "description" : "Super administrator role",
+          "systemItem" : true,
+          "directChildren" : [ ],
+          "createdAt" : "2026-11-25T05:45:32.871320Z",
+          "updatedAt" : "2026-11-25T05:45:32.871320Z"
+        } ],
+        "message" : "RBAC items retrieved."
+      }
+    }
+  }
+}

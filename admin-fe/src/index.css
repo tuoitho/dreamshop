@@ -1,54 +1,56 @@
 @import "tailwindcss";
 
 @theme {
+  --font-display: "Plus Jakarta Sans", "Be Vietnam Pro", "Segoe UI", sans-serif;
   --font-sans: "Be Vietnam Pro", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas,
     monospace;
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.75rem;
 
-  /* Operator Control-Room Palette */
-  --bg-canvas: #f7f9f8;
+  /* Precision Light Workspace Palette */
+  --bg-canvas: #f6f7f9;
   --bg-surface: #ffffff;
-  --bg-subtle: #eff4f2;
-  --bg-hover: #e7efec;
-  --bg-selected: #e6f4f1;
+  --bg-subtle: #f1f3f6;
+  --bg-hover: #eaedf2;
+  --bg-selected: #f1f5f9;
 
-  --sidebar-bg: #0f1f1a;
-  --sidebar-surface: #162b24;
-  --sidebar-hover: #1d382f;
-  --sidebar-border: #234237;
-  --sidebar-text: #d5e3dd;
-  --sidebar-muted: #8ca69c;
+  --sidebar-bg: #fcfcfd;
+  --sidebar-surface: #f1f5f9;
+  --sidebar-hover: #f4f6f9;
+  --sidebar-border: #eaecf0;
+  --sidebar-text: #334155;
+  --sidebar-muted: #64748b;
 
-  --border-hairline: #dce4e0;
-  --border-strong: #c2d0c9;
+  --border-hairline: #e6e8ec;
+  --border-strong: #d0d5dd;
 
-  --text-primary: #111c18;
-  --text-secondary: #3b4f48;
-  --text-muted: #536961;
+  --text-primary: #111827;
+  --text-secondary: #475467;
+  --text-muted: #667085;
   --text-inverse: #ffffff;
 
-  --accent-primary: #0f766e;
-  --accent-hover: #0b5d56;
+  --accent-primary: #18181b;
+  --accent-hover: #27272a;
+  --accent-teal: #0d9488;
   --accent-emerald: #10b981;
   --accent-emerald-bright: #34d399;
-  --accent-soft: #ecfdf5;
-  --accent-soft-border: #a7f3d0;
-  --accent-soft-text: #065f46;
+  --accent-soft: #f0fdfa;
+  --accent-soft-border: #99f6e4;
+  --accent-soft-text: #0f766e;
 
   --warn-bg: #fffbeb;
-  --warn-border: #fcd34d;
-  --warn-text: #92400e;
+  --warn-border: #fde68a;
+  --warn-text: #b45309;
   --warn-dot: #d97706;
 
-  --danger-solid: #c8322b;
-  --danger-solid-hover: #a6251f;
+  --danger-solid: #dc2626;
+  --danger-solid-hover: #b91c1c;
   --danger-bg: #fef2f2;
   --danger-border: #fecaca;
-  --danger-text: #991b1b;
+  --danger-text: #b91c1c;
   --danger-dot: #dc2626;
 
   /* Semantic tokens mapped to shadcn/ui primitives */
@@ -65,11 +67,11 @@
   --muted: var(--bg-subtle);
   --muted-foreground: var(--text-muted);
   --accent: var(--bg-selected);
-  --accent-foreground: var(--accent-soft-text);
+  --accent-foreground: var(--text-primary);
   --destructive: var(--danger-solid);
   --border: var(--border-hairline);
   --input: var(--border-strong);
-  --ring: var(--accent-primary);
+  --ring: var(--accent-teal);
 }
 
 @theme inline {
@@ -100,7 +102,7 @@
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
 @layer base {
@@ -111,6 +113,11 @@
   body {
     @apply bg-background font-sans text-foreground antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1,
+  h2 {
+    font-family: var(--font-display);
   }
 
   .num-tabular {

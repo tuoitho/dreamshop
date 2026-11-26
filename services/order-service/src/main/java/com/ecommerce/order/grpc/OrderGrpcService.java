@@ -1,5 +1,13 @@
 package com.ecommerce.order.grpc;
 
+import com.ecommerce.contracts.order.v1.AdminGetOrderRequest;
+import com.ecommerce.contracts.order.v1.AdminGetOrderResponse;
+import com.ecommerce.contracts.order.v1.AdminListOrdersRequest;
+import com.ecommerce.contracts.order.v1.AdminListOrdersResponse;
+import com.ecommerce.contracts.order.v1.AdminRetryRefundRequest;
+import com.ecommerce.contracts.order.v1.AdminRetryRefundResponse;
+import com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusRequest;
+import com.ecommerce.contracts.order.v1.AdminUpdateOrderStatusResponse;
 import com.ecommerce.contracts.order.v1.CancelOrderRequest;
 import com.ecommerce.contracts.order.v1.CancelOrderResponse;
 import com.ecommerce.contracts.order.v1.CreateOrderRequest;
@@ -10,26 +18,27 @@ import com.ecommerce.contracts.order.v1.ListOrdersRequest;
 import com.ecommerce.contracts.order.v1.ListOrdersResponse;
 import com.ecommerce.contracts.order.v1.OrderDetail;
 import com.ecommerce.contracts.order.v1.OrderServiceGrpc.OrderServiceImplBase;
+import com.ecommerce.order.application.OrderAdminQueryService;
+import com.ecommerce.order.application.OrderLifecycleService;
 import com.ecommerce.order.application.OrderQueryService;
 import com.ecommerce.order.application.OrderSagaOrchestrator;
 import com.ecommerce.order.common.DomainException;
 import io.grpc.stub.StreamObserver;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class OrderGrpcService extends OrderServiceImplBase {
     private static final Logger log = LoggerFactory.getLogger(OrderGrpcService.class);
 
     private final OrderSagaOrchestrator orchestrator;
     private final OrderQueryService queryService;
-
-    public OrderGrpcService(OrderSagaOrchestrator orchestrator, OrderQueryService queryService) {
-        this.orchestrator = orchestrator;
-        this.queryService = queryService;
-    }
+    private final OrderAdminQueryService adminQueryService;
+    private final OrderLifecycleService lifecycleService;
 
     @Override
     public void createOrder(CreateOrderRequest request, StreamObserver<CreateOrderResponse> responseObserver) {
@@ -90,6 +99,80 @@ public class OrderGrpcService extends OrderServiceImplBase {
             responseObserver.onError(GrpcErrorMapper.toStatusException(ex));
         } catch (RuntimeException ex) {
             log.error("Unexpected failure in CancelOrder traceId={}", MDC.get("trace_id"), ex);
+            responseObserver.onError(GrpcErrorMapper.internalError());
+        }
+    }
+
+    @Override
+    public void adminListOrders(AdminListOrdersRequest request, StreamObserver<AdminListOrdersResponse> responseObserver) {
+        try {
+            AdminListOrdersResponse response = adminQueryService.listOrders(
+                    request.getUserId(),
+                    request.getStatus(),
+                    request.getQuery(),
+                    request.getPage(),
+                    request.getPageSize());
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (DomainException ex) {
+            responseObserver.onError(GrpcErrorMapper.toStatusException(ex));
+        } catch (RuntimeException ex) {
+            log.error("Unexpected failure in AdminListOrders traceId={}", MDC.get("trace_id"), ex);
+            responseObserver.onError(GrpcErrorMapper.internalError());
+        }
+    }
+
+    @Override
+    public void adminGetOrder(AdminGetOrderRequest request, StreamObserver<AdminGetOrderResponse> responseObserver) {
+        try {
+            responseObserver.onNext(adminQueryService.getOrder(request.getUserId(), request.getOrderId()));
+            responseObserver.onCompleted();
+        } catch (DomainException ex) {
+            responseObserver.onError(GrpcErrorMapper.toStatusException(ex));
+        } catch (RuntimeException ex) {
+            log.error("Unexpected failure in AdminGetOrder traceId={}", MDC.get("trace_id"), ex);
+            responseObserver.onError(GrpcErrorMapper.internalError());
+        }
+    }
+
+    @Override
+    public void adminUpdateOrderStatus(
+            AdminUpdateOrderStatusRequest request,
+            StreamObserver<AdminUpdateOrderStatusResponse> responseObserver) {
+        try {
+            AdminUpdateOrderStatusResponse response = lifecycleService.updateStatusByAdmin(
+                    request.getUserId(),
+                    request.getOrderId(),
+                    request.getExpectedStatus(),
+                    request.getTargetStatus(),
+                    request.getReason(),
+                    request.getShippingCarrier(),
+                    request.getTrackingNumber());
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (DomainException ex) {
+            responseObserver.onError(GrpcErrorMapper.toStatusException(ex));
+        } catch (RuntimeException ex) {
+            log.error("Unexpected failure in AdminUpdateOrderStatus traceId={}", MDC.get("trace_id"), ex);
+            responseObserver.onError(GrpcErrorMapper.internalError());
+        }
+    }
+
+    @Override
+    public void adminRetryRefund(
+            AdminRetryRefundRequest request,
+            StreamObserver<AdminRetryRefundResponse> responseObserver) {
+        try {
+            AdminRetryRefundResponse response = lifecycleService.retryRefundByAdmin(
+                    request.getUserId(),
+                    request.getOrderId(),
+                    request.getReason());
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (DomainException ex) {
+            responseObserver.onError(GrpcErrorMapper.toStatusException(ex));
+        } catch (RuntimeException ex) {
+            log.error("Unexpected failure in AdminRetryRefund traceId={}", MDC.get("trace_id"), ex);
             responseObserver.onError(GrpcErrorMapper.internalError());
         }
     }

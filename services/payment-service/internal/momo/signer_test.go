@@ -67,3 +67,45 @@ func TestSignCreateRequestAndVerifyCallbackSignature(t *testing.T) {
 		t.Fatal("VerifyCallbackSignature accepted forged signature")
 	}
 }
+
+func TestSignRefundRequestMatchesMoMoV2RawHash(t *testing.T) {
+	secret := "test-momo-secret-key"
+	params := RefundSignParams{
+		AccessKey:   "MOMO_ACCESS",
+		Amount:      150000,
+		Description: "Hoan tien don hang ORD-20261125-ABC123",
+		OrderID:     "REFUND0123456789ABCDEF0123456789ABCDEF",
+		PartnerCode: "MOMO",
+		RequestID:   "REFREQ0123456789ABCDEF012345",
+		TransID:     2314756173,
+	}
+
+	rawExpected := "accessKey=MOMO_ACCESS&amount=150000&description=Hoan tien don hang ORD-20261125-ABC123&orderId=REFUND0123456789ABCDEF0123456789ABCDEF&partnerCode=MOMO&requestId=REFREQ0123456789ABCDEF012345&transId=2314756173"
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(rawExpected))
+	want := hex.EncodeToString(mac.Sum(nil))
+
+	got := SignRefundRequest(params, secret)
+	if got != want {
+		t.Fatalf("SignRefundRequest() = %q, want %q", got, want)
+	}
+
+	payMethodParams := CreateSignParams{
+		AccessKey:   "MOMO_ACCESS",
+		Amount:      50000,
+		ExtraData:   "",
+		IPNURL:      "https://shop.example.com/api/v1/payments/momo-ipn",
+		OrderID:     "ord-pm-1",
+		OrderInfo:   "Order",
+		PartnerCode: "MOMO",
+		RedirectURL: "https://shop.example.com/api/v1/payments/momo-redirect",
+		RequestID:   "req-pm-1",
+		RequestType: "payWithMethod",
+	}
+	rawPM := "accessKey=MOMO_ACCESS&amount=50000&extraData=&ipnUrl=https://shop.example.com/api/v1/payments/momo-ipn&orderId=ord-pm-1&orderInfo=Order&partnerCode=MOMO&redirectUrl=https://shop.example.com/api/v1/payments/momo-redirect&requestId=req-pm-1&requestType=payWithMethod"
+	macPM := hmac.New(sha256.New, []byte(secret))
+	macPM.Write([]byte(rawPM))
+	if gotPM := SignCreateRequest(payMethodParams, secret); gotPM != hex.EncodeToString(macPM.Sum(nil)) {
+		t.Fatalf("SignCreateRequest(payWithMethod) mismatch: got %q", gotPM)
+	}
+}

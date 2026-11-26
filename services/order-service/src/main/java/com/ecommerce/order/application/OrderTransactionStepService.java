@@ -1,12 +1,12 @@
 package com.ecommerce.order.application;
 
 import com.ecommerce.contracts.order.v1.CreateOrderResponse;
-import com.ecommerce.contracts.order.v1.OrderDetail;
 import com.ecommerce.contracts.order.v1.ShippingAddressSnapshot;
 import com.ecommerce.order.common.DomainException;
 import com.ecommerce.order.common.TraceIdProvider;
 import com.ecommerce.order.config.OrderProperties;
 import com.ecommerce.order.config.RabbitMqConfig;
+import com.ecommerce.order.domain.ActorType;
 import com.ecommerce.order.domain.OrderStatus;
 import com.ecommerce.order.domain.PaymentMethod;
 import com.ecommerce.order.domain.PaymentStatus;
@@ -17,6 +17,8 @@ import com.ecommerce.order.persistence.IdempotencyRecordRepository;
 import com.ecommerce.order.persistence.OrderEntity;
 import com.ecommerce.order.persistence.OrderItemEntity;
 import com.ecommerce.order.persistence.OrderRepository;
+import com.ecommerce.order.persistence.OrderStatusHistoryEntity;
+import com.ecommerce.order.persistence.OrderStatusHistoryRepository;
 import com.ecommerce.order.persistence.OutboxEventEntity;
 import com.ecommerce.order.persistence.OutboxEventRepository;
 import io.grpc.Status;
@@ -26,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,10 +37,12 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import tools.jackson.databind.json.JsonMapper;
 
 @Service
+@RequiredArgsConstructor
 public class OrderTransactionStepService {
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
     private final OrderRepository orderRepository;
+    private final OrderStatusHistoryRepository statusHistoryRepository;
     private final IdempotencyRecordRepository idempotencyRepository;
     private final OutboxEventRepository outboxRepository;
     private final IdempotencyService idempotencyService;
@@ -46,23 +51,6 @@ public class OrderTransactionStepService {
     private final JdbcTemplate jdbcTemplate;
 
     public record Tx1Outcome(boolean claimed, UUID orderId, Instant paymentExpiresAt) {
-    }
-
-    public OrderTransactionStepService(
-            OrderRepository orderRepository,
-            IdempotencyRecordRepository idempotencyRepository,
-            OutboxEventRepository outboxRepository,
-            IdempotencyService idempotencyService,
-            OutboxRelayScheduler outboxRelayScheduler,
-            OrderProperties properties,
-            JdbcTemplate jdbcTemplate) {
-        this.orderRepository = orderRepository;
-        this.idempotencyRepository = idempotencyRepository;
-        this.outboxRepository = outboxRepository;
-        this.idempotencyService = idempotencyService;
-        this.outboxRelayScheduler = outboxRelayScheduler;
-        this.properties = properties;
-        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Transactional
@@ -158,11 +146,17 @@ public class OrderTransactionStepService {
             order.addItem(item);
         }
         orderRepository.saveAndFlush(order);
+        recordStatusChange(order, null, ActorType.CUSTOMER, userId, "", now);
         return new Tx1Outcome(true, orderId, paymentExpiresAt);
     }
 
+    /**
+     * Moves a COD order whose stock is reserved to PENDING_CONFIRMATION. The order is
+     * confirmed later by {@link CodAutoConfirmScheduler}; OrderPlaced lets Cart clear the
+     * ordered lines right away.
+     */
     @Transactional
-    public CreateOrderResponse confirmCodOrder(UUID orderId, UUID userId, String idempotencyKey) {
+    public CreateOrderResponse markPendingConfirmation(UUID orderId, UUID userId, String idempotencyKey) {
         OrderEntity order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new DomainException(Status.Code.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found"));
         if (order.getStatus() != OrderStatus.PENDING_STOCK) {
@@ -173,12 +167,17 @@ public class OrderTransactionStepService {
         }
 
         Instant now = Instant.now();
-        order.setStatus(OrderStatus.CONFIRMED);
+        Duration delay = properties.cod() != null && properties.cod().autoConfirmDelay() != null
+                ? properties.cod().autoConfirmDelay()
+                : Duration.ofMinutes(1);
+        order.setStatus(OrderStatus.PENDING_CONFIRMATION);
         order.setPaymentStatus(PaymentStatus.UNPAID);
+        order.setAutoConfirmAt(now.plus(delay));
         order.setUpdatedAt(now);
         orderRepository.saveAndFlush(order);
+        recordStatusChange(order, OrderStatus.PENDING_STOCK, ActorType.SYSTEM, null, "", now);
 
-        insertOrderConfirmedOutbox(order, now);
+        insertOrderPlacedOutbox(order, now);
 
         CreateOrderResponse response = OrderProtoMapper.toCreateOrderResponse(order);
         markIdempotencyCompleted(userId, idempotencyKey, orderId, response, now);
@@ -186,6 +185,11 @@ public class OrderTransactionStepService {
         return response;
     }
 
+    /**
+     * Moves a MoMo order whose stock is reserved and payment session is created to
+     * PENDING_PAYMENT. Emits OrderPlaced so Cart clears the ordered lines right away
+     * while Inventory keeps the reservation active until OrderConfirmed.
+     */
     @Transactional(noRollbackFor = DomainException.class)
     public CreateOrderResponse markPendingPayment(UUID orderId, UUID userId, String idempotencyKey, String payUrl) {
         OrderEntity order = orderRepository.findByIdForUpdate(orderId)
@@ -220,9 +224,13 @@ public class OrderTransactionStepService {
         order.setPayUrl(payUrl);
         order.setUpdatedAt(now);
         orderRepository.saveAndFlush(order);
+        recordStatusChange(order, OrderStatus.PENDING_STOCK, ActorType.SYSTEM, null, "", now);
+
+        insertOrderPlacedOutbox(order, now);
 
         CreateOrderResponse response = OrderProtoMapper.toCreateOrderResponse(order);
         markIdempotencyCompleted(userId, idempotencyKey, orderId, response, now);
+        registerOutboxWakeupAfterCommit();
         return response;
     }
 
@@ -247,6 +255,7 @@ public class OrderTransactionStepService {
             order.setPayUrl("");
             order.setUpdatedAt(now);
             orderRepository.saveAndFlush(order);
+            recordStatusChange(order, OrderStatus.PENDING_STOCK, ActorType.SYSTEM, null, cancelReason, now);
 
             if (releaseStock) {
                 insertCompensationOutbox(
@@ -280,48 +289,42 @@ public class OrderTransactionStepService {
         });
     }
 
-    @Transactional
-    public OrderDetail cancelPendingPaymentOrder(UUID userId, UUID orderId, String reason) {
-        OrderEntity order = orderRepository.findByIdForUpdate(orderId)
-                .filter(o -> o.getUserId().equals(userId))
-                .orElseThrow(() -> new DomainException(Status.Code.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found"));
-
-        if (order.getStatus() == OrderStatus.CANCELLED) {
-            return OrderProtoMapper.toOrderDetail(order);
-        }
-        if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
-            throw new DomainException(
-                    Status.Code.FAILED_PRECONDITION,
-                    "ORDER_NOT_CANCELLABLE",
-                    "Only orders awaiting payment can be cancelled");
-        }
-
-        Instant now = Instant.now();
-        String effectiveReason = (reason == null || reason.isBlank()) ? "USER_CANCELLED" : reason.trim();
-        order.setStatus(OrderStatus.CANCELLED);
-        order.setCancelReason(effectiveReason);
-        order.setPayUrl("");
-        order.setUpdatedAt(now);
-        orderRepository.saveAndFlush(order);
-
-        insertCompensationOutbox(
-                "ReservationReleaseRequested",
-                RabbitMqConfig.RK_RESERVATION_RELEASE_REQUESTED,
-                order.getId(),
-                effectiveReason,
-                now);
-        insertCompensationOutbox(
-                "PaymentCancelRequested",
-                RabbitMqConfig.RK_PAYMENT_CANCEL_REQUESTED,
-                order.getId(),
-                effectiveReason,
-                now);
-        registerOutboxWakeupAfterCommit();
-
-        return OrderProtoMapper.toOrderDetail(order);
+    /**
+     * Appends a history entry for the order's current status. Call it in the same
+     * transaction as the status change so history and state never diverge. Shipping
+     * details are recorded only on the entry that starts a delivery attempt.
+     */
+    public void recordStatusChange(
+            OrderEntity order,
+            OrderStatus fromStatus,
+            ActorType actorType,
+            UUID actorId,
+            String reason,
+            Instant at) {
+        boolean shipping = order.getStatus() == OrderStatus.SHIPPING;
+        statusHistoryRepository.save(OrderStatusHistoryEntity.builder()
+                .id(UUID.randomUUID())
+                .orderId(order.getId())
+                .fromStatus(fromStatus)
+                .toStatus(order.getStatus())
+                .actorType(actorType)
+                .actorId(actorId)
+                .reason(reason == null ? "" : reason)
+                .shippingCarrier(shipping && order.getShippingCarrier() != null ? order.getShippingCarrier() : "")
+                .trackingNumber(shipping && order.getTrackingNumber() != null ? order.getTrackingNumber() : "")
+                .createdAt(at)
+                .build());
     }
 
     public void insertOrderConfirmedOutbox(OrderEntity order, Instant now) {
+        insertOrderItemsEvent(order, "OrderConfirmed", RabbitMqConfig.RK_ORDER_CONFIRMED, now);
+    }
+
+    public void insertOrderPlacedOutbox(OrderEntity order, Instant now) {
+        insertOrderItemsEvent(order, "OrderPlaced", RabbitMqConfig.RK_ORDER_PLACED, now);
+    }
+
+    private void insertOrderItemsEvent(OrderEntity order, String eventType, String routingKey, Instant now) {
         UUID eventId = UUID.randomUUID();
         List<Map<String, Object>> itemRefs = order.getItems().stream()
                 .map(i -> {
@@ -340,7 +343,7 @@ public class OrderTransactionStepService {
         data.put("userId", order.getUserId().toString());
         data.put("items", itemRefs);
 
-        saveOutboxEvent(eventId, "OrderConfirmed", RabbitMqConfig.RK_ORDER_CONFIRMED, order.getId().toString(), data, now);
+        saveOutboxEvent(eventId, eventType, routingKey, order.getId().toString(), data, now);
     }
 
     public void insertCompensationOutbox(String eventType, String routingKey, UUID orderId, String reason, Instant now) {
@@ -390,7 +393,6 @@ public class OrderTransactionStepService {
                 .correlationId(corrId)
                 .payload(JSON.writeValueAsString(envelope))
                 .attempts(0)
-                .nextAttemptAt(now)
                 .lastError("")
                 .createdAt(now)
                 .build());

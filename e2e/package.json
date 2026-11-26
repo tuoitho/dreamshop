@@ -1,0 +1,21 @@
+{
+  "name": "microservice-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:mode2:storefront": "node -e \"process.env.E2E_MODE='mock'; process.env.E2E_APP='storefront'; require('node:child_process').execSync('npx playwright test tests/mode2/storefront-auth-catalog.spec.ts tests/mode2/contract-lock-guards.spec.ts', { stdio: 'inherit' })\"",
+    "test:mode2:admin": "node -e \"process.env.E2E_MODE='mock'; process.env.E2E_APP='admin'; require('node:child_process').execSync('npx playwright test tests/mode2/admin', { stdio: 'inherit' })\"",
+    "test:mode2": "npm run test:mode2:storefront && npm run test:mode2:admin",
+    "test:mode1:storefront": "node -e \"process.env.E2E_MODE='live'; process.env.E2E_APP='storefront'; require('node:child_process').execSync('npx playwright test tests/mode1/kong-storefront-smoke.spec.ts', { stdio: 'inherit' })\"",
+    "test:mode1:admin": "node -e \"process.env.E2E_MODE='live'; process.env.E2E_APP='admin'; require('node:child_process').execSync('npx playwright test tests/mode1/kong-admin-smoke.spec.ts', { stdio: 'inherit' })\"",
+    "test:mode1": "npm run test:mode1:storefront && npm run test:mode1:admin",
+    "test:all": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0"
+  }
+}

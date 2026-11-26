@@ -1,0 +1,233 @@
+{
+  "domain": "bff-orders",
+  "snapshots": {
+    "orders_create_201": {
+      "service": "bff-service",
+      "endpoint": "POST /api/v1/orders",
+      "status": 201,
+      "requestBody": {
+        "items": [
+          {
+            "cartItemId": "ci-1",
+            "expectedName": "Nova X15",
+            "expectedProductVersion": 3,
+            "productId": "dt-1",
+            "quantity": 2,
+            "skuId": "dt-1-v1",
+            "unitPrice": 150000,
+            "variantLabel": "Đen 256GB"
+          }
+        ],
+        "paymentMethod": "MOMO",
+        "shippingAddress": {
+          "addressLine": "1 Lê Duẩn",
+          "label": "Nhà riêng",
+          "phone": "0901234567",
+          "provinceCode": "79",
+          "provinceName": "TP. Hồ Chí Minh",
+          "recipientName": "Nguyễn Văn A",
+          "wardCode": "26740",
+          "wardName": "Phường Bến Nghé"
+        }
+      },
+      "responseBody": {
+        "data": {
+          "order": {
+            "createdAt": "2026-11-05T10:00:00Z",
+            "currency": "VND",
+            "items": [
+              {
+                "brand": "Nova",
+                "cartItemId": "ci-1",
+                "categoryName": "Điện thoại",
+                "expectedName": "Nova X15",
+                "expectedProductVersion": 3,
+                "imageEmoji": "📱",
+                "imageHue": [
+                  210,
+                  250
+                ],
+                "imageUrl": "https://cdn.example/dt-1.png",
+                "lineTotal": 300000,
+                "productId": "dt-1",
+                "quantity": 2,
+                "skuId": "dt-1-v1",
+                "unitPrice": 150000,
+                "variantColorHex": "#111111",
+                "variantLabel": "Đen 256GB"
+              }
+            ],
+            "orderCode": "ORD-20261105-ABC123",
+            "orderId": "ord-123",
+            "payUrl": "https://test-payment.momo.vn/pay/ord-123",
+            "paymentExpiresAt": "2026-11-05T10:15:00Z",
+            "paymentMethod": "MOMO",
+            "paymentStatus": "PENDING",
+            "shippingAddress": {
+              "addressLine": "1 Lê Duẩn",
+              "label": "Nhà riêng",
+              "phone": "0901234567",
+              "provinceCode": "79",
+              "provinceName": "TP. Hồ Chí Minh",
+              "recipientName": "Nguyễn Văn A",
+              "wardCode": "26740",
+              "wardName": "Phường Bến Nghé"
+            },
+            "shippingFee": 0,
+            "status": "PENDING_PAYMENT",
+            "statusHistory": [],
+            "subtotal": 300000,
+            "totalAmount": 300000,
+            "updatedAt": "2026-11-05T10:00:00Z",
+            "userId": "user-1"
+          },
+          "payUrl": "https://test-payment.momo.vn/pay/ord-123"
+        },
+        "message": "Đặt hàng thành công"
+      }
+    },
+    "orders_detail_200": {
+      "service": "bff-service",
+      "endpoint": "GET /api/v1/orders/{id}",
+      "status": 200,
+      "responseBody": {
+        "data": {
+          "createdAt": "2026-11-05T10:00:00Z",
+          "currency": "VND",
+          "items": [
+            {
+              "brand": "Nova",
+              "cartItemId": "ci-1",
+              "categoryName": "Điện thoại",
+              "expectedName": "Nova X15",
+              "expectedProductVersion": 3,
+              "imageEmoji": "📱",
+              "imageHue": [
+                210,
+                250
+              ],
+              "imageUrl": "https://cdn.example/dt-1.png",
+              "lineTotal": 300000,
+              "productId": "dt-1",
+              "quantity": 2,
+              "skuId": "dt-1-v1",
+              "unitPrice": 150000,
+              "variantColorHex": "#111111",
+              "variantLabel": "Đen 256GB"
+            }
+          ],
+          "orderCode": "ORD-20261105-ABC123",
+          "orderId": "ord-123",
+          "payUrl": "https://test-payment.momo.vn/pay/ord-123",
+          "paymentExpiresAt": "2026-11-05T10:15:00Z",
+          "paymentMethod": "MOMO",
+          "paymentStatus": "REFUNDED",
+          "refundTransId": "MOMO-REF-9001",
+          "refundedAt": "2026-11-05T10:30:00Z",
+          "shippingAddress": {
+            "addressLine": "1 Lê Duẩn",
+            "label": "Nhà riêng",
+            "phone": "0901234567",
+            "provinceCode": "79",
+            "provinceName": "TP. Hồ Chí Minh",
+            "recipientName": "Nguyễn Văn A",
+            "wardCode": "26740",
+            "wardName": "Phường Bến Nghé"
+          },
+          "shippingFee": 0,
+          "status": "CANCELLED",
+          "statusHistory": [
+            {
+              "actorType": "SYSTEM",
+              "createdAt": "2026-11-05T10:25:00Z",
+              "fromStatus": "PENDING_PAYMENT",
+              "toStatus": "CANCELLED"
+            }
+          ],
+          "subtotal": 300000,
+          "totalAmount": 300000,
+          "updatedAt": "2026-11-05T10:00:00Z",
+          "userId": "user-1"
+        },
+        "message": "Order retrieved."
+      }
+    },
+    "orders_detail_not_found_404": {
+      "service": "bff-service",
+      "endpoint": "GET /api/v1/orders/{id}",
+      "status": 404,
+      "responseBody": {
+        "code": "ORDER_NOT_FOUND",
+        "message": "Không tìm thấy đơn hàng",
+        "traceId": "036ed2f6e0653138"
+      }
+    },
+    "orders_list_200": {
+      "service": "bff-service",
+      "endpoint": "GET /api/v1/orders",
+      "status": 200,
+      "responseBody": {
+        "data": {
+          "items": [
+            {
+              "createdAt": "2026-11-05T10:00:00Z",
+              "currency": "VND",
+              "items": [
+                {
+                  "brand": "Nova",
+                  "cartItemId": "ci-1",
+                  "categoryName": "Điện thoại",
+                  "expectedName": "Nova X15",
+                  "expectedProductVersion": 3,
+                  "imageEmoji": "📱",
+                  "imageHue": [
+                    210,
+                    250
+                  ],
+                  "imageUrl": "https://cdn.example/dt-1.png",
+                  "lineTotal": 300000,
+                  "productId": "dt-1",
+                  "quantity": 2,
+                  "skuId": "dt-1-v1",
+                  "unitPrice": 150000,
+                  "variantColorHex": "#111111",
+                  "variantLabel": "Đen 256GB"
+                }
+              ],
+              "orderCode": "ORD-20261105-ABC123",
+              "orderId": "ord-123",
+              "payUrl": "https://test-payment.momo.vn/pay/ord-123",
+              "paymentExpiresAt": "2026-11-05T10:15:00Z",
+              "paymentMethod": "MOMO",
+              "paymentStatus": "REFUNDED",
+              "refundTransId": "MOMO-REF-9001",
+              "refundedAt": "2026-11-05T10:30:00Z",
+              "shippingAddress": {
+                "addressLine": "1 Lê Duẩn",
+                "label": "Nhà riêng",
+                "phone": "0901234567",
+                "provinceCode": "79",
+                "provinceName": "TP. Hồ Chí Minh",
+                "recipientName": "Nguyễn Văn A",
+                "wardCode": "26740",
+                "wardName": "Phường Bến Nghé"
+              },
+              "shippingFee": 0,
+              "status": "CANCELLED",
+              "statusHistory": [],
+              "subtotal": 300000,
+              "totalAmount": 300000,
+              "updatedAt": "2026-11-05T10:00:00Z",
+              "userId": "user-1"
+            }
+          ],
+          "page": 1,
+          "pageSize": 10,
+          "totalItems": 1,
+          "totalPages": 1
+        },
+        "message": "Orders retrieved."
+      }
+    }
+  }
+}

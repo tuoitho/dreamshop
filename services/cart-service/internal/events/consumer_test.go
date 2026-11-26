@@ -57,11 +57,58 @@ func TestDispatchMessageExtractsOrderedItemRefs(t *testing.T) {
 	if err := DispatchMessage(context.Background(), cleanup, RoutingKeyOrderConfirmed, payload); err != nil {
 		t.Fatalf("DispatchMessage: %v", err)
 	}
-	if cleanup.eventID != "evt-cart-1" || cleanup.userID != "00000000-0000-0000-0000-000000000001" {
+	if cleanup.eventID != "order-cleanup:ord-1" || cleanup.userID != "00000000-0000-0000-0000-000000000001" {
 		t.Fatalf("unexpected cleanup metadata: eventID=%q userID=%q", cleanup.eventID, cleanup.userID)
 	}
 	if len(cleanup.items) != 2 || cleanup.items[0].SkuID != "dt-1-v1" || cleanup.items[1].SkuID != "dt-2-v1" {
 		t.Fatalf("unexpected cleanup items: %+v", cleanup.items)
+	}
+}
+
+func TestDispatchMessageHandlesOrderPlaced(t *testing.T) {
+	cleanup := &fakeCartCleanup{}
+	payload := []byte(`{"eventId":"evt-placed-1","eventType":"OrderPlaced","eventVersion":1,"aggregateId":"ord-2",
+		"data":{"orderId":"ord-2","userId":"00000000-0000-0000-0000-000000000002","items":[
+			{"cartItemId":"22222222-2222-2222-2222-222222222222","productId":"dt-1","skuId":"dt-1-v1","quantity":1},
+			{"cartItemId":"33333333-3333-3333-3333-333333333333","productId":"dt-3","skuId":"dt-3-v2","quantity":2}]}}`)
+
+	if err := DispatchMessage(context.Background(), cleanup, "order.placed", payload); err != nil {
+		t.Fatalf("DispatchMessage(order.placed): %v", err)
+	}
+	if cleanup.eventID != "order-cleanup:ord-2" || cleanup.userID != "00000000-0000-0000-0000-000000000002" {
+		t.Fatalf("unexpected cleanup metadata: eventID=%q userID=%q", cleanup.eventID, cleanup.userID)
+	}
+	if len(cleanup.items) != 2 || cleanup.items[1].CartItemID != "33333333-3333-3333-3333-333333333333" {
+		t.Fatalf("unexpected cleanup items: %+v", cleanup.items)
+	}
+}
+
+func TestOrderPlacedAndOrderConfirmedShareOneCleanupKeyPerOrder(t *testing.T) {
+	placed := &fakeCartCleanup{}
+	confirmed := &fakeCartCleanup{}
+	placedBody := []byte(`{"eventId":"evt-a","eventType":"OrderPlaced","data":{"orderId":"ord-9","userId":"00000000-0000-0000-0000-000000000009","items":[]}}`)
+	confirmedBody := []byte(`{"eventId":"evt-b","eventType":"OrderConfirmed","data":{"orderId":"ord-9","userId":"00000000-0000-0000-0000-000000000009","items":[]}}`)
+
+	if err := DispatchMessage(context.Background(), placed, "order.placed", placedBody); err != nil {
+		t.Fatalf("DispatchMessage(order.placed): %v", err)
+	}
+	if err := DispatchMessage(context.Background(), confirmed, RoutingKeyOrderConfirmed, confirmedBody); err != nil {
+		t.Fatalf("DispatchMessage(order.confirmed): %v", err)
+	}
+	if placed.eventID == "" || placed.eventID != confirmed.eventID {
+		t.Fatalf("both events of one order must use the same cleanup key, got placed=%q confirmed=%q", placed.eventID, confirmed.eventID)
+	}
+}
+
+func TestDispatchMessageIgnoresUnrelatedRoutingKey(t *testing.T) {
+	cleanup := &fakeCartCleanup{}
+	payload := []byte(`{"eventId":"evt-other-1","eventType":"PaymentCancelRequested","data":{"orderId":"ord-3","reason":"X"}}`)
+
+	if err := DispatchMessage(context.Background(), cleanup, "order.payment.cancel_requested", payload); err != nil {
+		t.Fatalf("DispatchMessage(unrelated): %v", err)
+	}
+	if cleanup.eventID != "" {
+		t.Fatalf("unrelated event must not trigger cleanup, got eventID=%q", cleanup.eventID)
 	}
 }
 

@@ -5,7 +5,9 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"log/slog"
 	"net/http"
+	"time"
 
 	"google.golang.org/grpc/metadata"
 )
@@ -44,7 +46,29 @@ func writeEnvelope(w http.ResponseWriter, status int, data any, message string) 
 	writeJSON(w, status, envelope{Data: data, Message: message})
 }
 
+type statusRecorder struct {
+	http.ResponseWriter
+	status    int
+	errorCode string
+}
+
+func (r *statusRecorder) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
+func (r *statusRecorder) Unwrap() http.ResponseWriter {
+	return r.ResponseWriter
+}
+
+func (r *statusRecorder) setErrorCode(code string) {
+	r.errorCode = code
+}
+
 func writeError(w http.ResponseWriter, r *http.Request, status int, code, message string, fields map[string]string) {
+	if recorder, ok := w.(interface{ setErrorCode(string) }); ok {
+		recorder.setErrorCode(code)
+	}
 	writeJSON(w, status, errorBody{
 		Code:    code,
 		Message: message,
@@ -55,6 +79,7 @@ func writeError(w http.ResponseWriter, r *http.Request, status int, code, messag
 
 func correlateTrace(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
 		traceID := resolveTraceID(r.Header.Get(traceHeader))
 		ctx := context.WithValue(r.Context(), traceIDKey{}, traceID)
 		outgoing, _ := metadata.FromOutgoingContext(ctx)
@@ -62,7 +87,27 @@ func correlateTrace(next http.Handler) http.Handler {
 		outgoing.Set(traceMetadataKey, traceID)
 		ctx = metadata.NewOutgoingContext(ctx, outgoing)
 		w.Header().Set(traceHeader, traceID)
-		next.ServeHTTP(w, r.WithContext(ctx))
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rec, r.WithContext(ctx))
+
+		attrs := []any{
+			"method", r.Method,
+			"path", r.URL.Path,
+			"status", rec.status,
+			"duration_ms", time.Since(start).Milliseconds(),
+			"trace_id", traceID,
+		}
+		if rec.errorCode != "" {
+			attrs = append(attrs, "error_code", rec.errorCode)
+		}
+		switch {
+		case rec.status >= http.StatusInternalServerError:
+			slog.ErrorContext(ctx, "http request completed", attrs...)
+		case rec.status >= http.StatusBadRequest:
+			slog.WarnContext(ctx, "http request completed", attrs...)
+		default:
+			slog.InfoContext(ctx, "http request completed", attrs...)
+		}
 	})
 }
 

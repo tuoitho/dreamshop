@@ -120,13 +120,7 @@ function CartItemRow({
         </div>
 
         {item.variantLabel && (
-          <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-            {item.variantColorHex && (
-              <span
-                className="inline-block size-3 rounded-full border border-black/10"
-                style={{ backgroundColor: item.variantColorHex }}
-              />
-            )}
+          <p className="mt-1 text-xs text-muted-foreground">
             {item.variantLabel}
           </p>
         )}

@@ -5,11 +5,18 @@ import {
   adjustSkuStock,
   fetchCurrentUser,
   fetchMyPermissions,
+  getAdminOrder,
   http,
   listAdminInventory,
+  listAdminOrders,
   listAdminProducts,
+  login,
+  logoutRequest,
+  refreshAccessToken,
   refreshHttp,
+  retryAdminOrderRefund,
   setSkuStock,
+  updateAdminOrderStatus,
 } from "./api"
 import { clearAccessToken, setAccessToken } from "./auth-session"
 
@@ -248,5 +255,142 @@ describe("admin api client", () => {
     ])
     expect(setRes).toMatchObject({ skuId: "dt-1-v1", productId: "dt-1", quantity: 25 })
     expect(adjustRes).toMatchObject({ skuId: "dt-1-v1", productId: "dt-1", quantity: 22 })
+  })
+
+  it("lists, reads and updates admin orders through /admin/orders", async () => {
+    setAccessToken("valid-token")
+    const calls: Array<{ method?: string; url?: string; params?: unknown; body: unknown }> = []
+
+    http.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
+      calls.push({
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        params: config.params,
+        body: typeof config.data === "string" ? JSON.parse(config.data) : config.data,
+      })
+      const data =
+        config.url === "/admin/orders"
+          ? { items: [], page: 1, pageSize: 20, totalItems: 0, totalPages: 0, statusCounts: { SHIPPING: 2 } }
+          : { order: { orderId: "ord-1", status: "SHIPPING" }, allowedNextStatuses: ["DELIVERED"] }
+      return { data: { data, message: "ok" }, status: 200, statusText: "OK", headers: {}, config }
+    }
+
+    const page = await listAdminOrders({ status: "SHIPPING", q: "ORD", page: 1 })
+    const view = await getAdminOrder("ord-1")
+    const updated = await updateAdminOrderStatus("ord-1", {
+      expectedStatus: "PREPARING",
+      targetStatus: "SHIPPING",
+      shippingCarrier: "GHN",
+      trackingNumber: "T1",
+    })
+
+    expect(calls).toEqual([
+      { method: "GET", url: "/admin/orders", params: { status: "SHIPPING", q: "ORD", page: 1 }, body: undefined },
+      { method: "GET", url: "/admin/orders/ord-1", params: undefined, body: undefined },
+      {
+        method: "POST",
+        url: "/admin/orders/ord-1/status",
+        params: undefined,
+        body: {
+          expectedStatus: "PREPARING",
+          targetStatus: "SHIPPING",
+          shippingCarrier: "GHN",
+          trackingNumber: "T1",
+        },
+      },
+    ])
+    expect(page.statusCounts.SHIPPING).toBe(2)
+    expect(view.allowedNextStatuses).toEqual(["DELIVERED"])
+    expect(updated.order.status).toBe("SHIPPING")
+  })
+
+  it("posts manual refund retry to /admin/orders/{orderId}/refund", async () => {
+    setAccessToken("valid-token")
+    let captured: { method?: string; url?: string; body: unknown } | undefined
+
+    http.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
+      captured = {
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        body: typeof config.data === "string" ? JSON.parse(config.data) : config.data,
+      }
+      return {
+        data: {
+          data: {
+            order: { orderId: "ord-1", status: "CANCELLED", paymentStatus: "REFUNDED", refundTransId: "momo-ref-1" },
+            allowedNextStatuses: [],
+          },
+          message: "Hoàn tiền đơn hàng thành công",
+        },
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        config,
+      }
+    }
+
+    const res = await retryAdminOrderRefund("ord-1", "Thử lại sau sự cố")
+
+    expect(captured).toEqual({
+      method: "POST",
+      url: "/admin/orders/ord-1/refund",
+      body: { reason: "Thử lại sau sự cố" },
+    })
+    expect(res.order.paymentStatus).toBe("REFUNDED")
+    expect(res.order.refundTransId).toBe("momo-ref-1")
+  })
+
+  it("routes admin login, refresh, and logout through /auth/admin/* endpoints", async () => {
+    const httpCalls: Array<{ method?: string; url?: string }> = []
+    const refreshCalls: Array<{ method?: string; url?: string }> = []
+
+    http.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
+      httpCalls.push({ method: config.method?.toUpperCase(), url: config.url })
+      if (config.url === "/auth/admin/login") {
+        return {
+          data: {
+            data: { accessToken: "admin-jwt", tokenType: "Bearer", expiresIn: 900 },
+            message: "Login successful",
+          },
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          config,
+        }
+      }
+      return {
+        data: { data: null, message: "Logout successful" },
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        config,
+      }
+    }
+
+    refreshHttp.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
+      refreshCalls.push({ method: config.method?.toUpperCase(), url: config.url })
+      return {
+        data: {
+          data: { accessToken: "admin-refreshed-jwt", tokenType: "Bearer", expiresIn: 900 },
+          message: "Token refreshed successfully",
+        },
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        config,
+      }
+    }
+
+    const loginRes = await login({ email: "admin@example.com", password: "AdminPassword123!" })
+    const refreshed = await refreshAccessToken()
+    await logoutRequest()
+
+    expect(loginRes.accessToken).toBe("admin-jwt")
+    expect(refreshed).toBe("admin-refreshed-jwt")
+    expect(httpCalls).toEqual([
+      { method: "POST", url: "/auth/admin/login" },
+      { method: "POST", url: "/auth/admin/logout" },
+    ])
+    expect(refreshCalls).toEqual([{ method: "POST", url: "/auth/admin/refresh" }])
   })
 })

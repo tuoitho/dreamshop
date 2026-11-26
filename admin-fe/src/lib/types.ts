@@ -25,9 +25,13 @@ export interface CurrentUser {
   userId: string
   email: string
   fullName: string
-  phone?: string | null
-  avatarUrl?: string | null
   roles: string[]
+  phone?: string | null
+  dateOfBirth?: string | null
+  gender?: "MALE" | "FEMALE" | "OTHER" | null
+  provinceCode?: string | null
+  wardCode?: string | null
+  addressLine?: string | null
 }
 
 export interface AdminStockSnapshot {
@@ -271,4 +275,124 @@ export interface RbacItem {
   directChildren: string[]
   createdAt: string
   updatedAt: string
+}
+
+export type OrderStatus =
+  | "PENDING_STOCK"
+  | "PENDING_PAYMENT"
+  | "PENDING_CONFIRMATION"
+  | "CONFIRMED"
+  | "PREPARING"
+  | "SHIPPING"
+  | "DELIVERED"
+  | "DELIVERY_FAILED"
+  | "CANCELLED"
+
+export type OrderPaymentMethod = "COD" | "MOMO"
+
+export type OrderPaymentStatus =
+  | "UNPAID"
+  | "PENDING"
+  | "PAID"
+  | "FAILED"
+  | "REFUND_REQUIRED"
+  | "REFUNDED"
+  | "REFUND_FAILED"
+
+export type OrderActorType = "SYSTEM" | "CUSTOMER" | "ADMIN"
+
+export interface AdminOrderStatusChange {
+  fromStatus?: OrderStatus
+  toStatus: OrderStatus
+  actorType: OrderActorType
+  reason?: string
+  shippingCarrier?: string
+  trackingNumber?: string
+  createdAt: string
+}
+
+export interface AdminOrderShippingAddress {
+  recipientName: string
+  phone: string
+  provinceCode: string
+  provinceName: string
+  wardCode: string
+  wardName: string
+  addressLine: string
+  label?: string
+}
+
+export interface AdminOrderItem {
+  cartItemId?: string
+  productId: string
+  skuId: string
+  quantity: number
+  unitPrice: number
+  lineTotal: number
+  expectedName: string
+  brand: string
+  categoryName: string
+  variantLabel: string
+  variantColorHex?: string
+  imageUrl: string
+  imageEmoji: string
+  imageHue: number[]
+  expectedProductVersion: number
+}
+
+export interface AdminOrder {
+  orderId: string
+  orderCode: string
+  userId: string
+  status: OrderStatus
+  paymentMethod: OrderPaymentMethod
+  paymentStatus: OrderPaymentStatus
+  shippingAddress: AdminOrderShippingAddress
+  items: AdminOrderItem[]
+  subtotal: number
+  shippingFee: number
+  totalAmount: number
+  currency: string
+  note?: string
+  cancelReason?: string
+  autoConfirmAt?: string
+  shippingCarrier?: string
+  trackingNumber?: string
+  refundTransId?: string
+  refundLastError?: string
+  refundedAt?: string
+  refundActorType?: "SYSTEM" | "ADMIN"
+  refundReason?: string
+  createdAt: string
+  updatedAt: string
+  statusHistory: AdminOrderStatusChange[]
+}
+
+export interface AdminOrderPage {
+  items: AdminOrder[]
+  page: number
+  pageSize: number
+  totalItems: number
+  totalPages: number
+  statusCounts: Partial<Record<OrderStatus, number>>
+}
+
+export interface AdminOrderView {
+  order: AdminOrder
+  allowedNextStatuses: OrderStatus[]
+}
+
+export interface ListAdminOrdersParams {
+  status?: OrderStatus
+  q?: string
+  page?: number
+  pageSize?: number
+}
+
+export interface UpdateOrderStatusPayload {
+  expectedStatus: OrderStatus
+  targetStatus: OrderStatus
+  reason?: string
+  shippingCarrier?: string
+  trackingNumber?: string
 }

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SearchableSelect } from "@/components/ui/searchable-select"
 import { ApiClientError } from "@/lib/api"
+import { resolveErrorMessage } from "@/lib/error-messages"
 import { fetchProvinces, fetchWards } from "@/lib/locations"
 import { fieldErrorsFromBackend, fieldErrorsFromZod, profileSchema, type ProfileField } from "@/lib/profile-validation"
 import type { Gender, LocationOption } from "@/lib/types"
@@ -160,7 +161,7 @@ export default function ProfilePage() {
       if (reason instanceof ApiClientError && reason.errors) {
         setFieldErrors(fieldErrorsFromBackend(reason.errors))
       } else {
-        setError(reason instanceof Error ? reason.message : "Không thể cập nhật hồ sơ")
+        setError(resolveErrorMessage(reason, { fallback: "Không thể cập nhật hồ sơ" }))
       }
     } finally {
       setSubmitting(false)

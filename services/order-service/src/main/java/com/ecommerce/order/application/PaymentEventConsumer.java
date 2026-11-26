@@ -1,6 +1,7 @@
 package com.ecommerce.order.application;
 
 import com.ecommerce.order.config.RabbitMqConfig;
+import com.ecommerce.order.domain.ActorType;
 import com.ecommerce.order.domain.OrderStatus;
 import com.ecommerce.order.domain.PaymentStatus;
 import com.ecommerce.order.persistence.OrderEntity;
@@ -9,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
 
 @Component
+@RequiredArgsConstructor
 public class PaymentEventConsumer {
     private static final Logger log = LoggerFactory.getLogger(PaymentEventConsumer.class);
     private static final JsonMapper JSON = JsonMapper.builder().build();
@@ -26,15 +29,6 @@ public class PaymentEventConsumer {
     private final OrderRepository orderRepository;
     private final OrderTransactionStepService txStepService;
     private final JdbcTemplate jdbcTemplate;
-
-    public PaymentEventConsumer(
-            OrderRepository orderRepository,
-            OrderTransactionStepService txStepService,
-            JdbcTemplate jdbcTemplate) {
-        this.orderRepository = orderRepository;
-        this.txStepService = txStepService;
-        this.jdbcTemplate = jdbcTemplate;
-    }
 
     @RabbitListener(queues = RabbitMqConfig.PAYMENT_EVENTS_QUEUE)
     @Transactional
@@ -90,6 +84,7 @@ public class PaymentEventConsumer {
 
         if (RabbitMqConfig.RK_PAYMENT_SUCCEEDED.equals(routingKey) || "PaymentSucceeded".equals(eventType)) {
             if (order.getStatus() == OrderStatus.PENDING_PAYMENT || order.getStatus() == OrderStatus.PENDING_STOCK) {
+                OrderStatus previous = order.getStatus();
                 order.setStatus(OrderStatus.CONFIRMED);
                 order.setPaymentStatus(PaymentStatus.PAID);
                 if (!momoTransId.isEmpty()) {
@@ -97,6 +92,7 @@ public class PaymentEventConsumer {
                 }
                 order.setUpdatedAt(now);
                 orderRepository.saveAndFlush(order);
+                txStepService.recordStatusChange(order, previous, ActorType.SYSTEM, null, "", now);
 
                 txStepService.insertOrderConfirmedOutbox(order, now);
                 txStepService.registerOutboxWakeupAfterCommit();
@@ -124,6 +120,8 @@ public class PaymentEventConsumer {
                 order.setPayUrl("");
                 order.setUpdatedAt(now);
                 orderRepository.saveAndFlush(order);
+                txStepService.recordStatusChange(
+                        order, OrderStatus.PENDING_PAYMENT, ActorType.SYSTEM, null, "PAYMENT_FAILED", now);
 
                 txStepService.insertCompensationOutbox(
                         "ReservationReleaseRequested",
@@ -133,7 +131,40 @@ public class PaymentEventConsumer {
                         now);
                 txStepService.registerOutboxWakeupAfterCommit();
             }
+        } else if (RabbitMqConfig.RK_PAYMENT_REFUNDED.equals(routingKey) || "PaymentRefunded".equals(eventType)) {
+            if (order.getPaymentStatus() == PaymentStatus.REFUND_REQUIRED
+                    || order.getPaymentStatus() == PaymentStatus.REFUND_FAILED
+                    || order.getPaymentStatus() == PaymentStatus.PAID) {
+                order.setPaymentStatus(PaymentStatus.REFUNDED);
+                String refundTransId = stringValue(data.get("refundTransId"));
+                if (!refundTransId.isEmpty()) {
+                    order.setRefundTransId(truncate(refundTransId, 64));
+                }
+                order.setRefundLastError("");
+                if (order.getRefundedAt() == null) {
+                    order.setRefundedAt(now);
+                }
+                if (order.getRefundActorType() == null || order.getRefundActorType().isEmpty()) {
+                    order.setRefundActorType("SYSTEM");
+                }
+                order.setUpdatedAt(now);
+                orderRepository.saveAndFlush(order);
+            }
+        } else if (RabbitMqConfig.RK_PAYMENT_REFUND_FAILED.equals(routingKey) || "PaymentRefundFailed".equals(eventType)) {
+            if (order.getPaymentStatus() == PaymentStatus.REFUND_REQUIRED) {
+                order.setPaymentStatus(PaymentStatus.REFUND_FAILED);
+                order.setRefundLastError(truncate(stringValue(data.get("message")), 255));
+                order.setUpdatedAt(now);
+                orderRepository.saveAndFlush(order);
+            }
         }
+    }
+
+    private static String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value == null ? "" : value;
+        }
+        return value.substring(0, maxLength);
     }
 
     private static String stringValue(Object obj) {

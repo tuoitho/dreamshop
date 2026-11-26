@@ -125,4 +125,49 @@ describe("PaymentResultPage", () => {
     expect(await screen.findByText(/hoàn tiền/i)).toBeInTheDocument()
     expect(screen.getByText(/ORD-20261105-MOMO01/)).toBeInTheDocument()
   })
+
+  it("renders green refunded banner when status is CANCELLED and paymentStatus is REFUNDED", async () => {
+    vi.mocked(api.getOrder).mockResolvedValueOnce(
+      makeOrder({
+        status: "CANCELLED",
+        paymentStatus: "REFUNDED",
+        refundTransId: "momo-ref-555",
+      })
+    )
+
+    render(
+      <CartContext value={makeCartValue()}>
+        <MemoryRouter initialEntries={["/thanh-toan/ket-qua?orderId=ord-momo-1&result=success"]}>
+          <Routes>
+            <Route path="/thanh-toan/ket-qua" element={<PaymentResultPage />} />
+          </Routes>
+        </MemoryRouter>
+      </CartContext>
+    )
+
+    expect(await screen.findByText(/Đã hoàn tiền/i)).toBeInTheDocument()
+    expect(screen.getByText(/ORD-20261105-MOMO01/)).toBeInTheDocument()
+  })
+
+  it("renders customer-friendly pending refund notice when status is CANCELLED and paymentStatus is REFUND_FAILED", async () => {
+    vi.mocked(api.getOrder).mockResolvedValueOnce(
+      makeOrder({
+        status: "CANCELLED",
+        paymentStatus: "REFUND_FAILED",
+      })
+    )
+
+    render(
+      <CartContext value={makeCartValue()}>
+        <MemoryRouter initialEntries={["/thanh-toan/ket-qua?orderId=ord-momo-1&result=success"]}>
+          <Routes>
+            <Route path="/thanh-toan/ket-qua" element={<PaymentResultPage />} />
+          </Routes>
+        </MemoryRouter>
+      </CartContext>
+    )
+
+    expect(await screen.findByText(/đang xử lý hoàn tiền/i)).toBeInTheDocument()
+    expect(screen.queryByText(/thất bại/i)).not.toBeInTheDocument()
+  })
 })

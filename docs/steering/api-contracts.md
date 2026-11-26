@@ -8,6 +8,9 @@ designed explicitly.
 
 - `contracts/proto/` contains protobuf source definitions.
 - `contracts/java/` and `contracts/go/` contain generated language modules.
+- `contracts/http-snapshots/*.json` contains domain-grouped golden HTTP
+  snapshots (data-only, owned by `bff-service` and `identity-service` tests)
+  used to lock REST contracts two-way with Playwright Mode 2 tests.
 - Public HTTP contracts are defined by Identity controllers, BFF handlers,
   approved service-side Go `grpc-gateway` adapters, and `deployments/kong/*.yaml`.
 

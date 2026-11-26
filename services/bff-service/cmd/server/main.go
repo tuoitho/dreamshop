@@ -86,6 +86,7 @@ func buildMux(
 	paymentsHandler := internalhttp.NewPaymentsHandler(paymentClient, storefrontBaseURL)
 	adminProductsHandler := internalhttp.NewAdminProductsHandler(catalogClient, inventoryClient)
 	adminInventoryHandler := internalhttp.NewAdminInventoryHandler(catalogClient, inventoryClient)
+	adminOrdersHandler := internalhttp.NewAdminOrdersHandler(orderClient)
 
 	mux := http.NewServeMux()
 	mux.Handle("/healthz", healthHandler)
@@ -96,5 +97,6 @@ func buildMux(
 	paymentsHandler.Register(mux)
 	adminProductsHandler.Register(mux)
 	adminInventoryHandler.Register(mux)
+	adminOrdersHandler.Register(mux)
 	return mux
 }

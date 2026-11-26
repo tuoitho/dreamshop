@@ -7,6 +7,7 @@ import com.ecommerce.order.domain.OrderStatus;
 import com.ecommerce.order.integration.AuthorizationGrpcAdapter;
 import com.ecommerce.order.persistence.OrderEntity;
 import com.ecommerce.order.persistence.OrderRepository;
+import com.ecommerce.order.persistence.OrderStatusHistoryRepository;
 import io.grpc.Status;
 import java.util.Locale;
 import java.util.UUID;
@@ -19,14 +20,17 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class OrderQueryService {
     private final OrderRepository orderRepository;
+    private final OrderStatusHistoryRepository statusHistoryRepository;
     private final AuthorizationGrpcAdapter authorizationAdapter;
     private final TransactionTemplate readOnlyTx;
 
     public OrderQueryService(
             OrderRepository orderRepository,
+            OrderStatusHistoryRepository statusHistoryRepository,
             AuthorizationGrpcAdapter authorizationAdapter,
             PlatformTransactionManager transactionManager) {
         this.orderRepository = orderRepository;
+        this.statusHistoryRepository = statusHistoryRepository;
         this.authorizationAdapter = authorizationAdapter;
         TransactionTemplate template = new TransactionTemplate(transactionManager);
         template.setReadOnly(true);
@@ -66,7 +70,7 @@ public class OrderQueryService {
     private OrderDetail getOrderReadOnly(UUID userId, UUID orderId) {
         OrderEntity order = orderRepository.findByIdAndUserId(orderId, userId)
                 .orElseThrow(() -> new DomainException(Status.Code.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found"));
-        return OrderProtoMapper.toOrderDetail(order);
+        return OrderProtoMapper.toOrderDetail(order, statusHistoryRepository.findByOrderIdOrderByCreatedAtAsc(orderId));
     }
 
     private ListOrdersResponse listOrdersReadOnly(UUID userId, OrderStatus statusFilter, int page, int pageSize) {

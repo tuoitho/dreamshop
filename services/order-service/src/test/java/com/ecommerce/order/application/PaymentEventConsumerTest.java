@@ -1,5 +1,6 @@
 package com.ecommerce.order.application;
 
+import static com.ecommerce.order.support.StatusHistoryQueries.historyOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -36,6 +37,12 @@ class PaymentEventConsumerTest extends PostgresRabbitIntegrationTestSupport {
 
     @Autowired
     OrderRepository orderRepository;
+
+    @Autowired
+    OrderQueryService orderQueryService;
+
+    @Autowired
+    OrderAdminQueryService orderAdminQueryService;
 
     @Autowired
     JdbcTemplate jdbcTemplate;
@@ -84,6 +91,18 @@ class PaymentEventConsumerTest extends PostgresRabbitIntegrationTestSupport {
                 Integer.class,
                 orderId.toString());
         assertThat(confirmedOutbox).isEqualTo(1);
+        assertThat(historyOf(jdbcTemplate, orderId)).containsExactly("PENDING_PAYMENT>CONFIRMED:SYSTEM");
+
+        when(authorizationAdapter.hasPermission(any(UUID.class), eq("order.view"))).thenReturn(true);
+        OrderDetail detail = orderQueryService.getOrder(userId.toString(), orderId.toString());
+        assertThat(detail.getStatusHistoryList())
+                .singleElement()
+                .satisfies(change -> {
+                    assertThat(change.getFromStatus()).isEqualTo("PENDING_PAYMENT");
+                    assertThat(change.getToStatus()).isEqualTo("CONFIRMED");
+                    assertThat(change.getActorType()).isEqualTo("SYSTEM");
+                    assertThat(change.getCreatedAt()).isNotBlank();
+                });
 
         // Late PaymentFailed after CONFIRMED is a no-op
         String failedJson = """
@@ -100,6 +119,25 @@ class PaymentEventConsumerTest extends PostgresRabbitIntegrationTestSupport {
         OrderEntity stillConfirmed = orderRepository.findById(orderId).orElseThrow();
         assertThat(stillConfirmed.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
         assertThat(stillConfirmed.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+    }
+
+    @Test
+    void paymentFailedCancelsPendingOrderAndRecordsHistory() {
+        UUID userId = UUID.randomUUID();
+        UUID orderId = seedOrder(userId, "ORD-20261112-PFAIL1", OrderStatus.PENDING_PAYMENT, PaymentMethod.MOMO, PaymentStatus.PENDING);
+
+        paymentEventConsumer.handleMessage("payment.failed", """
+                {
+                  "eventId": "evt-fail-1",
+                  "eventType": "PaymentFailed",
+                  "eventVersion": 1,
+                  "aggregateId": "%s",
+                  "data": { "orderId": "%s", "message": "Declined" }
+                }
+                """.formatted(orderId, orderId));
+
+        assertThat(orderRepository.findById(orderId).orElseThrow().getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        assertThat(historyOf(jdbcTemplate, orderId)).containsExactly("PENDING_PAYMENT>CANCELLED:SYSTEM");
     }
 
     @Test
@@ -136,7 +174,7 @@ class PaymentEventConsumerTest extends PostgresRabbitIntegrationTestSupport {
     }
 
     @Test
-    void cancelOrderEmitsReleaseAndPaymentCancelOnPendingPaymentAndRejectsConfirmed() {
+    void cancelOrderEmitsReleaseAndPaymentCancelOnPendingPaymentAndRejectsShipping() {
         UUID userId = UUID.randomUUID();
         UUID pendingId = seedOrder(userId, "ORD-20261105-CANC01", OrderStatus.PENDING_PAYMENT, PaymentMethod.MOMO, PaymentStatus.PENDING);
 
@@ -149,11 +187,144 @@ class PaymentEventConsumerTest extends PostgresRabbitIntegrationTestSupport {
                 pendingId.toString());
         assertThat(routingKeys).containsExactly("order.payment.cancel_requested", "order.reservation.release_requested");
 
-        UUID confirmedId = seedOrder(userId, "ORD-20261105-CONF01", OrderStatus.CONFIRMED, PaymentMethod.COD, PaymentStatus.UNPAID);
-        assertThatThrownBy(() -> orchestrator.cancelOrder(userId.toString(), confirmedId.toString(), "Muon huy"))
+        UUID shippingId = seedOrder(userId, "ORD-20261105-SHIP01", OrderStatus.SHIPPING, PaymentMethod.COD, PaymentStatus.UNPAID);
+        assertThatThrownBy(() -> orchestrator.cancelOrder(userId.toString(), shippingId.toString(), "Muon huy"))
                 .isInstanceOf(DomainException.class)
                 .extracting(e -> ((DomainException) e).reason())
                 .isEqualTo("ORDER_NOT_CANCELLABLE");
+    }
+
+    @Test
+    void paymentRefundedTransitionsRefundRequiredAndRefundFailedToRefunded() {
+        UUID userId = UUID.randomUUID();
+        UUID orderId = seedOrder(userId, "ORD-20261125-RF01", OrderStatus.CANCELLED, PaymentMethod.MOMO, PaymentStatus.REFUND_REQUIRED);
+
+        paymentEventConsumer.handleMessage("payment.refunded", """
+                {
+                  "eventId": "evt-refunded-1",
+                  "eventType": "PaymentRefunded",
+                  "eventVersion": 1,
+                  "aggregateId": "%s",
+                  "data": {
+                    "orderId": "%s",
+                    "refundTransId": "momo-ref-tx-1",
+                    "resultCode": 0,
+                    "message": "Successful."
+                  }
+                }
+                """.formatted(orderId, orderId));
+
+        OrderEntity updated = orderRepository.findById(orderId).orElseThrow();
+        assertThat(updated.getPaymentStatus()).isEqualTo(PaymentStatus.REFUNDED);
+        assertThat(updated.getRefundTransId()).isEqualTo("momo-ref-tx-1");
+        assertThat(updated.getRefundActorType()).isEqualTo("SYSTEM");
+        assertThat(updated.getRefundedAt()).isNotNull();
+        assertThat(updated.getRefundLastError()).isEmpty();
+
+        // Duplicate PaymentRefunded with different eventId must not overwrite ADMIN audit metadata.
+        UUID adminId = UUID.randomUUID();
+        UUID adminRefundedId = seedOrder(userId, "ORD-20261125-RF02", OrderStatus.CANCELLED, PaymentMethod.MOMO, PaymentStatus.REFUNDED);
+        OrderEntity adminEntity = orderRepository.findById(adminRefundedId).orElseThrow();
+        adminEntity.setRefundTransId("momo-ref-admin-1");
+        adminEntity.setRefundActorType("ADMIN");
+        adminEntity.setRefundActorId(adminId);
+        adminEntity.setRefundReason("Manual retry");
+        adminEntity.setRefundedAt(Instant.parse("2026-11-25T04:00:00Z"));
+        orderRepository.saveAndFlush(adminEntity);
+
+        paymentEventConsumer.handleMessage("payment.refunded", """
+                {
+                  "eventId": "evt-refunded-dup-admin",
+                  "eventType": "PaymentRefunded",
+                  "eventVersion": 1,
+                  "aggregateId": "%s",
+                  "data": {
+                    "orderId": "%s",
+                    "refundTransId": "momo-ref-admin-1",
+                    "resultCode": 0,
+                    "message": "Successful."
+                  }
+                }
+                """.formatted(adminRefundedId, adminRefundedId));
+
+        OrderEntity afterDup = orderRepository.findById(adminRefundedId).orElseThrow();
+        assertThat(afterDup.getRefundActorType()).isEqualTo("ADMIN");
+        assertThat(afterDup.getRefundActorId()).isEqualTo(adminId);
+        assertThat(afterDup.getRefundReason()).isEqualTo("Manual retry");
+    }
+
+    @Test
+    void paymentRefundFailedMarksRefundFailedAndNeverDowngradesRefunded() {
+        UUID userId = UUID.randomUUID();
+        UUID orderId = seedOrder(userId, "ORD-20261125-RFF1", OrderStatus.CANCELLED, PaymentMethod.MOMO, PaymentStatus.REFUND_REQUIRED);
+        String longErr = "E".repeat(300);
+
+        paymentEventConsumer.handleMessage("payment.refund_failed", """
+                {
+                  "eventId": "evt-refund-failed-1",
+                  "eventType": "PaymentRefundFailed",
+                  "eventVersion": 1,
+                  "aggregateId": "%s",
+                  "data": {
+                    "orderId": "%s",
+                    "attempts": 3,
+                    "resultCode": -1,
+                    "message": "%s"
+                  }
+                }
+                """.formatted(orderId, orderId, longErr));
+
+        OrderEntity failed = orderRepository.findById(orderId).orElseThrow();
+        assertThat(failed.getPaymentStatus()).isEqualTo(PaymentStatus.REFUND_FAILED);
+        assertThat(failed.getRefundLastError()).hasSize(255);
+
+        // Out-of-order PaymentRefundFailed after REFUNDED must never downgrade.
+        UUID refundedId = seedOrder(userId, "ORD-20261125-RFF2", OrderStatus.CANCELLED, PaymentMethod.MOMO, PaymentStatus.REFUNDED);
+        paymentEventConsumer.handleMessage("payment.refund_failed", """
+                {
+                  "eventId": "evt-refund-failed-late",
+                  "eventType": "PaymentRefundFailed",
+                  "eventVersion": 1,
+                  "aggregateId": "%s",
+                  "data": {
+                    "orderId": "%s",
+                    "attempts": 3,
+                    "resultCode": -1,
+                    "message": "late failure"
+                  }
+                }
+                """.formatted(refundedId, refundedId));
+
+        OrderEntity stillRefunded = orderRepository.findById(refundedId).orElseThrow();
+        assertThat(stillRefunded.getPaymentStatus()).isEqualTo(PaymentStatus.REFUNDED);
+        assertThat(stillRefunded.getRefundLastError()).isEmpty();
+    }
+
+    @Test
+    void customerOrderQueryRedactsAdminRefundErrorAndAuditFields() {
+        UUID userId = UUID.randomUUID();
+        UUID adminId = UUID.randomUUID();
+        UUID orderId = seedOrder(userId, "ORD-20261125-RED1", OrderStatus.CANCELLED, PaymentMethod.MOMO, PaymentStatus.REFUND_FAILED);
+        OrderEntity entity = orderRepository.findById(orderId).orElseThrow();
+        entity.setRefundLastError("momo gateway 503 internal error");
+        entity.setRefundActorType("ADMIN");
+        entity.setRefundReason("internal ops note");
+        orderRepository.saveAndFlush(entity);
+
+        when(authorizationAdapter.hasPermission(eq(userId), eq("order.view"))).thenReturn(true);
+        when(authorizationAdapter.hasPermission(eq(adminId), eq("order.admin.view"))).thenReturn(true);
+
+        OrderDetail customerDetail = orderQueryService.getOrder(userId.toString(), orderId.toString());
+        assertThat(customerDetail.getPaymentStatus()).isEqualTo("REFUND_FAILED");
+        assertThat(customerDetail.getRefundLastError()).isEmpty();
+        assertThat(customerDetail.getRefundActorType()).isEmpty();
+        assertThat(customerDetail.getRefundReason()).isEmpty();
+
+        OrderDetail adminDetail = orderAdminQueryService.getOrder(adminId.toString(), orderId.toString()).getOrder();
+        assertThat(adminDetail.getPaymentStatus()).isEqualTo("REFUND_FAILED");
+        assertThat(adminDetail.getRefundLastError()).isEqualTo("momo gateway 503 internal error");
+        assertThat(adminDetail.getRefundActorType()).isEqualTo("ADMIN");
+        assertThat(adminDetail.getRefundReason()).isEqualTo("internal ops note");
     }
 
     private UUID seedOrder(UUID userId, String code, OrderStatus status, PaymentMethod method, PaymentStatus payStatus) {

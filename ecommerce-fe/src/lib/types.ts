@@ -164,9 +164,9 @@ export interface ProductSummary {
   soldCount: number
   images?: string[]
   emoji?: string
-  imageHue?: [number, number]
+  imageHue?: [number, number] | number[]
   isNew?: boolean
-  badge?: "sale" | "hot" | "new"
+  badge?: "sale" | "hot" | "new" | ""
   featured?: boolean
   status?: ProductAvailabilityStatus
   availableQuantity?: number
@@ -240,9 +240,35 @@ export interface ShippingAddressSnapshot {
 
 export type PaymentMethod = "COD" | "MOMO"
 
-export type OrderStatus = "PENDING_STOCK" | "PENDING_PAYMENT" | "CONFIRMED" | "CANCELLED"
+export type OrderStatus =
+  | "PENDING_STOCK"
+  | "PENDING_PAYMENT"
+  | "PENDING_CONFIRMATION"
+  | "CONFIRMED"
+  | "PREPARING"
+  | "SHIPPING"
+  | "DELIVERED"
+  | "DELIVERY_FAILED"
+  | "CANCELLED"
 
-export type PaymentStatus = "UNPAID" | "PENDING" | "PAID" | "FAILED" | "REFUND_REQUIRED"
+export interface OrderStatusChange {
+  fromStatus?: OrderStatus | string
+  toStatus: OrderStatus | string
+  actorType: "SYSTEM" | "CUSTOMER" | "ADMIN" | string
+  reason?: string
+  shippingCarrier?: string
+  trackingNumber?: string
+  createdAt: string
+}
+
+export type PaymentStatus =
+  | "UNPAID"
+  | "PENDING"
+  | "PAID"
+  | "FAILED"
+  | "REFUND_REQUIRED"
+  | "REFUNDED"
+  | "REFUND_FAILED"
 
 export interface OrderItemSnapshot {
   cartItemId?: string
@@ -279,8 +305,15 @@ export interface OrderDetail {
   cancelReason?: string
   payUrl?: string
   paymentExpiresAt?: string
+  autoConfirmAt?: string
+  shippingCarrier?: string
+  trackingNumber?: string
+  refundTransId?: string
+  refundedAt?: string
   createdAt: string
   updatedAt: string
+  /** Present on single-order reads; list responses return an empty array. */
+  statusHistory?: OrderStatusChange[]
 }
 
 export interface CreateOrderItemPayload {

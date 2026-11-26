@@ -5,46 +5,10 @@ import { ProductImage } from "@/components/product-image"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cancelOrder, listOrders } from "@/lib/api"
+import { resolveErrorMessage } from "@/lib/error-messages"
+import { ORDER_STATUS_TABS, getOrderStatusMeta, isCustomerCancellable } from "@/lib/order-status"
 import type { OrderDetail, OrderItemSnapshot } from "@/lib/types"
 import { cn, formatVND } from "@/lib/utils"
-
-const STATUS_TABS = [
-  { value: "", label: "Tất cả" },
-  { value: "PENDING_PAYMENT", label: "Chờ thanh toán" },
-  { value: "CONFIRMED", label: "Đã xác nhận" },
-  { value: "CANCELLED", label: "Đã hủy" },
-] as const
-
-function getStatusMeta(status: string, paymentStatus: string): { label: string; className: string } {
-  if (status === "CONFIRMED") {
-    return {
-      label: "Đã xác nhận",
-      className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-    }
-  }
-  if (status === "PENDING_PAYMENT") {
-    return {
-      label: "Chờ thanh toán",
-      className: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
-    }
-  }
-  if (status === "CANCELLED" && paymentStatus === "REFUND_REQUIRED") {
-    return {
-      label: "Đã hủy • Cần hoàn tiền",
-      className: "border-amber-500/40 bg-amber-500/15 text-amber-800 dark:text-amber-300",
-    }
-  }
-  if (status === "CANCELLED") {
-    return {
-      label: "Đã hủy",
-      className: "border-destructive/30 bg-destructive/10 text-destructive",
-    }
-  }
-  return {
-    label: "Đang xử lý",
-    className: "border-border bg-muted text-muted-foreground",
-  }
-}
 
 function OrderItemThumb({ item }: { item: OrderItemSnapshot }) {
   const [imgError, setImgError] = useState(false)
@@ -97,7 +61,7 @@ export default function OrdersPage() {
       if (signal?.aborted) {
         return
       }
-      setError(err instanceof Error ? err.message : "Không thể tải danh sách đơn mua.")
+      setError(resolveErrorMessage(err, { fallback: "Không thể tải danh sách đơn mua." }))
     } finally {
       if (!signal?.aborted) {
         setLoading(false)
@@ -135,7 +99,7 @@ export default function OrdersPage() {
       </div>
 
       <div className="mb-6 flex flex-wrap gap-2">
-        {STATUS_TABS.map((tab) => {
+        {ORDER_STATUS_TABS.map((tab) => {
           const active = statusFilter === tab.value
           return (
             <button
@@ -189,7 +153,7 @@ export default function OrdersPage() {
       ) : (
         <div className="space-y-4">
           {orders.map((order) => {
-            const statusMeta = getStatusMeta(order.status, order.paymentStatus)
+            const statusMeta = getOrderStatusMeta(order.status, order.paymentStatus)
             return (
               <article key={order.orderId} className="rounded-2xl border bg-card p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
@@ -240,7 +204,7 @@ export default function OrdersPage() {
                         </a>
                       </Button>
                     )}
-                    {order.status === "PENDING_PAYMENT" && (
+                    {isCustomerCancellable(order.status) && (
                       <Button
                         type="button"
                         size="sm"

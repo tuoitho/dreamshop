@@ -46,9 +46,10 @@ behavior as domain/contract semantics rather than transport defaults.
   `SEED_DEMO_DATA`).
 - `internal/authorization/`: private gRPC client to Identity authorization (`inventory.view`, `inventory.update`, plus `product.update` or `inventory.update` for `DeleteStocks`).
 - `internal/domain/`: SKU-keyed stock (`SkuID`, `ProductID`) and availability domain rules (`Quantity - Reserved`, `ErrStockBelowReserved`, `VariantHasReservedStockError`).
-- `internal/store/`: embedded SQL migrations (`000001_create_stock.up.sql`, `000002_refactor_stock_to_sku.up.sql`, `000003_create_stock_reservations.up.sql`),
-  seed data, SKU reservation/tombstone logic, and PostgreSQL store adapter.
-- `internal/events/`: RabbitMQ consumer (`inventory.order-events`) for `OrderConfirmed` and `ReservationReleaseRequested`.
+- `internal/store/`: embedded SQL migrations (`000001_create_stock.up.sql`, `000002_refactor_stock_to_sku.up.sql`, `000003_create_stock_reservations.up.sql`,
+  `000004_add_restocked_reservation_status.up.sql`), seed data, SKU
+  reservation/tombstone/restock logic, and PostgreSQL store adapter.
+- `internal/events/`: RabbitMQ consumer (`inventory.order-events`) for `OrderConfirmed`, `ReservationReleaseRequested`, and `StockRestockRequested` (returns stock of a confirmed reservation when its order is cancelled).
 - `internal/grpc/`: `InventoryServiceServer` (`GetAvailability`, `BatchGetAvailability`, `GetStock`, `BatchGetStock`, `ListStocks`, `SetStock`, `AdjustStock`, `DeleteStocks`, `ReserveStock`) gRPC handler.
 - `internal/http/`: `/healthz` HTTP readiness/liveness handler.
 

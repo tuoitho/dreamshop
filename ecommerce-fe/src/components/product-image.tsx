@@ -16,18 +16,23 @@ function hsl(hue: number, sat: number, light: number, alpha = 1): string {
 
 interface ProductImageProps {
   emoji: string
-  hue: [number, number]
+  hue: [number, number] | readonly number[]
   seed: string
   label: string
   className?: string
 }
 
+const DEFAULT_HUE_START = 200
+const DEFAULT_HUE_END = 240
+
 export function ProductImage({ emoji, hue, seed, label, className }: ProductImageProps) {
   const id = useId()
   const rnd = hashString(seed)
 
-  const hueA = hue[0] + (rnd % 20)
-  const hueB = hue[1] - (rnd % 16)
+  const startHue = Number.isFinite(hue[0]) ? hue[0] : DEFAULT_HUE_START
+  const endHue = Number.isFinite(hue[1]) ? hue[1] : DEFAULT_HUE_END
+  const hueA = startHue + (rnd % 20)
+  const hueB = endHue - (rnd % 16)
 
   const blob1 = { cx: 30 + (rnd % 40), cy: 20 + (rnd % 30), r: 45 + (rnd % 25) }
   const blob2 = { cx: 60 + (rnd % 30), cy: 70 + (rnd % 20), r: 40 + (rnd % 30) }

@@ -10,7 +10,8 @@ public record OrderProperties(
         Duration paymentTtl,
         Duration idempotencyTtl,
         Outbox outbox,
-        Reconciliation reconciliation) {
+        Reconciliation reconciliation,
+        Cod cod) {
 
     public record GrpcServer(String host, int port, Duration shutdownGrace) {
     }
@@ -30,5 +31,8 @@ public record OrderProperties(
     }
 
     public record Reconciliation(long intervalMs, Duration pendingStockTimeout) {
+    }
+
+    public record Cod(Duration autoConfirmDelay, long autoConfirmIntervalMs) {
     }
 }

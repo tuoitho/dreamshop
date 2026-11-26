@@ -95,6 +95,11 @@ func TestDevelopmentKongConsolidatesTwoServicesWithStripPathFalseAndPreservesCOR
 			paths:     []string{"/api/v1/admin/inventory"},
 			protected: true,
 		},
+		"admin-orders-api": {
+			service:   "bff-service",
+			paths:     []string{"/api/v1/admin/orders"},
+			protected: true,
+		},
 	}
 
 	seenRoutes := make(map[string]bool)

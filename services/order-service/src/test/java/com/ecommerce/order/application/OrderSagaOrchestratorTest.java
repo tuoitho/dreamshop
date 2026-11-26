@@ -1,5 +1,6 @@
 package com.ecommerce.order.application;
 
+import static com.ecommerce.order.support.StatusHistoryQueries.historyOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -8,6 +9,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.ecommerce.contracts.catalog.v1.GetProductResponse;
@@ -28,6 +30,8 @@ import com.ecommerce.order.persistence.OrderEntity;
 import com.ecommerce.order.persistence.OrderRepository;
 import com.ecommerce.order.support.PostgresRabbitIntegrationTestSupport;
 import io.grpc.Status;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,6 +49,9 @@ class OrderSagaOrchestratorTest extends PostgresRabbitIntegrationTestSupport {
 
     @Autowired
     OrderRepository orderRepository;
+
+    @Autowired
+    CodAutoConfirmScheduler codAutoConfirmScheduler;
 
     @Autowired
     JdbcTemplate jdbcTemplate;
@@ -66,6 +73,37 @@ class OrderSagaOrchestratorTest extends PostgresRabbitIntegrationTestSupport {
         jdbcTemplate.execute("TRUNCATE TABLE order_items, orders, idempotency_records, outbox_events, processed_events CASCADE");
         reset(authorizationAdapter, catalogAdapter, inventoryAdapter, paymentAdapter);
         when(authorizationAdapter.hasPermission(any(UUID.class), eq("order.create"))).thenReturn(true);
+    }
+
+    @Test
+    void duplicateSkuIdRejectsBeforeDownstreamCallsAndDatabaseWrites() {
+        UUID userId = UUID.randomUUID();
+        CreateOrderRequest req = buildRequest(userId, "idem-dup-sku", "COD", "p-dup", "p-dup-v1", "Phone", "Black", 200_000L, 1L)
+                .toBuilder()
+                .addItems(OrderItem.newBuilder()
+                        .setCartItemId("ci-p-dup-v1-2")
+                        .setProductId("p-dup")
+                        .setSkuId(" p-dup-v1 ")
+                        .setQuantity(2)
+                        .setExpectedName("Phone")
+                        .setVariantLabel("Black")
+                        .setExpectedProductVersion(1L)
+                        .setUnitPrice(Money.newBuilder().setCurrency("VND").setAmountMinor(200_000L).build())
+                        .build())
+                .build();
+
+        assertThatThrownBy(() -> orchestrator.createOrder(req))
+                .isInstanceOf(DomainException.class)
+                .satisfies(ex -> {
+                    DomainException de = (DomainException) ex;
+                    assertThat(de.grpcCode()).isEqualTo(Status.Code.INVALID_ARGUMENT);
+                    assertThat(de.reason()).isEqualTo("INVALID_PARAMETER");
+                    assertThat(de.getMessage()).contains("p-dup-v1");
+                });
+
+        verifyNoInteractions(authorizationAdapter, catalogAdapter, inventoryAdapter, paymentAdapter);
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM orders", Integer.class)).isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM idempotency_records", Integer.class)).isZero();
     }
 
     @Test
@@ -91,7 +129,7 @@ class OrderSagaOrchestratorTest extends PostgresRabbitIntegrationTestSupport {
     }
 
     @Test
-    void codHappyPathConfirmsOrderComputesShippingAndNeverHoldsDbTransactionDuringGrpc() {
+    void codHappyPathWaitsForConfirmationAndPublishesOrderPlaced() {
         UUID userId = UUID.randomUUID();
         when(catalogAdapter.getProduct("p-cod")).thenReturn(Optional.of(sampleCatalogProduct("p-cod", "p-cod-v1", "Headset", "White", 200_000L, 1L, false)));
         doAnswer(inv -> {
@@ -100,18 +138,44 @@ class OrderSagaOrchestratorTest extends PostgresRabbitIntegrationTestSupport {
         }).when(inventoryAdapter).reserveStock(any(UUID.class), any(), any());
 
         CreateOrderRequest req = buildRequest(userId, "idem-cod-1", "COD", "p-cod", "p-cod-v1", "Headset", "White", 200_000L, 1L);
+        Instant before = Instant.now();
         CreateOrderResponse resp = orchestrator.createOrder(req);
 
-        assertThat(resp.getStatus()).isEqualTo("CONFIRMED");
+        assertThat(resp.getStatus()).isEqualTo("PENDING_CONFIRMATION");
+        assertThat(resp.getOrder().getPaymentStatus()).isEqualTo("UNPAID");
         assertThat(resp.getOrder().getSubtotal().getAmountMinor()).isEqualTo(200_000L);
         assertThat(resp.getOrder().getShippingFee().getAmountMinor()).isEqualTo(25_000L);
         assertThat(resp.getOrder().getTotalAmount().getAmountMinor()).isEqualTo(225_000L);
+        assertThat(Instant.parse(resp.getOrder().getAutoConfirmAt()))
+                .isBetween(before.plusSeconds(55), Instant.now().plusSeconds(65));
 
-        Integer outboxCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM outbox_events WHERE aggregate_id = ? AND routing_key = 'order.confirmed'",
-                Integer.class,
+        List<String> routingKeys = jdbcTemplate.queryForList(
+                "SELECT routing_key FROM outbox_events WHERE aggregate_id = ?",
+                String.class,
                 resp.getOrderId());
-        assertThat(outboxCount).isEqualTo(1);
+        assertThat(routingKeys).containsExactly("order.placed");
+        assertThat(historyOf(jdbcTemplate, UUID.fromString(resp.getOrderId())))
+                .containsExactly("->PENDING_STOCK:CUSTOMER", "PENDING_STOCK>PENDING_CONFIRMATION:SYSTEM");
+    }
+
+    @Test
+    void codReplayAfterAutoConfirmReturnsOriginalResponse() {
+        UUID userId = UUID.randomUUID();
+        when(catalogAdapter.getProduct("p-cod")).thenReturn(Optional.of(sampleCatalogProduct("p-cod", "p-cod-v1", "Headset", "White", 200_000L, 1L, false)));
+        CreateOrderRequest req = buildRequest(userId, "idem-cod-replay", "COD", "p-cod", "p-cod-v1", "Headset", "White", 200_000L, 1L);
+
+        CreateOrderResponse first = orchestrator.createOrder(req);
+        jdbcTemplate.update("UPDATE orders SET auto_confirm_at = ? WHERE id = ?::uuid",
+                Timestamp.from(Instant.now().minusSeconds(5)), first.getOrderId());
+        codAutoConfirmScheduler.confirmDueOrders();
+        assertThat(orderRepository.findById(UUID.fromString(first.getOrderId())).orElseThrow().getStatus())
+                .isEqualTo(OrderStatus.CONFIRMED);
+
+        CreateOrderResponse replay = orchestrator.createOrder(req);
+
+        assertThat(replay.getOrderId()).isEqualTo(first.getOrderId());
+        assertThat(replay.getStatus()).isEqualTo("PENDING_CONFIRMATION");
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM orders", Integer.class)).isEqualTo(1);
     }
 
     @Test
@@ -131,6 +195,13 @@ class OrderSagaOrchestratorTest extends PostgresRabbitIntegrationTestSupport {
 
         Integer compOutbox1 = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM outbox_events", Integer.class);
         assertThat(compOutbox1).isZero();
+        UUID insufficientOrderId = orderRepository.findAll().stream()
+                .filter(o -> "idem-inv-insuff".equals(o.getIdempotencyKey()))
+                .findFirst()
+                .orElseThrow()
+                .getId();
+        assertThat(historyOf(jdbcTemplate, insufficientOrderId))
+                .containsExactly("->PENDING_STOCK:CUSTOMER", "PENDING_STOCK>CANCELLED:SYSTEM");
 
         reset(inventoryAdapter);
         doAnswer(inv -> {
@@ -161,8 +232,25 @@ class OrderSagaOrchestratorTest extends PostgresRabbitIntegrationTestSupport {
                 buildRequest(userId, "idem-momo-ok", "MOMO", "p-momo", "p-momo-v1", "Laptop", "Silver", 500_000L, 1L));
         assertThat(momoOk.getStatus()).isEqualTo("PENDING_PAYMENT");
         assertThat(momoOk.getPayUrl()).isEqualTo("https://momo.test/pay/ok-1");
+        assertThat(historyOf(jdbcTemplate, UUID.fromString(momoOk.getOrderId())))
+                .containsExactly("->PENDING_STOCK:CUSTOMER", "PENDING_STOCK>PENDING_PAYMENT:SYSTEM");
+        List<String> momoOkRoutingKeys = jdbcTemplate.queryForList(
+                "SELECT routing_key FROM outbox_events WHERE aggregate_id = ?",
+                String.class,
+                momoOk.getOrderId());
+        assertThat(momoOkRoutingKeys).containsExactly("order.placed");
+        String momoOkPayload = jdbcTemplate.queryForObject(
+                "SELECT payload::text FROM outbox_events WHERE aggregate_id = ? AND routing_key = 'order.placed'",
+                String.class,
+                momoOk.getOrderId());
+        assertThat(momoOkPayload)
+                .contains("\"OrderPlaced\"")
+                .contains(momoOk.getOrderId())
+                .contains(userId.toString())
+                .contains("ci-p-momo-v1")
+                .contains("p-momo-v1");
 
-        // Timeout on CreatePaymentSession emits BOTH release stock and cancel payment
+        // Timeout on CreatePaymentSession emits BOTH release stock and cancel payment, and never OrderPlaced
         reset(paymentAdapter);
         when(paymentAdapter.createPaymentSession(any(UUID.class), anyString(), eq(userId), anyLong(), any()))
                 .thenThrow(new DomainException(Status.Code.UNAVAILABLE, "PAYMENT_GATEWAY_UNAVAILABLE", "MoMo timeout"));
@@ -173,10 +261,17 @@ class OrderSagaOrchestratorTest extends PostgresRabbitIntegrationTestSupport {
                 .extracting(e -> ((DomainException) e).reason())
                 .isEqualTo("PAYMENT_GATEWAY_UNAVAILABLE");
 
-        List<String> routingKeys = jdbcTemplate.queryForList(
-                "SELECT routing_key FROM outbox_events ORDER BY routing_key ASC",
-                String.class);
-        assertThat(routingKeys).contains("order.payment.cancel_requested", "order.reservation.release_requested");
+        UUID timeoutOrderId = orderRepository.findAll().stream()
+                .filter(o -> "idem-momo-timeout".equals(o.getIdempotencyKey()))
+                .findFirst()
+                .orElseThrow()
+                .getId();
+        List<String> timeoutRoutingKeys = jdbcTemplate.queryForList(
+                "SELECT routing_key FROM outbox_events WHERE aggregate_id = ? ORDER BY routing_key ASC",
+                String.class,
+                timeoutOrderId.toString());
+        assertThat(timeoutRoutingKeys)
+                .containsExactly("order.payment.cancel_requested", "order.reservation.release_requested");
 
         // Mid-flight cancel guard: if order becomes CANCELLED while CreatePaymentSession is in flight, payUrl is NOT saved or returned
         reset(paymentAdapter);
@@ -198,6 +293,11 @@ class OrderSagaOrchestratorTest extends PostgresRabbitIntegrationTestSupport {
         assertThat(midOrder.getStatus()).isEqualTo(OrderStatus.CANCELLED);
         assertThat(midOrder.getPayUrl()).isEmpty();
         assertThat(midOrder.getPaymentStatus()).isNotEqualTo(PaymentStatus.PAID);
+        List<String> midCancelRoutingKeys = jdbcTemplate.queryForList(
+                "SELECT routing_key FROM outbox_events WHERE aggregate_id = ? ORDER BY routing_key ASC",
+                String.class,
+                midOrder.getId().toString());
+        assertThat(midCancelRoutingKeys).containsExactly("order.payment.cancel_requested");
     }
 
     private static GetProductResponse sampleCatalogProduct(

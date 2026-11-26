@@ -207,7 +207,11 @@ describe("FavoritesProvider", () => {
       </AuthContext>
     )
 
-    await waitFor(() => expect(screen.getByTestId("error")).toHaveTextContent("Favorites service is unavailable."))
+    await waitFor(() =>
+      expect(screen.getByTestId("error")).toHaveTextContent(
+        "Dịch vụ yêu thích tạm thời gián đoạn. Vui lòng thử lại sau."
+      )
+    )
 
     act(() => {
       screen.getByRole("button", { name: "retry" }).click()

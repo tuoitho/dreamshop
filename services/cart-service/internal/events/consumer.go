@@ -19,6 +19,7 @@ const (
 	DeadLetterExchangeName   = "ecommerce.events.dlx"
 	DefaultQueueName         = "cart.order-events"
 	RoutingKeyOrderConfirmed = "order.confirmed"
+	RoutingKeyOrderPlaced    = "order.placed"
 	maxDeliveryAttempts      = 5
 )
 
@@ -26,7 +27,8 @@ const (
 // directly to the dead-letter queue.
 var ErrPermanentMessage = errors.New("permanent cart event payload error")
 
-// CartCleanupHandler removes ordered items from a user's cart idempotently.
+// CartCleanupHandler removes ordered items from a user's cart idempotently; a
+// repeated cleanup key is a no-op.
 type CartCleanupHandler interface {
 	RemoveOrderedItems(ctx context.Context, eventID, userID string, items []domain.OrderedItemRef) error
 }
@@ -97,13 +99,18 @@ func NewConsumer(rabbitURL string, handler CartCleanupHandler, opts ...ConsumerO
 	return c, nil
 }
 
-// DispatchMessage decodes an OrderConfirmed envelope and triggers cart cleanup.
+// DispatchMessage decodes an OrderPlaced or OrderConfirmed envelope and triggers
+// cart cleanup. Both events carry the ordered items; cleanup is idempotent per
+// event, so receiving both for one order is harmless.
 func DispatchMessage(ctx context.Context, handler CartCleanupHandler, routingKey string, body []byte) error {
 	var env eventEnvelope
 	if err := json.Unmarshal(body, &env); err != nil {
 		return fmt.Errorf("%w: decode envelope: %v", ErrPermanentMessage, err)
 	}
-	if routingKey != RoutingKeyOrderConfirmed && env.EventType != "OrderConfirmed" {
+	switch {
+	case routingKey == RoutingKeyOrderConfirmed || env.EventType == "OrderConfirmed":
+	case routingKey == RoutingKeyOrderPlaced || env.EventType == "OrderPlaced":
+	default:
 		return nil
 	}
 
@@ -111,6 +118,13 @@ func DispatchMessage(ctx context.Context, handler CartCleanupHandler, routingKey
 	userID := strings.TrimSpace(env.Data.UserID)
 	if eventID == "" || userID == "" {
 		return fmt.Errorf("%w: missing eventId or userId", ErrPermanentMessage)
+	}
+	// Placed orders emit OrderPlaced and later OrderConfirmed with the same items.
+	// Keying cleanup by order makes the second event a no-op, so it cannot remove
+	// a line for the same SKU that the customer added back in between.
+	cleanupKey := eventID
+	if orderID := strings.TrimSpace(env.Data.OrderID); orderID != "" {
+		cleanupKey = "order-cleanup:" + orderID
 	}
 
 	refs := make([]domain.OrderedItemRef, 0, len(env.Data.Items))
@@ -121,7 +135,7 @@ func DispatchMessage(ctx context.Context, handler CartCleanupHandler, routingKey
 			SkuID:      strings.TrimSpace(it.SkuID),
 		})
 	}
-	return handler.RemoveOrderedItems(ctx, eventID, userID, refs)
+	return handler.RemoveOrderedItems(ctx, cleanupKey, userID, refs)
 }
 
 // Run maintains the AMQP consumer session until ctx is cancelled.
@@ -276,8 +290,10 @@ func declareTopology(ch *amqp.Channel, queueName string) error {
 	if _, err := ch.QueueDeclare(queueName, true, false, false, false, args); err != nil {
 		return fmt.Errorf("declare queue %q: %w", queueName, err)
 	}
-	if err := ch.QueueBind(queueName, RoutingKeyOrderConfirmed, ExchangeName, false, nil); err != nil {
-		return fmt.Errorf("bind queue %q to %q: %w", queueName, RoutingKeyOrderConfirmed, err)
+	for _, key := range []string{RoutingKeyOrderConfirmed, RoutingKeyOrderPlaced} {
+		if err := ch.QueueBind(queueName, key, ExchangeName, false, nil); err != nil {
+			return fmt.Errorf("bind queue %q to %q: %w", queueName, key, err)
+		}
 	}
 	return nil
 }

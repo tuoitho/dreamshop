@@ -1,0 +1,288 @@
+### ==============================================================================
+### HTTP REST CLIENT: KIỂM THỬ THỦ CÔNG LUỒNG ĐẶT HÀNG HYBRID (ORDER CHECKOUT SAGA)
+### Dùng được cho: VS Code REST Client extension, IntelliJ IDEA HTTP Client, hoặc cURL
+### ==============================================================================
+
+@baseUrl = http://localhost:8000/api/v1
+@adminEmail = admin@example.com
+@adminPassword = AdminPassword123!
+@customerEmail = customer1@gmail.com
+@customerPassword = 123456123456
+
+### ------------------------------------------------------------------------------
+### 1. ĐĂNG KÝ TÀI KHOẢN KHÁCH HÀNG (Nếu chưa có)
+### ------------------------------------------------------------------------------
+# @name registerCustomer
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{customerEmail}}",
+  "password": "{{customerPassword}}",
+  "fullName": "Khách Hàng Test Hybrid"
+}
+
+### ------------------------------------------------------------------------------
+### 2. ĐĂNG NHẬP KHÁCH HÀNG (Lấy Bearer Token)
+### ------------------------------------------------------------------------------
+# @name customerLogin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{customerEmail}}",
+  "password": "{{customerPassword}}"
+}
+
+### Lưu biến token tự động cho REST Client
+@customerToken = {{customerLogin.response.body.data.accessToken}}
+
+### ------------------------------------------------------------------------------
+### 3. ĐĂNG NHẬP ADMIN (Để kiểm tra / khởi tạo sản phẩm mẫu và kho)
+### ------------------------------------------------------------------------------
+# @name adminLogin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+@adminToken = {{adminLogin.response.body.data.accessToken}}
+
+### ------------------------------------------------------------------------------
+### 4. XEM DANH SÁCH SẢN PHẨM HIỆN CÓ TRÊN GIAN HÀNG (Lấy productId & skuId)
+### ------------------------------------------------------------------------------
+# @name getProducts
+GET {{baseUrl}}/storefront/products?page=1&pageSize=10
+Content-Type: application/json
+
+### ------------------------------------------------------------------------------
+### 5. (TÙY CHỌN ADMIN) TẠO MỘT SẢN PHẨM TEST KÈM SKU
+### ------------------------------------------------------------------------------
+# @name createProduct
+POST {{baseUrl}}/admin/products
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Tai nghe Gaming Pro X1",
+  "shortDescription": "Sản phẩm test luồng đặt hàng Hybrid",
+  "description": "Tai nghe Gaming Pro X1 chất lượng cao dùng cho test Saga",
+  "brand": "DreamShop",
+  "categoryId": "tai-nghe",
+  "categoryName": "Tai nghe",
+  "emoji": "🎧",
+  "imageHue": [210, 250],
+  "variants": [
+    {
+      "skuId": "headphone-pro-black",
+      "label": "Đen Huyền Bí",
+      "colorHex": "#000000",
+      "price": 500000,
+      "originalPrice": 600000
+    }
+  ]
+}
+
+@testProductId = {{createProduct.response.body.data.id}}
+
+### ------------------------------------------------------------------------------
+### 6. (TÙY CHỌN ADMIN) NẠP TỒN KHO CHO SKU
+### ------------------------------------------------------------------------------
+# @name setStock
+PUT {{baseUrl}}/admin/inventory/skus/headphone-pro-black
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "productId": "{{testProductId}}",
+  "quantity": 100
+}
+
+### ------------------------------------------------------------------------------
+### 7. TẠO ĐƠN HÀNG COD (THANH TOÁN KHI NHẬN HÀNG) - LUỒNG HYBRID (TRẢ 201 CREATED)
+### ------------------------------------------------------------------------------
+# @name createOrderCod
+POST {{baseUrl}}/orders
+Authorization: Bearer {{customerToken}}
+Idempotency-Key: idem-hybrid-cod-001s
+Content-Type: application/json
+
+{
+  "paymentMethod": "COD",
+  "note": "Giao hàng vào giờ hành chính, gọi trước 15 phút",
+  "shippingAddress": {
+    "recipientName": "Khách Hàng Test",
+    "phone": "0912345678",
+    "provinceCode": "01",
+    "provinceName": "Thành phố Hà Nội",
+    "wardCode": "00001",
+    "wardName": "Phường Phúc Xá",
+    "addressLine": "Số 10 Tràng Tiền",
+    "label": "Văn phòng"
+  },
+  "items": [
+    {
+      "productId": "{{testProductId}}",
+      "skuId": "headphone-pro-blacks",
+      "quantity": 1,
+      "unitPrice": 500000,
+      "expectedName": "Tai nghe Gaming Pro X1",
+      "brand": "DreamShop",
+      "categoryName": "Tai nghe",
+      "variantLabel": "Đen Huyền Bí",
+      "imageUrl": "",
+      "imageEmoji": "🎧",
+      "expectedProductVersion": 1
+    }
+  ]
+}
+
+# @orderIdCod = {{createOrderCod.response.body.data.order.orderId}}
+
+### ------------------------------------------------------------------------------
+### 8. TEST LŨY ĐẲNG (IDEMPOTENCY REPLAY): Gửi lại y hệt request trên cùng Key
+### Kết quả mong đợi: Trả lại đúng đơn hàng cũ 201 Created (không tạo thêm đơn)
+### ------------------------------------------------------------------------------
+POST {{baseUrl}}/orders
+Authorization: Bearer {{customerToken}}
+Idempotency-Key: idem-hybrid-cod-001
+Content-Type: application/json
+
+{
+  "paymentMethod": "COD",
+  "note": "Giao hàng vào giờ hành chính, gọi trước 15 phút",
+  "shippingAddress": {
+    "recipientName": "Khách Hàng Test",
+    "phone": "0912345678",
+    "provinceCode": "01",
+    "provinceName": "Thành phố Hà Nội",
+    "wardCode": "00001",
+    "wardName": "Phường Phúc Xá",
+    "addressLine": "Số 10 Tràng Tiền",
+    "label": "Văn phòng"
+  },
+  "items": [
+    {
+      "productId": "{{testProductId}}",
+      "skuId": "headphone-pro-black",
+      "quantity": 1,
+      "unitPrice": 500000,
+      "expectedName": "Tai nghe Gaming Pro X1",
+      "brand": "DreamShop",
+      "categoryName": "Tai nghe",
+      "variantLabel": "Đen Huyền Bí",
+      "imageUrl": "",
+      "imageEmoji": "🎧",
+      "expectedProductVersion": 1
+    }
+  ]
+}
+
+### ------------------------------------------------------------------------------
+### 9. TEST BẢO VỆ IDEMPOTENCY: Dùng lại key cũ nhưng sửa số lượng/payload
+### Kết quả mong đợi: 409 Conflict với code "IDEMPOTENCY_KEY_REUSED"
+### ------------------------------------------------------------------------------
+POST {{baseUrl}}/orders
+Authorization: Bearer {{customerToken}}
+Idempotency-Key: idem-hybrid-cod-001
+Content-Type: application/json
+
+{
+  "paymentMethod": "COD",
+  "note": "Đã đổi ý mua 2 cái",
+  "shippingAddress": {
+    "recipientName": "Khách Hàng Test",
+    "phone": "0912345678",
+    "provinceCode": "01",
+    "provinceName": "Thành phố Hà Nội",
+    "wardCode": "00001",
+    "wardName": "Phường Phúc Xá",
+    "addressLine": "Số 10 Tràng Tiền",
+    "label": "Văn phòng"
+  },
+  "items": [
+    {
+      "productId": "{{testProductId}}",
+      "skuId": "headphone-pro-black",
+      "quantity": 2,
+      "unitPrice": 500000,
+      "expectedName": "Tai nghe Gaming Pro X1",
+      "brand": "DreamShop",
+      "categoryName": "Tai nghe",
+      "variantLabel": "Đen Huyền Bí",
+      "imageUrl": "",
+      "imageEmoji": "🎧",
+      "expectedProductVersion": 1
+    }
+  ]
+}
+
+### ------------------------------------------------------------------------------
+### 10. TẠO ĐƠN HÀNG VÍ MOMO (TRẢ 201 CREATED KÈM payUrl)
+### ------------------------------------------------------------------------------
+# @name createOrderMomo
+POST {{baseUrl}}/orders
+Authorization: Bearer {{customerToken}}
+Idempotency-Key: idem-hybrid-momo-001
+Content-Type: application/json
+
+{
+  "paymentMethod": "MOMO",
+  "note": "Thanh toán qua ví MoMo",
+  "shippingAddress": {
+    "recipientName": "Khách Hàng MoMo",
+    "phone": "0912345678",
+    "provinceCode": "01",
+    "provinceName": "Thành phố Hà Nội",
+    "wardCode": "00001",
+    "wardName": "Phường Phúc Xá",
+    "addressLine": "Số 10 Tràng Tiền",
+    "label": "Nhà riêng"
+  },
+  "items": [
+    {
+      "productId": "{{testProductId}}",
+      "skuId": "headphone-pro-black",
+      "quantity": 1,
+      "unitPrice": 500000,
+      "expectedName": "Tai nghe Gaming Pro X1",
+      "brand": "DreamShop",
+      "categoryName": "Tai nghe",
+      "variantLabel": "Đen Huyền Bí",
+      "imageUrl": "",
+      "imageEmoji": "🎧",
+      "expectedProductVersion": 1
+    }
+  ]
+}
+
+@orderIdMomo = {{createOrderMomo.response.body.data.order.orderId}}
+@payUrl = {{createOrderMomo.response.body.data.payUrl}}
+
+### ------------------------------------------------------------------------------
+### 11. XEM CHI TIẾT ĐƠN HÀNG
+### ------------------------------------------------------------------------------
+GET {{baseUrl}}/orders/{{orderIdCod}}
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+### ------------------------------------------------------------------------------
+### 12. DANH SÁCH ĐƠN HÀNG CỦA KHÁCH HÀNG
+### ------------------------------------------------------------------------------
+GET {{baseUrl}}/orders?page=1&pageSize=10
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+### ------------------------------------------------------------------------------
+### 13. HỦY ĐƠN HÀNG ĐANG CHỜ THANH TOÁN (Áp dụng cho đơn MoMo chưa thanh toán)
+### ------------------------------------------------------------------------------
+POST {{baseUrl}}/orders/{{orderIdMomo}}/cancel
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "reason": "Tôi đổi ý không muốn mua nữa"
+}

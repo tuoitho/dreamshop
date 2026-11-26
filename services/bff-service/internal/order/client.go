@@ -33,6 +33,10 @@ type Client interface {
 	GetOrder(ctx context.Context, userID, orderID string) (*orderv1.GetOrderResponse, error)
 	ListOrders(ctx context.Context, userID, statusFilter string, page, pageSize int32) (*orderv1.ListOrdersResponse, error)
 	CancelOrder(ctx context.Context, userID, orderID, reason string) (*orderv1.CancelOrderResponse, error)
+	AdminListOrders(ctx context.Context, userID, statusFilter, query string, page, pageSize int32) (*orderv1.AdminListOrdersResponse, error)
+	AdminGetOrder(ctx context.Context, userID, orderID string) (*orderv1.AdminGetOrderResponse, error)
+	AdminUpdateOrderStatus(ctx context.Context, req *orderv1.AdminUpdateOrderStatusRequest) (*orderv1.AdminUpdateOrderStatusResponse, error)
+	AdminRetryRefund(ctx context.Context, req *orderv1.AdminRetryRefundRequest) (*orderv1.AdminRetryRefundResponse, error)
 }
 
 type client struct {
@@ -94,6 +98,43 @@ func (c *client) CancelOrder(ctx context.Context, userID, orderID, reason string
 		OrderId: orderID,
 		Reason:  reason,
 	})
+	return resp, mapError(err)
+}
+
+func (c *client) AdminListOrders(ctx context.Context, userID, statusFilter, query string, page, pageSize int32) (*orderv1.AdminListOrdersResponse, error) {
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+	resp, err := c.svc.AdminListOrders(ctx, &orderv1.AdminListOrdersRequest{
+		UserId:   userID,
+		Status:   statusFilter,
+		Query:    query,
+		Page:     page,
+		PageSize: pageSize,
+	})
+	return resp, mapError(err)
+}
+
+func (c *client) AdminGetOrder(ctx context.Context, userID, orderID string) (*orderv1.AdminGetOrderResponse, error) {
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+	resp, err := c.svc.AdminGetOrder(ctx, &orderv1.AdminGetOrderRequest{
+		UserId:  userID,
+		OrderId: orderID,
+	})
+	return resp, mapError(err)
+}
+
+func (c *client) AdminUpdateOrderStatus(ctx context.Context, req *orderv1.AdminUpdateOrderStatusRequest) (*orderv1.AdminUpdateOrderStatusResponse, error) {
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+	resp, err := c.svc.AdminUpdateOrderStatus(ctx, req)
+	return resp, mapError(err)
+}
+
+func (c *client) AdminRetryRefund(ctx context.Context, req *orderv1.AdminRetryRefundRequest) (*orderv1.AdminRetryRefundResponse, error) {
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+	resp, err := c.svc.AdminRetryRefund(ctx, req)
 	return resp, mapError(err)
 }
 

@@ -19,11 +19,15 @@ public class RabbitMqConfig {
     public static final String PAYMENT_EVENTS_DLQ = "order.payment-events.dlq";
 
     public static final String RK_ORDER_CONFIRMED = "order.confirmed";
+    public static final String RK_ORDER_PLACED = "order.placed";
+    public static final String RK_STOCK_RESTOCK_REQUESTED = "order.stock.restock_requested";
     public static final String RK_RESERVATION_RELEASE_REQUESTED = "order.reservation.release_requested";
     public static final String RK_PAYMENT_CANCEL_REQUESTED = "order.payment.cancel_requested";
     public static final String RK_PAYMENT_REFUND_REQUESTED = "order.payment.refund_requested";
     public static final String RK_PAYMENT_SUCCEEDED = "payment.succeeded";
     public static final String RK_PAYMENT_FAILED = "payment.failed";
+    public static final String RK_PAYMENT_REFUNDED = "payment.refunded";
+    public static final String RK_PAYMENT_REFUND_FAILED = "payment.refund_failed";
 
     @Bean
     public RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory) {
@@ -78,5 +82,23 @@ public class RabbitMqConfig {
         return BindingBuilder.bind(paymentEventsQueue)
                 .to(eventsExchange)
                 .with(RK_PAYMENT_FAILED);
+    }
+
+    @Bean
+    public Binding paymentRefundedBinding(
+            @Qualifier("paymentEventsQueue") Queue paymentEventsQueue,
+            @Qualifier("eventsExchange") TopicExchange eventsExchange) {
+        return BindingBuilder.bind(paymentEventsQueue)
+                .to(eventsExchange)
+                .with(RK_PAYMENT_REFUNDED);
+    }
+
+    @Bean
+    public Binding paymentRefundFailedBinding(
+            @Qualifier("paymentEventsQueue") Queue paymentEventsQueue,
+            @Qualifier("eventsExchange") TopicExchange eventsExchange) {
+        return BindingBuilder.bind(paymentEventsQueue)
+                .to(eventsExchange)
+                .with(RK_PAYMENT_REFUND_FAILED);
     }
 }

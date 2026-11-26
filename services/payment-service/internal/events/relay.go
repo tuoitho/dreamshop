@@ -17,6 +17,8 @@ const (
 	DLQName                          = "payment.order-events.dlq"
 	RoutingKeyPaymentCancelRequested = "order.payment.cancel_requested"
 	RoutingKeyRefundRequested        = "order.payment.refund_requested"
+	RoutingKeyPaymentRefunded        = "payment.refunded"
+	RoutingKeyPaymentRefundFailed    = "payment.refund_failed"
 	confirmTimeout                   = 3 * time.Second
 	outboxBatchSize                  = 50
 )

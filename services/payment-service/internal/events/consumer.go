@@ -15,7 +15,44 @@ const maxDeliveryAttempts = 5
 
 type CompensationHandler interface {
 	CancelPayment(ctx context.Context, orderID, reason string) (string, error)
-	MarkRefundRequired(ctx context.Context, orderID, reason string) (string, error)
+	RequestRefund(ctx context.Context, orderID, reason string) (bool, error)
+}
+
+type CompensationStore interface {
+	CancelPayment(ctx context.Context, orderID, reason string) (string, error)
+	RequestRefund(ctx context.Context, orderID, reason string, maxAutoAttempts int) (bool, error)
+}
+
+type CompensationAdapter struct {
+	store           CompensationStore
+	maxAutoAttempts int
+	refundNotifier  OutboxNotifier
+}
+
+func NewCompensationAdapter(store CompensationStore, maxAutoAttempts int, refundNotifier OutboxNotifier) *CompensationAdapter {
+	if maxAutoAttempts <= 0 {
+		maxAutoAttempts = 3
+	}
+	return &CompensationAdapter{
+		store:           store,
+		maxAutoAttempts: maxAutoAttempts,
+		refundNotifier:  refundNotifier,
+	}
+}
+
+func (a *CompensationAdapter) CancelPayment(ctx context.Context, orderID, reason string) (string, error) {
+	return a.store.CancelPayment(ctx, orderID, reason)
+}
+
+func (a *CompensationAdapter) RequestRefund(ctx context.Context, orderID, reason string) (bool, error) {
+	queued, err := a.store.RequestRefund(ctx, orderID, reason, a.maxAutoAttempts)
+	if err != nil {
+		return false, err
+	}
+	if queued && a.refundNotifier != nil {
+		a.refundNotifier.Notify()
+	}
+	return queued, nil
 }
 
 type eventEnvelope struct {
@@ -81,7 +118,7 @@ func DispatchMessage(ctx context.Context, handler CompensationHandler, routingKe
 		if reason == "" {
 			reason = "LATE_PAYMENT_ON_CANCELLED_ORDER"
 		}
-		_, err := handler.MarkRefundRequired(ctx, orderID, reason)
+		_, err := handler.RequestRefund(ctx, orderID, reason)
 		return err
 	default:
 		return nil

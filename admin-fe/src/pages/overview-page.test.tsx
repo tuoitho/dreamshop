@@ -166,6 +166,7 @@ describe("OverviewPage", () => {
 
     // Both SKUs of the same productId ("p-sony") appear in watchlist
     expect(await screen.findByText("Đen Khói")).toBeInTheDocument()
+    expect(screen.getByText(/Xin chào, Điều hành viên/i)).toBeInTheDocument()
     expect(screen.getByText("Bạc Platinum")).toBeInTheDocument()
     expect(screen.getByText(/p-sony-v1/)).toBeInTheDocument()
     expect(screen.getByText(/p-sony-v2/)).toBeInTheDocument()
@@ -192,6 +193,7 @@ describe("OverviewPage", () => {
 
   it("skips unauthorized endpoints when operator only holds inventory.view", async () => {
     const productsSpy = vi.spyOn(api, "listAdminProducts")
+    const ordersSpy = vi.spyOn(api, "listAdminOrders")
     const usersSpy = vi.spyOn(api, "listAdminUsers")
     const rbacSpy = vi.spyOn(api, "listRbacItems")
     const inventorySpy = vi.spyOn(api, "listAdminInventory").mockResolvedValue({
@@ -223,6 +225,7 @@ describe("OverviewPage", () => {
     await waitFor(() => expect(inventorySpy).toHaveBeenCalled())
     expect(await screen.findByText("95")).toBeInTheDocument()
     expect(productsSpy).not.toHaveBeenCalled()
+    expect(ordersSpy).not.toHaveBeenCalled()
     expect(usersSpy).not.toHaveBeenCalled()
     expect(rbacSpy).not.toHaveBeenCalled()
   })
@@ -283,8 +286,124 @@ describe("OverviewPage", () => {
       </MemoryRouter>
     )
 
-    expect(await screen.findByText("Authorization service is unavailable.")).toBeInTheDocument()
+    expect(
+      await screen.findByText("Dịch vụ phân quyền tạm thời gián đoạn. Vui lòng thử lại sau.")
+    ).toBeInTheDocument()
     expect(screen.getByText("40")).toBeInTheDocument()
     expect(screen.getByText("120")).toBeInTheDocument()
+  })
+
+  it("renders live order KPI, status distribution breakdown, and recent orders when order.admin.view is granted", async () => {
+    const ordersSpy = vi.spyOn(api, "listAdminOrders").mockResolvedValue({
+      items: [
+        {
+          orderId: "ord-1",
+          orderCode: "DH-2026-001",
+          userId: "u-10",
+          status: "DELIVERED",
+          paymentMethod: "MOMO",
+          paymentStatus: "PAID",
+          shippingAddress: {
+            recipientName: "Trần Quốc Bảo",
+            phone: "0901234567",
+            provinceCode: "79",
+            provinceName: "TP.HCM",
+            wardCode: "26734",
+            wardName: "Phường Bến Nghé",
+            addressLine: "12 Lê Lợi",
+          },
+          items: [],
+          subtotal: 2490000,
+          shippingFee: 0,
+          totalAmount: 2490000,
+          currency: "VND",
+          createdAt: "2026-11-24T09:30:00Z",
+          updatedAt: "2026-11-24T12:00:00Z",
+          statusHistory: [],
+        },
+        {
+          orderId: "ord-2",
+          orderCode: "DH-2026-002",
+          userId: "u-11",
+          status: "PENDING_CONFIRMATION",
+          paymentMethod: "COD",
+          paymentStatus: "UNPAID",
+          shippingAddress: {
+            recipientName: "Lê Minh Thư",
+            phone: "0907654321",
+            provinceCode: "01",
+            provinceName: "Hà Nội",
+            wardCode: "00001",
+            wardName: "Phường Phúc Xá",
+            addressLine: "45 Hàng Bài",
+          },
+          items: [],
+          subtotal: 1250000,
+          shippingFee: 30000,
+          totalAmount: 1280000,
+          currency: "VND",
+          createdAt: "2026-11-25T08:15:00Z",
+          updatedAt: "2026-11-25T08:15:00Z",
+          statusHistory: [],
+        },
+      ],
+      page: 1,
+      pageSize: 5,
+      totalItems: 24,
+      totalPages: 5,
+      statusCounts: {
+        DELIVERED: 12,
+        SHIPPING: 4,
+        PENDING_CONFIRMATION: 5,
+        CANCELLED: 3,
+      },
+    })
+
+    render(
+      <MemoryRouter>
+        <AuthContext.Provider value={makeAuth(["order.admin.view"])}>
+          <OverviewPage />
+        </AuthContext.Provider>
+      </MemoryRouter>
+    )
+
+    await waitFor(() => expect(ordersSpy).toHaveBeenCalledWith({ page: 1, pageSize: 5 }, expect.anything()))
+    expect(await screen.findByText("DH-2026-001")).toBeInTheDocument()
+    expect(screen.getByText("Trần Quốc Bảo")).toBeInTheDocument()
+    expect(screen.getByText("DH-2026-002")).toBeInTheDocument()
+    expect(screen.getByText("Lê Minh Thư")).toBeInTheDocument()
+    expect(screen.getByText("Phân bổ đơn hàng")).toBeInTheDocument()
+    expect(screen.getAllByText("50%").length).toBeGreaterThanOrEqual(2)
+  })
+
+  it("handles zero totals safely without NaN and preserves other cards if listAdminOrders fails with 503", async () => {
+    vi.spyOn(api, "listAdminOrders").mockRejectedValue(
+      new api.ApiClientError(503, "Order service temporarily unavailable.", "ORDER_UNAVAILABLE")
+    )
+    vi.spyOn(api, "listAdminProducts").mockResolvedValue({
+      items: [],
+      page: 1,
+      pageSize: 1,
+      totalItems: 0,
+      totalPages: 0,
+      activeCount: 0,
+      deletedCount: 0,
+      categories: [],
+      stockDegraded: false,
+    })
+
+    render(
+      <MemoryRouter>
+        <AuthContext.Provider value={makeAuth(["product.view", "order.admin.view"])}>
+          <OverviewPage />
+        </AuthContext.Provider>
+      </MemoryRouter>
+    )
+
+    expect(
+      await screen.findByText("Dịch vụ đơn hàng tạm thời gián đoạn. Vui lòng thử lại sau.")
+    ).toBeInTheDocument()
+    expect(screen.getByText("Sản phẩm đang bán")).toBeInTheDocument()
+    expect(screen.queryByText(/NaN/)).not.toBeInTheDocument()
   })
 })

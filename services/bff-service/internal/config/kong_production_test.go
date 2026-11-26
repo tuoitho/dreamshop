@@ -115,6 +115,9 @@ func TestProductionKongConsolidatesServicesWithStripPathFalseAndServesSPA(t *tes
 				"~/api/v1/auth/login$",
 				"~/api/v1/auth/refresh$",
 				"~/api/v1/auth/logout$",
+				"~/api/v1/auth/admin/login$",
+				"~/api/v1/auth/admin/refresh$",
+				"~/api/v1/auth/admin/logout$",
 			},
 			methods:   []string{"POST"},
 			protected: false,
@@ -179,6 +182,12 @@ func TestProductionKongConsolidatesServicesWithStripPathFalseAndServesSPA(t *tes
 			service:   "bff-service",
 			paths:     []string{"/api/v1/admin/inventory"},
 			methods:   []string{"GET", "POST", "PUT", "PATCH"},
+			protected: true,
+		},
+		"admin-orders-api": {
+			service:   "bff-service",
+			paths:     []string{"/api/v1/admin/orders"},
+			methods:   []string{"GET", "POST"},
 			protected: true,
 		},
 		"product-media-storage": {

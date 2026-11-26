@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	paymentv1 "ecommerce.local/contracts/go/payment/v1"
 	"ecommerce.local/payment-service/internal/config"
@@ -51,6 +52,8 @@ func main() {
 		AccessKey:      cfg.MomoAccessKey,
 		SecretKey:      cfg.MomoSecretKey,
 		APIEndpoint:    cfg.MomoAPIEndpoint,
+		RefundEndpoint: cfg.MomoRefundEndpoint,
+		RequestType:    cfg.MomoRequestType,
 		RedirectURL:    cfg.MomoRedirectURL,
 		IPNURL:         cfg.MomoIPNURL,
 		ConnectTimeout: cfg.MomoConnectTimeout,
@@ -59,15 +62,36 @@ func main() {
 	})
 
 	var relay *events.OutboxRelay
+	var outboxNotifier events.OutboxNotifier
 	if cfg.RabbitMQURL != "" {
 		relay = events.NewOutboxRelay(repo, cfg.RabbitMQURL, cfg.OutboxPollInterval)
+		outboxNotifier = relay
 		go func() {
 			if err := relay.Run(ctx); err != nil {
 				log.Printf("payment outbox relay stopped: %v", err)
 			}
 		}()
+	}
 
-		consumer, err := events.NewConsumer(cfg.RabbitMQURL, repo)
+	refundWorker := events.NewRefundWorker(
+		repo,
+		momoClient,
+		outboxNotifier,
+		cfg.RefundPollInterval,
+		cfg.RefundRetryBackoff,
+		cfg.MomoReadTimeout+5*time.Second,
+	)
+	go func() {
+		if err := refundWorker.Run(ctx); err != nil {
+			log.Printf("payment refund worker stopped: %v", err)
+		}
+	}()
+
+	if cfg.RabbitMQURL != "" {
+		consumer, err := events.NewConsumer(
+			cfg.RabbitMQURL,
+			events.NewCompensationAdapter(repo, cfg.RefundMaxAutoAttempts, refundWorker),
+		)
 		if err != nil {
 			log.Fatalf("failed to create payment event consumer: %v", err)
 		}

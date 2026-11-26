@@ -31,7 +31,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useAuth } from "@/hooks/use-auth"
-import { listAdminProducts, toClientError, toggleAdminProductDeleted } from "@/lib/api"
+import { listAdminProducts, toggleAdminProductDeleted } from "@/lib/api"
+import { resolveErrorMessage } from "@/lib/error-messages"
 import { CATEGORY_PRESETS } from "@/lib/categories"
 import { formatCurrencyVnd, formatNumber } from "@/lib/format"
 import type { AdminProductSummary, AdminProductsPage } from "@/lib/types"
@@ -96,7 +97,7 @@ export function ProductsPage() {
         setData(res)
       } catch (error) {
         if (!signal?.aborted) {
-          setErrorMessage(toClientError(error).message)
+          setErrorMessage(resolveErrorMessage(error))
         }
       } finally {
         if (!signal?.aborted) {
@@ -121,7 +122,7 @@ export function ProductsPage() {
         await toggleAdminProductDeleted(row.id, !row.deleted)
         await loadProducts()
       } catch (error) {
-        setErrorMessage(toClientError(error).message)
+        setErrorMessage(resolveErrorMessage(error))
       } finally {
         setMutatingId(null)
       }

@@ -51,7 +51,7 @@ This service does not own:
 - `internal/domain/`: cart and line-item validation rules.
 - `internal/store/`: PostgreSQL migrations (`000001`..`000004`), `sqlc` queries, and persistence
   adapter including idempotent post-order cart cleanup (`processed_events`).
-- `internal/events/`: RabbitMQ consumer (`cart.order-events`) removing ordered cart items on `OrderConfirmed`.
+- `internal/events/`: RabbitMQ consumer (`cart.order-events`) removing ordered cart items on `OrderPlaced` and `OrderConfirmed`, deduplicated once per order.
 - `internal/catalog/`, `internal/inventory/`, `internal/authorization/`:
   outbound gRPC clients.
 - `internal/grpc/`: `CartServiceServer` gRPC handler implementation.

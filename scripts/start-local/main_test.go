@@ -88,7 +88,9 @@ func TestStartLocalIdentityOrderCartBff(t *testing.T) {
 		got.Env["MOMO_ACCESS_KEY"] != "local-access-key" ||
 		got.Env["MOMO_SECRET_KEY"] != "local-secret-key-change-me" ||
 		got.Env["PAYMENT_MOMO_MOCK_ENABLED"] != "true" ||
-		got.Env["MOMO_REDIRECT_URL"] != "http://localhost:8000/api/v1/payments/momo-redirect" {
+		got.Env["MOMO_REDIRECT_URL"] != "http://localhost:8000/api/v1/payments/momo-redirect" ||
+		got.Env["MOMO_REFUND_ENDPOINT"] != "https://test-payment.momo.vn/v2/gateway/api/refund" ||
+		got.Env["PAYMENT_REFUND_MAX_AUTO_ATTEMPTS"] != "3" {
 		t.Fatalf("unexpected payment env: %v", got.Env)
 	}
 

@@ -4,10 +4,13 @@ import com.ecommerce.contracts.common.v1.Money;
 import com.ecommerce.contracts.order.v1.CreateOrderResponse;
 import com.ecommerce.contracts.order.v1.OrderDetail;
 import com.ecommerce.contracts.order.v1.OrderItem;
+import com.ecommerce.contracts.order.v1.OrderStatusChange;
 import com.ecommerce.contracts.order.v1.ShippingAddressSnapshot;
 import com.ecommerce.order.persistence.OrderEntity;
 import com.ecommerce.order.persistence.OrderItemEntity;
+import com.ecommerce.order.persistence.OrderStatusHistoryEntity;
 import java.util.Arrays;
+import java.util.List;
 
 public final class OrderProtoMapper {
 
@@ -41,7 +44,12 @@ public final class OrderProtoMapper {
                 .setCancelReason(nullToEmpty(order.getCancelReason()))
                 .setPaymentExpiresAt(order.getPaymentExpiresAt() != null ? order.getPaymentExpiresAt().toString() : "")
                 .setCreatedAt(order.getCreatedAt() != null ? order.getCreatedAt().toString() : "")
-                .setUpdatedAt(order.getUpdatedAt() != null ? order.getUpdatedAt().toString() : "");
+                .setUpdatedAt(order.getUpdatedAt() != null ? order.getUpdatedAt().toString() : "")
+                .setAutoConfirmAt(order.getAutoConfirmAt() != null ? order.getAutoConfirmAt().toString() : "")
+                .setShippingCarrier(nullToEmpty(order.getShippingCarrier()))
+                .setTrackingNumber(nullToEmpty(order.getTrackingNumber()))
+                .setRefundTransId(nullToEmpty(order.getRefundTransId()))
+                .setRefundedAt(order.getRefundedAt() != null ? order.getRefundedAt().toString() : "");
 
         if (order.getItems() != null) {
             for (OrderItemEntity item : order.getItems()) {
@@ -75,6 +83,38 @@ public final class OrderProtoMapper {
             }
         }
         return builder.build();
+    }
+
+    public static OrderDetail toOrderDetail(OrderEntity order, List<OrderStatusHistoryEntity> history) {
+        OrderDetail.Builder builder = toOrderDetail(order).toBuilder();
+        for (OrderStatusHistoryEntity entry : history) {
+            builder.addStatusHistory(OrderStatusChange.newBuilder()
+                    .setFromStatus(entry.getFromStatus() != null ? entry.getFromStatus().name() : "")
+                    .setToStatus(entry.getToStatus().name())
+                    .setActorType(entry.getActorType().name())
+                    .setReason(nullToEmpty(entry.getReason()))
+                    .setShippingCarrier(nullToEmpty(entry.getShippingCarrier()))
+                    .setTrackingNumber(nullToEmpty(entry.getTrackingNumber()))
+                    .setCreatedAt(entry.getCreatedAt() != null ? entry.getCreatedAt().toString() : "")
+                    .build());
+        }
+        return builder.build();
+    }
+
+    public static OrderDetail toAdminOrderDetail(OrderEntity order) {
+        return withAdminRefundFields(toOrderDetail(order), order);
+    }
+
+    public static OrderDetail toAdminOrderDetail(OrderEntity order, List<OrderStatusHistoryEntity> history) {
+        return withAdminRefundFields(toOrderDetail(order, history), order);
+    }
+
+    private static OrderDetail withAdminRefundFields(OrderDetail base, OrderEntity order) {
+        return base.toBuilder()
+                .setRefundLastError(nullToEmpty(order.getRefundLastError()))
+                .setRefundActorType(nullToEmpty(order.getRefundActorType()))
+                .setRefundReason(nullToEmpty(order.getRefundReason()))
+                .build();
     }
 
     public static CreateOrderResponse toCreateOrderResponse(OrderEntity order) {

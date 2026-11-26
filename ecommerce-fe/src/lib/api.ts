@@ -22,6 +22,7 @@ import type {
   UpdateProfileRequest,
 } from "./types"
 import { clearAccessToken, getAccessToken, getSessionEpoch, runSingleFlightRefresh, setAccessToken } from "./auth-session"
+import { resolveErrorMessage } from "./error-messages"
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1"
 
@@ -145,8 +146,12 @@ http.interceptors.response.use((response) => {
         typeof (error.response.data as { code?: unknown }).code === "string"
           ? (error.response.data as { code: string }).code
           : undefined
-      if (errorCode !== "REQUEST_IN_PROGRESS" && errorCode !== "PRODUCT_SNAPSHOT_MISMATCH") {
-        toast.error(responseMessage(error.response?.data) ?? error.message)
+      if (
+        errorCode !== "REQUEST_IN_PROGRESS" &&
+        errorCode !== "PRODUCT_SNAPSHOT_MISMATCH" &&
+        errorCode !== "INVENTORY_INSUFFICIENT"
+      ) {
+        toast.error(resolveErrorMessage(toClientError(error)))
       }
     }
     return Promise.reject(error)
@@ -171,8 +176,12 @@ http.interceptors.response.use((response) => {
         typeof (error.response.data as { code?: unknown }).code === "string"
           ? (error.response.data as { code: string }).code
           : undefined
-      if (errorCode !== "REQUEST_IN_PROGRESS" && errorCode !== "PRODUCT_SNAPSHOT_MISMATCH") {
-        toast.error(responseMessage(error.response?.data) ?? error.message)
+      if (
+        errorCode !== "REQUEST_IN_PROGRESS" &&
+        errorCode !== "PRODUCT_SNAPSHOT_MISMATCH" &&
+        errorCode !== "INVENTORY_INSUFFICIENT"
+      ) {
+        toast.error(resolveErrorMessage(toClientError(error)))
       }
     }
     return Promise.reject(error)
@@ -209,7 +218,7 @@ export function toClientError(error: unknown): ApiClientError {
 
 export function toErrorInfo(error: unknown): { message: string; code?: string } {
   const clientError = toClientError(error)
-  return { message: clientError.message, code: clientError.code }
+  return { message: resolveErrorMessage(clientError), code: clientError.code }
 }
 
 function toStorefrontQuery(params: SearchProductsParams): Record<string, string | number> {

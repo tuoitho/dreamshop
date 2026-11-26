@@ -10,6 +10,9 @@ services:
           - "~/api/v1/auth/login$"
           - "~/api/v1/auth/refresh$"
           - "~/api/v1/auth/logout$"
+          - "~/api/v1/auth/admin/login$"
+          - "~/api/v1/auth/admin/refresh$"
+          - "~/api/v1/auth/admin/logout$"
         methods: ["POST"]
         strip_path: false
         plugins:
@@ -115,6 +118,16 @@ services:
       - name: admin-inventory-api
         paths: ["/api/v1/admin/inventory"]
         methods: ["GET", "POST", "PUT", "PATCH"]
+        strip_path: false
+        plugins:
+          - name: caller-context
+            config:
+              jwks_uri: http://identity-service:8080/.well-known/jwks.json
+              issuer: http://identity-service:8080
+              audience: ecommerce-api
+      - name: admin-orders-api
+        paths: ["/api/v1/admin/orders"]
+        methods: ["GET", "POST"]
         strip_path: false
         plugins:
           - name: caller-context

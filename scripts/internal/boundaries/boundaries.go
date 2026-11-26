@@ -31,6 +31,7 @@ var (
 	frontendImportPattern    = regexp.MustCompile(`(from\s+|import\s*\(\s*|require\s*\(\s*)['"][^'"]*(services/[a-z0-9-]+-service|contracts/(go|java|proto))[^'"]*['"]`)
 	storefrontToAdminPattern = regexp.MustCompile(`(from\s+|import\s*\(\s*|require\s*\(\s*)['"][^'"]*admin-fe/[^'"]*['"]`)
 	adminToStorefrontPattern = regexp.MustCompile(`(from\s+|import\s*\(\s*|require\s*\(\s*)['"][^'"]*ecommerce-fe/[^'"]*['"]`)
+	e2eForbiddenImport       = regexp.MustCompile(`(from\s+|import\s*\(\s*|require\s*\(\s*)['"][^'"]*(services/[a-z0-9-]+-service|contracts/(go|java|proto)|ecommerce-fe/|admin-fe/)[^'"]*['"]`)
 )
 
 // Check scans the repository rooted at root and writes human-readable output to out.
@@ -169,6 +170,11 @@ func Check(root string, out io.Writer) int {
 		return true
 	}, "cross-frontend import")
 
+	e2eFiles := getSourceFiles(filepath.Join(absRoot, "e2e"), []string{".ts", ".tsx", ".js", ".jsx"})
+	addMatches(e2eFiles, e2eForbiddenImport, func(_ []string) bool {
+		return true
+	}, "e2e imports service, contract code, or frontend source")
+
 	if len(violations) > 0 {
 		for _, v := range violations {
 			fmt.Fprintln(out, v)
@@ -177,7 +183,7 @@ func Check(root string, out io.Writer) int {
 		return 1
 	}
 
-	fmt.Fprintf(out, "Boundary check passed for %d services, contracts, ecommerce-fe, and admin-fe.\n", len(services))
+	fmt.Fprintf(out, "Boundary check passed for %d services, contracts, ecommerce-fe, admin-fe, and e2e.\n", len(services))
 	return 0
 }
 

@@ -96,11 +96,22 @@ func runWithDeps(args []string, out io.Writer, goos string, runCmd execFunc) int
 		if goos == "windows" {
 			ensureGitUsrBinInPath()
 		}
+		// The common dir resolves to the main repository's .git from a linked worktree,
+		// where .git is a file that buf cannot read as a repository.
+		gitDirOut, code := runCmd(root, "git", "rev-parse", "--git-common-dir")
+		if code != 0 {
+			fmt.Fprintf(out, "FAILED: git rev-parse (exit %d)\n", code)
+			return code
+		}
+		gitDir := strings.TrimSpace(gitDirOut)
 
 		if c := step("buf format", "buf", "format", "--diff", "--exit-code"); c != 0 {
 			return c
 		}
 		if c := step("buf lint", "buf", "lint"); c != 0 {
+			return c
+		}
+		if c := step("buf breaking against main", "buf", "breaking", "--against", gitDir+"#branch=main"); c != 0 {
 			return c
 		}
 		if c := step("buf generate", "buf", "generate"); c != 0 {
@@ -137,6 +148,14 @@ func runWithDeps(args []string, out io.Writer, goos string, runCmd execFunc) int
 			return c
 		}
 		if c := step("admin frontend build", "npm", "--prefix", "admin-fe", "run", "build"); c != 0 {
+			return c
+		}
+
+	case service == "e2e":
+		if c := step("e2e typecheck", "npm", "--prefix", "e2e", "run", "typecheck"); c != 0 {
+			return c
+		}
+		if c := step("e2e mode2 tests", "npm", "--prefix", "e2e", "run", "test:mode2"); c != 0 {
 			return c
 		}
 
@@ -189,7 +208,7 @@ func listSurfaces(root string) []string {
 		}
 	}
 	sort.Strings(surfaces)
-	return append(surfaces, "ecommerce-fe", "admin-fe", "contracts")
+	return append(surfaces, "ecommerce-fe", "admin-fe", "e2e", "contracts")
 }
 
 func fileExists(path string) bool {

@@ -10,7 +10,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { getAdminProduct, toClientError } from "@/lib/api"
+import { getAdminProduct } from "@/lib/api"
+import { resolveErrorMessage } from "@/lib/error-messages"
 import { formatCurrencyVnd, formatNumber } from "@/lib/format"
 import type { AdminProductDetail } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -57,7 +58,7 @@ export function ProductDetailSheet({
         setDetail(res)
       } catch (error) {
         if (!controller.signal.aborted) {
-          setErrorMessage(toClientError(error).message)
+          setErrorMessage(resolveErrorMessage(error))
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -276,13 +277,7 @@ export function ProductDetailSheet({
                           {detail.variants.map((variant, idx) => (
                             <tr key={variant.skuId ?? `${variant.label}-${idx}`}>
                               <td className="px-3 py-2.5">
-                                <div className="flex items-center gap-1.5 font-medium text-foreground">
-                                  {variant.colorHex && (
-                                    <span
-                                      className="size-2.5 shrink-0 rounded-full border border-black/15"
-                                      style={{ backgroundColor: variant.colorHex }}
-                                    />
-                                  )}
+                                <div className="font-medium text-foreground">
                                   <span>{variant.label}</span>
                                 </div>
                                 {variant.skuId && (

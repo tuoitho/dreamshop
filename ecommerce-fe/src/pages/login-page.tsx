@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/hooks/use-auth"
 import { isCustomerOnlyRoleSet } from "@/lib/auth-session"
+import { resolveErrorMessage } from "@/lib/error-messages"
 
 const DEV_ACCOUNTS = [
   { label: "Customer", email: "customer1@gmail.com", password: "123456123456" },
@@ -53,7 +54,7 @@ export default function LoginPage() {
       await login({ email, password })
       navigate(destination, { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed")
+      setError(resolveErrorMessage(err, { fallback: "Đăng nhập thất bại. Vui lòng thử lại." }))
     } finally {
       setSubmitting(false)
     }

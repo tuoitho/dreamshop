@@ -9,6 +9,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Component
+@RequiredArgsConstructor
 public class OutboxRelayScheduler {
     private static final Logger log = LoggerFactory.getLogger(OutboxRelayScheduler.class);
     private static final int BATCH_SIZE = 50;
@@ -39,15 +41,6 @@ public class OutboxRelayScheduler {
     private final Object drainLock = new Object();
 
     public record ClaimedOutboxRow(UUID id, String eventType, String routingKey, String payload) {
-    }
-
-    public OutboxRelayScheduler(
-            JdbcTemplate jdbcTemplate,
-            TransactionTemplate transactionTemplate,
-            RabbitTemplate rabbitTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.transactionTemplate = transactionTemplate;
-        this.rabbitTemplate = rabbitTemplate;
     }
 
     public void triggerFlush() {
@@ -132,6 +125,11 @@ public class OutboxRelayScheduler {
             CorrelationData.Confirm confirm = cd.getFuture().get(3, TimeUnit.SECONDS);
             if (confirm == null || !confirm.ack()) {
                 throw new IllegalStateException("Broker nacked outbox event " + row.id());
+            }
+            // Published as mandatory: a broker ack still arrives for a message no queue is bound
+            // to, so a returned message must stay pending until its consumer has bound a queue.
+            if (cd.getReturned() != null) {
+                throw new IllegalStateException("No queue bound for routing key " + row.routingKey());
             }
         } else {
             rabbitTemplate.send(RabbitMqConfig.EXCHANGE_NAME, row.routingKey(), message);

@@ -171,9 +171,13 @@ func runWithDeps(args []string, in io.Reader, out, errOut io.Writer, baseEnv []s
 		setDefaultEnv(env, "MOMO_ACCESS_KEY", "local-access-key")
 		setDefaultEnv(env, "MOMO_SECRET_KEY", "local-secret-key-change-me")
 		setDefaultEnv(env, "MOMO_API_ENDPOINT", "https://test-payment.momo.vn/v2/gateway/api/create")
+		setDefaultEnv(env, "MOMO_REFUND_ENDPOINT", "https://test-payment.momo.vn/v2/gateway/api/refund")
 		setDefaultEnv(env, "MOMO_REDIRECT_URL", "http://localhost:8000/api/v1/payments/momo-redirect")
 		setDefaultEnv(env, "MOMO_IPN_URL", "http://localhost:8000/api/v1/payments/momo-ipn")
 		setDefaultEnv(env, "PAYMENT_MOMO_MOCK_ENABLED", "true")
+		setDefaultEnv(env, "PAYMENT_REFUND_MAX_AUTO_ATTEMPTS", "3")
+		setDefaultEnv(env, "PAYMENT_REFUND_POLL_INTERVAL", "2s")
+		setDefaultEnv(env, "PAYMENT_REFUND_RETRY_BACKOFF", "10s")
 
 		return launch(filepath.Join(root, "services", "payment-service"), formatEnv(env), "go", "run", "./cmd/server")
 

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { SearchableSelect } from "@/components/ui/searchable-select"
 import { createShippingAddress } from "@/lib/api"
+import { resolveErrorMessage } from "@/lib/error-messages"
 import { fetchProvinces, fetchWards } from "@/lib/locations"
 import type { LocationOption, ShippingAddress } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -116,7 +117,7 @@ export function ShippingAddressDialog({
       setCreating(false)
       onOpenChange(false)
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Không thể lưu địa chỉ mới.")
+      setFormError(resolveErrorMessage(error, { fallback: "Không thể lưu địa chỉ mới." }))
     } finally {
       setSubmitting(false)
     }

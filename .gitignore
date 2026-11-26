@@ -10,3 +10,9 @@
 harness
 .worktrees/
 .superpowers/
+.claude
+e2e/reports/
+reports/*/imgs/
+**/playwright-report/
+**/test-results/
+**/blob-report/

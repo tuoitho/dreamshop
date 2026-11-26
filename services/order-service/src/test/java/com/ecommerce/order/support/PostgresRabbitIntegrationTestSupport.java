@@ -36,5 +36,6 @@ public abstract class PostgresRabbitIntegrationTestSupport {
         registry.add("order.grpc.shutdown-grace", () -> "2s");
         registry.add("order.outbox.poll-interval-ms", () -> "100");
         registry.add("order.reconciliation.interval-ms", () -> "600000");
+        registry.add("order.cod.auto-confirm-interval-ms", () -> "600000");
     }
 }

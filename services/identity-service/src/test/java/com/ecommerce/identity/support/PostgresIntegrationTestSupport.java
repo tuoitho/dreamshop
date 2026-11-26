@@ -38,6 +38,8 @@ public abstract class PostgresIntegrationTestSupport {
         registry.add("identity.session.refresh-ttl", () -> "30d");
         registry.add("identity.session.cookie-name", () -> "refresh_token");
         registry.add("identity.session.cookie-path", () -> "/api/v1/auth");
+        registry.add("identity.session.admin-cookie-name", () -> "admin_refresh_token");
+        registry.add("identity.session.admin-cookie-path", () -> "/api/v1/auth/admin");
         registry.add("identity.session.cookie-secure", () -> "false");
     }
 }

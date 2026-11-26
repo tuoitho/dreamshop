@@ -13,11 +13,15 @@ import io.grpc.StatusRuntimeException;
 import io.grpc.stub.MetadataUtils;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 @Component
 public class AuthorizationGrpcAdapter {
+    private static final Logger log = LoggerFactory.getLogger(AuthorizationGrpcAdapter.class);
+
     private final AuthorizationServiceGrpc.AuthorizationServiceBlockingStub stub;
     private final OrderProperties properties;
 
@@ -40,6 +44,13 @@ public class AuthorizationGrpcAdapter {
                             .build())
                     .getAllowed();
         } catch (StatusRuntimeException ex) {
+            log.warn(
+                    "Downstream identity checkPermission failed userId={} permission={} grpcStatus={} traceId={} description={}",
+                    userId,
+                    permission,
+                    ex.getStatus().getCode(),
+                    TraceIdProvider.current(),
+                    ex.getStatus().getDescription());
             throw new DomainException(
                     Status.Code.UNAVAILABLE,
                     "AUTHORIZATION_UNAVAILABLE",

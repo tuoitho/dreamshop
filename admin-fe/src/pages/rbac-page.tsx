@@ -44,9 +44,9 @@ import {
   deleteRbacItem,
   listRbacItems,
   removeRbacChild,
-  toClientError,
   updateRbacItem,
 } from "@/lib/api"
+import { resolveErrorMessage } from "@/lib/error-messages"
 import { formatDateTime } from "@/lib/format"
 import type { RbacItem, RbacItemType } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -121,7 +121,7 @@ export function RbacPage() {
       })
     } catch (error) {
       if (!signal?.aborted) {
-        setErrorMessage(toClientError(error).message)
+        setErrorMessage(resolveErrorMessage(error))
       }
     } finally {
       if (!signal?.aborted) {
@@ -228,7 +228,7 @@ export function RbacPage() {
       void refreshPermissions()
       setEditorOpen(false)
     } catch (error) {
-      setFormError(toClientError(error).message)
+      setFormError(resolveErrorMessage(error))
     } finally {
       setBusyMutation(false)
     }
@@ -246,7 +246,7 @@ export function RbacPage() {
       await loadRbac()
       void refreshPermissions()
     } catch (error) {
-      setErrorMessage(toClientError(error).message)
+      setErrorMessage(resolveErrorMessage(error))
     } finally {
       setBusyMutation(false)
     }
@@ -262,7 +262,7 @@ export function RbacPage() {
       await loadRbac()
       void refreshPermissions()
     } catch (error) {
-      setErrorMessage(toClientError(error).message)
+      setErrorMessage(resolveErrorMessage(error))
     } finally {
       setBusyMutation(false)
     }
@@ -277,7 +277,7 @@ export function RbacPage() {
       await loadRbac()
       void refreshPermissions()
     } catch (error) {
-      setErrorMessage(toClientError(error).message)
+      setErrorMessage(resolveErrorMessage(error))
     } finally {
       setBusyMutation(false)
     }

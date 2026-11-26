@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import * as api from "@/lib/api"
@@ -92,5 +92,39 @@ describe("OrdersPage", () => {
     await waitFor(() => {
       expect(api.cancelOrder).toHaveBeenCalledWith("ord-pending-1")
     })
+  })
+
+  it("shows fulfillment status tabs and labels and filters by pending confirmation", async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.listOrders).mockResolvedValue({
+      items: [{ ...PENDING_ORDER, status: "DELIVERED", paymentMethod: "COD", paymentStatus: "PAID", payUrl: undefined }],
+      page: 1,
+      pageSize: 10,
+      totalItems: 1,
+      totalPages: 1,
+    })
+
+    render(
+      <MemoryRouter initialEntries={["/don-hang"]}>
+        <Routes>
+          <Route path="/don-hang" element={<OrdersPage />} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    const article = await screen.findByRole("article")
+    expect(within(article).getByText("Đã giao")).toBeInTheDocument()
+    expect(within(article).queryByRole("button", { name: /Hủy đơn/i })).not.toBeInTheDocument()
+    for (const label of ["Chờ xác nhận", "Đang chuẩn bị", "Đang giao", "Đã giao", "Giao thất bại"]) {
+      expect(screen.getByRole("button", { name: label })).toBeInTheDocument()
+    }
+
+    await user.click(screen.getByRole("button", { name: "Chờ xác nhận" }))
+    await waitFor(() =>
+      expect(api.listOrders).toHaveBeenLastCalledWith(
+        { page: 1, pageSize: 10, status: "PENDING_CONFIRMATION" },
+        expect.anything()
+      )
+    )
   })
 })

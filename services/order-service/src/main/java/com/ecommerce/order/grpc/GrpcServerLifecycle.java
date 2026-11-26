@@ -9,25 +9,18 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class GrpcServerLifecycle implements SmartLifecycle {
     private final OrderProperties properties;
     private final OrderGrpcService orderGrpcService;
     private final GrpcTraceIdInterceptor traceIdInterceptor;
     private volatile Server server;
     private volatile boolean running;
-
-    public GrpcServerLifecycle(
-            OrderProperties properties,
-            OrderGrpcService orderGrpcService,
-            GrpcTraceIdInterceptor traceIdInterceptor) {
-        this.properties = properties;
-        this.orderGrpcService = orderGrpcService;
-        this.traceIdInterceptor = traceIdInterceptor;
-    }
 
     @Override
     public synchronized void start() {

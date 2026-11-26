@@ -1,4 +1,4 @@
-.PHONY: infra-up infra-down infra-logs prod-config prod-up prod-down prod-logs identity order payment catalog inventory cart bff fe admin-fe identity-keys proto lint verify check-boundaries up down help
+.PHONY: infra-up infra-down infra-logs prod-config prod-up prod-down prod-logs identity order payment catalog inventory cart bff fe admin-fe identity-keys proto lint verify e2e-live check-boundaries up down help
 
 PROD_ENV_FILE ?= .env.production
 
@@ -68,6 +68,9 @@ else
 	go run ./scripts/verify-foundation
 endif
 
+e2e-live:
+	npm --prefix e2e run test:mode1
+
 check-boundaries:
 	go run ./scripts/check-boundaries
 
@@ -95,5 +98,6 @@ help:
 	@echo "  make admin-fe          - Start admin-fe locally"
 	@echo "  make identity-keys     - Generate local Identity RSA keys"
 	@echo "  make verify            - Check foundation files, Buf lint, and running Kong routes"
-	@echo "  make verify SERVICE=<name> - Gate one surface: <name>-service, ecommerce-fe, admin-fe, or contracts"
+	@echo "  make verify SERVICE=<name> - Gate one surface: <name>-service, ecommerce-fe, admin-fe, e2e, or contracts"
+	@echo "  make e2e-live          - Run opt-in Mode 1 live Playwright smoke via Kong (:8000)"
 	@echo "  make check-boundaries  - Fail on cross-service imports, dependencies, or database references"

@@ -115,6 +115,39 @@ public class OrderEntity {
     @Builder.Default
     private String cancelReason = "";
 
+    @Column(name = "auto_confirm_at")
+    private Instant autoConfirmAt;
+
+    @Column(name = "shipping_carrier", nullable = false, length = 100)
+    @Builder.Default
+    private String shippingCarrier = "";
+
+    @Column(name = "tracking_number", nullable = false, length = 100)
+    @Builder.Default
+    private String trackingNumber = "";
+
+    @Column(name = "refund_trans_id", nullable = false, length = 64)
+    @Builder.Default
+    private String refundTransId = "";
+
+    @Column(name = "refund_last_error", nullable = false, length = 255)
+    @Builder.Default
+    private String refundLastError = "";
+
+    @Column(name = "refunded_at")
+    private Instant refundedAt;
+
+    @Column(name = "refund_actor_type", nullable = false, length = 16)
+    @Builder.Default
+    private String refundActorType = "";
+
+    @Column(name = "refund_actor_id")
+    private UUID refundActorId;
+
+    @Column(name = "refund_reason", nullable = false, length = 128)
+    @Builder.Default
+    private String refundReason = "";
+
     @Version
     @Column(name = "version", nullable = false)
     private long version;

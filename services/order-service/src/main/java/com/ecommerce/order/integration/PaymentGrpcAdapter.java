@@ -4,6 +4,8 @@ import com.ecommerce.contracts.common.v1.Money;
 import com.ecommerce.contracts.payment.v1.CreatePaymentSessionRequest;
 import com.ecommerce.contracts.payment.v1.CreatePaymentSessionResponse;
 import com.ecommerce.contracts.payment.v1.PaymentServiceGrpc;
+import com.ecommerce.contracts.payment.v1.RetryRefundRequest;
+import com.ecommerce.contracts.payment.v1.RetryRefundResponse;
 import com.ecommerce.order.common.DomainException;
 import com.ecommerce.order.common.GrpcTraceIdInterceptor;
 import com.ecommerce.order.common.TraceIdProvider;
@@ -18,11 +20,15 @@ import io.grpc.stub.MetadataUtils;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 @Component
 public class PaymentGrpcAdapter {
+    private static final Logger log = LoggerFactory.getLogger(PaymentGrpcAdapter.class);
+
     private final PaymentServiceGrpc.PaymentServiceBlockingStub stub;
     private final OrderProperties properties;
 
@@ -72,10 +78,95 @@ public class PaymentGrpcAdapter {
                             "Payment session was already cancelled");
                 }
             }
+            log.warn(
+                    "Downstream payment createPaymentSession failed orderId={} grpcStatus={} traceId={} description={}",
+                    orderId,
+                    ex.getStatus().getCode(),
+                    TraceIdProvider.current(),
+                    ex.getStatus().getDescription());
             throw new DomainException(
                     Status.Code.UNAVAILABLE,
                     "PAYMENT_GATEWAY_UNAVAILABLE",
                     "Payment service is unavailable");
+        }
+    }
+
+    public record RetryRefundOutcome(String paymentStatus, String refundTransId, String message) {
+    }
+
+    public RetryRefundOutcome retryRefund(UUID orderId, String reason) {
+        Metadata headers = new Metadata();
+        headers.put(GrpcTraceIdInterceptor.TRACE_ID_KEY, TraceIdProvider.current());
+        try {
+            RetryRefundResponse response = stub
+                    .withInterceptors(MetadataUtils.newAttachHeadersInterceptor(headers))
+                    .withDeadlineAfter(properties.clients().paymentTimeout().toMillis(), TimeUnit.MILLISECONDS)
+                    .retryRefund(RetryRefundRequest.newBuilder()
+                            .setOrderId(orderId.toString())
+                            .setReason(reason == null ? "" : reason)
+                            .build());
+            return new RetryRefundOutcome(
+                    response.getPaymentStatus(),
+                    response.getRefundTransId(),
+                    response.getMessage());
+        } catch (StatusRuntimeException ex) {
+            ErrorInfo info = InventoryGrpcAdapter.extractErrorInfo(ex);
+            String errorReason = info != null ? info.getReason() : "";
+            String desc = ex.getStatus().getDescription() == null ? "" : ex.getStatus().getDescription().trim();
+            switch (errorReason) {
+                case "PAYMENT_REFUND_NOT_FOUND" -> throw new DomainException(
+                        Status.Code.FAILED_PRECONDITION,
+                        "ORDER_REFUND_NOT_ELIGIBLE",
+                        "Order is not eligible for manual refund");
+                case "REFUND_AUTO_RETRY_IN_PROGRESS" -> throw new DomainException(
+                        Status.Code.FAILED_PRECONDITION,
+                        "REFUND_AUTO_RETRY_IN_PROGRESS",
+                        "Automatic refund retry is still in progress");
+                case "REFUND_IN_PROGRESS" -> throw new DomainException(
+                        Status.Code.ABORTED,
+                        "REFUND_IN_PROGRESS",
+                        "A refund attempt is already in progress");
+                case "PAYMENT_GATEWAY_REJECTED" -> throw new DomainException(
+                        Status.Code.FAILED_PRECONDITION,
+                        "PAYMENT_GATEWAY_REJECTED",
+                        desc.isEmpty() ? "Payment gateway rejected refund" : desc);
+                case "PAYMENT_GATEWAY_UNAVAILABLE" -> {
+                    log.warn(
+                            "Downstream payment retryRefund unavailable orderId={} grpcStatus={} traceId={} description={}",
+                            orderId,
+                            ex.getStatus().getCode(),
+                            TraceIdProvider.current(),
+                            ex.getStatus().getDescription());
+                    throw new DomainException(
+                            Status.Code.UNAVAILABLE,
+                            "PAYMENT_GATEWAY_UNAVAILABLE",
+                            "Payment gateway is temporarily unavailable");
+                }
+                default -> {
+                    if (ex.getStatus().getCode() == Status.Code.INTERNAL) {
+                        log.error(
+                                "Downstream payment retryRefund internal error orderId={} grpcStatus={} traceId={} description={}",
+                                orderId,
+                                ex.getStatus().getCode(),
+                                TraceIdProvider.current(),
+                                ex.getStatus().getDescription());
+                        throw new DomainException(
+                                Status.Code.INTERNAL,
+                                "PAYMENT_INTERNAL_ERROR",
+                                "Payment service encountered an internal error");
+                    }
+                    log.warn(
+                            "Downstream payment retryRefund failed orderId={} grpcStatus={} traceId={} description={}",
+                            orderId,
+                            ex.getStatus().getCode(),
+                            TraceIdProvider.current(),
+                            ex.getStatus().getDescription());
+                    throw new DomainException(
+                            Status.Code.UNAVAILABLE,
+                            "PAYMENT_GATEWAY_UNAVAILABLE",
+                            "Payment service is unavailable");
+                }
+            }
         }
     }
 }

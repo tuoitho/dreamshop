@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { AuthContext } from "@/context/auth-context"
 import { useCart } from "@/hooks/use-cart"
 import { ApiClientError, createOrder, listShippingAddresses } from "@/lib/api"
+import { resolveErrorMessage } from "@/lib/error-messages"
 import { fetchProvinces, fetchWards } from "@/lib/locations"
 import { FREE_SHIPPING_THRESHOLD, STANDARD_SHIPPING_FEE } from "@/lib/shipping"
 import type { CartItem, PaymentMethod, ShippingAddress } from "@/lib/types"
@@ -79,6 +80,10 @@ export default function OrderPreviewPage() {
   const [submitting, setSubmitting] = useState(false)
   const [inProgressRetry, setInProgressRetry] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [insufficientStock, setInsufficientStock] = useState<{
+    message: string
+    skuId: string
+  } | null>(null)
   const [snapshotMismatch, setSnapshotMismatch] = useState<{
     message: string
     details: Record<string, string>
@@ -225,6 +230,25 @@ export default function OrderPreviewPage() {
     activeRecipientName && activePhone && activeProvinceCode && activeWardCode && activeAddressLine
   )
 
+  function findItemBySku(skuId: string) {
+    const item = validSelectedItems.find((entry) => entry.skuId === skuId)
+    if (item) {
+      return { name: item.name, variantLabel: item.variantLabel }
+    }
+    const snap = snapshotMapRef.current.get(skuId)
+    if (snap) {
+      return { name: snap.expectedName, variantLabel: snap.variantLabel }
+    }
+    return undefined
+  }
+
+  function formatSkuLabel(skuId: string): string {
+    const item = findItemBySku(skuId)
+    if (!item?.name.trim()) return skuId
+    const variant = item.variantLabel?.trim()
+    return variant ? `${item.name.trim()} (${variant})` : item.name.trim()
+  }
+
   async function submitOrder() {
     if (snapshotMismatch !== null) {
       return
@@ -277,6 +301,7 @@ export default function OrderPreviewPage() {
     }
 
     try {
+      setInsufficientStock(null)
       const result = await createOrder(payload, idempotencyKeyRef.current)
       setInProgressRetry(false)
       setSubmitting(false)
@@ -307,8 +332,20 @@ export default function OrderPreviewPage() {
       if (clientErr?.code === "PRODUCT_SNAPSHOT_MISMATCH") {
         rotateIdempotencyKey()
         setSnapshotMismatch({
-          message: clientErr.message || "Giá hoặc thông tin sản phẩm vừa thay đổi.",
+          message: resolveErrorMessage(clientErr, {
+            fallback: "Giá hoặc thông tin sản phẩm vừa thay đổi.",
+          }),
           details: clientErr.errors ?? {},
+        })
+        return
+      }
+
+      if (clientErr?.code === "INVENTORY_INSUFFICIENT") {
+        rotateIdempotencyKey()
+        setSubmitError(null)
+        setInsufficientStock({
+          message: resolveErrorMessage(clientErr, { findItemBySku }),
+          skuId: clientErr.errors?.sku_id?.trim() ?? "",
         })
         return
       }
@@ -320,7 +357,11 @@ export default function OrderPreviewPage() {
       }
 
       rotateIdempotencyKey()
-      setSubmitError(clientErr?.message ?? "Không thể tạo đơn hàng lúc này. Vui lòng thử lại.")
+      setSubmitError(
+        resolveErrorMessage(error, {
+          fallback: "Không thể tạo đơn hàng lúc này. Vui lòng thử lại.",
+        })
+      )
     }
   }
 
@@ -336,6 +377,25 @@ export default function OrderPreviewPage() {
         Kiểm tra địa chỉ nhận hàng, phương thức thanh toán và sản phẩm trước khi đặt mua.
       </p>
 
+      {insufficientStock ? (
+        <div
+          role="alert"
+          className="mt-5 rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive"
+        >
+          <div className="flex items-start gap-2.5">
+            <AlertTriangle className="mt-0.5 size-5 shrink-0" />
+            <div className="flex-1 space-y-2">
+              <p className="font-semibold">{insufficientStock.message}</p>
+              <div className="pt-1">
+                <Button size="sm" variant="outline" asChild>
+                  <Link to="/gio-hang">Quay lại giỏ hàng để điều chỉnh</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {snapshotMismatch ? (
         <div
           role="alert"
@@ -349,7 +409,7 @@ export default function OrderPreviewPage() {
                 <ul className="list-disc space-y-1 pl-5 text-xs">
                   {Object.entries(snapshotMismatch.details).map(([skuId, detail]) => (
                     <li key={skuId}>
-                      <span className="font-medium">{skuId}:</span> {detail}
+                      <span className="font-medium">{formatSkuLabel(skuId)}:</span> {detail}
                     </li>
                   ))}
                 </ul>
@@ -436,10 +496,18 @@ export default function OrderPreviewPage() {
               {validSelectedItems.map((item) => {
                 const overStock =
                   item.status === "LIMITED" && item.quantity > item.availableQuantity
+                const isInsufficientSku =
+                  insufficientStock !== null &&
+                  insufficientStock.skuId !== "" &&
+                  insufficientStock.skuId === item.skuId
                 return (
                   <div
                     key={item.itemId}
-                    className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
+                    className={cn(
+                      "flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0",
+                      isInsufficientSku &&
+                        "-mx-2 rounded-xl bg-destructive/5 px-2 ring-1 ring-destructive/30"
+                    )}
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       <PreviewItemThumbnail item={item} />

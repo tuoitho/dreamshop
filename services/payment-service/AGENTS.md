@@ -7,9 +7,9 @@ These instructions apply to `services/payment-service/` in addition to the root
 
 This service owns:
 
-- MoMo v2 payment session creation, `HmacSHA256` request signing, and constant-time callback signature verification (`hmac.Equal`).
-- Payment lifecycle state (`INITIATING`, `PENDING`, `SUCCEEDED`, `FAILED`, `CANCELLED`, `REFUND_REQUIRED`) and cancellation tombstones in `payment_db`.
-- Transactional Outbox publication (`PaymentSucceeded`, `PaymentFailed`) and compensation event consumption (`PaymentCancelRequested`, `RefundRequested`).
+- MoMo v2 payment session creation, full-order refund execution (`POST /v2/gateway/api/refund`), `HmacSHA256` request signing, and constant-time callback signature verification (`hmac.Equal`).
+- Payment lifecycle state (`INITIATING`, `PENDING`, `SUCCEEDED`, `FAILED`, `CANCELLED`, `REFUND_REQUIRED`, `REFUNDED`, `REFUND_FAILED`), `payment_refunds` auto-retry state (`PENDING`, `PROCESSING`, `SUCCEEDED`, `FAILED`), and cancellation tombstones in `payment_db`.
+- Transactional Outbox publication (`PaymentSucceeded`, `PaymentFailed`, `PaymentRefunded`, `PaymentRefundFailed`) and compensation event consumption (`PaymentCancelRequested`, `RefundRequested`).
 
 This service does not own:
 
@@ -30,9 +30,9 @@ This service does not own:
 - `internal/config/`: environment-backed configuration (`HTTP_ADDR`, `GRPC_ADDR`, `DATABASE_URL`, `RABBITMQ_URL`, `OUTBOX_POLL_INTERVAL`, `MOMO_*`, `PAYMENT_MOMO_MOCK_ENABLED`).
 - `internal/domain/`: payment entities, outcomes, and domain error sentinels.
 - `internal/momo/`: MoMo v2 canonical HMAC signer/verifier and bounded HTTP/mock client.
-- `internal/store/`: embedded SQL migrations (`000001_create_payments_and_outbox.up.sql`) and PostgreSQL adapter.
-- `internal/events/`: transactional Outbox relay (`ecommerce.events`) and `payment.order-events` consumer.
-- `internal/grpc/`: `PaymentServiceServer` (`CreatePaymentSession`, `HandleMomoCallback`) handler.
+- `internal/store/`: embedded SQL migrations (`000001_create_payments_and_outbox.up.sql`, `000002_create_payment_refunds.up.sql`) and PostgreSQL adapter.
+- `internal/events/`: transactional Outbox relay (`ecommerce.events`), background `RefundWorker` (up to 3 auto-retry attempts), and `payment.order-events` consumer.
+- `internal/grpc/`: `PaymentServiceServer` (`CreatePaymentSession`, `HandleMomoCallback`, `RetryRefund`) handler.
 - `internal/http/`: `/healthz` readiness/liveness handler.
 
 ## Verification

@@ -235,4 +235,152 @@ public interface OrderDetailOrBuilder extends
    */
   com.google.protobuf.ByteString
       getUpdatedAtBytes();
+
+  /**
+   * <pre>
+   * Populated only by single-order reads; list responses leave it empty.
+   * </pre>
+   *
+   * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+   */
+  java.util.List<com.ecommerce.contracts.order.v1.OrderStatusChange> 
+      getStatusHistoryList();
+  /**
+   * <pre>
+   * Populated only by single-order reads; list responses leave it empty.
+   * </pre>
+   *
+   * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+   */
+  com.ecommerce.contracts.order.v1.OrderStatusChange getStatusHistory(int index);
+  /**
+   * <pre>
+   * Populated only by single-order reads; list responses leave it empty.
+   * </pre>
+   *
+   * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+   */
+  int getStatusHistoryCount();
+  /**
+   * <pre>
+   * Populated only by single-order reads; list responses leave it empty.
+   * </pre>
+   *
+   * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+   */
+  java.util.List<? extends com.ecommerce.contracts.order.v1.OrderStatusChangeOrBuilder> 
+      getStatusHistoryOrBuilderList();
+  /**
+   * <pre>
+   * Populated only by single-order reads; list responses leave it empty.
+   * </pre>
+   *
+   * <code>repeated .ecommerce.order.v1.OrderStatusChange status_history = 18 [json_name = "statusHistory"];</code>
+   */
+  com.ecommerce.contracts.order.v1.OrderStatusChangeOrBuilder getStatusHistoryOrBuilder(
+      int index);
+
+  /**
+   * <code>string auto_confirm_at = 19 [json_name = "autoConfirmAt"];</code>
+   * @return The autoConfirmAt.
+   */
+  java.lang.String getAutoConfirmAt();
+  /**
+   * <code>string auto_confirm_at = 19 [json_name = "autoConfirmAt"];</code>
+   * @return The bytes for autoConfirmAt.
+   */
+  com.google.protobuf.ByteString
+      getAutoConfirmAtBytes();
+
+  /**
+   * <code>string shipping_carrier = 20 [json_name = "shippingCarrier"];</code>
+   * @return The shippingCarrier.
+   */
+  java.lang.String getShippingCarrier();
+  /**
+   * <code>string shipping_carrier = 20 [json_name = "shippingCarrier"];</code>
+   * @return The bytes for shippingCarrier.
+   */
+  com.google.protobuf.ByteString
+      getShippingCarrierBytes();
+
+  /**
+   * <code>string tracking_number = 21 [json_name = "trackingNumber"];</code>
+   * @return The trackingNumber.
+   */
+  java.lang.String getTrackingNumber();
+  /**
+   * <code>string tracking_number = 21 [json_name = "trackingNumber"];</code>
+   * @return The bytes for trackingNumber.
+   */
+  com.google.protobuf.ByteString
+      getTrackingNumberBytes();
+
+  /**
+   * <code>string refund_trans_id = 22 [json_name = "refundTransId"];</code>
+   * @return The refundTransId.
+   */
+  java.lang.String getRefundTransId();
+  /**
+   * <code>string refund_trans_id = 22 [json_name = "refundTransId"];</code>
+   * @return The bytes for refundTransId.
+   */
+  com.google.protobuf.ByteString
+      getRefundTransIdBytes();
+
+  /**
+   * <pre>
+   * Admin-only fields: omitted (empty) on shopper-facing GetOrder / ListOrders responses.
+   * </pre>
+   *
+   * <code>string refund_last_error = 23 [json_name = "refundLastError"];</code>
+   * @return The refundLastError.
+   */
+  java.lang.String getRefundLastError();
+  /**
+   * <pre>
+   * Admin-only fields: omitted (empty) on shopper-facing GetOrder / ListOrders responses.
+   * </pre>
+   *
+   * <code>string refund_last_error = 23 [json_name = "refundLastError"];</code>
+   * @return The bytes for refundLastError.
+   */
+  com.google.protobuf.ByteString
+      getRefundLastErrorBytes();
+
+  /**
+   * <code>string refunded_at = 24 [json_name = "refundedAt"];</code>
+   * @return The refundedAt.
+   */
+  java.lang.String getRefundedAt();
+  /**
+   * <code>string refunded_at = 24 [json_name = "refundedAt"];</code>
+   * @return The bytes for refundedAt.
+   */
+  com.google.protobuf.ByteString
+      getRefundedAtBytes();
+
+  /**
+   * <code>string refund_actor_type = 25 [json_name = "refundActorType"];</code>
+   * @return The refundActorType.
+   */
+  java.lang.String getRefundActorType();
+  /**
+   * <code>string refund_actor_type = 25 [json_name = "refundActorType"];</code>
+   * @return The bytes for refundActorType.
+   */
+  com.google.protobuf.ByteString
+      getRefundActorTypeBytes();
+
+  /**
+   * <code>string refund_reason = 26 [json_name = "refundReason"];</code>
+   * @return The refundReason.
+   */
+  java.lang.String getRefundReason();
+  /**
+   * <code>string refund_reason = 26 [json_name = "refundReason"];</code>
+   * @return The bytes for refundReason.
+   */
+  com.google.protobuf.ByteString
+      getRefundReasonBytes();
 }

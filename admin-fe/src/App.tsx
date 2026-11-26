@@ -6,6 +6,7 @@ import { AuthProvider } from "@/context/auth-provider"
 import { useAuth } from "@/hooks/use-auth"
 import { InventoryPage } from "@/pages/inventory-page"
 import { LoginPage } from "@/pages/login-page"
+import { OrdersPage } from "@/pages/orders-page"
 import { OverviewPage } from "@/pages/overview-page"
 import { ProductsPage } from "@/pages/products-page"
 import { RbacPage } from "@/pages/rbac-page"
@@ -57,6 +58,14 @@ export function App() {
                 element={
                   <PermissionGate permission="inventory.view">
                     <InventoryPage />
+                  </PermissionGate>
+                }
+              />
+              <Route
+                path="orders"
+                element={
+                  <PermissionGate permission="order.admin.view">
+                    <OrdersPage />
                   </PermissionGate>
                 }
               />

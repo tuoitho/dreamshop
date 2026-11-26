@@ -5,7 +5,6 @@ import {
   Film,
   Loader2,
   Maximize2,
-  Palette,
   Play,
   Plus,
   RefreshCw,
@@ -34,9 +33,9 @@ import {
   createAdminProduct,
   getAdminProduct,
   setSkuStock,
-  toClientError,
   updateAdminProduct,
 } from "@/lib/api"
+import { resolveErrorMessage } from "@/lib/error-messages"
 import { CATEGORY_PRESETS } from "@/lib/categories"
 import { formatCurrencyVnd, formatNumber } from "@/lib/format"
 import { ALLOWED_VIDEO_MIME_TYPES, uploadProductMediaFile } from "@/lib/media-upload"
@@ -46,27 +45,11 @@ import type {
   AdminProductVariantPayload,
   AdminStockSnapshot,
 } from "@/lib/types"
-import { cn } from "@/lib/utils"
 import { MediaLightboxDialog, type MediaPreviewItem } from "./media-lightbox-dialog"
 
-const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
 const MAX_IMAGES_COUNT = 10
 const MAX_VIDEOS_COUNT = 3
 const MAX_VARIANTS_COUNT = 20
-
-const VARIANT_COLOR_PRESETS = [
-  { name: "Đen Titan", hex: "#1c1c1e" },
-  { name: "Trắng Sứ", hex: "#f8fafc" },
-  { name: "Bạc Ánh Kim", hex: "#cbd5e1" },
-  { name: "Xám Không Gian", hex: "#64748b" },
-  { name: "Xanh Ngọc", hex: "#0d9488" },
-  { name: "Xanh Dương", hex: "#2563eb" },
-  { name: "Vàng Sa Mạc", hex: "#d6c7b5" },
-  { name: "Cam Đất", hex: "#ea580c" },
-  { name: "Đỏ Ruby", hex: "#dc2626" },
-  { name: "Hồng Đào", hex: "#db2777" },
-  { name: "Nâu Da", hex: "#7c4a21" },
-] as const
 
 const productFormSchema = z.object({
   name: z.string().trim().min(1, "Vui lòng nhập tên sản phẩm."),
@@ -88,7 +71,6 @@ interface VariantFormRow {
   key: string
   skuId?: string
   label: string
-  colorHex: string
   priceInput: string
   originalPriceInput: string
   initialStockInput: string
@@ -136,7 +118,6 @@ function makeDefaultVariantRow(key: string, label = "Tiêu chuẩn"): VariantFor
   return {
     key,
     label,
-    colorHex: "",
     priceInput: "0",
     originalPriceInput: "",
     initialStockInput: "",
@@ -249,7 +230,6 @@ export function ProductDrawer({
                 key: v.skuId ?? `existing-${idx}`,
                 skuId: v.skuId,
                 label: v.label,
-                colorHex: v.colorHex?.toLowerCase() ?? "",
                 priceInput: String(v.price),
                 originalPriceInput:
                   v.originalPrice && v.originalPrice > v.price ? String(v.originalPrice) : "",
@@ -267,7 +247,7 @@ export function ProductDrawer({
         setMediaList(combined)
       } catch (error) {
         if (!controller.signal.aborted) {
-          setServerError(toClientError(error).message)
+          setServerError(resolveErrorMessage(error))
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -328,7 +308,7 @@ export function ProductDrawer({
           { url: uploaded.publicUrl, kind: uploaded.mediaType },
         ])
       } catch (error) {
-        setServerError(toClientError(error).message)
+        setServerError(resolveErrorMessage(error))
       } finally {
         setUploadingCount((c) => Math.max(0, c - 1))
       }
@@ -381,7 +361,7 @@ export function ProductDrawer({
         await setSkuStock(entry.skuId, pendingStockRetry.productId, entry.quantity)
       } catch (error) {
         remaining.push(entry)
-        lastError = toClientError(error).message
+        lastError = resolveErrorMessage(error)
       }
     }
 
@@ -428,12 +408,6 @@ export function ProductDrawer({
       }
       seenLabels.add(normalizedLabel)
 
-      const normalizedColor = row.colorHex.trim().toLowerCase()
-      if (normalizedColor && !HEX_COLOR_PATTERN.test(normalizedColor)) {
-        setServerError("Mã màu biến thể phải theo định dạng hex 6 ký tự (ví dụ: #1c1c1e).")
-        return
-      }
-
       const parsedPrice = Number(row.priceInput.trim())
       if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
         setServerError(`Giá bán của biến thể “${trimmedLabel}” phải lớn hơn 0.`)
@@ -471,7 +445,6 @@ export function ProductDrawer({
       variantPayloads.push({
         ...(row.skuId ? { skuId: row.skuId } : {}),
         label: trimmedLabel,
-        ...(normalizedColor ? { colorHex: normalizedColor } : {}),
         price: Math.round(parsedPrice),
         ...(parsedOriginal !== undefined ? { originalPrice: parsedOriginal } : {}),
       })
@@ -524,7 +497,7 @@ export function ProductDrawer({
               label: pending.label,
               quantity: pending.quantity,
             })
-            lastErrorMessage = toClientError(stockError).message
+            lastErrorMessage = resolveErrorMessage(stockError)
           }
         }
 
@@ -544,7 +517,7 @@ export function ProductDrawer({
 
       onOpenChange(false)
     } catch (error) {
-      setServerError(toClientError(error).message)
+      setServerError(resolveErrorMessage(error))
     }
   }
 
@@ -761,10 +734,6 @@ export function ProductDrawer({
 
                   <div className="space-y-3">
                     {variants.map((row, idx) => {
-                      const normalizedRowColor = row.colorHex.trim().toLowerCase()
-                      const matchedPreset = VARIANT_COLOR_PRESETS.find(
-                        (preset) => preset.hex === normalizedRowColor
-                      )
                       const hasReserved = (row.stock?.reserved ?? 0) > 0
                       const deleteDisabled = hasReserved || variants.length <= 1
 
@@ -820,7 +789,7 @@ export function ProductDrawer({
                               <Label htmlFor={`variant-label-${idx}`}>Tên phân loại *</Label>
                               <Input
                                 id={`variant-label-${idx}`}
-                                placeholder="Ví dụ: Đen Titan · 256GB"
+                                placeholder="Ví dụ: 256GB, Size L, Bìa cứng..."
                                 value={row.label}
                                 onChange={(e) =>
                                   updateVariantRow(row.key, { label: e.target.value })
@@ -884,101 +853,6 @@ export function ProductDrawer({
                                 />
                               </div>
                             )}
-                          </div>
-
-                          <div className="space-y-1.5 border-t border-border pt-2.5">
-                            <div className="flex items-center justify-between gap-2 text-xs">
-                              <span className="font-medium text-muted-foreground">
-                                Màu sắc biến thể
-                              </span>
-                              {normalizedRowColor ? (
-                                <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
-                                  <span
-                                    className="size-2.5 rounded-full border border-black/15"
-                                    style={{ backgroundColor: normalizedRowColor }}
-                                  />
-                                  <span>{matchedPreset?.name ?? "Màu tùy chỉnh"}</span>
-                                  <span className="font-mono text-[11px] text-muted-foreground">
-                                    {normalizedRowColor}
-                                  </span>
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">Không gắn màu</span>
-                              )}
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <button
-                                type="button"
-                                aria-label="Không gắn màu"
-                                aria-pressed={!normalizedRowColor}
-                                title="Không gắn màu"
-                                onClick={() => updateVariantRow(row.key, { colorHex: "" })}
-                                className={cn(
-                                  "relative inline-flex size-6 cursor-pointer items-center justify-center rounded-full border border-border bg-card text-[10px] text-muted-foreground transition-transform hover:scale-105",
-                                  !normalizedRowColor &&
-                                    "ring-2 ring-primary ring-offset-2 ring-offset-background"
-                                )}
-                              >
-                                <span className="h-px w-3.5 rotate-45 bg-muted-foreground/70" />
-                              </button>
-
-                              {VARIANT_COLOR_PRESETS.map((preset) => {
-                                const active = normalizedRowColor === preset.hex
-                                return (
-                                  <button
-                                    key={preset.hex}
-                                    type="button"
-                                    aria-label={`Chọn màu ${preset.name}`}
-                                    aria-pressed={active}
-                                    title={`${preset.name} (${preset.hex})`}
-                                    onClick={() =>
-                                      updateVariantRow(row.key, { colorHex: preset.hex })
-                                    }
-                                    style={{ backgroundColor: preset.hex }}
-                                    className={cn(
-                                      "size-6 cursor-pointer rounded-full border border-black/15 transition-transform hover:scale-105",
-                                      active &&
-                                        "ring-2 ring-primary ring-offset-2 ring-offset-background"
-                                    )}
-                                  />
-                                )
-                              })}
-
-                              <div
-                                className={cn(
-                                  "relative inline-flex h-6 items-center gap-1 rounded-full border border-input bg-card px-2 text-[11px] font-medium text-foreground shadow-2xs transition-colors hover:bg-accent focus-within:ring-2 focus-within:ring-ring/40",
-                                  normalizedRowColor &&
-                                    !matchedPreset &&
-                                    "border-primary ring-2 ring-primary ring-offset-2 ring-offset-background"
-                                )}
-                              >
-                                {normalizedRowColor && !matchedPreset ? (
-                                  <span
-                                    className="size-2.5 rounded-full border border-black/15"
-                                    style={{ backgroundColor: normalizedRowColor }}
-                                  />
-                                ) : (
-                                  <Palette className="size-3 text-primary" />
-                                )}
-                                <span>Khác…</span>
-                                <input
-                                  type="color"
-                                  aria-label="Bảng màu tùy chỉnh"
-                                  value={
-                                    HEX_COLOR_PATTERN.test(normalizedRowColor)
-                                      ? normalizedRowColor
-                                      : "#0d9488"
-                                  }
-                                  onChange={(e) =>
-                                    updateVariantRow(row.key, {
-                                      colorHex: e.target.value.toLowerCase(),
-                                    })
-                                  }
-                                  className="absolute inset-0 size-full cursor-pointer opacity-0"
-                                />
-                              </div>
-                            </div>
                           </div>
                         </div>
                       )

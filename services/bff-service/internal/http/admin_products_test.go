@@ -670,3 +670,35 @@ func TestAdminProductsUpdateBlocksReservedVariantAndPreservesStockOnValidationFa
 		}
 	})
 }
+
+func TestAdminProductDetailOmitsStorefrontStatusField(t *testing.T) {
+	cat := &fakeCatalogClient{
+		getAdminProductFn: func(_ context.Context, _ string, id string) (*catalogv1.GetProductResponse, error) {
+			return &catalogv1.GetProductResponse{
+				Id:   id,
+				Name: "Nova X15",
+				Variants: []*catalogv1.ProductVariant{
+					{SkuId: "dt-1-v1", Label: "Default", Price: money(10000)},
+				},
+			}, nil
+		},
+	}
+
+	mux := http.NewServeMux()
+	NewAdminProductsHandler(cat, &fakeInventoryClient{}).Register(mux)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/products/dt-1", nil)
+	req.Header.Set("X-User-Id", "admin-1")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	body := decodeBody(t, rec)
+	data := body["data"].(map[string]any)
+	for _, forbidden := range []string{"status", "availableQuantity", "inventoryDegraded"} {
+		if _, exists := data[forbidden]; exists {
+			t.Fatalf("admin product detail must not include storefront field %q: %s", forbidden, rec.Body.String())
+		}
+	}
+}

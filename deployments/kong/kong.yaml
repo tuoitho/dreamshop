@@ -98,6 +98,15 @@ services:
               jwks_uri: http://host.docker.internal:8080/.well-known/jwks.json
               issuer: http://localhost:8080
               audience: ecommerce-api
+      - name: admin-orders-api
+        paths: ["/api/v1/admin/orders"]
+        strip_path: false
+        plugins:
+          - name: caller-context
+            config:
+              jwks_uri: http://host.docker.internal:8080/.well-known/jwks.json
+              issuer: http://localhost:8080
+              audience: ecommerce-api
 
 plugins:
   - name: cors

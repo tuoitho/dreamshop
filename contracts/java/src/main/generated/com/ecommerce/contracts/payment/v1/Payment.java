@@ -35,6 +35,16 @@ public final class Payment {
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_ecommerce_payment_v1_HandleMomoCallbackResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_payment_v1_RetryRefundRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_payment_v1_RetryRefundRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_payment_v1_RetryRefundResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_payment_v1_RetryRefundResponse_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -68,16 +78,24 @@ public final class Payment {
       "lbackResponse\022\031\n\010order_id\030\001 \001(\tR\007orderId" +
       "\022%\n\016payment_status\030\002 \001(\tR\rpaymentStatus\022" +
       "\'\n\017redirect_result\030\003 \001(\tR\016redirectResult" +
-      "2\210\002\n\016PaymentService\022}\n\024CreatePaymentSess" +
-      "ion\0221.ecommerce.payment.v1.CreatePayment" +
-      "SessionRequest\0322.ecommerce.payment.v1.Cr" +
-      "eatePaymentSessionResponse\022w\n\022HandleMomo" +
-      "Callback\022/.ecommerce.payment.v1.HandleMo" +
-      "moCallbackRequest\0320.ecommerce.payment.v1" +
-      ".HandleMomoCallbackResponseBY\n\"com.ecomm" +
-      "erce.contracts.payment.v1P\001Z1ecommerce.l" +
-      "ocal/contracts/go/payment/v1;paymentv1b\006" +
-      "proto3"
+      "\"G\n\022RetryRefundRequest\022\031\n\010order_id\030\001 \001(\t" +
+      "R\007orderId\022\026\n\006reason\030\002 \001(\tR\006reason\"\231\001\n\023Re" +
+      "tryRefundResponse\022\031\n\010order_id\030\001 \001(\tR\007ord" +
+      "erId\022%\n\016payment_status\030\002 \001(\tR\rpaymentSta" +
+      "tus\022&\n\017refund_trans_id\030\003 \001(\tR\rrefundTran" +
+      "sId\022\030\n\007message\030\004 \001(\tR\007message2\354\002\n\016Paymen" +
+      "tService\022}\n\024CreatePaymentSession\0221.ecomm" +
+      "erce.payment.v1.CreatePaymentSessionRequ" +
+      "est\0322.ecommerce.payment.v1.CreatePayment" +
+      "SessionResponse\022w\n\022HandleMomoCallback\022/." +
+      "ecommerce.payment.v1.HandleMomoCallbackR" +
+      "equest\0320.ecommerce.payment.v1.HandleMomo" +
+      "CallbackResponse\022b\n\013RetryRefund\022(.ecomme" +
+      "rce.payment.v1.RetryRefundRequest\032).ecom" +
+      "merce.payment.v1.RetryRefundResponseBY\n\"" +
+      "com.ecommerce.contracts.payment.v1P\001Z1ec" +
+      "ommerce.local/contracts/go/payment/v1;pa" +
+      "ymentv1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -108,6 +126,18 @@ public final class Payment {
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_payment_v1_HandleMomoCallbackResponse_descriptor,
         new java.lang.String[] { "OrderId", "PaymentStatus", "RedirectResult", });
+    internal_static_ecommerce_payment_v1_RetryRefundRequest_descriptor =
+      getDescriptor().getMessageTypes().get(4);
+    internal_static_ecommerce_payment_v1_RetryRefundRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_payment_v1_RetryRefundRequest_descriptor,
+        new java.lang.String[] { "OrderId", "Reason", });
+    internal_static_ecommerce_payment_v1_RetryRefundResponse_descriptor =
+      getDescriptor().getMessageTypes().get(5);
+    internal_static_ecommerce_payment_v1_RetryRefundResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_payment_v1_RetryRefundResponse_descriptor,
+        new java.lang.String[] { "OrderId", "PaymentStatus", "RefundTransId", "Message", });
     com.ecommerce.contracts.common.v1.Common.getDescriptor();
   }
 
