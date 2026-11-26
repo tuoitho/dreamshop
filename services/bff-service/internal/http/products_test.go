@@ -39,6 +39,15 @@ type fakeCatalogClient struct {
 	createProductFn    func(ctx context.Context, req *catalogv1.CreateProductRequest) (*catalogv1.GetProductResponse, error)
 	updateProductFn    func(ctx context.Context, req *catalogv1.UpdateProductRequest) (*catalogv1.GetProductResponse, error)
 	createMediaFn      func(ctx context.Context, req *catalogv1.CreateProductMediaUploadRequest) (*catalogv1.CreateProductMediaUploadResponse, error)
+	listReviewsFn      func(ctx context.Context, req *catalogv1.ListProductReviewsRequest) (*catalogv1.ListProductReviewsResponse, error)
+	reviewEligFn       func(ctx context.Context, req *catalogv1.GetReviewEligibilityRequest) (*catalogv1.GetReviewEligibilityResponse, error)
+	createReviewFn     func(ctx context.Context, req *catalogv1.CreateProductReviewRequest) (*catalogv1.CreateProductReviewResponse, error)
+	updateReviewFn     func(ctx context.Context, req *catalogv1.UpdateProductReviewRequest) (*catalogv1.UpdateProductReviewResponse, error)
+	deleteReviewFn     func(ctx context.Context, req *catalogv1.DeleteProductReviewRequest) (*catalogv1.DeleteProductReviewResponse, error)
+	createRevMediaFn   func(ctx context.Context, req *catalogv1.CreateReviewMediaUploadRequest) (*catalogv1.CreateReviewMediaUploadResponse, error)
+	listAdminRevFn     func(ctx context.Context, req *catalogv1.ListAdminReviewsRequest) (*catalogv1.ListAdminReviewsResponse, error)
+	setRevVisFn        func(ctx context.Context, req *catalogv1.SetReviewVisibilityRequest) (*catalogv1.SetReviewVisibilityResponse, error)
+	replyReviewFn      func(ctx context.Context, req *catalogv1.ReplyProductReviewRequest) (*catalogv1.ReplyProductReviewResponse, error)
 	searchCalls        int
 	lastSearch         *catalogv1.SearchProductsRequest
 }
@@ -106,6 +115,69 @@ func (f *fakeCatalogClient) CreateProductMediaUpload(ctx context.Context, req *c
 		return f.createMediaFn(ctx, req)
 	}
 	return nil, errors.New("unexpected CreateProductMediaUpload call")
+}
+
+func (f *fakeCatalogClient) ListProductReviews(ctx context.Context, req *catalogv1.ListProductReviewsRequest) (*catalogv1.ListProductReviewsResponse, error) {
+	if f.listReviewsFn != nil {
+		return f.listReviewsFn(ctx, req)
+	}
+	return &catalogv1.ListProductReviewsResponse{}, nil
+}
+
+func (f *fakeCatalogClient) GetReviewEligibility(ctx context.Context, req *catalogv1.GetReviewEligibilityRequest) (*catalogv1.GetReviewEligibilityResponse, error) {
+	if f.reviewEligFn != nil {
+		return f.reviewEligFn(ctx, req)
+	}
+	return &catalogv1.GetReviewEligibilityResponse{}, nil
+}
+
+func (f *fakeCatalogClient) CreateProductReview(ctx context.Context, req *catalogv1.CreateProductReviewRequest) (*catalogv1.CreateProductReviewResponse, error) {
+	if f.createReviewFn != nil {
+		return f.createReviewFn(ctx, req)
+	}
+	return nil, errors.New("unexpected CreateProductReview call")
+}
+
+func (f *fakeCatalogClient) UpdateProductReview(ctx context.Context, req *catalogv1.UpdateProductReviewRequest) (*catalogv1.UpdateProductReviewResponse, error) {
+	if f.updateReviewFn != nil {
+		return f.updateReviewFn(ctx, req)
+	}
+	return nil, errors.New("unexpected UpdateProductReview call")
+}
+
+func (f *fakeCatalogClient) DeleteProductReview(ctx context.Context, req *catalogv1.DeleteProductReviewRequest) (*catalogv1.DeleteProductReviewResponse, error) {
+	if f.deleteReviewFn != nil {
+		return f.deleteReviewFn(ctx, req)
+	}
+	return nil, errors.New("unexpected DeleteProductReview call")
+}
+
+func (f *fakeCatalogClient) CreateReviewMediaUpload(ctx context.Context, req *catalogv1.CreateReviewMediaUploadRequest) (*catalogv1.CreateReviewMediaUploadResponse, error) {
+	if f.createRevMediaFn != nil {
+		return f.createRevMediaFn(ctx, req)
+	}
+	return nil, errors.New("unexpected CreateReviewMediaUpload call")
+}
+
+func (f *fakeCatalogClient) ListAdminReviews(ctx context.Context, req *catalogv1.ListAdminReviewsRequest) (*catalogv1.ListAdminReviewsResponse, error) {
+	if f.listAdminRevFn != nil {
+		return f.listAdminRevFn(ctx, req)
+	}
+	return &catalogv1.ListAdminReviewsResponse{}, nil
+}
+
+func (f *fakeCatalogClient) SetReviewVisibility(ctx context.Context, req *catalogv1.SetReviewVisibilityRequest) (*catalogv1.SetReviewVisibilityResponse, error) {
+	if f.setRevVisFn != nil {
+		return f.setRevVisFn(ctx, req)
+	}
+	return nil, errors.New("unexpected SetReviewVisibility call")
+}
+
+func (f *fakeCatalogClient) ReplyProductReview(ctx context.Context, req *catalogv1.ReplyProductReviewRequest) (*catalogv1.ReplyProductReviewResponse, error) {
+	if f.replyReviewFn != nil {
+		return f.replyReviewFn(ctx, req)
+	}
+	return nil, errors.New("unexpected ReplyProductReview call")
 }
 
 func money(amount int64) *commonv1.Money {

@@ -145,6 +145,10 @@ public class OrderLifecycleService {
                 order.setUpdatedAt(now);
                 orderRepository.saveAndFlush(order);
                 txStepService.recordStatusChange(order, current, ActorType.ADMIN, adminId, cleanReason, now);
+                if (target == OrderStatus.DELIVERED) {
+                    txStepService.insertOrderDeliveredOutbox(order, now);
+                    txStepService.registerOutboxWakeupAfterCommit();
+                }
             }
 
             AdminUpdateOrderStatusResponse.Builder builder = AdminUpdateOrderStatusResponse.newBuilder()

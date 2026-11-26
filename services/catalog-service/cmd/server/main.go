@@ -13,6 +13,7 @@ import (
 
 	"ecommerce.local/catalog-service/internal/authorization"
 	"ecommerce.local/catalog-service/internal/config"
+	"ecommerce.local/catalog-service/internal/events"
 	cataloggrpc "ecommerce.local/catalog-service/internal/grpc"
 	internalhttp "ecommerce.local/catalog-service/internal/http"
 	"ecommerce.local/catalog-service/internal/media"
@@ -80,6 +81,20 @@ func main() {
 		go sweeper.Start(ctx)
 	} else {
 		log.Printf("MinIO credentials not set; presigned product media uploads are disabled")
+	}
+
+	if cfg.RabbitMQURL != "" {
+		consumer, err := events.NewConsumer(cfg.RabbitMQURL, repo)
+		if err != nil {
+			log.Fatalf("failed to create catalog event consumer: %v", err)
+		}
+		go func() {
+			if err := consumer.Run(ctx); err != nil {
+				log.Printf("catalog event consumer stopped with error: %v", err)
+			}
+		}()
+	} else {
+		log.Printf("RABBITMQ_URL not set; OrderDelivered review eligibility consumer is disabled")
 	}
 
 	grpcServer := grpc.NewServer()

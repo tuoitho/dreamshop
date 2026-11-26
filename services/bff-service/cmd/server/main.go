@@ -87,10 +87,13 @@ func buildMux(
 	adminProductsHandler := internalhttp.NewAdminProductsHandler(catalogClient, inventoryClient)
 	adminInventoryHandler := internalhttp.NewAdminInventoryHandler(catalogClient, inventoryClient)
 	adminOrdersHandler := internalhttp.NewAdminOrdersHandler(orderClient)
+	reviewsHandler := internalhttp.NewReviewsHandler(catalogClient)
+	adminReviewsHandler := internalhttp.NewAdminReviewsHandler(catalogClient)
 
 	mux := http.NewServeMux()
 	mux.Handle("/healthz", healthHandler)
 	productsHandler.Register(mux)
+	reviewsHandler.Register(mux)
 	cartHandler.Register(mux)
 	favoritesHandler.Register(mux)
 	ordersHandler.Register(mux)
@@ -98,5 +101,6 @@ func buildMux(
 	adminProductsHandler.Register(mux)
 	adminInventoryHandler.Register(mux)
 	adminOrdersHandler.Register(mux)
+	adminReviewsHandler.Register(mux)
 	return mux
 }

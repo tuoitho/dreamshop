@@ -28,6 +28,10 @@ var (
 	ErrMediaStorageUnavailable  = errors.New("catalog: media storage unavailable")
 	ErrPermissionDenied         = errors.New("catalog: permission denied")
 	ErrAuthorizationUnavailable = errors.New("catalog: authorization unavailable")
+	ErrReviewNotFound           = errors.New("catalog: review not found")
+	ErrReviewNotEligible        = errors.New("catalog: order not eligible for review")
+	ErrReviewAlreadyExists      = errors.New("catalog: review already exists")
+	ErrReviewForbidden          = errors.New("catalog: review forbidden")
 )
 
 // Client is the contract the BFF HTTP layer uses to talk to the catalog
@@ -42,6 +46,15 @@ type Client interface {
 	CreateProduct(ctx context.Context, req *catalogv1.CreateProductRequest) (*catalogv1.GetProductResponse, error)
 	UpdateProduct(ctx context.Context, req *catalogv1.UpdateProductRequest) (*catalogv1.GetProductResponse, error)
 	CreateProductMediaUpload(ctx context.Context, req *catalogv1.CreateProductMediaUploadRequest) (*catalogv1.CreateProductMediaUploadResponse, error)
+	ListProductReviews(ctx context.Context, req *catalogv1.ListProductReviewsRequest) (*catalogv1.ListProductReviewsResponse, error)
+	GetReviewEligibility(ctx context.Context, req *catalogv1.GetReviewEligibilityRequest) (*catalogv1.GetReviewEligibilityResponse, error)
+	CreateProductReview(ctx context.Context, req *catalogv1.CreateProductReviewRequest) (*catalogv1.CreateProductReviewResponse, error)
+	UpdateProductReview(ctx context.Context, req *catalogv1.UpdateProductReviewRequest) (*catalogv1.UpdateProductReviewResponse, error)
+	DeleteProductReview(ctx context.Context, req *catalogv1.DeleteProductReviewRequest) (*catalogv1.DeleteProductReviewResponse, error)
+	CreateReviewMediaUpload(ctx context.Context, req *catalogv1.CreateReviewMediaUploadRequest) (*catalogv1.CreateReviewMediaUploadResponse, error)
+	ListAdminReviews(ctx context.Context, req *catalogv1.ListAdminReviewsRequest) (*catalogv1.ListAdminReviewsResponse, error)
+	SetReviewVisibility(ctx context.Context, req *catalogv1.SetReviewVisibilityRequest) (*catalogv1.SetReviewVisibilityResponse, error)
+	ReplyProductReview(ctx context.Context, req *catalogv1.ReplyProductReviewRequest) (*catalogv1.ReplyProductReviewResponse, error)
 }
 
 type client struct {
@@ -172,9 +185,108 @@ func (c *client) CreateProductMediaUpload(ctx context.Context, req *catalogv1.Cr
 	return resp, nil
 }
 
+func (c *client) ListProductReviews(ctx context.Context, req *catalogv1.ListProductReviewsRequest) (*catalogv1.ListProductReviewsResponse, error) {
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+
+	resp, err := c.svc.ListProductReviews(ctx, req)
+	if err != nil {
+		return nil, classifyCatalogError(err, req.GetProductId())
+	}
+	return resp, nil
+}
+
+func (c *client) GetReviewEligibility(ctx context.Context, req *catalogv1.GetReviewEligibilityRequest) (*catalogv1.GetReviewEligibilityResponse, error) {
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+
+	resp, err := c.svc.GetReviewEligibility(ctx, req)
+	if err != nil {
+		return nil, classifyCatalogError(err, req.GetProductId())
+	}
+	return resp, nil
+}
+
+func (c *client) CreateProductReview(ctx context.Context, req *catalogv1.CreateProductReviewRequest) (*catalogv1.CreateProductReviewResponse, error) {
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+
+	resp, err := c.svc.CreateProductReview(ctx, req)
+	if err != nil {
+		return nil, classifyCatalogError(err, req.GetProductId())
+	}
+	return resp, nil
+}
+
+func (c *client) UpdateProductReview(ctx context.Context, req *catalogv1.UpdateProductReviewRequest) (*catalogv1.UpdateProductReviewResponse, error) {
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+
+	resp, err := c.svc.UpdateProductReview(ctx, req)
+	if err != nil {
+		return nil, classifyCatalogError(err, req.GetReviewId())
+	}
+	return resp, nil
+}
+
+func (c *client) DeleteProductReview(ctx context.Context, req *catalogv1.DeleteProductReviewRequest) (*catalogv1.DeleteProductReviewResponse, error) {
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+
+	resp, err := c.svc.DeleteProductReview(ctx, req)
+	if err != nil {
+		return nil, classifyCatalogError(err, req.GetReviewId())
+	}
+	return resp, nil
+}
+
+func (c *client) CreateReviewMediaUpload(ctx context.Context, req *catalogv1.CreateReviewMediaUploadRequest) (*catalogv1.CreateReviewMediaUploadResponse, error) {
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+
+	resp, err := c.svc.CreateReviewMediaUpload(ctx, req)
+	if err != nil {
+		return nil, classifyCatalogError(err, "")
+	}
+	return resp, nil
+}
+
+func (c *client) ListAdminReviews(ctx context.Context, req *catalogv1.ListAdminReviewsRequest) (*catalogv1.ListAdminReviewsResponse, error) {
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+
+	resp, err := c.svc.ListAdminReviews(ctx, req)
+	if err != nil {
+		return nil, classifyCatalogError(err, "")
+	}
+	return resp, nil
+}
+
+func (c *client) SetReviewVisibility(ctx context.Context, req *catalogv1.SetReviewVisibilityRequest) (*catalogv1.SetReviewVisibilityResponse, error) {
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+
+	resp, err := c.svc.SetReviewVisibility(ctx, req)
+	if err != nil {
+		return nil, classifyCatalogError(err, req.GetReviewId())
+	}
+	return resp, nil
+}
+
+func (c *client) ReplyProductReview(ctx context.Context, req *catalogv1.ReplyProductReviewRequest) (*catalogv1.ReplyProductReviewResponse, error) {
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+
+	resp, err := c.svc.ReplyProductReview(ctx, req)
+	if err != nil {
+		return nil, classifyCatalogError(err, req.GetReviewId())
+	}
+	return resp, nil
+}
+
 func classifyCatalogError(err error, id string) error {
 	switch catalogErrorReason(err) {
-	case "PRODUCT_PERMISSION_DENIED":
+	case "PRODUCT_PERMISSION_DENIED", "REVIEW_PERMISSION_DENIED":
 		return fmt.Errorf("%w: %v", ErrPermissionDenied, err)
 	case "AUTHORIZATION_UNAVAILABLE":
 		return fmt.Errorf("%w: %v", ErrAuthorizationUnavailable, err)
@@ -186,6 +298,14 @@ func classifyCatalogError(err error, id string) error {
 		return fmt.Errorf("%w: %v", ErrMediaAlreadyAttached, err)
 	case "MEDIA_STORAGE_UNAVAILABLE":
 		return fmt.Errorf("%w: %v", ErrMediaStorageUnavailable, err)
+	case "REVIEW_NOT_FOUND":
+		return fmt.Errorf("%w: %v", ErrReviewNotFound, err)
+	case "REVIEW_NOT_ELIGIBLE":
+		return fmt.Errorf("%w: %v", ErrReviewNotEligible, err)
+	case "REVIEW_ALREADY_EXISTS":
+		return fmt.Errorf("%w: %v", ErrReviewAlreadyExists, err)
+	case "REVIEW_FORBIDDEN":
+		return fmt.Errorf("%w: %v", ErrReviewForbidden, err)
 	}
 	if status.Code(err) == codes.NotFound {
 		if id != "" {

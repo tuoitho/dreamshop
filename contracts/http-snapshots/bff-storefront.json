@@ -8,7 +8,7 @@
       "responseBody": {
         "code": "UNAUTHORIZED",
         "message": "Authentication is required.",
-        "traceId": "f1fa549791358c7d"
+        "traceId": "55ad273fcd9b43d9"
       }
     },
     "cart_get_200": {
@@ -91,6 +91,249 @@
         "message": "Favorites retrieved."
       }
     },
+    "reviews_create_201": {
+      "service": "bff-service",
+      "endpoint": "POST /api/v1/reviews",
+      "status": 201,
+      "requestBody": {
+        "authorName": "Customer One",
+        "comment": "Máy chạy mượt, đóng gói cẩn thận.",
+        "images": [
+          "http://localhost:9000/product-media/reviews/2026/11/review-1.png"
+        ],
+        "orderId": "ord-124",
+        "productId": "dt-1",
+        "rating": 5
+      },
+      "responseBody": {
+        "data": {
+          "review": {
+            "adminRepliedAt": "2026-11-26T06:00:00Z",
+            "adminReply": "Cảm ơn bạn đã ủng hộ DreamShop!",
+            "authorName": "Customer One",
+            "comment": "Máy chạy mượt, đóng gói cẩn thận.",
+            "createdAt": "2026-11-26T05:00:00Z",
+            "hidden": false,
+            "id": "rev-101",
+            "images": [
+              "http://localhost:9000/product-media/reviews/2026/11/review-1.png"
+            ],
+            "orderId": "ord-123",
+            "productId": "dt-1",
+            "productName": "Điện thoại Nova X",
+            "rating": 5,
+            "skuId": "dt-1-v1",
+            "updatedAt": "2026-11-26T05:00:00Z",
+            "userId": "user-1",
+            "variantLabel": "256GB · Tiêu chuẩn",
+            "verifiedPurchase": true
+          },
+          "summary": {
+            "averageRating": 5,
+            "breakdown": [
+              {
+                "count": 1,
+                "rating": 5
+              },
+              {
+                "count": 0,
+                "rating": 4
+              },
+              {
+                "count": 0,
+                "rating": 3
+              },
+              {
+                "count": 0,
+                "rating": 2
+              },
+              {
+                "count": 0,
+                "rating": 1
+              }
+            ],
+            "totalReviews": 1
+          }
+        },
+        "message": "Review submitted."
+      }
+    },
+    "reviews_delete_200": {
+      "service": "bff-service",
+      "endpoint": "DELETE /api/v1/reviews/{id}",
+      "status": 200,
+      "responseBody": {
+        "data": {
+          "productId": "dt-1",
+          "reviewId": "rev-101",
+          "summary": {
+            "averageRating": 5,
+            "breakdown": [
+              {
+                "count": 1,
+                "rating": 5
+              },
+              {
+                "count": 0,
+                "rating": 4
+              },
+              {
+                "count": 0,
+                "rating": 3
+              },
+              {
+                "count": 0,
+                "rating": 2
+              },
+              {
+                "count": 0,
+                "rating": 1
+              }
+            ],
+            "totalReviews": 1
+          }
+        },
+        "message": "Review deleted."
+      }
+    },
+    "reviews_eligibility_200": {
+      "service": "bff-service",
+      "endpoint": "GET /api/v1/reviews/eligibility",
+      "status": 200,
+      "responseBody": {
+        "data": {
+          "canReview": true,
+          "eligibleOrders": [
+            {
+              "deliveredAt": "2026-11-26T04:00:00Z",
+              "orderCode": "ORD-20261126-002",
+              "orderId": "ord-124",
+              "reviewed": false,
+              "skuId": "dt-1-v1",
+              "variantLabel": "256GB · Tiêu chuẩn"
+            },
+            {
+              "deliveredAt": "2026-11-25T04:00:00Z",
+              "orderCode": "ORD-20261126-001",
+              "orderId": "ord-123",
+              "reviewId": "rev-101",
+              "reviewed": true,
+              "skuId": "dt-1-v1",
+              "variantLabel": "256GB · Tiêu chuẩn"
+            }
+          ],
+          "myReviews": [
+            {
+              "adminRepliedAt": "2026-11-26T06:00:00Z",
+              "adminReply": "Cảm ơn bạn đã ủng hộ DreamShop!",
+              "authorName": "Customer One",
+              "comment": "Máy chạy mượt, đóng gói cẩn thận.",
+              "createdAt": "2026-11-26T05:00:00Z",
+              "hidden": false,
+              "id": "rev-101",
+              "images": [
+                "http://localhost:9000/product-media/reviews/2026/11/review-1.png"
+              ],
+              "orderId": "ord-123",
+              "productId": "dt-1",
+              "productName": "Điện thoại Nova X",
+              "rating": 5,
+              "skuId": "dt-1-v1",
+              "updatedAt": "2026-11-26T05:00:00Z",
+              "userId": "user-1",
+              "variantLabel": "256GB · Tiêu chuẩn",
+              "verifiedPurchase": true
+            }
+          ]
+        },
+        "message": "Review eligibility retrieved."
+      }
+    },
+    "reviews_media_presign_200": {
+      "service": "bff-service",
+      "endpoint": "POST /api/v1/reviews/media/presign",
+      "status": 200,
+      "requestBody": {
+        "contentType": "image/png",
+        "filename": "review-1.png",
+        "sizeBytes": 2048
+      },
+      "responseBody": {
+        "data": {
+          "expiresInSeconds": 300,
+          "mediaType": "IMAGE",
+          "objectKey": "reviews/2026/11/review-1.png",
+          "publicUrl": "http://localhost:9000/product-media/reviews/2026/11/review-1.png",
+          "uploadId": "rev-upload-1",
+          "uploadUrl": "http://localhost:9000/product-media/reviews/2026/11/review-1.png?X-Amz-Signature=mock"
+        },
+        "message": "Review media upload URL created."
+      }
+    },
+    "reviews_update_200": {
+      "service": "bff-service",
+      "endpoint": "PUT /api/v1/reviews/{id}",
+      "status": 200,
+      "requestBody": {
+        "comment": "Cập nhật đánh giá sau 1 tuần sử dụng.",
+        "images": [
+          "http://localhost:9000/product-media/reviews/2026/11/review-1.png"
+        ],
+        "rating": 5
+      },
+      "responseBody": {
+        "data": {
+          "review": {
+            "adminRepliedAt": "2026-11-26T06:00:00Z",
+            "adminReply": "Cảm ơn bạn đã ủng hộ DreamShop!",
+            "authorName": "Customer One",
+            "comment": "Máy chạy mượt, đóng gói cẩn thận.",
+            "createdAt": "2026-11-26T05:00:00Z",
+            "hidden": false,
+            "id": "rev-101",
+            "images": [
+              "http://localhost:9000/product-media/reviews/2026/11/review-1.png"
+            ],
+            "orderId": "ord-123",
+            "productId": "dt-1",
+            "productName": "Điện thoại Nova X",
+            "rating": 5,
+            "skuId": "dt-1-v1",
+            "updatedAt": "2026-11-26T05:00:00Z",
+            "userId": "user-1",
+            "variantLabel": "256GB · Tiêu chuẩn",
+            "verifiedPurchase": true
+          },
+          "summary": {
+            "averageRating": 5,
+            "breakdown": [
+              {
+                "count": 1,
+                "rating": 5
+              },
+              {
+                "count": 0,
+                "rating": 4
+              },
+              {
+                "count": 0,
+                "rating": 3
+              },
+              {
+                "count": 0,
+                "rating": 2
+              },
+              {
+                "count": 0,
+                "rating": 1
+              }
+            ],
+            "totalReviews": 1
+          }
+        },
+        "message": "Review updated."
+      }
+    },
     "storefront_product_detail_200": {
       "service": "bff-service",
       "endpoint": "GET /api/v1/storefront/products/{id}",
@@ -138,6 +381,69 @@
           ]
         },
         "message": "Product retrieved."
+      }
+    },
+    "storefront_product_reviews_200": {
+      "service": "bff-service",
+      "endpoint": "GET /api/v1/storefront/products/{id}/reviews",
+      "status": 200,
+      "responseBody": {
+        "data": {
+          "items": [
+            {
+              "adminRepliedAt": "2026-11-26T06:00:00Z",
+              "adminReply": "Cảm ơn bạn đã ủng hộ DreamShop!",
+              "authorName": "Customer One",
+              "comment": "Máy chạy mượt, đóng gói cẩn thận.",
+              "createdAt": "2026-11-26T05:00:00Z",
+              "hidden": false,
+              "id": "rev-101",
+              "images": [
+                "http://localhost:9000/product-media/reviews/2026/11/review-1.png"
+              ],
+              "orderId": "ord-123",
+              "productId": "dt-1",
+              "productName": "Điện thoại Nova X",
+              "rating": 5,
+              "skuId": "dt-1-v1",
+              "updatedAt": "2026-11-26T05:00:00Z",
+              "userId": "user-1",
+              "variantLabel": "256GB · Tiêu chuẩn",
+              "verifiedPurchase": true
+            }
+          ],
+          "page": 1,
+          "pageSize": 10,
+          "summary": {
+            "averageRating": 5,
+            "breakdown": [
+              {
+                "count": 1,
+                "rating": 5
+              },
+              {
+                "count": 0,
+                "rating": 4
+              },
+              {
+                "count": 0,
+                "rating": 3
+              },
+              {
+                "count": 0,
+                "rating": 2
+              },
+              {
+                "count": 0,
+                "rating": 1
+              }
+            ],
+            "totalReviews": 1
+          },
+          "totalItems": 1,
+          "totalPages": 1
+        },
+        "message": "Product reviews retrieved."
       }
     },
     "storefront_products_200": {

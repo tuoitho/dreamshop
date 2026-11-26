@@ -78,6 +78,33 @@ func (fakeCatalogClient) UpdateProduct(context.Context, *catalogv1.UpdateProduct
 func (fakeCatalogClient) CreateProductMediaUpload(context.Context, *catalogv1.CreateProductMediaUploadRequest) (*catalogv1.CreateProductMediaUploadResponse, error) {
 	return &catalogv1.CreateProductMediaUploadResponse{}, nil
 }
+func (fakeCatalogClient) ListProductReviews(context.Context, *catalogv1.ListProductReviewsRequest) (*catalogv1.ListProductReviewsResponse, error) {
+	return &catalogv1.ListProductReviewsResponse{}, nil
+}
+func (fakeCatalogClient) GetReviewEligibility(context.Context, *catalogv1.GetReviewEligibilityRequest) (*catalogv1.GetReviewEligibilityResponse, error) {
+	return &catalogv1.GetReviewEligibilityResponse{}, nil
+}
+func (fakeCatalogClient) CreateProductReview(context.Context, *catalogv1.CreateProductReviewRequest) (*catalogv1.CreateProductReviewResponse, error) {
+	return &catalogv1.CreateProductReviewResponse{}, nil
+}
+func (fakeCatalogClient) UpdateProductReview(context.Context, *catalogv1.UpdateProductReviewRequest) (*catalogv1.UpdateProductReviewResponse, error) {
+	return &catalogv1.UpdateProductReviewResponse{}, nil
+}
+func (fakeCatalogClient) DeleteProductReview(context.Context, *catalogv1.DeleteProductReviewRequest) (*catalogv1.DeleteProductReviewResponse, error) {
+	return &catalogv1.DeleteProductReviewResponse{}, nil
+}
+func (fakeCatalogClient) CreateReviewMediaUpload(context.Context, *catalogv1.CreateReviewMediaUploadRequest) (*catalogv1.CreateReviewMediaUploadResponse, error) {
+	return &catalogv1.CreateReviewMediaUploadResponse{}, nil
+}
+func (fakeCatalogClient) ListAdminReviews(context.Context, *catalogv1.ListAdminReviewsRequest) (*catalogv1.ListAdminReviewsResponse, error) {
+	return &catalogv1.ListAdminReviewsResponse{}, nil
+}
+func (fakeCatalogClient) SetReviewVisibility(context.Context, *catalogv1.SetReviewVisibilityRequest) (*catalogv1.SetReviewVisibilityResponse, error) {
+	return &catalogv1.SetReviewVisibilityResponse{}, nil
+}
+func (fakeCatalogClient) ReplyProductReview(context.Context, *catalogv1.ReplyProductReviewRequest) (*catalogv1.ReplyProductReviewResponse, error) {
+	return &catalogv1.ReplyProductReviewResponse{}, nil
+}
 
 type fakeInventoryClient struct{}
 

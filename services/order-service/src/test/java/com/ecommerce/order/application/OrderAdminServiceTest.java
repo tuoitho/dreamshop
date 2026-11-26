@@ -141,6 +141,20 @@ class OrderAdminServiceTest extends PostgresRabbitIntegrationTestSupport {
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM order_status_history WHERE order_id = ? AND actor_id = ?",
                 Integer.class, orderId, adminId)).isEqualTo(3);
+        assertThat(jdbcTemplate.queryForList(
+                "SELECT routing_key FROM outbox_events WHERE aggregate_id = ? ORDER BY created_at",
+                String.class, orderId.toString())).containsExactly("order.delivered");
+        String deliveredSummary = jdbcTemplate.queryForObject(
+                """
+                SELECT payload->>'eventType'
+                    || '|' || (payload->'data'->>'orderCode')
+                    || '|' || (payload->'data'->'items'->0->>'variantLabel')
+                    || '|' || CASE WHEN COALESCE(payload->'data'->>'deliveredAt', '') <> '' THEN 'OK' ELSE '' END
+                FROM outbox_events
+                WHERE aggregate_id = ? AND routing_key = 'order.delivered'
+                """,
+                String.class, orderId.toString());
+        assertThat(deliveredSummary).isEqualTo("OrderDelivered|ORD-20261112-FLOW1|Std|OK");
     }
 
     @Test

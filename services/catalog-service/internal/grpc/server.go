@@ -28,12 +28,20 @@ const (
 	productUpdatePermission        = "product.update"
 	inventoryViewPermission        = "inventory.view"
 	inventoryUpdatePermission      = "inventory.update"
+	reviewCreatePermission         = "review.create"
+	reviewAdminViewPermission      = "review.admin.view"
+	reviewAdminModeratePermission  = "review.admin.moderate"
 	reasonNotFound                 = "PRODUCT_NOT_FOUND"
 	reasonProductExists            = "PRODUCT_ID_EXISTS"
 	reasonSkuExists                = "SKU_ALREADY_EXISTS"
 	reasonMediaAlreadyAttached     = "MEDIA_ALREADY_ATTACHED"
 	reasonMediaStorageUnavailable  = "MEDIA_STORAGE_UNAVAILABLE"
 	reasonProductPermissionDenied  = "PRODUCT_PERMISSION_DENIED"
+	reasonReviewNotFound           = "REVIEW_NOT_FOUND"
+	reasonReviewNotEligible        = "REVIEW_NOT_ELIGIBLE"
+	reasonReviewAlreadyExists      = "REVIEW_ALREADY_EXISTS"
+	reasonReviewForbidden          = "REVIEW_FORBIDDEN"
+	reasonReviewPermissionDenied   = "REVIEW_PERMISSION_DENIED"
 	reasonAuthorizationUnavailable = "AUTHORIZATION_UNAVAILABLE"
 	traceMetadataKey               = "x-trace-id"
 	maxTraceIDLength               = 64
@@ -72,10 +80,18 @@ func WithMediaSigner(signer MediaSigner, presignTTL, orphanGrace time.Duration) 
 	}
 }
 
+// WithReviewRepository configures the persistence repository for product review RPCs.
+func WithReviewRepository(reviewRepo domain.ReviewRepository) ServerOption {
+	return func(s *Server) {
+		s.reviewRepo = reviewRepo
+	}
+}
+
 // Server implements catalogv1.CatalogServiceServer over a domain.Repository.
 type Server struct {
 	catalogv1.UnimplementedCatalogServiceServer
 	repo          domain.Repository
+	reviewRepo    domain.ReviewRepository
 	authorization authorizationClient
 	mediaSigner   MediaSigner
 	presignTTL    time.Duration
@@ -89,6 +105,9 @@ func NewServer(repo domain.Repository, authorization authorizationClient, opts .
 		authorization: authorization,
 		presignTTL:    defaultPresignTTL,
 		orphanGrace:   defaultOrphanGrace,
+	}
+	if rr, ok := repo.(domain.ReviewRepository); ok {
+		srv.reviewRepo = rr
 	}
 	for _, opt := range opts {
 		if opt != nil {

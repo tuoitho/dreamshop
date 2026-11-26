@@ -365,8 +365,104 @@ func TestContractSnapshotsBFFStorefrontDomain(t *testing.T) {
 
 	mux := http.NewServeMux()
 	NewProductsHandler(cat, inv).Register(mux)
+	NewReviewsHandler(cat).Register(mux)
 	NewCartHandler(cartClient).Register(mux)
 	NewFavoritesHandler(cartClient).Register(mux)
+
+	sampleReviewFixture := &catalogv1.ProductReview{
+		Id:               "rev-101",
+		ProductId:        "dt-1",
+		ProductName:      "Điện thoại Nova X",
+		UserId:           "user-1",
+		OrderId:          "ord-123",
+		SkuId:            "dt-1-v1",
+		VariantLabel:     "256GB · Tiêu chuẩn",
+		AuthorName:       "Customer One",
+		Rating:           5,
+		Comment:          "Máy chạy mượt, đóng gói cẩn thận.",
+		Images:           []string{"http://localhost:9000/product-media/reviews/2026/11/review-1.png"},
+		VerifiedPurchase: true,
+		Hidden:           false,
+		AdminReply:       "Cảm ơn bạn đã ủng hộ DreamShop!",
+		AdminRepliedAt:   "2026-11-26T06:00:00Z",
+		CreatedAt:        "2026-11-26T05:00:00Z",
+		UpdatedAt:        "2026-11-26T05:00:00Z",
+	}
+	sampleSummaryFixture := &catalogv1.ReviewRatingSummary{
+		AverageRating: 5,
+		TotalReviews:  1,
+		Breakdown: []*catalogv1.RatingBreakdown{
+			{Rating: 5, Count: 1},
+			{Rating: 4, Count: 0},
+			{Rating: 3, Count: 0},
+			{Rating: 2, Count: 0},
+			{Rating: 1, Count: 0},
+		},
+	}
+	cat.listReviewsFn = func(_ context.Context, _ *catalogv1.ListProductReviewsRequest) (*catalogv1.ListProductReviewsResponse, error) {
+		return &catalogv1.ListProductReviewsResponse{
+			Items:      []*catalogv1.ProductReview{sampleReviewFixture},
+			Page:       1,
+			PageSize:   10,
+			TotalItems: 1,
+			TotalPages: 1,
+			Summary:    sampleSummaryFixture,
+		}, nil
+	}
+	cat.reviewEligFn = func(_ context.Context, _ *catalogv1.GetReviewEligibilityRequest) (*catalogv1.GetReviewEligibilityResponse, error) {
+		return &catalogv1.GetReviewEligibilityResponse{
+			CanReview: true,
+			EligibleOrders: []*catalogv1.EligibleReviewOrder{
+				{
+					OrderId:      "ord-124",
+					OrderCode:    "ORD-20261126-002",
+					SkuId:        "dt-1-v1",
+					VariantLabel: "256GB · Tiêu chuẩn",
+					DeliveredAt:  "2026-11-26T04:00:00Z",
+					Reviewed:     false,
+				},
+				{
+					OrderId:      "ord-123",
+					OrderCode:    "ORD-20261126-001",
+					SkuId:        "dt-1-v1",
+					VariantLabel: "256GB · Tiêu chuẩn",
+					DeliveredAt:  "2026-11-25T04:00:00Z",
+					Reviewed:     true,
+					ReviewId:     "rev-101",
+				},
+			},
+			MyReviews: []*catalogv1.ProductReview{sampleReviewFixture},
+		}, nil
+	}
+	cat.createReviewFn = func(_ context.Context, _ *catalogv1.CreateProductReviewRequest) (*catalogv1.CreateProductReviewResponse, error) {
+		return &catalogv1.CreateProductReviewResponse{
+			Review:  sampleReviewFixture,
+			Summary: sampleSummaryFixture,
+		}, nil
+	}
+	cat.updateReviewFn = func(_ context.Context, _ *catalogv1.UpdateProductReviewRequest) (*catalogv1.UpdateProductReviewResponse, error) {
+		return &catalogv1.UpdateProductReviewResponse{
+			Review:  sampleReviewFixture,
+			Summary: sampleSummaryFixture,
+		}, nil
+	}
+	cat.deleteReviewFn = func(_ context.Context, _ *catalogv1.DeleteProductReviewRequest) (*catalogv1.DeleteProductReviewResponse, error) {
+		return &catalogv1.DeleteProductReviewResponse{
+			ReviewId:  "rev-101",
+			ProductId: "dt-1",
+			Summary:   sampleSummaryFixture,
+		}, nil
+	}
+	cat.createRevMediaFn = func(_ context.Context, _ *catalogv1.CreateReviewMediaUploadRequest) (*catalogv1.CreateReviewMediaUploadResponse, error) {
+		return &catalogv1.CreateReviewMediaUploadResponse{
+			UploadId:         "rev-upload-1",
+			MediaType:        "IMAGE",
+			UploadUrl:        "http://localhost:9000/product-media/reviews/2026/11/review-1.png?X-Amz-Signature=mock",
+			PublicUrl:        "http://localhost:9000/product-media/reviews/2026/11/review-1.png",
+			ObjectKey:        "reviews/2026/11/review-1.png",
+			ExpiresInSeconds: 300,
+		}, nil
+	}
 
 	t.Run("storefront_products_200", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/storefront/products?page=1&pageSize=20", nil)
@@ -423,6 +519,101 @@ func TestContractSnapshotsBFFStorefrontDomain(t *testing.T) {
 		}
 		assertOrRecordContractSnapshot(t, snapshotPath, "bff-storefront", "bff_unauthenticated_401",
 			"bff-service", "GET /api/v1/cart", nil, rec)
+	})
+
+	t.Run("storefront_product_reviews_200", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/storefront/products/dt-1/reviews?page=1&pageSize=10", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+		assertOrRecordContractSnapshot(t, snapshotPath, "bff-storefront", "storefront_product_reviews_200",
+			"bff-service", "GET /api/v1/storefront/products/{id}/reviews", nil, rec)
+	})
+
+	t.Run("reviews_eligibility_200", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/reviews/eligibility?productId=dt-1", nil)
+		req.Header.Set("X-User-Id", "user-1")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+		assertOrRecordContractSnapshot(t, snapshotPath, "bff-storefront", "reviews_eligibility_200",
+			"bff-service", "GET /api/v1/reviews/eligibility", nil, rec)
+	})
+
+	t.Run("reviews_create_201", func(t *testing.T) {
+		createReq := map[string]any{
+			"productId":  "dt-1",
+			"orderId":    "ord-124",
+			"authorName": "Customer One",
+			"rating":     5,
+			"comment":    "Máy chạy mượt, đóng gói cẩn thận.",
+			"images":     []string{"http://localhost:9000/product-media/reviews/2026/11/review-1.png"},
+		}
+		rawReq, _ := json.Marshal(createReq)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/reviews", strings.NewReader(string(rawReq)))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-User-Id", "user-1")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
+		}
+		assertOrRecordContractSnapshot(t, snapshotPath, "bff-storefront", "reviews_create_201",
+			"bff-service", "POST /api/v1/reviews", createReq, rec)
+	})
+
+	t.Run("reviews_update_200", func(t *testing.T) {
+		updateReq := map[string]any{
+			"rating":  5,
+			"comment": "Cập nhật đánh giá sau 1 tuần sử dụng.",
+			"images":  []string{"http://localhost:9000/product-media/reviews/2026/11/review-1.png"},
+		}
+		rawReq, _ := json.Marshal(updateReq)
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/reviews/rev-101", strings.NewReader(string(rawReq)))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-User-Id", "user-1")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+		assertOrRecordContractSnapshot(t, snapshotPath, "bff-storefront", "reviews_update_200",
+			"bff-service", "PUT /api/v1/reviews/{id}", updateReq, rec)
+	})
+
+	t.Run("reviews_delete_200", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, "/api/v1/reviews/rev-101", nil)
+		req.Header.Set("X-User-Id", "user-1")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+		assertOrRecordContractSnapshot(t, snapshotPath, "bff-storefront", "reviews_delete_200",
+			"bff-service", "DELETE /api/v1/reviews/{id}", nil, rec)
+	})
+
+	t.Run("reviews_media_presign_200", func(t *testing.T) {
+		presignReq := map[string]any{
+			"filename":    "review-1.png",
+			"contentType": "image/png",
+			"sizeBytes":   2048,
+		}
+		rawReq, _ := json.Marshal(presignReq)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/reviews/media/presign", strings.NewReader(string(rawReq)))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-User-Id", "user-1")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+		assertOrRecordContractSnapshot(t, snapshotPath, "bff-storefront", "reviews_media_presign_200",
+			"bff-service", "POST /api/v1/reviews/media/presign", presignReq, rec)
 	})
 }
 
@@ -709,6 +900,72 @@ func TestContractSnapshotsBFFAdminDomain(t *testing.T) {
 	NewAdminProductsHandler(cat, inv).Register(mux)
 	NewAdminInventoryHandler(cat, inv).Register(mux)
 	NewAdminOrdersHandler(ord).Register(mux)
+	NewAdminReviewsHandler(cat).Register(mux)
+
+	adminReviewFixture := &catalogv1.ProductReview{
+		Id:               "rev-101",
+		ProductId:        "dt-1",
+		ProductName:      "Điện thoại Nova X",
+		UserId:           "user-1",
+		OrderId:          "ord-123",
+		SkuId:            "dt-1-v1",
+		VariantLabel:     "256GB · Tiêu chuẩn",
+		AuthorName:       "Customer One",
+		Rating:           5,
+		Comment:          "Máy chạy mượt, đóng gói cẩn thận.",
+		Images:           []string{"http://localhost:9000/product-media/reviews/2026/11/review-1.png"},
+		VerifiedPurchase: true,
+		Hidden:           false,
+		AdminReply:       "Cảm ơn bạn đã ủng hộ DreamShop!",
+		AdminRepliedAt:   "2026-11-26T06:00:00Z",
+		CreatedAt:        "2026-11-26T05:00:00Z",
+		UpdatedAt:        "2026-11-26T05:00:00Z",
+	}
+	hiddenReviewFixture := &catalogv1.ProductReview{
+		Id:               "rev-102",
+		ProductId:        "dt-1",
+		ProductName:      "Điện thoại Nova X",
+		UserId:           "user-2",
+		OrderId:          "ord-125",
+		SkuId:            "dt-1-v1",
+		VariantLabel:     "256GB · Tiêu chuẩn",
+		AuthorName:       "Customer Two",
+		Rating:           2,
+		Comment:          "Link quảng cáo spam.",
+		Images:           []string{},
+		VerifiedPurchase: true,
+		Hidden:           true,
+		HiddenReason:     "Nội dung quảng cáo không liên quan",
+		AdminReply:       "Đã xử lý kiểm duyệt.",
+		AdminRepliedAt:   "2026-11-26T06:10:00Z",
+		CreatedAt:        "2026-11-26T05:10:00Z",
+		UpdatedAt:        "2026-11-26T06:10:00Z",
+	}
+	cat.listAdminRevFn = func(_ context.Context, _ *catalogv1.ListAdminReviewsRequest) (*catalogv1.ListAdminReviewsResponse, error) {
+		return &catalogv1.ListAdminReviewsResponse{
+			Items:          []*catalogv1.ProductReview{adminReviewFixture, hiddenReviewFixture},
+			Page:           1,
+			PageSize:       20,
+			TotalItems:     2,
+			TotalPages:     1,
+			VisibleCount:   1,
+			HiddenCount:    1,
+			UnrepliedCount: 0,
+			AverageRating:  5,
+		}, nil
+	}
+	cat.setRevVisFn = func(_ context.Context, req *catalogv1.SetReviewVisibilityRequest) (*catalogv1.SetReviewVisibilityResponse, error) {
+		cp := *adminReviewFixture
+		cp.Hidden = req.GetHidden()
+		cp.HiddenReason = req.GetReason()
+		return &catalogv1.SetReviewVisibilityResponse{Review: &cp}, nil
+	}
+	cat.replyReviewFn = func(_ context.Context, req *catalogv1.ReplyProductReviewRequest) (*catalogv1.ReplyProductReviewResponse, error) {
+		cp := *adminReviewFixture
+		cp.AdminReply = req.GetReply()
+		cp.AdminRepliedAt = "2026-11-26T06:30:00Z"
+		return &catalogv1.ReplyProductReviewResponse{Review: &cp}, nil
+	}
 
 	t.Run("admin_products_list_200", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/products?page=1&pageSize=20", nil)
@@ -814,5 +1071,52 @@ func TestContractSnapshotsBFFAdminDomain(t *testing.T) {
 		}
 		assertOrRecordContractSnapshot(t, snapshotPath, "bff-admin", "admin_order_retry_refund_200",
 			"bff-service", "POST /api/v1/admin/orders/{id}/refund", retryReq, rec)
+	})
+
+	t.Run("admin_reviews_list_200", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/reviews?page=1&pageSize=20", nil)
+		req.Header.Set("X-User-Id", "admin-1")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+		assertOrRecordContractSnapshot(t, snapshotPath, "bff-admin", "admin_reviews_list_200",
+			"bff-service", "GET /api/v1/admin/reviews", nil, rec)
+	})
+
+	t.Run("admin_review_visibility_200", func(t *testing.T) {
+		visReq := map[string]any{
+			"hidden": true,
+			"reason": "Nội dung quảng cáo không liên quan",
+		}
+		rawReq, _ := json.Marshal(visReq)
+		req := httptest.NewRequest(http.MethodPatch, "/api/v1/admin/reviews/rev-101/visibility", strings.NewReader(string(rawReq)))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-User-Id", "admin-1")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+		assertOrRecordContractSnapshot(t, snapshotPath, "bff-admin", "admin_review_visibility_200",
+			"bff-service", "PATCH /api/v1/admin/reviews/{id}/visibility", visReq, rec)
+	})
+
+	t.Run("admin_review_reply_200", func(t *testing.T) {
+		replyReq := map[string]any{
+			"reply": "Cảm ơn bạn đã tin tưởng DreamShop!",
+		}
+		rawReq, _ := json.Marshal(replyReq)
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/reviews/rev-101/reply", strings.NewReader(string(rawReq)))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-User-Id", "admin-1")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+		assertOrRecordContractSnapshot(t, snapshotPath, "bff-admin", "admin_review_reply_200",
+			"bff-service", "PUT /api/v1/admin/reviews/{id}/reply", replyReq, rec)
 	})
 }

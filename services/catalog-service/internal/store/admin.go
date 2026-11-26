@@ -545,6 +545,7 @@ func reconcileMediaAssets(ctx context.Context, tx pgx.Tx, productID string, imag
 			SELECT public_url,
 			       status,
 			       COALESCE(product_id, ''),
+			       COALESCE(review_id::text, ''),
 			       ((status IN ('PENDING', 'ORPHANED')) AND (
 			           (expires_at IS NOT NULL AND expires_at <= now())
 			           OR (sweep_locked_until IS NOT NULL AND sweep_locked_until > now())
@@ -558,13 +559,13 @@ func reconcileMediaAssets(ctx context.Context, tx pgx.Tx, productID string, imag
 			return fmt.Errorf("lock media assets for reconciliation: %w", err)
 		}
 		for rows.Next() {
-			var publicURL, rowStatus, rowProductID string
+			var publicURL, rowStatus, rowProductID, rowReviewID string
 			var isExpired bool
-			if err := rows.Scan(&publicURL, &rowStatus, &rowProductID, &isExpired); err != nil {
+			if err := rows.Scan(&publicURL, &rowStatus, &rowProductID, &rowReviewID, &isExpired); err != nil {
 				rows.Close()
 				return fmt.Errorf("scan locked media asset: %w", err)
 			}
-			if rowStatus == domain.MediaStatusAttached && rowProductID != "" && rowProductID != productID {
+			if rowStatus == domain.MediaStatusAttached && ((rowProductID != "" && rowProductID != productID) || rowReviewID != "") {
 				rows.Close()
 				return domain.ErrMediaAlreadyAttached
 			}

@@ -77,6 +77,11 @@ func TestDevelopmentKongConsolidatesTwoServicesWithStripPathFalseAndPreservesCOR
 			paths:     []string{"/api/v1/orders"},
 			protected: true,
 		},
+		"reviews-api": {
+			service:   "bff-service",
+			paths:     []string{"/api/v1/reviews"},
+			protected: true,
+		},
 		"payments-momo-public": {
 			service: "bff-service",
 			paths: []string{
@@ -98,6 +103,11 @@ func TestDevelopmentKongConsolidatesTwoServicesWithStripPathFalseAndPreservesCOR
 		"admin-orders-api": {
 			service:   "bff-service",
 			paths:     []string{"/api/v1/admin/orders"},
+			protected: true,
+		},
+		"admin-reviews-api": {
+			service:   "bff-service",
+			paths:     []string{"/api/v1/admin/reviews"},
 			protected: true,
 		},
 	}

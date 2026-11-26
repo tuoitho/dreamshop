@@ -163,6 +163,12 @@ func TestProductionKongConsolidatesServicesWithStripPathFalseAndServesSPA(t *tes
 			methods:   []string{"GET", "POST"},
 			protected: true,
 		},
+		"reviews-api": {
+			service:   "bff-service",
+			paths:     []string{"/api/v1/reviews"},
+			methods:   []string{"GET", "POST", "PUT", "DELETE"},
+			protected: true,
+		},
 		"payments-momo-public": {
 			service: "bff-service",
 			paths: []string{
@@ -188,6 +194,12 @@ func TestProductionKongConsolidatesServicesWithStripPathFalseAndServesSPA(t *tes
 			service:   "bff-service",
 			paths:     []string{"/api/v1/admin/orders"},
 			methods:   []string{"GET", "POST"},
+			protected: true,
+		},
+		"admin-reviews-api": {
+			service:   "bff-service",
+			paths:     []string{"/api/v1/admin/reviews"},
+			methods:   []string{"GET", "PUT", "PATCH"},
 			protected: true,
 		},
 		"product-media-storage": {
