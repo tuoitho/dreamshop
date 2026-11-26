@@ -95,8 +95,11 @@ export async function loginViaKongCookieJar(
   const defaults = DEFAULT_LOCAL_TEST_ACCOUNTS[role]
   const email = options.email ?? defaults.email
   const password = options.password ?? defaults.password
+  const loginPath = role === "admin" ? "/auth/admin/login" : "/auth/login"
+  const refreshPath = role === "admin" ? "/auth/admin/refresh" : "/auth/refresh"
+  const expectedCookieName = role === "admin" ? "admin_refresh_token" : "refresh_token"
 
-  let resp = await page.request.post(`${base}/auth/login`, {
+  let resp = await page.request.post(`${base}${loginPath}`, {
     data: { email, password },
   })
 
@@ -109,19 +112,19 @@ export async function loginViaKongCookieJar(
       },
     })
     expect([201, 409]).toContain(reg.status())
-    resp = await page.request.post(`${base}/auth/login`, {
+    resp = await page.request.post(`${base}${loginPath}`, {
       data: { email, password },
     })
   }
 
-  expect(resp.ok(), `POST /auth/login via Kong failed with HTTP ${resp.status()}`).toBeTruthy()
+  expect(resp.ok(), `POST ${loginPath} via Kong failed with HTTP ${resp.status()}`).toBeTruthy()
   const body = (await resp.json()) as { data?: { accessToken?: string }; message?: unknown }
   expect(typeof body.message, "Success envelope must contain string message").toBe("string")
   expect(body.data?.accessToken, "Login response must contain data.accessToken").toBeTruthy()
 
-  const cookies = await page.context().cookies(base)
-  const refreshCookie = cookies.find((c) => c.name === "refresh_token")
-  expect(refreshCookie, "Expected HttpOnly refresh_token cookie in BrowserContext").toBeDefined()
+  const cookies = await page.context().cookies(`${base}${refreshPath}`)
+  const refreshCookie = cookies.find((c) => c.name === expectedCookieName)
+  expect(refreshCookie, `Expected HttpOnly ${expectedCookieName} cookie in BrowserContext`).toBeDefined()
   expect(refreshCookie?.httpOnly).toBe(true)
 
   return { accessToken: body.data!.accessToken! }
