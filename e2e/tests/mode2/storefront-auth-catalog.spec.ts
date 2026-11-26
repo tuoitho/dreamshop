@@ -98,7 +98,7 @@ test.describe("Mode 2 (Shape-Locked Mock): Storefront Auth & Catalog", () => {
     await loginPage.goto()
     await loginPage.submit(VALID_EMAIL, "wrong-password")
 
-    await loginPage.expectError("Email or password is invalid.")
+    await loginPage.expectError("Email hoặc mật khẩu không đúng.")
     await expect(page).toHaveURL(/\/login$/)
   })
 

@@ -119,6 +119,80 @@
         "message": "Order retrieved."
       }
     },
+    "admin_order_retry_refund_200": {
+      "service": "bff-service",
+      "endpoint": "POST /api/v1/admin/orders/{id}/refund",
+      "status": 200,
+      "requestBody": {
+        "reason": "MoMo đã hoạt động trở lại"
+      },
+      "responseBody": {
+        "data": {
+          "allowedNextStatuses": [],
+          "order": {
+            "createdAt": "2026-11-05T10:00:00Z",
+            "currency": "VND",
+            "items": [
+              {
+                "brand": "Nova",
+                "cartItemId": "ci-1",
+                "categoryName": "Điện thoại",
+                "expectedName": "Nova X15",
+                "expectedProductVersion": 3,
+                "imageEmoji": "📱",
+                "imageHue": [
+                  210,
+                  250
+                ],
+                "imageUrl": "https://cdn.example/dt-1.png",
+                "lineTotal": 300000,
+                "productId": "dt-1",
+                "quantity": 2,
+                "skuId": "dt-1-v1",
+                "unitPrice": 150000,
+                "variantColorHex": "#111111",
+                "variantLabel": "Đen 256GB"
+              }
+            ],
+            "orderCode": "ORD-20261105-ABC123",
+            "orderId": "ord-123",
+            "payUrl": "https://test-payment.momo.vn/pay/ord-123",
+            "paymentExpiresAt": "2026-11-05T10:15:00Z",
+            "paymentMethod": "MOMO",
+            "paymentStatus": "REFUNDED",
+            "refundActorType": "ADMIN",
+            "refundReason": "MoMo đã hoạt động trở lại",
+            "refundTransId": "MOMO-REF-9002",
+            "refundedAt": "2026-11-26T10:30:00Z",
+            "shippingAddress": {
+              "addressLine": "1 Lê Duẩn",
+              "label": "Nhà riêng",
+              "phone": "0901234567",
+              "provinceCode": "79",
+              "provinceName": "TP. Hồ Chí Minh",
+              "recipientName": "Nguyễn Văn A",
+              "wardCode": "26740",
+              "wardName": "Phường Bến Nghé"
+            },
+            "shippingFee": 0,
+            "status": "CANCELLED",
+            "statusHistory": [
+              {
+                "actorType": "ADMIN",
+                "createdAt": "2026-11-05T10:25:00Z",
+                "fromStatus": "CONFIRMED",
+                "toStatus": "CANCELLED"
+              }
+            ],
+            "subtotal": 300000,
+            "totalAmount": 300000,
+            "updatedAt": "2026-11-05T10:00:00Z",
+            "userId": "user-1"
+          }
+        },
+        "message": "Hoàn tiền đơn hàng thành công"
+      }
+    },
     "admin_orders_list_200": {
       "service": "bff-service",
       "endpoint": "GET /api/v1/admin/orders",
@@ -261,7 +335,7 @@
       "status": 200,
       "requestBody": {
         "contentType": "image/png",
-        "fileName": "hero.png",
+        "filename": "hero.png",
         "sizeBytes": 4096
       },
       "responseBody": {

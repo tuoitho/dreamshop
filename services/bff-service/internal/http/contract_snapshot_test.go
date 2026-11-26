@@ -690,6 +690,19 @@ func TestContractSnapshotsBFFAdminDomain(t *testing.T) {
 				AllowedNextStatuses: []string{},
 			}, nil
 		},
+		adminRetryRefundFn: func(_ context.Context, req *orderv1.AdminRetryRefundRequest) (*orderv1.AdminRetryRefundResponse, error) {
+			refunded := adminOrderFixture()
+			refunded.PaymentStatus = "REFUNDED"
+			refunded.RefundLastError = ""
+			refunded.RefundActorType = "ADMIN"
+			refunded.RefundReason = req.GetReason()
+			refunded.RefundTransId = "MOMO-REF-9002"
+			refunded.RefundedAt = "2026-11-26T10:30:00Z"
+			return &orderv1.AdminRetryRefundResponse{
+				Order:               refunded,
+				AllowedNextStatuses: []string{},
+			}, nil
+		},
 	}
 
 	mux := http.NewServeMux()
@@ -727,7 +740,7 @@ func TestContractSnapshotsBFFAdminDomain(t *testing.T) {
 
 	t.Run("admin_product_media_presign_200", func(t *testing.T) {
 		presignReq := map[string]any{
-			"fileName":    "hero.png",
+			"filename":    "hero.png",
 			"contentType": "image/png",
 			"sizeBytes":   4096,
 		}
@@ -781,5 +794,25 @@ func TestContractSnapshotsBFFAdminDomain(t *testing.T) {
 		}
 		assertOrRecordContractSnapshot(t, snapshotPath, "bff-admin", "admin_order_detail_200",
 			"bff-service", "GET /api/v1/admin/orders/{id}", nil, rec)
+	})
+
+	t.Run("admin_order_retry_refund_200", func(t *testing.T) {
+		retryReq := map[string]any{
+			"reason": "MoMo đã hoạt động trở lại",
+		}
+		rawReq, err := json.Marshal(retryReq)
+		if err != nil {
+			t.Fatalf("marshal retry refund req: %v", err)
+		}
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/orders/ord-123/refund", strings.NewReader(string(rawReq)))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-User-Id", "admin-1")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+		assertOrRecordContractSnapshot(t, snapshotPath, "bff-admin", "admin_order_retry_refund_200",
+			"bff-service", "POST /api/v1/admin/orders/{id}/refund", retryReq, rec)
 	})
 }
