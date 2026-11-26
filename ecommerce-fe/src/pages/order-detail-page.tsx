@@ -289,8 +289,18 @@ export default function OrderDetailPage() {
                   {item.variantLabel ? `${item.variantLabel} • ` : ""}Đơn giá {formatVND(item.unitPrice)} × {item.quantity}
                 </p>
               </div>
-              <div className="text-right text-sm font-bold">
-                {formatVND(item.lineTotal || item.unitPrice * item.quantity)}
+              <div className="flex shrink-0 flex-col items-end gap-1.5 text-right">
+                <div className="text-sm font-bold">
+                  {formatVND(item.lineTotal || item.unitPrice * item.quantity)}
+                </div>
+                {order.status === "DELIVERED" && (
+                  <Link
+                    to={`/san-pham/${item.productId}?reviewOrder=${encodeURIComponent(order.orderId)}#reviews`}
+                    className="text-xs font-semibold text-primary hover:underline"
+                  >
+                    Đánh giá sản phẩm
+                  </Link>
+                )}
               </div>
             </div>
           ))}

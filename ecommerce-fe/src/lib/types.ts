@@ -352,3 +352,95 @@ export interface OrderListResult {
   totalItems: number
   totalPages: number
 }
+
+export interface ProductReview {
+  id: string
+  productId: string
+  productName: string
+  userId: string
+  orderId: string
+  skuId: string
+  variantLabel: string
+  authorName: string
+  rating: number
+  comment: string
+  images: string[]
+  verifiedPurchase: boolean
+  hidden: boolean
+  hiddenReason?: string
+  adminReply?: string
+  adminRepliedAt?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface RatingBreakdown {
+  rating: number
+  count: number
+}
+
+export interface ReviewRatingSummary {
+  averageRating: number
+  totalReviews: number
+  breakdown: RatingBreakdown[]
+}
+
+export interface ProductReviewsPage {
+  items: ProductReview[]
+  page: number
+  pageSize: number
+  totalItems: number
+  totalPages: number
+  summary: ReviewRatingSummary
+}
+
+export interface EligibleReviewOrder {
+  orderId: string
+  orderCode: string
+  skuId: string
+  variantLabel: string
+  deliveredAt: string
+  reviewed: boolean
+  reviewId?: string
+}
+
+export interface ReviewEligibility {
+  canReview: boolean
+  eligibleOrders: EligibleReviewOrder[]
+  myReviews: ProductReview[]
+}
+
+export interface CreateReviewPayload {
+  productId: string
+  orderId: string
+  authorName?: string
+  rating: number
+  comment: string
+  images: string[]
+}
+
+export interface UpdateReviewPayload {
+  rating: number
+  comment: string
+  images: string[]
+}
+
+export interface ReviewMutationResult {
+  review: ProductReview
+  summary: ReviewRatingSummary
+}
+
+export interface DeleteReviewResult {
+  reviewId: string
+  productId: string
+  summary: ReviewRatingSummary
+}
+
+export interface ReviewMediaPresignResult {
+  uploadId: string
+  mediaType: string
+  uploadUrl: string
+  publicUrl: string
+  objectKey: string
+  expiresInSeconds: number
+}

@@ -148,4 +148,18 @@ describe("OrderDetailPage", () => {
     expect(screen.getAllByText(/Đang xử lý hoàn tiền/i).length).toBeGreaterThan(0)
     expect(screen.queryByText(/thất bại/i)).not.toBeInTheDocument()
   })
+
+  it("shows product review links only when the order status is DELIVERED", async () => {
+    renderDetail({
+      ...BASE_ORDER,
+      status: "DELIVERED",
+      paymentStatus: "PAID",
+    })
+
+    const reviewLink = await screen.findByRole("link", { name: "Đánh giá sản phẩm" })
+    expect(reviewLink).toHaveAttribute(
+      "href",
+      `/san-pham/${BASE_ORDER.items[0].productId}?reviewOrder=${encodeURIComponent(BASE_ORDER.orderId)}#reviews`
+    )
+  })
 })

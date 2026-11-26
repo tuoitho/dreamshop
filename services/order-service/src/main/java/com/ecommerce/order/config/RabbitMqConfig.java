@@ -20,6 +20,7 @@ public class RabbitMqConfig {
 
     public static final String RK_ORDER_CONFIRMED = "order.confirmed";
     public static final String RK_ORDER_PLACED = "order.placed";
+    public static final String RK_ORDER_DELIVERED = "order.delivered";
     public static final String RK_STOCK_RESTOCK_REQUESTED = "order.stock.restock_requested";
     public static final String RK_RESERVATION_RELEASE_REQUESTED = "order.reservation.release_requested";
     public static final String RK_PAYMENT_CANCEL_REQUESTED = "order.payment.cancel_requested";

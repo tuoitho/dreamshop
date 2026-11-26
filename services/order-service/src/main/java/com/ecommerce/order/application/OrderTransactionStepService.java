@@ -324,6 +324,30 @@ public class OrderTransactionStepService {
         insertOrderItemsEvent(order, "OrderPlaced", RabbitMqConfig.RK_ORDER_PLACED, now);
     }
 
+    public void insertOrderDeliveredOutbox(OrderEntity order, Instant now) {
+        UUID eventId = UUID.randomUUID();
+        List<Map<String, Object>> itemRefs = order.getItems().stream()
+                .map(i -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("productId", i.getProductId());
+                    m.put("skuId", i.getSkuId());
+                    m.put("variantLabel", i.getVariantLabel() == null ? "" : i.getVariantLabel());
+                    m.put("quantity", i.getQuantity());
+                    return m;
+                })
+                .toList();
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("orderId", order.getId().toString());
+        data.put("orderCode", order.getOrderCode());
+        data.put("userId", order.getUserId().toString());
+        data.put("recipientName", order.getRecipientName() == null ? "" : order.getRecipientName());
+        data.put("deliveredAt", now.toString());
+        data.put("items", itemRefs);
+
+        saveOutboxEvent(eventId, "OrderDelivered", RabbitMqConfig.RK_ORDER_DELIVERED, order.getId().toString(), data, now);
+    }
+
     private void insertOrderItemsEvent(OrderEntity order, String eventType, String routingKey, Instant now) {
         UUID eventId = UUID.randomUUID();
         List<Map<String, Object>> itemRefs = order.getItems().stream()

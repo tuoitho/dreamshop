@@ -28,6 +28,15 @@ const (
 	CatalogService_CreateProduct_FullMethodName             = "/ecommerce.catalog.v1.CatalogService/CreateProduct"
 	CatalogService_UpdateProduct_FullMethodName             = "/ecommerce.catalog.v1.CatalogService/UpdateProduct"
 	CatalogService_CreateProductMediaUpload_FullMethodName  = "/ecommerce.catalog.v1.CatalogService/CreateProductMediaUpload"
+	CatalogService_ListProductReviews_FullMethodName        = "/ecommerce.catalog.v1.CatalogService/ListProductReviews"
+	CatalogService_GetReviewEligibility_FullMethodName      = "/ecommerce.catalog.v1.CatalogService/GetReviewEligibility"
+	CatalogService_CreateProductReview_FullMethodName       = "/ecommerce.catalog.v1.CatalogService/CreateProductReview"
+	CatalogService_UpdateProductReview_FullMethodName       = "/ecommerce.catalog.v1.CatalogService/UpdateProductReview"
+	CatalogService_DeleteProductReview_FullMethodName       = "/ecommerce.catalog.v1.CatalogService/DeleteProductReview"
+	CatalogService_CreateReviewMediaUpload_FullMethodName   = "/ecommerce.catalog.v1.CatalogService/CreateReviewMediaUpload"
+	CatalogService_ListAdminReviews_FullMethodName          = "/ecommerce.catalog.v1.CatalogService/ListAdminReviews"
+	CatalogService_SetReviewVisibility_FullMethodName       = "/ecommerce.catalog.v1.CatalogService/SetReviewVisibility"
+	CatalogService_ReplyProductReview_FullMethodName        = "/ecommerce.catalog.v1.CatalogService/ReplyProductReview"
 )
 
 // CatalogServiceClient is the client API for CatalogService service.
@@ -43,6 +52,15 @@ type CatalogServiceClient interface {
 	CreateProduct(ctx context.Context, in *CreateProductRequest, opts ...grpc.CallOption) (*CreateProductResponse, error)
 	UpdateProduct(ctx context.Context, in *UpdateProductRequest, opts ...grpc.CallOption) (*UpdateProductResponse, error)
 	CreateProductMediaUpload(ctx context.Context, in *CreateProductMediaUploadRequest, opts ...grpc.CallOption) (*CreateProductMediaUploadResponse, error)
+	ListProductReviews(ctx context.Context, in *ListProductReviewsRequest, opts ...grpc.CallOption) (*ListProductReviewsResponse, error)
+	GetReviewEligibility(ctx context.Context, in *GetReviewEligibilityRequest, opts ...grpc.CallOption) (*GetReviewEligibilityResponse, error)
+	CreateProductReview(ctx context.Context, in *CreateProductReviewRequest, opts ...grpc.CallOption) (*CreateProductReviewResponse, error)
+	UpdateProductReview(ctx context.Context, in *UpdateProductReviewRequest, opts ...grpc.CallOption) (*UpdateProductReviewResponse, error)
+	DeleteProductReview(ctx context.Context, in *DeleteProductReviewRequest, opts ...grpc.CallOption) (*DeleteProductReviewResponse, error)
+	CreateReviewMediaUpload(ctx context.Context, in *CreateReviewMediaUploadRequest, opts ...grpc.CallOption) (*CreateReviewMediaUploadResponse, error)
+	ListAdminReviews(ctx context.Context, in *ListAdminReviewsRequest, opts ...grpc.CallOption) (*ListAdminReviewsResponse, error)
+	SetReviewVisibility(ctx context.Context, in *SetReviewVisibilityRequest, opts ...grpc.CallOption) (*SetReviewVisibilityResponse, error)
+	ReplyProductReview(ctx context.Context, in *ReplyProductReviewRequest, opts ...grpc.CallOption) (*ReplyProductReviewResponse, error)
 }
 
 type catalogServiceClient struct {
@@ -143,6 +161,96 @@ func (c *catalogServiceClient) CreateProductMediaUpload(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *catalogServiceClient) ListProductReviews(ctx context.Context, in *ListProductReviewsRequest, opts ...grpc.CallOption) (*ListProductReviewsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListProductReviewsResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ListProductReviews_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) GetReviewEligibility(ctx context.Context, in *GetReviewEligibilityRequest, opts ...grpc.CallOption) (*GetReviewEligibilityResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetReviewEligibilityResponse)
+	err := c.cc.Invoke(ctx, CatalogService_GetReviewEligibility_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) CreateProductReview(ctx context.Context, in *CreateProductReviewRequest, opts ...grpc.CallOption) (*CreateProductReviewResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateProductReviewResponse)
+	err := c.cc.Invoke(ctx, CatalogService_CreateProductReview_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) UpdateProductReview(ctx context.Context, in *UpdateProductReviewRequest, opts ...grpc.CallOption) (*UpdateProductReviewResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateProductReviewResponse)
+	err := c.cc.Invoke(ctx, CatalogService_UpdateProductReview_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) DeleteProductReview(ctx context.Context, in *DeleteProductReviewRequest, opts ...grpc.CallOption) (*DeleteProductReviewResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteProductReviewResponse)
+	err := c.cc.Invoke(ctx, CatalogService_DeleteProductReview_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) CreateReviewMediaUpload(ctx context.Context, in *CreateReviewMediaUploadRequest, opts ...grpc.CallOption) (*CreateReviewMediaUploadResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateReviewMediaUploadResponse)
+	err := c.cc.Invoke(ctx, CatalogService_CreateReviewMediaUpload_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) ListAdminReviews(ctx context.Context, in *ListAdminReviewsRequest, opts ...grpc.CallOption) (*ListAdminReviewsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListAdminReviewsResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ListAdminReviews_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) SetReviewVisibility(ctx context.Context, in *SetReviewVisibilityRequest, opts ...grpc.CallOption) (*SetReviewVisibilityResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetReviewVisibilityResponse)
+	err := c.cc.Invoke(ctx, CatalogService_SetReviewVisibility_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) ReplyProductReview(ctx context.Context, in *ReplyProductReviewRequest, opts ...grpc.CallOption) (*ReplyProductReviewResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReplyProductReviewResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ReplyProductReview_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CatalogServiceServer is the server API for CatalogService service.
 // All implementations must embed UnimplementedCatalogServiceServer
 // for forward compatibility.
@@ -156,6 +264,15 @@ type CatalogServiceServer interface {
 	CreateProduct(context.Context, *CreateProductRequest) (*CreateProductResponse, error)
 	UpdateProduct(context.Context, *UpdateProductRequest) (*UpdateProductResponse, error)
 	CreateProductMediaUpload(context.Context, *CreateProductMediaUploadRequest) (*CreateProductMediaUploadResponse, error)
+	ListProductReviews(context.Context, *ListProductReviewsRequest) (*ListProductReviewsResponse, error)
+	GetReviewEligibility(context.Context, *GetReviewEligibilityRequest) (*GetReviewEligibilityResponse, error)
+	CreateProductReview(context.Context, *CreateProductReviewRequest) (*CreateProductReviewResponse, error)
+	UpdateProductReview(context.Context, *UpdateProductReviewRequest) (*UpdateProductReviewResponse, error)
+	DeleteProductReview(context.Context, *DeleteProductReviewRequest) (*DeleteProductReviewResponse, error)
+	CreateReviewMediaUpload(context.Context, *CreateReviewMediaUploadRequest) (*CreateReviewMediaUploadResponse, error)
+	ListAdminReviews(context.Context, *ListAdminReviewsRequest) (*ListAdminReviewsResponse, error)
+	SetReviewVisibility(context.Context, *SetReviewVisibilityRequest) (*SetReviewVisibilityResponse, error)
+	ReplyProductReview(context.Context, *ReplyProductReviewRequest) (*ReplyProductReviewResponse, error)
 	mustEmbedUnimplementedCatalogServiceServer()
 }
 
@@ -192,6 +309,33 @@ func (UnimplementedCatalogServiceServer) UpdateProduct(context.Context, *UpdateP
 }
 func (UnimplementedCatalogServiceServer) CreateProductMediaUpload(context.Context, *CreateProductMediaUploadRequest) (*CreateProductMediaUploadResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateProductMediaUpload not implemented")
+}
+func (UnimplementedCatalogServiceServer) ListProductReviews(context.Context, *ListProductReviewsRequest) (*ListProductReviewsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListProductReviews not implemented")
+}
+func (UnimplementedCatalogServiceServer) GetReviewEligibility(context.Context, *GetReviewEligibilityRequest) (*GetReviewEligibilityResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetReviewEligibility not implemented")
+}
+func (UnimplementedCatalogServiceServer) CreateProductReview(context.Context, *CreateProductReviewRequest) (*CreateProductReviewResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateProductReview not implemented")
+}
+func (UnimplementedCatalogServiceServer) UpdateProductReview(context.Context, *UpdateProductReviewRequest) (*UpdateProductReviewResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateProductReview not implemented")
+}
+func (UnimplementedCatalogServiceServer) DeleteProductReview(context.Context, *DeleteProductReviewRequest) (*DeleteProductReviewResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteProductReview not implemented")
+}
+func (UnimplementedCatalogServiceServer) CreateReviewMediaUpload(context.Context, *CreateReviewMediaUploadRequest) (*CreateReviewMediaUploadResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateReviewMediaUpload not implemented")
+}
+func (UnimplementedCatalogServiceServer) ListAdminReviews(context.Context, *ListAdminReviewsRequest) (*ListAdminReviewsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListAdminReviews not implemented")
+}
+func (UnimplementedCatalogServiceServer) SetReviewVisibility(context.Context, *SetReviewVisibilityRequest) (*SetReviewVisibilityResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetReviewVisibility not implemented")
+}
+func (UnimplementedCatalogServiceServer) ReplyProductReview(context.Context, *ReplyProductReviewRequest) (*ReplyProductReviewResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReplyProductReview not implemented")
 }
 func (UnimplementedCatalogServiceServer) mustEmbedUnimplementedCatalogServiceServer() {}
 func (UnimplementedCatalogServiceServer) testEmbeddedByValue()                        {}
@@ -376,6 +520,168 @@ func _CatalogService_CreateProductMediaUpload_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CatalogService_ListProductReviews_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListProductReviewsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ListProductReviews(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ListProductReviews_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ListProductReviews(ctx, req.(*ListProductReviewsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_GetReviewEligibility_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetReviewEligibilityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).GetReviewEligibility(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_GetReviewEligibility_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).GetReviewEligibility(ctx, req.(*GetReviewEligibilityRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_CreateProductReview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateProductReviewRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).CreateProductReview(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_CreateProductReview_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).CreateProductReview(ctx, req.(*CreateProductReviewRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_UpdateProductReview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateProductReviewRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).UpdateProductReview(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_UpdateProductReview_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).UpdateProductReview(ctx, req.(*UpdateProductReviewRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_DeleteProductReview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteProductReviewRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).DeleteProductReview(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_DeleteProductReview_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).DeleteProductReview(ctx, req.(*DeleteProductReviewRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_CreateReviewMediaUpload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateReviewMediaUploadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).CreateReviewMediaUpload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_CreateReviewMediaUpload_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).CreateReviewMediaUpload(ctx, req.(*CreateReviewMediaUploadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_ListAdminReviews_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAdminReviewsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ListAdminReviews(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ListAdminReviews_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ListAdminReviews(ctx, req.(*ListAdminReviewsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_SetReviewVisibility_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetReviewVisibilityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).SetReviewVisibility(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_SetReviewVisibility_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).SetReviewVisibility(ctx, req.(*SetReviewVisibilityRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_ReplyProductReview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReplyProductReviewRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ReplyProductReview(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ReplyProductReview_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ReplyProductReview(ctx, req.(*ReplyProductReviewRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CatalogService_ServiceDesc is the grpc.ServiceDesc for CatalogService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -418,6 +724,42 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateProductMediaUpload",
 			Handler:    _CatalogService_CreateProductMediaUpload_Handler,
+		},
+		{
+			MethodName: "ListProductReviews",
+			Handler:    _CatalogService_ListProductReviews_Handler,
+		},
+		{
+			MethodName: "GetReviewEligibility",
+			Handler:    _CatalogService_GetReviewEligibility_Handler,
+		},
+		{
+			MethodName: "CreateProductReview",
+			Handler:    _CatalogService_CreateProductReview_Handler,
+		},
+		{
+			MethodName: "UpdateProductReview",
+			Handler:    _CatalogService_UpdateProductReview_Handler,
+		},
+		{
+			MethodName: "DeleteProductReview",
+			Handler:    _CatalogService_DeleteProductReview_Handler,
+		},
+		{
+			MethodName: "CreateReviewMediaUpload",
+			Handler:    _CatalogService_CreateReviewMediaUpload_Handler,
+		},
+		{
+			MethodName: "ListAdminReviews",
+			Handler:    _CatalogService_ListAdminReviews_Handler,
+		},
+		{
+			MethodName: "SetReviewVisibility",
+			Handler:    _CatalogService_SetReviewVisibility_Handler,
+		},
+		{
+			MethodName: "ReplyProductReview",
+			Handler:    _CatalogService_ReplyProductReview_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -130,6 +130,116 @@ public final class Catalog {
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_ecommerce_catalog_v1_UpdateProductRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_ProductReview_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_ProductReview_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_RatingBreakdown_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_RatingBreakdown_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_ReviewRatingSummary_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_ReviewRatingSummary_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_ListProductReviewsRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_ListProductReviewsRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_ListProductReviewsResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_ListProductReviewsResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_EligibleReviewOrder_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_EligibleReviewOrder_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_GetReviewEligibilityRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_GetReviewEligibilityRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_GetReviewEligibilityResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_GetReviewEligibilityResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_CreateProductReviewRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_CreateProductReviewRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_CreateProductReviewResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_CreateProductReviewResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_UpdateProductReviewRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_UpdateProductReviewRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_UpdateProductReviewResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_UpdateProductReviewResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_DeleteProductReviewRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_DeleteProductReviewRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_DeleteProductReviewResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_DeleteProductReviewResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_CreateReviewMediaUploadRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_CreateReviewMediaUploadRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_CreateReviewMediaUploadResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_CreateReviewMediaUploadResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_ListAdminReviewsRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_ListAdminReviewsRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_ListAdminReviewsResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_ListAdminReviewsResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_SetReviewVisibilityRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_SetReviewVisibilityRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_SetReviewVisibilityResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_SetReviewVisibilityResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_ReplyProductReviewRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_ReplyProductReviewRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ecommerce_catalog_v1_ReplyProductReviewResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_ecommerce_catalog_v1_ReplyProductReviewResponse_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -294,36 +404,167 @@ public final class Catalog {
       "imageHue\022@\n\010variants\030\017 \003(\0132$.ecommerce.c" +
       "atalog.v1.ProductVariantR\010variants\022\030\n\007de" +
       "tails\030\020 \003(\tR\007details\022\026\n\006videos\030\021 \003(\tR\006vi" +
-      "deos2\251\010\n\016CatalogService\022_\n\nGetProduct\022\'." +
-      "ecommerce.catalog.v1.GetProductRequest\032(" +
-      ".ecommerce.catalog.v1.GetProductResponse" +
-      "\022k\n\016SearchProducts\022+.ecommerce.catalog.v" +
-      "1.SearchProductsRequest\032,.ecommerce.cata" +
-      "log.v1.SearchProductsResponse\022t\n\021SoftDel" +
-      "eteProduct\022..ecommerce.catalog.v1.SoftDe" +
-      "leteProductRequest\032/.ecommerce.catalog.v" +
-      "1.SoftDeleteProductResponse\022t\n\021ListAdmin" +
-      "Products\022..ecommerce.catalog.v1.ListAdmi" +
-      "nProductsRequest\032/.ecommerce.catalog.v1." +
-      "ListAdminProductsResponse\022\214\001\n\031ListInvent" +
-      "oryCatalogItems\0226.ecommerce.catalog.v1.L" +
-      "istInventoryCatalogItemsRequest\0327.ecomme" +
-      "rce.catalog.v1.ListInventoryCatalogItems" +
-      "Response\022n\n\017GetAdminProduct\022,.ecommerce." +
-      "catalog.v1.GetAdminProductRequest\032-.ecom" +
-      "merce.catalog.v1.GetAdminProductResponse" +
-      "\022h\n\rCreateProduct\022*.ecommerce.catalog.v1" +
-      ".CreateProductRequest\032+.ecommerce.catalo" +
-      "g.v1.CreateProductResponse\022h\n\rUpdateProd" +
-      "uct\022*.ecommerce.catalog.v1.UpdateProduct" +
-      "Request\032+.ecommerce.catalog.v1.UpdatePro" +
-      "ductResponse\022\211\001\n\030CreateProductMediaUploa" +
-      "d\0225.ecommerce.catalog.v1.CreateProductMe" +
-      "diaUploadRequest\0326.ecommerce.catalog.v1." +
-      "CreateProductMediaUploadResponseBY\n\"com." +
-      "ecommerce.contracts.catalog.v1P\001Z1ecomme" +
-      "rce.local/contracts/go/catalog/v1;catalo" +
-      "gv1b\006proto3"
+      "deos\"\257\004\n\rProductReview\022\016\n\002id\030\001 \001(\tR\002id\022\035" +
+      "\n\nproduct_id\030\002 \001(\tR\tproductId\022!\n\014product" +
+      "_name\030\003 \001(\tR\013productName\022\027\n\007user_id\030\004 \001(" +
+      "\tR\006userId\022\031\n\010order_id\030\005 \001(\tR\007orderId\022\025\n\006" +
+      "sku_id\030\006 \001(\tR\005skuId\022#\n\rvariant_label\030\007 \001" +
+      "(\tR\014variantLabel\022\037\n\013author_name\030\010 \001(\tR\na" +
+      "uthorName\022\026\n\006rating\030\t \001(\005R\006rating\022\030\n\007com" +
+      "ment\030\n \001(\tR\007comment\022\026\n\006images\030\013 \003(\tR\006ima" +
+      "ges\022+\n\021verified_purchase\030\014 \001(\010R\020verified" +
+      "Purchase\022\026\n\006hidden\030\r \001(\010R\006hidden\022#\n\rhidd" +
+      "en_reason\030\016 \001(\tR\014hiddenReason\022\037\n\013admin_r" +
+      "eply\030\017 \001(\tR\nadminReply\022(\n\020admin_replied_" +
+      "at\030\020 \001(\tR\016adminRepliedAt\022\035\n\ncreated_at\030\021" +
+      " \001(\tR\tcreatedAt\022\035\n\nupdated_at\030\022 \001(\tR\tupd" +
+      "atedAt\"?\n\017RatingBreakdown\022\026\n\006rating\030\001 \001(" +
+      "\005R\006rating\022\024\n\005count\030\002 \001(\003R\005count\"\246\001\n\023Revi" +
+      "ewRatingSummary\022%\n\016average_rating\030\001 \001(\001R" +
+      "\raverageRating\022#\n\rtotal_reviews\030\002 \001(\003R\014t" +
+      "otalReviews\022C\n\tbreakdown\030\003 \003(\0132%.ecommer" +
+      "ce.catalog.v1.RatingBreakdownR\tbreakdown" +
+      "\"\266\001\n\031ListProductReviewsRequest\022\035\n\nproduc" +
+      "t_id\030\001 \001(\tR\tproductId\022\026\n\006rating\030\002 \001(\005R\006r" +
+      "ating\022\035\n\nhas_images\030\003 \001(\010R\thasImages\022\022\n\004" +
+      "sort\030\004 \001(\tR\004sort\022\022\n\004page\030\005 \001(\005R\004page\022\033\n\t" +
+      "page_size\030\006 \001(\005R\010pageSize\"\217\002\n\032ListProduc" +
+      "tReviewsResponse\0229\n\005items\030\001 \003(\0132#.ecomme" +
+      "rce.catalog.v1.ProductReviewR\005items\022\022\n\004p" +
+      "age\030\002 \001(\005R\004page\022\033\n\tpage_size\030\003 \001(\005R\010page" +
+      "Size\022\037\n\013total_items\030\004 \001(\003R\ntotalItems\022\037\n" +
+      "\013total_pages\030\005 \001(\005R\ntotalPages\022C\n\007summar" +
+      "y\030\006 \001(\0132).ecommerce.catalog.v1.ReviewRat" +
+      "ingSummaryR\007summary\"\347\001\n\023EligibleReviewOr" +
+      "der\022\031\n\010order_id\030\001 \001(\tR\007orderId\022\035\n\norder_" +
+      "code\030\002 \001(\tR\torderCode\022\025\n\006sku_id\030\003 \001(\tR\005s" +
+      "kuId\022#\n\rvariant_label\030\004 \001(\tR\014variantLabe" +
+      "l\022!\n\014delivered_at\030\005 \001(\tR\013deliveredAt\022\032\n\010" +
+      "reviewed\030\006 \001(\010R\010reviewed\022\033\n\treview_id\030\007 " +
+      "\001(\tR\010reviewId\"U\n\033GetReviewEligibilityReq" +
+      "uest\022\027\n\007user_id\030\001 \001(\tR\006userId\022\035\n\nproduct" +
+      "_id\030\002 \001(\tR\tproductId\"\325\001\n\034GetReviewEligib" +
+      "ilityResponse\022\035\n\ncan_review\030\001 \001(\010R\tcanRe" +
+      "view\022R\n\017eligible_orders\030\002 \003(\0132).ecommerc" +
+      "e.catalog.v1.EligibleReviewOrderR\016eligib" +
+      "leOrders\022B\n\nmy_reviews\030\003 \003(\0132#.ecommerce" +
+      ".catalog.v1.ProductReviewR\tmyReviews\"\332\001\n" +
+      "\032CreateProductReviewRequest\022\027\n\007user_id\030\001" +
+      " \001(\tR\006userId\022\035\n\nproduct_id\030\002 \001(\tR\tproduc" +
+      "tId\022\031\n\010order_id\030\003 \001(\tR\007orderId\022\037\n\013author" +
+      "_name\030\004 \001(\tR\nauthorName\022\026\n\006rating\030\005 \001(\005R" +
+      "\006rating\022\030\n\007comment\030\006 \001(\tR\007comment\022\026\n\006ima" +
+      "ges\030\007 \003(\tR\006images\"\237\001\n\033CreateProductRevie" +
+      "wResponse\022;\n\006review\030\001 \001(\0132#.ecommerce.ca" +
+      "talog.v1.ProductReviewR\006review\022C\n\007summar" +
+      "y\030\002 \001(\0132).ecommerce.catalog.v1.ReviewRat" +
+      "ingSummaryR\007summary\"\234\001\n\032UpdateProductRev" +
+      "iewRequest\022\027\n\007user_id\030\001 \001(\tR\006userId\022\033\n\tr" +
+      "eview_id\030\002 \001(\tR\010reviewId\022\026\n\006rating\030\003 \001(\005" +
+      "R\006rating\022\030\n\007comment\030\004 \001(\tR\007comment\022\026\n\006im" +
+      "ages\030\005 \003(\tR\006images\"\237\001\n\033UpdateProductRevi" +
+      "ewResponse\022;\n\006review\030\001 \001(\0132#.ecommerce.c" +
+      "atalog.v1.ProductReviewR\006review\022C\n\007summa" +
+      "ry\030\002 \001(\0132).ecommerce.catalog.v1.ReviewRa" +
+      "tingSummaryR\007summary\"R\n\032DeleteProductRev" +
+      "iewRequest\022\027\n\007user_id\030\001 \001(\tR\006userId\022\033\n\tr" +
+      "eview_id\030\002 \001(\tR\010reviewId\"\236\001\n\033DeleteProdu" +
+      "ctReviewResponse\022\033\n\treview_id\030\001 \001(\tR\010rev" +
+      "iewId\022\035\n\nproduct_id\030\002 \001(\tR\tproductId\022C\n\007" +
+      "summary\030\003 \001(\0132).ecommerce.catalog.v1.Rev" +
+      "iewRatingSummaryR\007summary\"\227\001\n\036CreateRevi" +
+      "ewMediaUploadRequest\022\027\n\007user_id\030\001 \001(\tR\006u" +
+      "serId\022\032\n\010filename\030\002 \001(\tR\010filename\022!\n\014con" +
+      "tent_type\030\003 \001(\tR\013contentType\022\035\n\nsize_byt" +
+      "es\030\004 \001(\003R\tsizeBytes\"\350\001\n\037CreateReviewMedi" +
+      "aUploadResponse\022\033\n\tupload_id\030\001 \001(\tR\010uplo" +
+      "adId\022\035\n\nmedia_type\030\002 \001(\tR\tmediaType\022\035\n\nu" +
+      "pload_url\030\003 \001(\tR\tuploadUrl\022\035\n\npublic_url" +
+      "\030\004 \001(\tR\tpublicUrl\022\035\n\nobject_key\030\005 \001(\tR\to" +
+      "bjectKey\022,\n\022expires_in_seconds\030\006 \001(\005R\020ex" +
+      "piresInSeconds\"\353\001\n\027ListAdminReviewsReque" +
+      "st\022\027\n\007user_id\030\001 \001(\tR\006userId\022\024\n\005query\030\002 \001" +
+      "(\tR\005query\022\035\n\nproduct_id\030\003 \001(\tR\tproductId" +
+      "\022\026\n\006rating\030\004 \001(\005R\006rating\022\026\n\006status\030\005 \001(\t" +
+      "R\006status\022!\n\014reply_status\030\006 \001(\tR\013replySta" +
+      "tus\022\022\n\004page\030\007 \001(\005R\004page\022\033\n\tpage_size\030\010 \001" +
+      "(\005R\010pageSize\"\340\002\n\030ListAdminReviewsRespons" +
+      "e\0229\n\005items\030\001 \003(\0132#.ecommerce.catalog.v1." +
+      "ProductReviewR\005items\022\022\n\004page\030\002 \001(\005R\004page" +
+      "\022\033\n\tpage_size\030\003 \001(\005R\010pageSize\022\037\n\013total_i" +
+      "tems\030\004 \001(\003R\ntotalItems\022\037\n\013total_pages\030\005 " +
+      "\001(\005R\ntotalPages\022#\n\rvisible_count\030\006 \001(\003R\014" +
+      "visibleCount\022!\n\014hidden_count\030\007 \001(\003R\013hidd" +
+      "enCount\022\'\n\017unreplied_count\030\010 \001(\003R\016unrepl" +
+      "iedCount\022%\n\016average_rating\030\t \001(\001R\raverag" +
+      "eRating\"\202\001\n\032SetReviewVisibilityRequest\022\027" +
+      "\n\007user_id\030\001 \001(\tR\006userId\022\033\n\treview_id\030\002 \001" +
+      "(\tR\010reviewId\022\026\n\006hidden\030\003 \001(\010R\006hidden\022\026\n\006" +
+      "reason\030\004 \001(\tR\006reason\"Z\n\033SetReviewVisibil" +
+      "ityResponse\022;\n\006review\030\001 \001(\0132#.ecommerce." +
+      "catalog.v1.ProductReviewR\006review\"g\n\031Repl" +
+      "yProductReviewRequest\022\027\n\007user_id\030\001 \001(\tR\006" +
+      "userId\022\033\n\treview_id\030\002 \001(\tR\010reviewId\022\024\n\005r" +
+      "eply\030\003 \001(\tR\005reply\"Y\n\032ReplyProductReviewR" +
+      "esponse\022;\n\006review\030\001 \001(\0132#.ecommerce.cata" +
+      "log.v1.ProductReviewR\006review2\206\021\n\016Catalog" +
+      "Service\022_\n\nGetProduct\022\'.ecommerce.catalo" +
+      "g.v1.GetProductRequest\032(.ecommerce.catal" +
+      "og.v1.GetProductResponse\022k\n\016SearchProduc" +
+      "ts\022+.ecommerce.catalog.v1.SearchProducts" +
+      "Request\032,.ecommerce.catalog.v1.SearchPro" +
+      "ductsResponse\022t\n\021SoftDeleteProduct\022..eco" +
+      "mmerce.catalog.v1.SoftDeleteProductReque" +
+      "st\032/.ecommerce.catalog.v1.SoftDeleteProd" +
+      "uctResponse\022t\n\021ListAdminProducts\022..ecomm" +
+      "erce.catalog.v1.ListAdminProductsRequest" +
+      "\032/.ecommerce.catalog.v1.ListAdminProduct" +
+      "sResponse\022\214\001\n\031ListInventoryCatalogItems\022" +
+      "6.ecommerce.catalog.v1.ListInventoryCata" +
+      "logItemsRequest\0327.ecommerce.catalog.v1.L" +
+      "istInventoryCatalogItemsResponse\022n\n\017GetA" +
+      "dminProduct\022,.ecommerce.catalog.v1.GetAd" +
+      "minProductRequest\032-.ecommerce.catalog.v1" +
+      ".GetAdminProductResponse\022h\n\rCreateProduc" +
+      "t\022*.ecommerce.catalog.v1.CreateProductRe" +
+      "quest\032+.ecommerce.catalog.v1.CreateProdu" +
+      "ctResponse\022h\n\rUpdateProduct\022*.ecommerce." +
+      "catalog.v1.UpdateProductRequest\032+.ecomme" +
+      "rce.catalog.v1.UpdateProductResponse\022\211\001\n" +
+      "\030CreateProductMediaUpload\0225.ecommerce.ca" +
+      "talog.v1.CreateProductMediaUploadRequest" +
+      "\0326.ecommerce.catalog.v1.CreateProductMed" +
+      "iaUploadResponse\022w\n\022ListProductReviews\022/" +
+      ".ecommerce.catalog.v1.ListProductReviews" +
+      "Request\0320.ecommerce.catalog.v1.ListProdu" +
+      "ctReviewsResponse\022}\n\024GetReviewEligibilit" +
+      "y\0221.ecommerce.catalog.v1.GetReviewEligib" +
+      "ilityRequest\0322.ecommerce.catalog.v1.GetR" +
+      "eviewEligibilityResponse\022z\n\023CreateProduc" +
+      "tReview\0220.ecommerce.catalog.v1.CreatePro" +
+      "ductReviewRequest\0321.ecommerce.catalog.v1" +
+      ".CreateProductReviewResponse\022z\n\023UpdatePr" +
+      "oductReview\0220.ecommerce.catalog.v1.Updat" +
+      "eProductReviewRequest\0321.ecommerce.catalo" +
+      "g.v1.UpdateProductReviewResponse\022z\n\023Dele" +
+      "teProductReview\0220.ecommerce.catalog.v1.D" +
+      "eleteProductReviewRequest\0321.ecommerce.ca" +
+      "talog.v1.DeleteProductReviewResponse\022\206\001\n" +
+      "\027CreateReviewMediaUpload\0224.ecommerce.cat" +
+      "alog.v1.CreateReviewMediaUploadRequest\0325" +
+      ".ecommerce.catalog.v1.CreateReviewMediaU" +
+      "ploadResponse\022q\n\020ListAdminReviews\022-.ecom" +
+      "merce.catalog.v1.ListAdminReviewsRequest" +
+      "\032..ecommerce.catalog.v1.ListAdminReviews" +
+      "Response\022z\n\023SetReviewVisibility\0220.ecomme" +
+      "rce.catalog.v1.SetReviewVisibilityReques" +
+      "t\0321.ecommerce.catalog.v1.SetReviewVisibi" +
+      "lityResponse\022w\n\022ReplyProductReview\022/.eco" +
+      "mmerce.catalog.v1.ReplyProductReviewRequ" +
+      "est\0320.ecommerce.catalog.v1.ReplyProductR" +
+      "eviewResponseBY\n\"com.ecommerce.contracts" +
+      ".catalog.v1P\001Z1ecommerce.local/contracts" +
+      "/go/catalog/v1;catalogv1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -468,6 +709,138 @@ public final class Catalog {
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ecommerce_catalog_v1_UpdateProductRequest_descriptor,
         new java.lang.String[] { "UserId", "Id", "Name", "ShortDescription", "Description", "Brand", "CategoryId", "CategoryName", "Images", "IsNew", "Badge", "Featured", "Emoji", "ImageHue", "Variants", "Details", "Videos", });
+    internal_static_ecommerce_catalog_v1_ProductReview_descriptor =
+      getDescriptor().getMessageTypes().get(23);
+    internal_static_ecommerce_catalog_v1_ProductReview_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_ProductReview_descriptor,
+        new java.lang.String[] { "Id", "ProductId", "ProductName", "UserId", "OrderId", "SkuId", "VariantLabel", "AuthorName", "Rating", "Comment", "Images", "VerifiedPurchase", "Hidden", "HiddenReason", "AdminReply", "AdminRepliedAt", "CreatedAt", "UpdatedAt", });
+    internal_static_ecommerce_catalog_v1_RatingBreakdown_descriptor =
+      getDescriptor().getMessageTypes().get(24);
+    internal_static_ecommerce_catalog_v1_RatingBreakdown_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_RatingBreakdown_descriptor,
+        new java.lang.String[] { "Rating", "Count", });
+    internal_static_ecommerce_catalog_v1_ReviewRatingSummary_descriptor =
+      getDescriptor().getMessageTypes().get(25);
+    internal_static_ecommerce_catalog_v1_ReviewRatingSummary_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_ReviewRatingSummary_descriptor,
+        new java.lang.String[] { "AverageRating", "TotalReviews", "Breakdown", });
+    internal_static_ecommerce_catalog_v1_ListProductReviewsRequest_descriptor =
+      getDescriptor().getMessageTypes().get(26);
+    internal_static_ecommerce_catalog_v1_ListProductReviewsRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_ListProductReviewsRequest_descriptor,
+        new java.lang.String[] { "ProductId", "Rating", "HasImages", "Sort", "Page", "PageSize", });
+    internal_static_ecommerce_catalog_v1_ListProductReviewsResponse_descriptor =
+      getDescriptor().getMessageTypes().get(27);
+    internal_static_ecommerce_catalog_v1_ListProductReviewsResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_ListProductReviewsResponse_descriptor,
+        new java.lang.String[] { "Items", "Page", "PageSize", "TotalItems", "TotalPages", "Summary", });
+    internal_static_ecommerce_catalog_v1_EligibleReviewOrder_descriptor =
+      getDescriptor().getMessageTypes().get(28);
+    internal_static_ecommerce_catalog_v1_EligibleReviewOrder_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_EligibleReviewOrder_descriptor,
+        new java.lang.String[] { "OrderId", "OrderCode", "SkuId", "VariantLabel", "DeliveredAt", "Reviewed", "ReviewId", });
+    internal_static_ecommerce_catalog_v1_GetReviewEligibilityRequest_descriptor =
+      getDescriptor().getMessageTypes().get(29);
+    internal_static_ecommerce_catalog_v1_GetReviewEligibilityRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_GetReviewEligibilityRequest_descriptor,
+        new java.lang.String[] { "UserId", "ProductId", });
+    internal_static_ecommerce_catalog_v1_GetReviewEligibilityResponse_descriptor =
+      getDescriptor().getMessageTypes().get(30);
+    internal_static_ecommerce_catalog_v1_GetReviewEligibilityResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_GetReviewEligibilityResponse_descriptor,
+        new java.lang.String[] { "CanReview", "EligibleOrders", "MyReviews", });
+    internal_static_ecommerce_catalog_v1_CreateProductReviewRequest_descriptor =
+      getDescriptor().getMessageTypes().get(31);
+    internal_static_ecommerce_catalog_v1_CreateProductReviewRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_CreateProductReviewRequest_descriptor,
+        new java.lang.String[] { "UserId", "ProductId", "OrderId", "AuthorName", "Rating", "Comment", "Images", });
+    internal_static_ecommerce_catalog_v1_CreateProductReviewResponse_descriptor =
+      getDescriptor().getMessageTypes().get(32);
+    internal_static_ecommerce_catalog_v1_CreateProductReviewResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_CreateProductReviewResponse_descriptor,
+        new java.lang.String[] { "Review", "Summary", });
+    internal_static_ecommerce_catalog_v1_UpdateProductReviewRequest_descriptor =
+      getDescriptor().getMessageTypes().get(33);
+    internal_static_ecommerce_catalog_v1_UpdateProductReviewRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_UpdateProductReviewRequest_descriptor,
+        new java.lang.String[] { "UserId", "ReviewId", "Rating", "Comment", "Images", });
+    internal_static_ecommerce_catalog_v1_UpdateProductReviewResponse_descriptor =
+      getDescriptor().getMessageTypes().get(34);
+    internal_static_ecommerce_catalog_v1_UpdateProductReviewResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_UpdateProductReviewResponse_descriptor,
+        new java.lang.String[] { "Review", "Summary", });
+    internal_static_ecommerce_catalog_v1_DeleteProductReviewRequest_descriptor =
+      getDescriptor().getMessageTypes().get(35);
+    internal_static_ecommerce_catalog_v1_DeleteProductReviewRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_DeleteProductReviewRequest_descriptor,
+        new java.lang.String[] { "UserId", "ReviewId", });
+    internal_static_ecommerce_catalog_v1_DeleteProductReviewResponse_descriptor =
+      getDescriptor().getMessageTypes().get(36);
+    internal_static_ecommerce_catalog_v1_DeleteProductReviewResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_DeleteProductReviewResponse_descriptor,
+        new java.lang.String[] { "ReviewId", "ProductId", "Summary", });
+    internal_static_ecommerce_catalog_v1_CreateReviewMediaUploadRequest_descriptor =
+      getDescriptor().getMessageTypes().get(37);
+    internal_static_ecommerce_catalog_v1_CreateReviewMediaUploadRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_CreateReviewMediaUploadRequest_descriptor,
+        new java.lang.String[] { "UserId", "Filename", "ContentType", "SizeBytes", });
+    internal_static_ecommerce_catalog_v1_CreateReviewMediaUploadResponse_descriptor =
+      getDescriptor().getMessageTypes().get(38);
+    internal_static_ecommerce_catalog_v1_CreateReviewMediaUploadResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_CreateReviewMediaUploadResponse_descriptor,
+        new java.lang.String[] { "UploadId", "MediaType", "UploadUrl", "PublicUrl", "ObjectKey", "ExpiresInSeconds", });
+    internal_static_ecommerce_catalog_v1_ListAdminReviewsRequest_descriptor =
+      getDescriptor().getMessageTypes().get(39);
+    internal_static_ecommerce_catalog_v1_ListAdminReviewsRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_ListAdminReviewsRequest_descriptor,
+        new java.lang.String[] { "UserId", "Query", "ProductId", "Rating", "Status", "ReplyStatus", "Page", "PageSize", });
+    internal_static_ecommerce_catalog_v1_ListAdminReviewsResponse_descriptor =
+      getDescriptor().getMessageTypes().get(40);
+    internal_static_ecommerce_catalog_v1_ListAdminReviewsResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_ListAdminReviewsResponse_descriptor,
+        new java.lang.String[] { "Items", "Page", "PageSize", "TotalItems", "TotalPages", "VisibleCount", "HiddenCount", "UnrepliedCount", "AverageRating", });
+    internal_static_ecommerce_catalog_v1_SetReviewVisibilityRequest_descriptor =
+      getDescriptor().getMessageTypes().get(41);
+    internal_static_ecommerce_catalog_v1_SetReviewVisibilityRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_SetReviewVisibilityRequest_descriptor,
+        new java.lang.String[] { "UserId", "ReviewId", "Hidden", "Reason", });
+    internal_static_ecommerce_catalog_v1_SetReviewVisibilityResponse_descriptor =
+      getDescriptor().getMessageTypes().get(42);
+    internal_static_ecommerce_catalog_v1_SetReviewVisibilityResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_SetReviewVisibilityResponse_descriptor,
+        new java.lang.String[] { "Review", });
+    internal_static_ecommerce_catalog_v1_ReplyProductReviewRequest_descriptor =
+      getDescriptor().getMessageTypes().get(43);
+    internal_static_ecommerce_catalog_v1_ReplyProductReviewRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_ReplyProductReviewRequest_descriptor,
+        new java.lang.String[] { "UserId", "ReviewId", "Reply", });
+    internal_static_ecommerce_catalog_v1_ReplyProductReviewResponse_descriptor =
+      getDescriptor().getMessageTypes().get(44);
+    internal_static_ecommerce_catalog_v1_ReplyProductReviewResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ecommerce_catalog_v1_ReplyProductReviewResponse_descriptor,
+        new java.lang.String[] { "Review", });
     com.ecommerce.contracts.common.v1.Common.getDescriptor();
   }
 

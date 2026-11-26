@@ -6,20 +6,27 @@ import type {
   CartData,
   CreateOrderPayload,
   CreateOrderResult,
+  CreateReviewPayload,
   CreateShippingAddressPayload,
   CurrentUser,
+  DeleteReviewResult,
   FavoriteData,
   LoginRequest,
   LoginResponse,
   OrderDetail,
   OrderListResult,
   ProductDetail,
+  ProductReviewsPage,
   RegisterRequest,
   RegisterResponse,
+  ReviewEligibility,
+  ReviewMediaPresignResult,
+  ReviewMutationResult,
   SearchProductsParams,
   SearchProductsResult,
   ShippingAddress,
   UpdateProfileRequest,
+  UpdateReviewPayload,
 } from "./types"
 import { clearAccessToken, getAccessToken, getSessionEpoch, runSingleFlightRefresh, setAccessToken } from "./auth-session"
 import { resolveErrorMessage } from "./error-messages"
@@ -487,4 +494,118 @@ export async function cancelOrder(orderId: string, reason?: string): Promise<Ord
   } catch (error) {
     throw toClientError(error)
   }
+}
+
+export async function listProductReviews(
+  productId: string,
+  params?: {
+    rating?: number
+    hasImages?: boolean
+    sort?: "newest" | "highest" | "lowest"
+    page?: number
+    pageSize?: number
+  },
+  signal?: AbortSignal
+): Promise<ProductReviewsPage> {
+  try {
+    const query: Record<string, string | number | boolean> = {}
+    if (params?.rating) query.rating = params.rating
+    if (params?.hasImages) query.hasImages = true
+    if (params?.sort) query.sort = params.sort
+    if (params?.page !== undefined) query.page = params.page
+    if (params?.pageSize !== undefined) query.pageSize = params.pageSize
+    const { data } = await http.get<ApiResponse<ProductReviewsPage>>(
+      `/storefront/products/${encodeURIComponent(productId)}/reviews`,
+      { params: query, signal }
+    )
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function getReviewEligibility(
+  productId: string,
+  signal?: AbortSignal
+): Promise<ReviewEligibility> {
+  try {
+    const { data } = await http.get<ApiResponse<ReviewEligibility>>("/reviews/eligibility", {
+      params: { productId },
+      signal,
+    })
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function createProductReview(
+  payload: CreateReviewPayload
+): Promise<ReviewMutationResult> {
+  try {
+    const { data } = await http.post<ApiResponse<ReviewMutationResult>>("/reviews", payload)
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function updateProductReview(
+  reviewId: string,
+  payload: UpdateReviewPayload
+): Promise<ReviewMutationResult> {
+  try {
+    const { data } = await http.put<ApiResponse<ReviewMutationResult>>(
+      `/reviews/${encodeURIComponent(reviewId)}`,
+      payload
+    )
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function deleteProductReview(reviewId: string): Promise<DeleteReviewResult> {
+  try {
+    const { data } = await http.delete<ApiResponse<DeleteReviewResult>>(
+      `/reviews/${encodeURIComponent(reviewId)}`
+    )
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function presignReviewMedia(file: {
+  filename: string
+  contentType: string
+  sizeBytes: number
+}): Promise<ReviewMediaPresignResult> {
+  try {
+    const { data } = await http.post<ApiResponse<ReviewMediaPresignResult>>(
+      "/reviews/media/presign",
+      file,
+      { _silentToast: true } as SessionAwareRequestConfig
+    )
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function uploadReviewMediaFile(file: File): Promise<string> {
+  const presigned = await presignReviewMedia({
+    filename: file.name,
+    contentType: file.type,
+    sizeBytes: file.size,
+  })
+  const resp = await fetch(presigned.uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type },
+    body: file,
+  })
+  if (!resp.ok) {
+    throw new Error(`Không thể tải ảnh lên (HTTP ${resp.status}).`)
+  }
+  return presigned.publicUrl
 }

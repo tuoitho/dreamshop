@@ -61,6 +61,7 @@ class IdentityDatabaseMigrationTest extends PostgresIntegrationTestSupport {
                         "order.admin.view", "order.cancel", "order.create",
                         "order.view", "product.create", "product.delete",
                         "product.update", "product.view", "rbac.manage", "rbac.view",
+                        "review.admin.moderate", "review.admin.view", "review.create",
                         "user.role.assign", "user.status.update", "user.view");
         assertThat(jdbc.sql("""
                 select child_name from auth_item_children
@@ -68,10 +69,11 @@ class IdentityDatabaseMigrationTest extends PostgresIntegrationTestSupport {
                 order by child_name
                 """).query(String.class).list())
                 .contains("inventory.update", "inventory.view", "product.create",
-                        "product.delete", "product.update", "product.view")
+                        "product.delete", "product.update", "product.view",
+                        "review.admin.moderate", "review.admin.view")
                 .doesNotContain("cart.clear", "cart.item.add", "cart.item.remove",
                         "cart.item.update", "cart.view", "order.cancel", "order.create",
-                        "order.view");
+                        "order.view", "review.create");
         assertThat(jdbc.sql("""
                 select child_name from auth_item_children
                 where parent_name = 'CUSTOMER' and child_name like 'cart.%'
@@ -91,6 +93,18 @@ class IdentityDatabaseMigrationTest extends PostgresIntegrationTestSupport {
                 order by child_name
                 """).query(String.class).list())
                 .containsExactly("order.admin.update", "order.admin.view");
+        assertThat(jdbc.sql("""
+                select child_name from auth_item_children
+                where parent_name = 'CUSTOMER' and child_name like 'review.%'
+                order by child_name
+                """).query(String.class).list())
+                .containsExactly("review.create");
+        assertThat(jdbc.sql("""
+                select child_name from auth_item_children
+                where parent_name = 'ADMIN' and child_name like 'review.%'
+                order by child_name
+                """).query(String.class).list())
+                .containsExactly("review.admin.moderate", "review.admin.view");
         assertThat(jdbc.sql("""
                 select count(*) from auth_item_children
                 where parent_name = 'CUSTOMER' and child_name = 'favorite.manage'

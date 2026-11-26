@@ -183,6 +183,7 @@ func runWithDeps(args []string, in io.Reader, out, errOut io.Writer, baseEnv []s
 
 	case "catalog-service":
 		setDefaultEnv(env, "DATABASE_URL", "postgres://ecommerce:change-me-local-only@127.0.0.1:5432/catalog_db?sslmode=disable")
+		setDefaultEnv(env, "RABBITMQ_URL", "amqp://ecommerce:change-me-local-only@127.0.0.1:5672/")
 		setDefaultEnv(env, "HTTP_ADDR", ":8085")
 		setDefaultEnv(env, "GRPC_ADDR", "127.0.0.1:50051")
 		setDefaultEnv(env, "IDENTITY_GRPC_ADDR", "127.0.0.1:50054")

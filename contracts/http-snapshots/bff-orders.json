@@ -159,7 +159,7 @@
       "responseBody": {
         "code": "ORDER_NOT_FOUND",
         "message": "Không tìm thấy đơn hàng",
-        "traceId": "036ed2f6e0653138"
+        "traceId": "b153d6c0ed7b80ca"
       }
     },
     "orders_list_200": {

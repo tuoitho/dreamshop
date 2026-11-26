@@ -132,6 +132,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
       identity-service:
         condition: service_healthy
       minio:
@@ -140,6 +142,7 @@ services:
       HTTP_ADDR: ":8081"
       GRPC_ADDR: "0.0.0.0:50051"
       DATABASE_URL: postgres://${POSTGRES_USER:-ecommerce}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/catalog_db?sslmode=disable
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-ecommerce}:${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS is required}@rabbitmq:5672/
       IDENTITY_GRPC_ADDR: "identity-service:50054"
       IDENTITY_GRPC_TIMEOUT: "500ms"
       MINIO_ENDPOINT: "minio:9000"
