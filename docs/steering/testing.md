@@ -38,12 +38,32 @@ end-to-end environment. Contract tests cover protobuf evolution, REST envelopes,
 HTTP/gRPC error mapping, event versions, required metadata, and tolerant
 consumption of additive fields.
 
+Public HTTP contracts between `bff-service` / `identity-service` and the
+frontends (`ecommerce-fe`, `admin-fe`) are locked two-way via domain-grouped
+golden snapshots under `contracts/http-snapshots/*.json` (`identity-auth.json`,
+`identity-admin.json`, `bff-storefront.json`, `bff-orders.json`,
+`bff-admin.json`): backend Go `httptest` and Spring `MockMvc` tests assert shape
+parity (failing on drift unless `UPDATE_CONTRACT_SNAPSHOTS=1`), and Playwright
+Mode 2 tests consume those exact files through `mountContractRoutes`.
+
 ### End-to-end tests
 
-Reserve E2E tests for critical cross-service flows and edge routing, such as an
-authenticated client request through Kong and a commerce workflow spanning
-Order and Inventory. Do not test every validation branch through E2E; keep edge
-cases at the narrowest reliable layer.
+Apply the `e2e-testing` skill with two browser modes (desktop-only `1440x900`
+unless mobile is explicitly requested):
+
+- **Mode 2 (Shape-Locked Mock E2E — default for browser ACs):** `make verify SERVICE=e2e`
+  runs Playwright in `e2e/` against Vite (`ecommerce-fe` `:5173` / `admin-fe`
+  `:5174`) with all `/api/v1/**` routes locked to `contracts/http-snapshots/*.json`
+  (no Docker or 7 backend services required).
+- **Mode 1 (Full-Stack Live E2E via Kong — opt-in):** `make e2e-live` runs
+  critical cross-service browser smoke flows through Kong (`:8000`) when the
+  full local stack is running, reusing the default local test accounts from
+  `AGENTS.md` and `HttpOnly` refresh cookies (zero `localStorage` tokens).
+
+Reserve distributed API/Saga verification (`scripts/concurrency-sim`,
+`scripts/verify-foundation`) for concurrency storms, idempotency races,
+outbox/RabbitMQ delivery, and SQL invariants. Do not test every validation
+branch through live E2E; keep edge cases at the narrowest reliable layer.
 
 ## Bug Fixes
 

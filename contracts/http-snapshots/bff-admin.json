@@ -1,0 +1,335 @@
+{
+  "domain": "bff-admin",
+  "snapshots": {
+    "admin_inventory_list_200": {
+      "service": "bff-service",
+      "endpoint": "GET /api/v1/admin/inventory",
+      "status": 200,
+      "responseBody": {
+        "data": {
+          "items": [
+            {
+              "availableQuantity": 18,
+              "brand": "Nova",
+              "categoryId": "dien-thoai",
+              "categoryName": "Điện thoại",
+              "deleted": false,
+              "emoji": "",
+              "imageHue": [],
+              "imageUrl": "",
+              "name": "Nova X15",
+              "originalPrice": 21990000,
+              "price": 18990000,
+              "productId": "dt-1",
+              "quantity": 20,
+              "reserved": 2,
+              "skuId": "dt-1-v1",
+              "stockStatus": "IN_STOCK",
+              "variantColorHex": "#111827",
+              "variantLabel": "Đen 256GB"
+            }
+          ],
+          "page": 1,
+          "pageSize": 20,
+          "summary": {
+            "inStockCount": 1,
+            "lowStockCount": 0,
+            "outOfStockCount": 0,
+            "totalAvailable": 18,
+            "totalQuantity": 20,
+            "totalReserved": 2,
+            "totalTrackedProducts": 1,
+            "totalTrackedSkus": 1
+          },
+          "totalItems": 1,
+          "totalPages": 1
+        },
+        "message": "Inventory retrieved."
+      }
+    },
+    "admin_order_detail_200": {
+      "service": "bff-service",
+      "endpoint": "GET /api/v1/admin/orders/{id}",
+      "status": 200,
+      "responseBody": {
+        "data": {
+          "allowedNextStatuses": [],
+          "order": {
+            "createdAt": "2026-11-05T10:00:00Z",
+            "currency": "VND",
+            "items": [
+              {
+                "brand": "Nova",
+                "cartItemId": "ci-1",
+                "categoryName": "Điện thoại",
+                "expectedName": "Nova X15",
+                "expectedProductVersion": 3,
+                "imageEmoji": "📱",
+                "imageHue": [
+                  210,
+                  250
+                ],
+                "imageUrl": "https://cdn.example/dt-1.png",
+                "lineTotal": 300000,
+                "productId": "dt-1",
+                "quantity": 2,
+                "skuId": "dt-1-v1",
+                "unitPrice": 150000,
+                "variantColorHex": "#111111",
+                "variantLabel": "Đen 256GB"
+              }
+            ],
+            "orderCode": "ORD-20261105-ABC123",
+            "orderId": "ord-123",
+            "payUrl": "https://test-payment.momo.vn/pay/ord-123",
+            "paymentExpiresAt": "2026-11-05T10:15:00Z",
+            "paymentMethod": "MOMO",
+            "paymentStatus": "REFUND_FAILED",
+            "refundActorType": "ADMIN",
+            "refundLastError": "momo timeout 504",
+            "refundReason": "manual retry requested",
+            "refundTransId": "MOMO-REF-9001",
+            "refundedAt": "2026-11-05T10:30:00Z",
+            "shippingAddress": {
+              "addressLine": "1 Lê Duẩn",
+              "label": "Nhà riêng",
+              "phone": "0901234567",
+              "provinceCode": "79",
+              "provinceName": "TP. Hồ Chí Minh",
+              "recipientName": "Nguyễn Văn A",
+              "wardCode": "26740",
+              "wardName": "Phường Bến Nghé"
+            },
+            "shippingFee": 0,
+            "status": "CANCELLED",
+            "statusHistory": [
+              {
+                "actorType": "ADMIN",
+                "createdAt": "2026-11-05T10:25:00Z",
+                "fromStatus": "CONFIRMED",
+                "toStatus": "CANCELLED"
+              }
+            ],
+            "subtotal": 300000,
+            "totalAmount": 300000,
+            "updatedAt": "2026-11-05T10:00:00Z",
+            "userId": "user-1"
+          }
+        },
+        "message": "Order retrieved."
+      }
+    },
+    "admin_orders_list_200": {
+      "service": "bff-service",
+      "endpoint": "GET /api/v1/admin/orders",
+      "status": 200,
+      "responseBody": {
+        "data": {
+          "items": [
+            {
+              "createdAt": "2026-11-05T10:00:00Z",
+              "currency": "VND",
+              "items": [
+                {
+                  "brand": "Nova",
+                  "cartItemId": "ci-1",
+                  "categoryName": "Điện thoại",
+                  "expectedName": "Nova X15",
+                  "expectedProductVersion": 3,
+                  "imageEmoji": "📱",
+                  "imageHue": [
+                    210,
+                    250
+                  ],
+                  "imageUrl": "https://cdn.example/dt-1.png",
+                  "lineTotal": 300000,
+                  "productId": "dt-1",
+                  "quantity": 2,
+                  "skuId": "dt-1-v1",
+                  "unitPrice": 150000,
+                  "variantColorHex": "#111111",
+                  "variantLabel": "Đen 256GB"
+                }
+              ],
+              "orderCode": "ORD-20261105-ABC123",
+              "orderId": "ord-123",
+              "payUrl": "https://test-payment.momo.vn/pay/ord-123",
+              "paymentExpiresAt": "2026-11-05T10:15:00Z",
+              "paymentMethod": "MOMO",
+              "paymentStatus": "REFUND_FAILED",
+              "refundActorType": "ADMIN",
+              "refundLastError": "momo timeout 504",
+              "refundReason": "manual retry requested",
+              "refundTransId": "MOMO-REF-9001",
+              "refundedAt": "2026-11-05T10:30:00Z",
+              "shippingAddress": {
+                "addressLine": "1 Lê Duẩn",
+                "label": "Nhà riêng",
+                "phone": "0901234567",
+                "provinceCode": "79",
+                "provinceName": "TP. Hồ Chí Minh",
+                "recipientName": "Nguyễn Văn A",
+                "wardCode": "26740",
+                "wardName": "Phường Bến Nghé"
+              },
+              "shippingFee": 0,
+              "status": "CANCELLED",
+              "statusHistory": [
+                {
+                  "actorType": "ADMIN",
+                  "createdAt": "2026-11-05T10:25:00Z",
+                  "fromStatus": "CONFIRMED",
+                  "toStatus": "CANCELLED"
+                }
+              ],
+              "subtotal": 300000,
+              "totalAmount": 300000,
+              "updatedAt": "2026-11-05T10:00:00Z",
+              "userId": "user-1"
+            }
+          ],
+          "page": 1,
+          "pageSize": 20,
+          "statusCounts": {
+            "CANCELLED": 1
+          },
+          "totalItems": 1,
+          "totalPages": 1
+        },
+        "message": "Orders retrieved."
+      }
+    },
+    "admin_product_detail_200": {
+      "service": "bff-service",
+      "endpoint": "GET /api/v1/admin/products/{id}",
+      "status": 200,
+      "responseBody": {
+        "data": {
+          "badge": "hot",
+          "brand": "Nova",
+          "categoryId": "dien-thoai",
+          "categoryName": "Điện thoại",
+          "deleted": false,
+          "description": "Màn hình OLED 120Hz",
+          "details": [],
+          "emoji": "📱",
+          "featured": true,
+          "id": "dt-1",
+          "imageHue": [
+            220,
+            260
+          ],
+          "images": [
+            "https://picsum.photos/seed/dt-1-1/800/800"
+          ],
+          "isNew": false,
+          "maxPrice": 20990000,
+          "name": "Điện thoại Nova X",
+          "originalPrice": 21990000,
+          "price": 18990000,
+          "rating": 4.9,
+          "reviewCount": 1284,
+          "shortDescription": "",
+          "soldCount": 2310,
+          "stock": {
+            "availableQuantity": 18,
+            "quantity": 20,
+            "reserved": 2
+          },
+          "variants": [
+            {
+              "colorHex": "#111111",
+              "label": "Đen 256GB",
+              "originalPrice": 21990000,
+              "price": 18990000,
+              "skuId": "dt-1-v1",
+              "stock": {
+                "availableQuantity": 18,
+                "quantity": 20,
+                "reserved": 2
+              }
+            }
+          ],
+          "videos": []
+        },
+        "message": "Product retrieved."
+      }
+    },
+    "admin_product_media_presign_200": {
+      "service": "bff-service",
+      "endpoint": "POST /api/v1/admin/products/media/presign",
+      "status": 200,
+      "requestBody": {
+        "contentType": "image/png",
+        "fileName": "hero.png",
+        "sizeBytes": 4096
+      },
+      "responseBody": {
+        "data": {
+          "expiresInSeconds": 300,
+          "mediaType": "IMAGE",
+          "objectKey": "products/2026/11/hero.png",
+          "publicUrl": "http://localhost:9000/product-media/products/2026/11/hero.png",
+          "uploadId": "u-123",
+          "uploadUrl": "http://localhost:9000/product-media/products/2026/11/hero.png?X-Amz-Signature=mock"
+        },
+        "message": "Upload URL generated."
+      }
+    },
+    "admin_products_list_200": {
+      "service": "bff-service",
+      "endpoint": "GET /api/v1/admin/products",
+      "status": 200,
+      "responseBody": {
+        "data": {
+          "activeCount": 1,
+          "categories": [
+            {
+              "activeProductCount": 1,
+              "categoryId": "dien-thoai",
+              "categoryName": "Điện thoại"
+            }
+          ],
+          "deletedCount": 0,
+          "items": [
+            {
+              "badge": "",
+              "brand": "Nova",
+              "categoryId": "dien-thoai",
+              "categoryName": "Điện thoại",
+              "createdAt": "",
+              "deleted": false,
+              "emoji": "",
+              "featured": false,
+              "id": "dt-1",
+              "imageHue": [],
+              "images": [],
+              "isNew": false,
+              "maxPrice": 20990000,
+              "name": "Điện thoại Nova X",
+              "originalPrice": 0,
+              "price": 18990000,
+              "rating": 0,
+              "reviewCount": 0,
+              "soldCount": 0,
+              "stock": {
+                "availableQuantity": 18,
+                "quantity": 20,
+                "reserved": 2
+              },
+              "updatedAt": "",
+              "variantCount": 1,
+              "videoCount": 0
+            }
+          ],
+          "page": 1,
+          "pageSize": 20,
+          "stockDegraded": false,
+          "totalItems": 1,
+          "totalPages": 1
+        },
+        "message": "Admin products retrieved."
+      }
+    }
+  }
+}

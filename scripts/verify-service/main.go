@@ -151,6 +151,14 @@ func runWithDeps(args []string, out io.Writer, goos string, runCmd execFunc) int
 			return c
 		}
 
+	case service == "e2e":
+		if c := step("e2e typecheck", "npm", "--prefix", "e2e", "run", "typecheck"); c != 0 {
+			return c
+		}
+		if c := step("e2e mode2 tests", "npm", "--prefix", "e2e", "run", "test:mode2"); c != 0 {
+			return c
+		}
+
 	case fileExists(filepath.Join(serviceAbs, "pom.xml")):
 		if c := step("maven verify "+service, "mvn", "--batch-mode", "--no-transfer-progress", "-pl", serviceRel, "-am", "verify"); c != 0 {
 			return c
@@ -200,7 +208,7 @@ func listSurfaces(root string) []string {
 		}
 	}
 	sort.Strings(surfaces)
-	return append(surfaces, "ecommerce-fe", "admin-fe", "contracts")
+	return append(surfaces, "ecommerce-fe", "admin-fe", "e2e", "contracts")
 }
 
 func fileExists(path string) bool {

@@ -1,0 +1,17 @@
+{
+  "name": "microservice-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:mode2": "node -e \"process.env.E2E_MODE='mock'; require('node:child_process').execSync('npx playwright test tests/mode2', { stdio: 'inherit' })\"",
+    "test:mode1": "node -e \"process.env.E2E_MODE='live'; require('node:child_process').execSync('npx playwright test tests/mode1', { stdio: 'inherit' })\"",
+    "test:all": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0"
+  }
+}

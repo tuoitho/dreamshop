@@ -30,7 +30,11 @@ gate for one surface. Its exit code is the gate result.
 | Java service, e.g. `identity-service` | `mvn --batch-mode --no-transfer-progress -pl services/<name> -am verify` |
 | Go service, e.g. `cart-service` | `go build` and `go test` for `./services/<name>/...` |
 | `ecommerce-fe`, `admin-fe` | Frontend tests, lint, and build |
+| `e2e` | Playwright Mode 2 (Shape-Locked Mock E2E against `contracts/http-snapshots/*.json`) |
 | `contracts` | Contract checks below (`buf format`, `buf lint`, `buf breaking` against `main`, `buf generate`, clean diff) |
+
+For opt-in Mode 1 live browser smoke through Kong (`:8000`) when the local stack
+is running, run `make e2e-live`.
 
 On Windows, the `cart-service` gate tests `./services/cart-service/internal/...`
 only, for the reason described at the end of this document.

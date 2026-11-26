@@ -32,6 +32,11 @@ Spec hoặc plan của feature phải chứa:
   frontend. Ví dụ: `contracts -> order-service -> bff-service -> admin-fe`.
 - Với mỗi task: surface sở hữu, path được sửa và gate
   `make verify SERVICE=<surface>` của nó.
+- Khi feature chạm frontend (`ecommerce-fe`, `admin-fe`) hoặc public REST
+  contract: gắn nhãn mức kiểm chứng cho từng AC (`unit/slice`, `mock-e2e`,
+  `live-e2e`, `visual`, `distributed-sim`) và chốt **Mode Lock** (mặc định
+  **Mode 2: Shape-Locked Mock E2E** theo skill `e2e-testing`; không tự ý đổi
+  mode trong lúc thực thi khi chưa được người dùng duyệt).
 
 Thay đổi protobuf, gRPC, event hoặc REST contract dùng chung là task riêng, làm
 theo skill `contract-change`, và phải xong trước khi bắt đầu task provider hoặc
@@ -72,7 +77,15 @@ lựa chọn mức test theo [`docs/steering/testing.md`](../../../docs/steering
 1. Focused checks cho phần code vừa đổi, trong từng task.
 2. `make verify SERVICE=<surface>` cho mỗi surface đã chạm.
 3. Contract checks khi boundary thay đổi, theo skill `contract-change`.
-4. E2E hoặc repository-wide checks khi scope hoặc risk yêu cầu.
+4. E2E hoặc repository-wide checks khi scope hoặc risk yêu cầu (áp dụng skill
+   `e2e-testing`):
+   - `make verify SERVICE=e2e` cho **Mode 2: Shape-Locked Mock E2E** (mặc định
+     khi feature có browser AC hoặc chạm public REST contract, khóa qua
+     `contracts/http-snapshots/*.json`).
+   - `make e2e-live` cho **Mode 1: Full-Stack Live E2E qua Kong** (opt-in khi
+     AC yêu cầu `live-e2e` hoặc thay đổi Kong route/cookie/critical wiring).
+   - `scripts/concurrency-sim` / `scripts/verify-foundation` cho luồng phân tán
+     (concurrency, idempotency, outbox/RabbitMQ, SQL invariants).
 
 "Tests pass" ở cuối một task chỉ là lớp 1. Lớp 2 phải chạy trên trạng thái code
 cuối cùng, sau commit cuối của feature và trước review ở mục 4. Kết quả gate là

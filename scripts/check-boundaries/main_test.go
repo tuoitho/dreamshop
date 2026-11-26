@@ -43,7 +43,7 @@ func TestCheckBoundariesCleanRepoPasses(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("expected exit 0, got %d; output:\n%s", code, out.String())
 	}
-	if !strings.Contains(out.String(), "Boundary check passed for 2 services, contracts, ecommerce-fe, and admin-fe.") {
+	if !strings.Contains(out.String(), "Boundary check passed for 2 services, contracts, ecommerce-fe, admin-fe, and e2e.") {
 		t.Fatalf("unexpected output: %s", out.String())
 	}
 }
