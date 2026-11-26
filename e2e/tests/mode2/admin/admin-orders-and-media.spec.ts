@@ -99,12 +99,8 @@ function buildAdminRoutes(
     {
       method: "POST",
       path: "/api/v1/auth/admin/refresh",
-      handle: ({ cookies }) => {
-        if (!cookies["admin_refresh_token"]) {
-          return { snapshot: "auth_refresh_missing_401" }
-        }
-        return { snapshot: "auth_refresh_200" }
-      },
+      auth: "refreshCookie",
+      handle: () => ({ snapshot: "auth_refresh_200" }),
     },
     {
       method: "GET",
@@ -255,17 +251,9 @@ test.describe("Mode 2 (Shape-Locked Mock): Admin Orders, RBAC & MinIO Media Uplo
       },
     ])
 
-    // Chặn GET ảnh publicUrl về SVG/PNG hợp lệ để ảnh preview render không broken
     const tinyPngBase64 =
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
     const tinyPng = Buffer.from(tinyPngBase64, "base64")
-    await page.route("http://localhost:9000/product-media/**", async (route) => {
-      if (route.request().method() === "GET") {
-        await route.fulfill({ status: 200, contentType: "image/png", body: tinyPng })
-        return
-      }
-      await route.fallback()
-    })
 
     const productsPage = new AdminProductsPage(page)
     await productsPage.goto()

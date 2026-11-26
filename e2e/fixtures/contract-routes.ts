@@ -38,9 +38,11 @@ interface ContractRouteMatch {
 export interface ShapeLockedRoute extends ContractRouteMatch {
   /**
    * - 'bearer': yêu cầu header Authorization: Bearer <token>; nếu thiếu trả snapshot unauthenticated_401
-   * - 'refreshCookie': yêu cầu cookie refresh_token; nếu thiếu trả snapshot auth_refresh_missing_401
+   * - 'refreshCookie': yêu cầu cookie refresh_token (hoặc admin_refresh_token cho /api/v1/auth/admin/*); nếu thiếu trả snapshot auth_refresh_missing_401
    */
   auth?: "bearer" | "refreshCookie"
+  /** Tên refresh cookie tùy chỉnh khi auth === 'refreshCookie' (mặc định suy ra theo path) */
+  refreshCookieName?: string
   /** Snapshot key chứa requestBody mẫu để đối chiếu payload FE gửi lên */
   requestSnapshot?: string
   /** Tên snapshot lỗi 401 tùy chỉnh nếu khác mặc định */
@@ -359,7 +361,10 @@ export async function mountContractRoutes(
       }
 
       if (declared.auth === "refreshCookie") {
-        if (!cookies["refresh_token"]) {
+        const expectedCookie =
+          declared.refreshCookieName ??
+          (url.pathname.startsWith("/api/v1/auth/admin") ? "admin_refresh_token" : "refresh_token")
+        if (!cookies[expectedCookie]) {
           await fulfillSnapshot(
             route,
             request,

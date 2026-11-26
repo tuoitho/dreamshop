@@ -17,7 +17,7 @@
 5. **Giữ kho đồng bộ:** Gọi gRPC sang `inventory-service` (`ReserveStock`). Nếu thiếu hàng, hủy đơn `FAILED_TERMINAL` và ném `409 INVENTORY_INSUFFICIENT`.
 6. **Rẽ nhánh thanh toán:**
    - Nếu là **`COD`**: Chuyển đơn sang `PENDING_CONFIRMATION`, đặt `auto_confirm_at = now + 1 phút`, ghi Outbox `OrderPlaced` (để giỏ hàng được dọn ngay), trả ngay `201 Created`. Khoảng 1 phút sau `CodAutoConfirmScheduler` mới chốt `CONFIRMED` + Outbox `OrderConfirmed`.
-   - Nếu là **`MOMO`**: Gọi gRPC `payment-service` (`CreatePaymentSession`) lấy link `payUrl`, cập nhật `PENDING_PAYMENT`, trả ngay `201 Created` kèm `payUrl`.
+   - Nếu là **`MOMO`**: Gọi gRPC `payment-service` (`CreatePaymentSession`) lấy link `payUrl`, cập nhật `PENDING_PAYMENT`, ghi Outbox `OrderPlaced` (để giỏ hàng được dọn ngay), trả ngay `201 Created` kèm `payUrl`.
 
 Sau khi đơn được xác nhận, vòng đời giao hàng (Đang chuẩn bị → Đang giao → Đã giao / Giao thất bại) do admin điều khiển; xem **Bước 8** và [ADR-015](adr/015-order-fulfillment-lifecycle.md).
 
@@ -81,7 +81,7 @@ Sau khi đơn được xác nhận, vòng đời giao hàng (Đang chuẩn bị 
   - `ReservationReleaseRequested` → `ReleaseReservation`: nhả giữ chỗ (`reserved - X`), reservation `RELEASED`.
   - `StockRestockRequested` → `RestockReservation`: hoàn kho cho đơn bị hủy sau khi đã xác nhận (`quantity + X`), reservation `RESTOCKED`; nếu reservation còn `ACTIVE` thì nhả giữ chỗ thay vì cộng kho.
 - [`services/cart-service/internal/events/consumer.go`](../services/cart-service/internal/events/consumer.go)  
-  *Lắng nghe `OrderPlaced` (COD, ngay khi đặt) và `OrderConfirmed` (MoMo, khi thanh toán xong) để xóa các sản phẩm đã mua khỏi giỏ hàng. Khóa khử trùng là `order-cleanup:<orderId>` nên mỗi đơn chỉ dọn giỏ một lần.*
+  *Lắng nghe `OrderPlaced` (COD và MoMo, ngay khi đặt) và `OrderConfirmed` (dự phòng idempotent khi chốt đơn) để xóa các sản phẩm đã mua khỏi giỏ hàng. Khóa khử trùng là `order-cleanup:<orderId>` nên mỗi đơn chỉ dọn giỏ một lần.*
 
 ---
 

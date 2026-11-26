@@ -126,9 +126,10 @@ sequenceDiagram
         Pay->>MoMo: HTTPS captureWallet (Tạo payUrl)
         MoMo-->>Pay: Trả payUrl
         Pay-->>Order: payUrl
-        Note over Order: TX #2: Cập nhật PENDING_PAYMENT + payUrl
+        Note over Order: TX #2: Cập nhật PENDING_PAYMENT + payUrl + Outbox(OrderPlaced)
         Order-->>BFF: 201 Created (kèm payUrl)
         BFF-->>User: 201 Created -> Browser redirect sang MoMo payUrl
+        RMQ->>Cart: OrderPlaced -> Dọn giỏ ngay
     end
 
     par Bất đồng bộ sau khi thanh toán
@@ -138,7 +139,7 @@ sequenceDiagram
         RMQ->>Order: Consumer chốt CONFIRMED (hoặc CANCELLED)
         Order->>RMQ: Outbox -> OrderConfirmed (hoặc ReleaseStock)
         RMQ->>Inv: Khấu trừ tồn kho thật (hoặc nhả kho)
-        RMQ->>Cart: Dọn dẹp giỏ hàng
+        RMQ->>Cart: OrderConfirmed (idempotent no-op nếu đã dọn bởi OrderPlaced)
     end
 ```
 
