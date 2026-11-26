@@ -12,7 +12,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { adjustSkuStock, setSkuStock, toClientError } from "@/lib/api"
+import { adjustSkuStock, setSkuStock } from "@/lib/api"
+import { resolveErrorMessage } from "@/lib/error-messages"
 import { formatNumber } from "@/lib/format"
 
 export interface StockDialogTarget {
@@ -77,7 +78,7 @@ export function StockDialog({ open, onOpenChange, item, onSaved }: StockDialogPr
         onSaved()
         onOpenChange(false)
       } catch (error) {
-        setErrorMessage(toClientError(error).message)
+        setErrorMessage(resolveErrorMessage(error))
       } finally {
         setSubmitting(false)
       }
@@ -95,7 +96,7 @@ export function StockDialog({ open, onOpenChange, item, onSaved }: StockDialogPr
       onSaved()
       onOpenChange(false)
     } catch (error) {
-      setErrorMessage(toClientError(error).message)
+      setErrorMessage(resolveErrorMessage(error))
     } finally {
       setSubmitting(false)
     }

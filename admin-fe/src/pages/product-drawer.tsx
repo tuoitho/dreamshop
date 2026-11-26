@@ -34,9 +34,9 @@ import {
   createAdminProduct,
   getAdminProduct,
   setSkuStock,
-  toClientError,
   updateAdminProduct,
 } from "@/lib/api"
+import { resolveErrorMessage } from "@/lib/error-messages"
 import { CATEGORY_PRESETS } from "@/lib/categories"
 import { formatCurrencyVnd, formatNumber } from "@/lib/format"
 import { ALLOWED_VIDEO_MIME_TYPES, uploadProductMediaFile } from "@/lib/media-upload"
@@ -267,7 +267,7 @@ export function ProductDrawer({
         setMediaList(combined)
       } catch (error) {
         if (!controller.signal.aborted) {
-          setServerError(toClientError(error).message)
+          setServerError(resolveErrorMessage(error))
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -328,7 +328,7 @@ export function ProductDrawer({
           { url: uploaded.publicUrl, kind: uploaded.mediaType },
         ])
       } catch (error) {
-        setServerError(toClientError(error).message)
+        setServerError(resolveErrorMessage(error))
       } finally {
         setUploadingCount((c) => Math.max(0, c - 1))
       }
@@ -381,7 +381,7 @@ export function ProductDrawer({
         await setSkuStock(entry.skuId, pendingStockRetry.productId, entry.quantity)
       } catch (error) {
         remaining.push(entry)
-        lastError = toClientError(error).message
+        lastError = resolveErrorMessage(error)
       }
     }
 
@@ -524,7 +524,7 @@ export function ProductDrawer({
               label: pending.label,
               quantity: pending.quantity,
             })
-            lastErrorMessage = toClientError(stockError).message
+            lastErrorMessage = resolveErrorMessage(stockError)
           }
         }
 
@@ -544,7 +544,7 @@ export function ProductDrawer({
 
       onOpenChange(false)
     } catch (error) {
-      setServerError(toClientError(error).message)
+      setServerError(resolveErrorMessage(error))
     }
   }
 

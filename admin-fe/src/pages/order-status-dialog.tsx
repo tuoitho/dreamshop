@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toClientError, updateAdminOrderStatus } from "@/lib/api"
+import { resolveErrorMessage } from "@/lib/error-messages"
 import { ORDER_STATUS_LABELS, requiresReason } from "@/lib/order-status"
 import type { AdminOrder, AdminOrderView, OrderStatus } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -80,7 +81,7 @@ export function OrderStatusDialog({
         setErrorMessage("Trạng thái đơn vừa thay đổi, vui lòng kiểm tra lại trước khi cập nhật.")
         onConflict()
       } else {
-        setErrorMessage(clientError.message)
+        setErrorMessage(resolveErrorMessage(clientError))
       }
     } finally {
       setSubmitting(false)

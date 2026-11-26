@@ -10,6 +10,9 @@ import {
   listAdminInventory,
   listAdminOrders,
   listAdminProducts,
+  login,
+  logoutRequest,
+  refreshAccessToken,
   refreshHttp,
   retryAdminOrderRefund,
   setSkuStock,
@@ -335,5 +338,59 @@ describe("admin api client", () => {
     })
     expect(res.order.paymentStatus).toBe("REFUNDED")
     expect(res.order.refundTransId).toBe("momo-ref-1")
+  })
+
+  it("routes admin login, refresh, and logout through /auth/admin/* endpoints", async () => {
+    const httpCalls: Array<{ method?: string; url?: string }> = []
+    const refreshCalls: Array<{ method?: string; url?: string }> = []
+
+    http.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
+      httpCalls.push({ method: config.method?.toUpperCase(), url: config.url })
+      if (config.url === "/auth/admin/login") {
+        return {
+          data: {
+            data: { accessToken: "admin-jwt", tokenType: "Bearer", expiresIn: 900 },
+            message: "Login successful",
+          },
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          config,
+        }
+      }
+      return {
+        data: { data: null, message: "Logout successful" },
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        config,
+      }
+    }
+
+    refreshHttp.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
+      refreshCalls.push({ method: config.method?.toUpperCase(), url: config.url })
+      return {
+        data: {
+          data: { accessToken: "admin-refreshed-jwt", tokenType: "Bearer", expiresIn: 900 },
+          message: "Token refreshed successfully",
+        },
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        config,
+      }
+    }
+
+    const loginRes = await login({ email: "admin@example.com", password: "AdminPassword123!" })
+    const refreshed = await refreshAccessToken()
+    await logoutRequest()
+
+    expect(loginRes.accessToken).toBe("admin-jwt")
+    expect(refreshed).toBe("admin-refreshed-jwt")
+    expect(httpCalls).toEqual([
+      { method: "POST", url: "/auth/admin/login" },
+      { method: "POST", url: "/auth/admin/logout" },
+    ])
+    expect(refreshCalls).toEqual([{ method: "POST", url: "/auth/admin/refresh" }])
   })
 })

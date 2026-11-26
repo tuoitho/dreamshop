@@ -7,6 +7,7 @@ import { useFavorites } from "@/hooks/use-favorites"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { BrandLogo } from "@/components/layout/brand-logo"
 import { cn } from "@/lib/utils"
 
 const NAV_LINKS = [
@@ -94,9 +95,9 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:gap-6">
-        <div className="flex items-center gap-1">
+    <header className="sticky top-0 z-40 border-b border-border/80 bg-background/95 backdrop-blur-md">
+      <div className="mx-auto flex h-[72px] max-w-7xl items-center gap-3 px-4 sm:gap-5">
+        <div className="flex items-center gap-2">
           <Button
             ref={toggleRef}
             variant="ghost"
@@ -108,24 +109,22 @@ export function SiteHeader() {
           >
             <Menu />
           </Button>
-          <Link to="/" className="flex items-center gap-2">
-            <span className="grid size-8 place-items-center rounded-lg bg-primary text-base font-extrabold text-primary-foreground">
-              T
-            </span>
-            <span className="hidden text-lg font-extrabold tracking-tight sm:inline">
-              TechShop
+          <Link to="/" aria-label="DreamShop — Trang chủ" className="flex items-center gap-2.5">
+            <BrandLogo className="size-8" />
+            <span className="hidden font-serif text-xl font-bold tracking-tight text-foreground sm:inline">
+              DreamShop
             </span>
           </Link>
         </div>
 
-        <form onSubmit={handleSubmit} className="relative flex-1 max-w-xl">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+        <form onSubmit={handleSubmit} className="relative flex-1 max-w-lg">
+          <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Tìm sản phẩm, thương hiệu..."
-            className="pl-8"
+            className="h-10 rounded-full border-transparent bg-muted pl-10 pr-4 text-sm transition-colors focus-visible:border-primary/40 focus-visible:bg-background"
             aria-label="Tìm kiếm sản phẩm"
           />
         </form>
@@ -205,11 +204,11 @@ export function SiteHeader() {
             </Button>
           )}
           {!favoritesForbidden && (
-            <Button variant="ghost" size="icon" className="relative" asChild aria-label="Sản phẩm yêu thích">
+            <Button variant="ghost" size="icon" className="relative rounded-full" asChild aria-label="Sản phẩm yêu thích">
               <Link to="/yeu-thich">
                 <Heart />
                 {favoriteCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 grid min-w-4 place-items-center rounded-full bg-red-600 px-1 text-[0.6rem] font-bold text-white">
+                  <span className="absolute -top-0.5 -right-0.5 grid min-w-4 place-items-center rounded-full bg-primary px-1 text-[0.6rem] font-bold text-primary-foreground">
                     {favoriteCount > 99 ? "99+" : favoriteCount}
                   </span>
                 )}
@@ -217,11 +216,11 @@ export function SiteHeader() {
             </Button>
           )}
           {!cartForbidden && (
-            <Button variant="ghost" size="icon" className="relative" asChild aria-label="Giỏ hàng">
+            <Button variant="ghost" size="icon" className="relative rounded-full" asChild aria-label="Giỏ hàng">
               <Link to="/gio-hang">
                 <ShoppingCart />
                 {totalQuantity > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 grid min-w-4 place-items-center rounded-full bg-red-600 px-1 text-[0.6rem] font-bold text-white">
+                  <span className="absolute -top-0.5 -right-0.5 grid min-w-4 place-items-center rounded-full bg-primary px-1 text-[0.6rem] font-bold text-primary-foreground">
                     {totalQuantity > 99 ? "99+" : totalQuantity}
                   </span>
                 )}
@@ -231,8 +230,8 @@ export function SiteHeader() {
         </nav>
       </div>
 
-      <nav className="hidden border-t lg:block">
-        <div className="mx-auto flex max-w-7xl items-center gap-1 px-4">
+      <nav className="hidden border-t border-border/60 bg-background/90 lg:block">
+        <div className="mx-auto flex max-w-7xl items-center gap-2 px-4">
           {NAV_LINKS.map((link) => {
             const active = isNavLinkActive(link.to, location.pathname, location.search)
             return (
@@ -241,8 +240,10 @@ export function SiteHeader() {
                 to={link.to}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "px-3 py-2 text-sm font-medium transition-colors hover:text-primary",
-                  active ? "text-primary font-semibold" : "text-muted-foreground"
+                  "relative px-3 py-2.5 text-sm font-medium transition-colors hover:text-primary",
+                  active
+                    ? "font-semibold text-primary after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-primary"
+                    : "text-muted-foreground"
                 )}
               >
                 {link.label}

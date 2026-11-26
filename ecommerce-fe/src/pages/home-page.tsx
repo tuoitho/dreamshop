@@ -1,16 +1,42 @@
-import { Fragment, useContext, useEffect, useMemo, useState } from "react"
+import { useContext, useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import { ArrowRight, BadgePercent, Flame, Sparkles } from "lucide-react"
+import {
+  ArrowRight,
+  BadgePercent,
+  Headphones,
+  RotateCcw,
+  ShieldCheck,
+  Sparkles,
+  Truck,
+} from "lucide-react"
 import { categories } from "@/data/products"
 import { AuthContext } from "@/context/auth-context"
 import { searchProducts, toErrorInfo } from "@/lib/api"
 import type { ProductSummary } from "@/lib/types"
 import { ProductCard } from "@/components/product-card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { ProductImage } from "@/components/product-image"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn, formatVND } from "@/lib/utils"
+
+const TRUST_PILLARS = [
+  { icon: Truck, title: "Giao hàng nhanh", desc: "Miễn phí từ 299.000đ" },
+  { icon: ShieldCheck, title: "Chính hãng 100%", desc: "Bảo hành toàn quốc" },
+  { icon: RotateCcw, title: "Đổi trả 30 ngày", desc: "Hoàn tiền nhanh chóng" },
+  { icon: Headphones, title: "Hỗ trợ 24/7", desc: "Hotline 1900 6789" },
+] as const
+
+function SectionOrnament() {
+  return (
+    <div className="mt-3 flex items-center justify-center gap-2" aria-hidden="true">
+      <span className="h-px w-8 bg-border" />
+      <svg viewBox="0 0 16 16" className="size-3.5 text-primary" fill="currentColor">
+        <path d="M8 1L9.7 6.3L15 8L9.7 9.7L8 15L6.3 9.7L1 8L6.3 6.3L8 1Z" />
+      </svg>
+      <span className="h-px w-8 bg-border" />
+    </div>
+  )
+}
 
 export default function HomePage() {
   const auth = useContext(AuthContext)
@@ -65,6 +91,13 @@ export default function HomePage() {
     [items]
   )
 
+  const maxDiscountPercent = useMemo(() => {
+    if (saleProducts.length === 0) return 0
+    return Math.max(
+      ...saleProducts.map((p) => Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100))
+    )
+  }, [saleProducts])
+
   const featuredHero = useMemo(
     () => items.find((p) => p.featured) ?? items[0] ?? null,
     [items]
@@ -84,193 +117,304 @@ export default function HomePage() {
   )
 
   const heroImageUrl = featuredHero?.images?.[0]
+  const primaryCategories = categories.slice(0, 4)
+  const secondaryCategories = categories.slice(4)
 
   return (
-    <div className="pb-12">
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary via-emerald-700 to-primary text-primary-foreground">
-        <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_20%_20%,white_1px,transparent_1px),radial-gradient(circle_at_80%_60%,white_1px,transparent_1px)] [background-size:48px_48px]" />
-        <div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:py-16 lg:grid-cols-[1.1fr_1fr] lg:items-center">
-          <div>
-            <Badge variant="accent">
-              <Sparkles className="size-3" /> Sự kiện mua sắm chính hãng
-            </Badge>
-            <h1 className="mt-4 max-w-xl text-3xl leading-tight font-extrabold sm:text-4xl lg:text-5xl">
-              Mua sắm thông minh,
+    <div className="bg-background">
+      {/* Editorial Split Hero */}
+      <section className="relative overflow-hidden bg-surface-warm">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-24 -right-24 size-96 rounded-full bg-[#65a30d]/14 blur-3xl"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-24 -left-24 size-80 rounded-full bg-primary/10 blur-3xl"
+        />
+        <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:py-20 lg:grid-cols-[1fr_1.1fr] lg:items-center lg:gap-16 lg:py-24">
+          <div className="order-2 mx-auto w-full max-w-md lg:order-1">
+            <div className="relative rounded-3xl bg-card p-3 shadow-xl shadow-foreground/5 ring-1 ring-border/70">
+              <div className="overflow-hidden rounded-2xl bg-surface-warm">
+                {heroImageUrl && !heroImageError ? (
+                  <img
+                    src={heroImageUrl}
+                    alt={featuredHero?.name ?? "Sản phẩm nổi bật"}
+                    className="aspect-square w-full object-cover"
+                    onError={() => setHeroImageError(true)}
+                  />
+                ) : (
+                  <ProductImage
+                    emoji={featuredHero?.emoji ?? "🛍️"}
+                    hue={featuredHero?.imageHue ?? [160, 200]}
+                    seed={featuredHero?.id ?? "dreamshop-hero"}
+                    label={featuredHero?.name ?? "DreamShop"}
+                  />
+                )}
+              </div>
+              {minPrice !== null ? (
+                <div className="absolute -right-3 -bottom-4 rounded-2xl bg-surface-ink px-4 py-3 text-white shadow-lg sm:-right-5">
+                  <p className="text-[11px] font-medium tracking-wide text-[#a3b89f] uppercase">
+                    Giá chỉ từ
+                  </p>
+                  <p className="mt-0.5 text-lg font-bold tracking-tight text-[#bef264]">
+                    {formatVND(minPrice)}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="order-1 lg:order-2">
+            <div className="inline-flex items-center gap-2 text-xs font-semibold tracking-wider text-primary uppercase">
+              <Sparkles className="size-3.5 text-gold" />
+              <span>Tuyển chọn chính hãng tại DreamShop</span>
+            </div>
+            <h1 className="mt-4 max-w-xl font-serif text-3xl leading-[1.15] font-bold tracking-tight text-foreground sm:text-5xl">
+              Nâng tầm cuộc sống,
               <br />
-              nhận ngàn ưu đãi
+              mua sắm đầy cảm hứng.
             </h1>
-            <p className="mt-4 max-w-lg text-sm text-primary-foreground/80 sm:text-base">
-              Hàng nghìn sản phẩm chính hãng từ các thương hiệu lớn với giá tốt nhất thị
-              trường. Giao nhanh 2h nội thành, đổi trả miễn phí 30 ngày.
+            <p className="mt-5 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
+              Khám phá bộ sưu tập sản phẩm chính hãng được tuyển chọn kỹ lưỡng từ các thương hiệu
+              uy tín. Giao nhanh nội thành, bảo hành rõ ràng và đổi trả dễ dàng trong 30 ngày.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap items-center gap-3">
               <Button
-                variant="secondary"
                 size="lg"
-                className="bg-white text-primary hover:bg-white/90"
+                className="h-11 rounded-full bg-primary px-7 text-primary-foreground shadow-sm hover:bg-primary/90"
                 asChild
               >
                 <Link to="/tim-kiem">
                   Mua sắm ngay
-                  <ArrowRight />
+                  <ArrowRight className="size-4" />
                 </Link>
               </Button>
               <Button
                 variant="outline"
                 size="lg"
-                className="border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"
+                className="h-11 rounded-full border-foreground/20 bg-card/70 px-6 text-foreground hover:bg-card"
                 asChild
               >
                 <Link to="/tim-kiem?giam-gia=1">
-                  <BadgePercent />
+                  <BadgePercent className="size-4 text-primary" />
                   Xem khuyến mãi
                 </Link>
               </Button>
             </div>
           </div>
-
-          <div className="relative mx-auto w-full max-w-md">
-            <div className="overflow-hidden rounded-3xl shadow-2xl ring-4 ring-white/20">
-              {heroImageUrl && !heroImageError ? (
-                <img
-                  src={heroImageUrl}
-                  alt={featuredHero?.name ?? "Sản phẩm nổi bật"}
-                  className="aspect-square w-full object-cover"
-                  onError={() => setHeroImageError(true)}
-                />
-              ) : (
-                <ProductImage
-                  emoji={featuredHero?.emoji ?? "🛍️"}
-                  hue={featuredHero?.imageHue ?? [160, 200]}
-                  seed={featuredHero?.id ?? "techshop-hero"}
-                  label={featuredHero?.name ?? "TechShop"}
-                />
-              )}
-            </div>
-            {minPrice !== null ? (
-              <div className="absolute -bottom-4 -left-4 hidden rounded-2xl bg-white p-3 shadow-lg sm:block">
-                <p className="text-[0.65rem] text-muted-foreground">Giá chỉ từ</p>
-                <p className="text-lg font-extrabold text-primary">{formatVND(minPrice)}</p>
-              </div>
-            ) : null}
-          </div>
         </div>
       </section>
 
-      {/* Categories */}
-      <section className="mx-auto max-w-7xl px-4 pt-12">
-        <div className="flex items-end justify-between gap-2">
-          <div>
-            <h2 className="text-xl font-bold sm:text-2xl">Danh mục nổi bật</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Khám phá hàng trăm sản phẩm mới mỗi ngày
-            </p>
-          </div>
-          <Link
-            to="/tim-kiem"
-            className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-primary hover:underline"
-          >
-            Xem tất cả <ArrowRight className="size-4" />
-          </Link>
-        </div>
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-          {categories.map((category) => (
-            <Link
-              key={category.id}
-              to={`/tim-kiem?danh-muc=${category.id}`}
-              className="group flex flex-col items-center gap-2 rounded-2xl border border-transparent bg-card p-4 ring-1 ring-foreground/10 transition-all hover:-translate-y-1 hover:shadow-md"
+      {/* Dark Trust Bar */}
+      <section className="bg-surface-ink py-8 text-white">
+        <div className="mx-auto grid max-w-7xl gap-4 px-4 sm:grid-cols-2 lg:grid-cols-4">
+          {TRUST_PILLARS.map((item) => (
+            <div
+              key={item.title}
+              className="flex items-start gap-3.5 rounded-xl border border-white/8 bg-surface-ink-elevated px-5 py-4"
             >
-              <span className="grid size-12 place-items-center rounded-xl bg-muted text-2xl transition-colors group-hover:bg-primary/10">
-                {category.emoji}
+              <span className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-lg bg-[#65a30d]/25 text-[#a3e635]">
+                <item.icon className="size-5" />
               </span>
-              <span className="text-center text-xs font-medium">{category.name}</span>
-            </Link>
+              <div>
+                <p className="font-serif text-sm font-semibold text-white">{item.title}</p>
+                <p className="mt-0.5 text-xs text-[#a3b89f]">{item.desc}</p>
+              </div>
+            </div>
           ))}
         </div>
       </section>
 
       {loading ? (
         <section
-          className="mx-auto max-w-7xl px-4 pt-12"
+          className="mx-auto max-w-7xl px-4 py-16"
           role="status"
           aria-label="Đang tải sản phẩm trang chủ"
         >
-          <Skeleton className="h-7 w-48" />
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="mx-auto flex flex-col items-center">
+            <Skeleton className="h-8 w-52" />
+            <Skeleton className="mt-3 h-3 w-24" />
+          </div>
+          <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: 8 }).map((_, index) => (
               <div
                 key={index}
-                className="overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10"
+                className="overflow-hidden rounded-2xl border border-border/70 bg-card"
               >
                 <Skeleton className="aspect-square rounded-none" />
-                <div className="space-y-2 p-3">
+                <div className="space-y-2 p-4">
+                  <Skeleton className="h-3 w-1/3" />
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-2/3" />
-                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-4 w-1/2" />
                 </div>
               </div>
             ))}
           </div>
         </section>
       ) : error ? (
-        <section className="mx-auto max-w-7xl px-4 pt-12">
+        <section className="mx-auto max-w-7xl px-4 py-16">
           <div
             role="alert"
-            className="flex flex-col items-center justify-center rounded-2xl border bg-card py-16 text-center"
+            className="flex flex-col items-center justify-center rounded-3xl border bg-surface-warm py-16 text-center"
           >
             <span className="text-4xl">⚠️</span>
-            <h2 className="mt-3 text-lg font-bold">Không tải được sản phẩm trang chủ</h2>
+            <h2 className="mt-3 font-serif text-xl font-bold">
+              Không tải được sản phẩm trang chủ
+            </h2>
             <p className="mt-1 max-w-sm text-sm text-muted-foreground">{error.message}</p>
-            <Button className="mt-5" onClick={() => setReloadKey((k) => k + 1)}>
+            <Button className="mt-6 rounded-full px-6" onClick={() => setReloadKey((k) => k + 1)}>
               Thử lại
             </Button>
           </div>
         </section>
       ) : (
         <>
-          {/* Flash sale */}
-          {saleProducts.length > 0 && (
-            <section className="mx-auto max-w-7xl px-4 pt-12">
-              <div className="rounded-3xl bg-gradient-to-r from-red-600 to-rose-500 p-6 sm:p-8">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <Flame className="size-6 text-white" />
-                    <h2 className="text-xl font-extrabold text-white sm:text-2xl">Flash Sale</h2>
-                  </div>
-                  <div className="flex items-center gap-1 text-sm font-semibold text-white">
-                    Kết thúc trong
-                    <div className="ml-1 flex items-center gap-1">
-                      {["02", "14", "36"].map((value, i) => (
-                        <Fragment key={value}>
-                          {i > 0 && <span aria-hidden="true">:</span>}
-                          <span className="grid size-7 place-items-center rounded-md bg-white/20 backdrop-blur">
-                            {value}
-                          </span>
-                        </Fragment>
-                      ))}
-                    </div>
-                  </div>
+          {/* Best Sellers */}
+          {hotProducts.length > 0 && (
+            <section className="bg-background py-16 sm:py-20">
+              <div className="mx-auto max-w-7xl px-4">
+                <div className="text-center">
+                  <h2 className="font-serif text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                    Bán chạy nhất
+                  </h2>
+                  <p className="mt-1.5 text-sm text-muted-foreground">
+                    Những sản phẩm được khách hàng tin chọn nhiều nhất trong tuần
+                  </p>
+                  <SectionOrnament />
                 </div>
-                <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-                  {saleProducts.map((product) => (
-                    <ProductCard key={product.id} product={product} className="bg-white/95" />
+                <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                  {hotProducts.map((product) => (
+                    <ProductCard key={product.id} product={product} />
                   ))}
+                </div>
+                <div className="mt-8 text-center">
+                  <Button
+                    variant="outline"
+                    className="rounded-full border-foreground/20 px-6 hover:border-primary hover:text-primary"
+                    asChild
+                  >
+                    <Link to="/tim-kiem">
+                      Xem tất cả sản phẩm
+                      <ArrowRight className="size-4" />
+                    </Link>
+                  </Button>
                 </div>
               </div>
             </section>
           )}
 
-          {/* Featured by category */}
-          <section className="mx-auto max-w-7xl px-4 pt-12">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-xl font-bold sm:text-2xl">Sản phẩm nổi bật</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
+          {/* Editorial Category Highlights */}
+          <section className="bg-surface-warm py-16 sm:py-20">
+            <div className="mx-auto max-w-7xl px-4">
+              <div className="text-center">
+                <h2 className="font-serif text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                  Danh mục nổi bật
+                </h2>
+                <p className="mt-1.5 text-sm text-muted-foreground">
+                  Khám phá nhanh theo nhóm sản phẩm bạn quan tâm
+                </p>
+                <SectionOrnament />
+              </div>
+
+              <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                {primaryCategories.map((category) => (
+                  <Link
+                    key={category.id}
+                    to={`/tim-kiem?danh-muc=${category.id}`}
+                    className="group flex flex-col justify-between rounded-2xl border border-border/70 bg-card p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
+                  >
+                    <div>
+                      <span className="grid size-12 place-items-center rounded-xl bg-surface-warm text-2xl transition-colors group-hover:bg-primary/10">
+                        {category.emoji}
+                      </span>
+                      <h3 className="mt-5 font-serif text-lg font-bold text-foreground group-hover:text-primary">
+                        {category.name}
+                      </h3>
+                      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                        {category.description}
+                      </p>
+                    </div>
+                    <span className="mt-5 inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide text-primary uppercase">
+                      Khám phá
+                      <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
+                    </span>
+                  </Link>
+                ))}
+              </div>
+
+              {secondaryCategories.length > 0 && (
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
+                  {secondaryCategories.map((category) => (
+                    <Link
+                      key={category.id}
+                      to={`/tim-kiem?danh-muc=${category.id}`}
+                      className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card px-4 py-2 text-xs font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
+                    >
+                      <span aria-hidden="true">{category.emoji}</span>
+                      <span>{category.name}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Mid-page Dark Promo Breakout Strip + Sale Products */}
+          {saleProducts.length > 0 && (
+            <>
+              <section className="bg-surface-ink py-12 text-white sm:py-14">
+                <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-4 text-center md:flex-row md:text-left">
+                  <div>
+                    <p className="text-xs font-semibold tracking-widest text-[#bef264] uppercase">
+                      Ưu đãi đặc biệt hôm nay
+                    </p>
+                    <h2 className="mt-2 font-serif text-2xl font-bold tracking-tight sm:text-3xl">
+                      {maxDiscountPercent > 0
+                        ? `Tiết kiệm đến ${maxDiscountPercent}% cho các sản phẩm chọn lọc`
+                        : "Ưu đãi giá tốt cho các sản phẩm chọn lọc"}
+                    </h2>
+                  </div>
+                  <Button
+                    size="lg"
+                    className="h-11 shrink-0 rounded-full bg-primary px-7 text-primary-foreground hover:bg-primary/90"
+                    asChild
+                  >
+                    <Link to="/tim-kiem?giam-gia=1">
+                      Xem tất cả ưu đãi
+                      <ArrowRight className="size-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </section>
+
+              <section className="bg-background py-14 sm:py-16">
+                <div className="mx-auto max-w-7xl px-4">
+                  <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                    {saleProducts.map((product) => (
+                      <ProductCard key={product.id} product={product} />
+                    ))}
+                  </div>
+                </div>
+              </section>
+            </>
+          )}
+
+          {/* Featured by Category */}
+          <section className="bg-surface-warm py-16 sm:py-20">
+            <div className="mx-auto max-w-7xl px-4">
+              <div className="text-center">
+                <h2 className="font-serif text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                  Sản phẩm nổi bật
+                </h2>
+                <p className="mt-1.5 text-sm text-muted-foreground">
                   Lựa chọn hàng đầu theo từng danh mục
                 </p>
+                <SectionOrnament />
               </div>
-              <div className="flex flex-wrap gap-1.5">
+
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
                 {[
                   { id: "all", name: "Tất cả" },
                   ...categories.map((c) => ({ id: c.id, name: c.name })),
@@ -281,97 +425,84 @@ export default function HomePage() {
                     aria-pressed={activeCategory === category.id}
                     onClick={() => setActiveCategory(category.id)}
                     className={cn(
-                      "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                      "rounded-full px-4 py-2 text-xs font-medium transition-colors",
                       activeCategory === category.id
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "border border-border/80 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
                     )}
                   >
                     {category.name}
                   </button>
                 ))}
               </div>
-            </div>
-            {featuredProducts.length > 0 ? (
-              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {featuredProducts.slice(0, 8).map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-            ) : (
-              <div className="mt-6 rounded-2xl border bg-card py-12 text-center text-sm text-muted-foreground">
-                Chưa có sản phẩm trong danh mục này.
-              </div>
-            )}
-          </section>
 
-          {/* Best sellers */}
-          {hotProducts.length > 0 && (
-            <section className="mx-auto max-w-7xl px-4 pt-12">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <h2 className="text-xl font-bold sm:text-2xl">Bán chạy nhất</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Được mua nhiều nhất trong tuần
-                  </p>
+              {featuredProducts.length > 0 ? (
+                <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                  {featuredProducts.slice(0, 8).map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
                 </div>
-                <Link
-                  to="/tim-kiem"
-                  className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-primary hover:underline"
-                >
-                  Xem tất cả <ArrowRight className="size-4" />
-                </Link>
-              </div>
-              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {hotProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-            </section>
-          )}
+              ) : (
+                <div className="mt-10 rounded-2xl border border-border/70 bg-card py-14 text-center text-sm text-muted-foreground">
+                  Chưa có sản phẩm trong danh mục này.
+                </div>
+              )}
+            </div>
+          </section>
         </>
       )}
 
-      {/* CTA banner */}
-      <section className="mx-auto max-w-7xl px-4 pt-12">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary to-teal-600 px-6 py-10 text-center text-primary-foreground sm:px-10">
-          <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_80%_20%,white_1px,transparent_1px)] [background-size:36px_36px]" />
-          <div className="relative">
-            {isAuthenticated ? (
-              <>
-                <h2 className="text-2xl font-extrabold sm:text-3xl">
-                  Ưu đãi dành riêng cho thành viên
-                </h2>
-                <p className="mx-auto mt-2 max-w-xl text-sm text-primary-foreground/80">
-                  Khám phá ngay danh sách sản phẩm đang giảm giá sâu và miễn phí giao hàng từ 299.000đ.
-                </p>
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  className="mt-6 bg-white text-primary hover:bg-white/90"
-                  asChild
-                >
-                  <Link to="/tim-kiem?giam-gia=1">Khám phá ưu đãi hôm nay</Link>
-                </Button>
-              </>
-            ) : (
-              <>
-                <h2 className="text-2xl font-extrabold sm:text-3xl">
-                  Đăng ký nhận ưu đãi hằng ngày
-                </h2>
-                <p className="mx-auto mt-2 max-w-xl text-sm text-primary-foreground/80">
-                  Nhận mã giảm giá lên đến 200.000đ và cập nhật các chương trình khuyến mãi sớm nhất.
-                </p>
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  className="mt-6 bg-white text-primary hover:bg-white/90"
-                  asChild
-                >
-                  <Link to="/register">Đăng ký miễn phí</Link>
-                </Button>
-              </>
-            )}
+      {/* Bottom Editorial CTA */}
+      <section className="bg-background py-16 sm:py-20">
+        <div className="mx-auto max-w-5xl px-4">
+          <div className="relative overflow-hidden rounded-3xl border border-border/70 bg-surface-warm px-6 py-12 text-center sm:px-12 sm:py-16">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -bottom-20 left-1/2 h-48 w-96 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl"
+            />
+            <div className="relative">
+              {isAuthenticated ? (
+                <>
+                  <p className="text-xs font-semibold tracking-widest text-primary uppercase">
+                    Đặc quyền thành viên DreamShop
+                  </p>
+                  <h2 className="mt-3 font-serif text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                    Ưu đãi dành riêng cho thành viên
+                  </h2>
+                  <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
+                    Khám phá ngay danh sách sản phẩm đang giảm giá sâu và miễn phí giao hàng từ
+                    299.000đ.
+                  </p>
+                  <Button
+                    size="lg"
+                    className="mt-7 h-11 rounded-full bg-primary px-7 text-primary-foreground hover:bg-primary/90"
+                    asChild
+                  >
+                    <Link to="/tim-kiem?giam-gia=1">Khám phá ưu đãi hôm nay</Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs font-semibold tracking-widest text-primary uppercase">
+                    Thành viên mới
+                  </p>
+                  <h2 className="mt-3 font-serif text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                    Đăng ký nhận ưu đãi hằng ngày
+                  </h2>
+                  <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
+                    Nhận thông báo sớm về các chương trình khuyến mãi chính hãng và ưu đãi dành
+                    riêng cho tài khoản DreamShop.
+                  </p>
+                  <Button
+                    size="lg"
+                    className="mt-7 h-11 rounded-full bg-primary px-7 text-primary-foreground hover:bg-primary/90"
+                    asChild
+                  >
+                    <Link to="/register">Đăng ký miễn phí</Link>
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </section>

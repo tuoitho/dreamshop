@@ -21,7 +21,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useAuth } from "@/hooks/use-auth"
-import { listAdminInventory, toClientError } from "@/lib/api"
+import { listAdminInventory } from "@/lib/api"
+import { resolveErrorMessage } from "@/lib/error-messages"
 import { CATEGORY_PRESETS } from "@/lib/categories"
 import { formatCurrencyVnd, formatDateTime, formatNumber } from "@/lib/format"
 import type { AdminInventoryItem, AdminInventoryPage } from "@/lib/types"
@@ -65,7 +66,7 @@ export function InventoryPage() {
         setData(res)
       } catch (error) {
         if (!signal?.aborted) {
-          setErrorMessage(toClientError(error).message)
+          setErrorMessage(resolveErrorMessage(error))
         }
       } finally {
         if (!signal?.aborted) {

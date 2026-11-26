@@ -25,9 +25,13 @@ export interface CurrentUser {
   userId: string
   email: string
   fullName: string
-  phone?: string | null
-  avatarUrl?: string | null
   roles: string[]
+  phone?: string | null
+  dateOfBirth?: string | null
+  gender?: "MALE" | "FEMALE" | "OTHER" | null
+  provinceCode?: string | null
+  wardCode?: string | null
+  addressLine?: string | null
 }
 
 export interface AdminStockSnapshot {

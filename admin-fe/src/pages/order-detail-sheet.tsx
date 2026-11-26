@@ -20,7 +20,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { Textarea } from "@/components/ui/textarea"
-import { getAdminOrder, retryAdminOrderRefund, toClientError } from "@/lib/api"
+import { getAdminOrder, retryAdminOrderRefund } from "@/lib/api"
+import { resolveErrorMessage } from "@/lib/error-messages"
 import { formatCurrencyVnd, formatDateTime } from "@/lib/format"
 import {
   ACTOR_LABELS,
@@ -58,7 +59,7 @@ export function OrderDetailSheet({ open, onOpenChange, orderId, canUpdate, onMut
         const res = await getAdminOrder(orderId, signal)
         if (!signal?.aborted) setView(res)
       } catch (error) {
-        if (!signal?.aborted) setErrorMessage(toClientError(error).message)
+        if (!signal?.aborted) setErrorMessage(resolveErrorMessage(error))
       } finally {
         if (!signal?.aborted) setLoading(false)
       }

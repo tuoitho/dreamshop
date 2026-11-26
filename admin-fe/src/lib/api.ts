@@ -33,6 +33,7 @@ import {
   runSingleFlightRefresh,
   setAccessToken,
 } from "./auth-session"
+import { resolveErrorMessage } from "./error-messages"
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1"
 
@@ -66,7 +67,7 @@ function responseMessage(data: unknown): string | undefined {
 export async function refreshAccessToken(): Promise<string> {
   return runSingleFlightRefresh(async () => {
     const startEpoch = getSessionEpoch()
-    const { data } = await refreshHttp.post<ApiResponse<LoginResponse>>("/auth/refresh")
+    const { data } = await refreshHttp.post<ApiResponse<LoginResponse>>("/auth/admin/refresh")
     if (getSessionEpoch() !== startEpoch) {
       throw new Error("Session changed during token refresh")
     }
@@ -109,7 +110,7 @@ http.interceptors.response.use(
       requestEpoch !== getSessionEpoch()
     ) {
       if (isMutation(config) && !shouldSilentMutationToast(url)) {
-        toast.error(responseMessage(error.response?.data) ?? error.message)
+        toast.error(resolveErrorMessage(toClientError(error)))
       }
       return Promise.reject(error)
     }
@@ -126,7 +127,7 @@ http.interceptors.response.use(
         clearAccessToken()
       }
       if (isMutation(config) && !shouldSilentMutationToast(url)) {
-        toast.error(responseMessage(error.response?.data) ?? error.message)
+        toast.error(resolveErrorMessage(toClientError(error)))
       }
       return Promise.reject(error)
     }
@@ -177,7 +178,7 @@ export function toClientError(error: unknown): ApiClientError {
 
 export async function login(payload: LoginRequest): Promise<LoginResponse> {
   try {
-    const { data } = await http.post<ApiResponse<LoginResponse>>("/auth/login", payload)
+    const { data } = await http.post<ApiResponse<LoginResponse>>("/auth/admin/login", payload)
     return data.data
   } catch (error) {
     throw toClientError(error)
@@ -186,7 +187,7 @@ export async function login(payload: LoginRequest): Promise<LoginResponse> {
 
 export async function logoutRequest(): Promise<void> {
   try {
-    await http.post("/auth/logout")
+    await http.post("/auth/admin/logout")
   } catch (error) {
     throw toClientError(error)
   }

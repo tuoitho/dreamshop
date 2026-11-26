@@ -164,9 +164,9 @@ export interface ProductSummary {
   soldCount: number
   images?: string[]
   emoji?: string
-  imageHue?: [number, number]
+  imageHue?: [number, number] | number[]
   isNew?: boolean
-  badge?: "sale" | "hot" | "new"
+  badge?: "sale" | "hot" | "new" | ""
   featured?: boolean
   status?: ProductAvailabilityStatus
   availableQuantity?: number

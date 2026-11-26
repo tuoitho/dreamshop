@@ -14,7 +14,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useAuth } from "@/hooks/use-auth"
-import { listAdminOrders, toClientError } from "@/lib/api"
+import { listAdminOrders } from "@/lib/api"
+import { resolveErrorMessage } from "@/lib/error-messages"
 import { formatCurrencyVnd, formatDateTime, formatNumber } from "@/lib/format"
 import {
   ORDER_STATUS_LABELS,
@@ -57,7 +58,7 @@ export function OrdersPage() {
         setData(res)
       } catch (error) {
         if (!signal?.aborted) {
-          setErrorMessage(toClientError(error).message)
+          setErrorMessage(resolveErrorMessage(error))
         }
       } finally {
         if (!signal?.aborted) {

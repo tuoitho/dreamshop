@@ -10,7 +10,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { getAdminProduct, toClientError } from "@/lib/api"
+import { getAdminProduct } from "@/lib/api"
+import { resolveErrorMessage } from "@/lib/error-messages"
 import { formatCurrencyVnd, formatNumber } from "@/lib/format"
 import type { AdminProductDetail } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -57,7 +58,7 @@ export function ProductDetailSheet({
         setDetail(res)
       } catch (error) {
         if (!controller.signal.aborted) {
-          setErrorMessage(toClientError(error).message)
+          setErrorMessage(resolveErrorMessage(error))
         }
       } finally {
         if (!controller.signal.aborted) {

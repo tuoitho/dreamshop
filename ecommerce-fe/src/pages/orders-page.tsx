@@ -5,6 +5,7 @@ import { ProductImage } from "@/components/product-image"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cancelOrder, listOrders } from "@/lib/api"
+import { resolveErrorMessage } from "@/lib/error-messages"
 import { ORDER_STATUS_TABS, getOrderStatusMeta, isCustomerCancellable } from "@/lib/order-status"
 import type { OrderDetail, OrderItemSnapshot } from "@/lib/types"
 import { cn, formatVND } from "@/lib/utils"
@@ -60,7 +61,7 @@ export default function OrdersPage() {
       if (signal?.aborted) {
         return
       }
-      setError(err instanceof Error ? err.message : "Không thể tải danh sách đơn mua.")
+      setError(resolveErrorMessage(err, { fallback: "Không thể tải danh sách đơn mua." }))
     } finally {
       if (!signal?.aborted) {
         setLoading(false)

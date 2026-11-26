@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { cancelOrder, getOrder } from "@/lib/api"
+import { resolveErrorMessage } from "@/lib/error-messages"
 import { isCustomerCancellable, orderStatusLabel } from "@/lib/order-status"
 import type { OrderDetail, OrderItemSnapshot } from "@/lib/types"
 import { formatVND } from "@/lib/utils"
@@ -84,7 +85,7 @@ export default function OrderDetailPage() {
       if (signal?.aborted) {
         return
       }
-      setError(err instanceof Error ? err.message : "Không thể tải chi tiết đơn hàng.")
+      setError(resolveErrorMessage(err, { fallback: "Không thể tải chi tiết đơn hàng." }))
     } finally {
       if (!signal?.aborted) {
         setLoading(false)

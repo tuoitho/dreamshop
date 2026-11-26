@@ -24,9 +24,9 @@ import {
   assignAdminUserRole,
   getAdminUser,
   revokeAdminUserRole,
-  toClientError,
   updateAdminUserStatus,
 } from "@/lib/api"
+import { resolveErrorMessage } from "@/lib/error-messages"
 import { formatDateTime } from "@/lib/format"
 import type { AdminUser, RbacItem } from "@/lib/types"
 
@@ -104,7 +104,7 @@ export function UserDetailSheet({
         }
       } catch (error) {
         if (!controller.signal.aborted) {
-          setErrorMessage(toClientError(error).message)
+          setErrorMessage(resolveErrorMessage(error))
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -144,7 +144,7 @@ export function UserDetailSheet({
       setDetail(updated)
       onMutated()
     } catch (error) {
-      setErrorMessage(toClientError(error).message)
+      setErrorMessage(resolveErrorMessage(error))
     } finally {
       setBusyAction(null)
     }
@@ -164,7 +164,7 @@ export function UserDetailSheet({
         void refreshPermissions()
       }
     } catch (error) {
-      setErrorMessage(toClientError(error).message)
+      setErrorMessage(resolveErrorMessage(error))
     } finally {
       setBusyAction(null)
     }

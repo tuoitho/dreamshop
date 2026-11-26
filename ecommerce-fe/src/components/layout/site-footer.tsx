@@ -1,54 +1,33 @@
 import { Link } from "react-router-dom"
-import { ShieldCheck, Truck, RotateCcw, Headphones } from "lucide-react"
+import { BrandLogo } from "@/components/layout/brand-logo"
 import { categories } from "@/data/products"
-
-const SERVICE_ITEMS = [
-  { icon: Truck, title: "Giao hàng nhanh", desc: "Miễn phí từ 299.000đ" },
-  { icon: ShieldCheck, title: "Chính hãng 100%", desc: "Bảo hành toàn quốc" },
-  { icon: RotateCcw, title: "Đổi trả 30 ngày", desc: "Hoàn tiền nhanh chóng" },
-  { icon: Headphones, title: "Hỗ trợ 24/7", desc: "Hotline 1900-6789" },
-]
 
 export function SiteFooter() {
   return (
-    <footer className="border-t bg-card">
-      <div className="mx-auto max-w-7xl px-4 py-10">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {SERVICE_ITEMS.map((item) => (
-            <div key={item.title} className="flex items-start gap-3">
-              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-                <item.icon className="size-5" />
-              </span>
-              <div>
-                <p className="text-sm font-semibold">{item.title}</p>
-                <p className="text-xs text-muted-foreground">{item.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-10 grid gap-8 border-t pt-8 sm:grid-cols-2 lg:grid-cols-4">
+    <footer className="bg-surface-ink text-[#d8e6d5]">
+      <div className="mx-auto max-w-7xl px-4 py-14 sm:py-16">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="grid size-7 place-items-center rounded-lg bg-primary text-sm font-extrabold text-primary-foreground">
-                T
+            <Link to="/" className="inline-flex items-center gap-2.5">
+              <BrandLogo className="size-8" />
+              <span className="font-serif text-xl font-bold tracking-tight text-white">
+                DreamShop
               </span>
-              <span className="text-base font-extrabold tracking-tight">TechShop</span>
-            </div>
-            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-              Nền tảng mua sắm trực tuyến hiện đại với hàng nghìn sản phẩm chính hãng, giá tốt
-              và giao hàng tận nơi trên toàn quốc.
+            </Link>
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-[#a3b89f]">
+              Nền tảng mua sắm trực tuyến tinh chọn với sản phẩm chính hãng, trải nghiệm mua sắm
+              chỉn chu và giao hàng tận nơi trên toàn quốc.
             </p>
           </div>
 
           <div>
-            <p className="text-sm font-semibold">Danh mục</p>
-            <ul className="mt-3 grid gap-2">
+            <p className="font-serif text-base font-semibold text-white">Danh mục</p>
+            <ul className="mt-4 grid gap-2.5">
               {categories.slice(0, 6).map((category) => (
                 <li key={category.id}>
                   <Link
                     to={`/tim-kiem?danh-muc=${category.id}`}
-                    className="text-xs text-muted-foreground hover:text-primary"
+                    className="text-sm text-[#a3b89f] transition-colors hover:text-[#bef264]"
                   >
                     {category.name}
                   </Link>
@@ -58,25 +37,25 @@ export function SiteFooter() {
           </div>
 
           <div>
-            <p className="text-sm font-semibold">Hỗ trợ khách hàng</p>
-            <ul className="mt-3 grid gap-2 text-xs text-muted-foreground">
+            <p className="font-serif text-base font-semibold text-white">Hỗ trợ khách hàng</p>
+            <ul className="mt-4 grid gap-2.5 text-sm text-[#a3b89f]">
               <li>
-                <Link to="/tim-kiem" className="hover:text-primary">
+                <Link to="/tim-kiem" className="transition-colors hover:text-[#bef264]">
                   Trung tâm trợ giúp
                 </Link>
               </li>
               <li>
-                <Link to="/tim-kiem?giam-gia=1" className="hover:text-primary">
+                <Link to="/tim-kiem?giam-gia=1" className="transition-colors hover:text-[#bef264]">
                   Chương trình khuyến mãi
                 </Link>
               </li>
               <li>
-                <Link to="/gio-hang" className="hover:text-primary">
+                <Link to="/gio-hang" className="transition-colors hover:text-[#bef264]">
                   Kiểm tra giỏ hàng
                 </Link>
               </li>
               <li>
-                <Link to="/profile" className="hover:text-primary">
+                <Link to="/profile" className="transition-colors hover:text-[#bef264]">
                   Quản lý tài khoản
                 </Link>
               </li>
@@ -84,24 +63,24 @@ export function SiteFooter() {
           </div>
 
           <div>
-            <p className="text-sm font-semibold">Liên hệ</p>
-            <ul className="mt-3 grid gap-2 text-xs text-muted-foreground">
+            <p className="font-serif text-base font-semibold text-white">Liên hệ</p>
+            <ul className="mt-4 grid gap-2.5 text-sm text-[#a3b89f]">
               <li>Hotline: 1900 6789</li>
-              <li>Email: hotro@techshop.vn</li>
+              <li>Email: hotro@dreamshop.vn</li>
               <li>Địa chỉ: 123 Nguyễn Trãi, TP. HCM</li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t pt-6 sm:flex-row">
-          <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} TechShop. Tất cả quyền được bảo lưu.
+        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-6 sm:flex-row">
+          <p className="text-xs text-[#869e82]">
+            © {new Date().getFullYear()} DreamShop. Tất cả quyền được bảo lưu.
           </p>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="rounded border px-1.5 py-0.5">VISA</span>
-            <span className="rounded border px-1.5 py-0.5">Mastercard</span>
-            <span className="rounded border px-1.5 py-0.5">MoMo</span>
-            <span className="rounded border px-1.5 py-0.5">VNPay</span>
+          <div className="flex items-center gap-2.5 text-[11px] font-medium text-[#a3b89f]">
+            <span className="rounded border border-white/15 px-2 py-0.5">VISA</span>
+            <span className="rounded border border-white/15 px-2 py-0.5">Mastercard</span>
+            <span className="rounded border border-white/15 px-2 py-0.5">MoMo</span>
+            <span className="rounded border border-white/15 px-2 py-0.5">VNPay</span>
           </div>
         </div>
       </div>

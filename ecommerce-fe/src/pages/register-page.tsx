@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/hooks/use-auth"
+import { resolveErrorMessage } from "@/lib/error-messages"
 
 export default function RegisterPage() {
   const { register, ready, isAuthenticated } = useAuth()
@@ -38,7 +39,7 @@ export default function RegisterPage() {
       await register({ email, password, fullName })
       navigate("/login", { replace: true, state: { registered: true } })
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Đăng ký thất bại")
+      setError(resolveErrorMessage(err, { fallback: "Đăng ký thất bại" }))
     } finally {
       setSubmitting(false)
     }

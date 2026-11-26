@@ -300,7 +300,7 @@ describe("OrderPreviewPage", () => {
     expect(thirdKey).not.toBe(firstKey)
   })
 
-  it("locks submit button and displays changed SKUs banner on 409 PRODUCT_SNAPSHOT_MISMATCH", async () => {
+  it("locks submit button and displays changed SKUs banner with product name on 409 PRODUCT_SNAPSHOT_MISMATCH", async () => {
     const user = userEvent.setup()
     vi.mocked(api.createOrder).mockRejectedValueOnce(
       new ApiClientError(
@@ -319,10 +319,45 @@ describe("OrderPreviewPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Đặt hàng" }))
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(/Giá phân loại vừa thay đổi/)
+    const alert = await screen.findByRole("alert")
+    expect(alert).toHaveTextContent(/Giá phân loại vừa thay đổi/)
+    expect(alert).toHaveTextContent(AVAILABLE_ITEM.name)
+    expect(alert).not.toHaveTextContent("product-available-v1")
     expect(screen.getByRole("button", { name: "Đặt hàng" })).toBeDisabled()
     expect(
       screen.getByRole("link", { name: /Quay lại giỏ hàng để cập nhật/i })
+    ).toHaveAttribute("href", "/gio-hang")
+  })
+
+  it("displays Vietnamese product-aware alert on 409 INVENTORY_INSUFFICIENT without disabling retry", async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.createOrder).mockRejectedValueOnce(
+      new ApiClientError(
+        409,
+        'insufficient stock for sku "product-available-v1": available=3 requested=24',
+        "INVENTORY_INSUFFICIENT",
+        "t-stock",
+        {
+          sku_id: "product-available-v1",
+          product_id: AVAILABLE_ITEM.productId,
+          available: "3",
+          requested: "24",
+        }
+      )
+    )
+
+    renderPage([AVAILABLE_ITEM], [AVAILABLE_ITEM])
+    await screen.findByText(/1 Lê Duẩn/)
+
+    await user.click(screen.getByRole("button", { name: "Đặt hàng" }))
+
+    const alert = await screen.findByRole("alert")
+    expect(alert).toHaveTextContent(AVAILABLE_ITEM.name)
+    expect(alert).toHaveTextContent(/chỉ còn 3 sản phẩm \(bạn đang đặt 24\)/)
+    expect(alert).not.toHaveTextContent(/insufficient stock/i)
+    expect(screen.getByRole("button", { name: "Đặt hàng" })).toBeEnabled()
+    expect(
+      screen.getByRole("link", { name: /Quay lại giỏ hàng để điều chỉnh/i })
     ).toHaveAttribute("href", "/gio-hang")
   })
 

@@ -5,7 +5,7 @@ These instructions apply to `admin-fe/` in addition to the root
 
 ## Ownership
 
-`admin-fe/` owns the standalone operator console for TechShop:
+`admin-fe/` owns the standalone operator console for DreamShop:
 
 - Overview KPIs, stock health breakdown, and low-stock watchlist.
 - Catalog product CRUD, soft-delete/restore, and direct browser S3/MinIO media uploads (`IMAGE` & `VIDEO`).
@@ -28,7 +28,7 @@ These instructions apply to `admin-fe/` in addition to the root
   native `fetch` with only `Content-Type` matching the presigned MIME type —
   never attach `Authorization` headers to S3 presigned requests.
 - Keep access tokens strictly in memory (`src/lib/auth-session.ts`), restore
-  sessions on reload via HttpOnly cookie refresh (`POST /api/v1/auth/refresh`),
+  sessions on reload via HttpOnly cookie refresh (`POST /api/v1/auth/admin/refresh`),
   and coalesce concurrent refreshes via a single-flight promise with session
   epoch protection.
 - Gate navigation items, dashboard panels, and mutation controls using the

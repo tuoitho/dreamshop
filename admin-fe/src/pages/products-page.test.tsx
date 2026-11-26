@@ -15,7 +15,7 @@ function makeAuth(permissions: string[]): AuthContextValue {
     user: {
       userId: "u-1",
       email: "admin@sshop.vn",
-      fullName: "Admin TechShop",
+      fullName: "Admin DreamShop",
       roles: ["ADMIN"],
     },
     permissions: permSet,
@@ -312,7 +312,7 @@ describe("ProductsPage & ProductDrawer", () => {
     await userEvent.click(screen.getByRole("button", { name: /thêm sản phẩm/i }))
 
     await userEvent.type(await screen.findByLabelText(/tên sản phẩm/i), "Sản phẩm lỗi giá")
-    await userEvent.type(screen.getByLabelText(/thương hiệu/i), "TechShop")
+    await userEvent.type(screen.getByLabelText(/thương hiệu/i), "DreamShop")
 
     await userEvent.click(screen.getByRole("button", { name: /lưu sản phẩm/i }))
     expect(await screen.findByRole("alert")).toHaveTextContent(/lớn hơn 0/i)

@@ -4,6 +4,7 @@ import { AlertTriangle, CheckCircle2, Clock, Loader2, XCircle } from "lucide-rea
 import { Button } from "@/components/ui/button"
 import { useCart } from "@/hooks/use-cart"
 import { getOrder } from "@/lib/api"
+import { resolveErrorMessage } from "@/lib/error-messages"
 import type { OrderDetail } from "@/lib/types"
 import { formatVND } from "@/lib/utils"
 
@@ -64,7 +65,7 @@ export default function PaymentResultPage() {
       } catch (err) {
         if (!cancelled) {
           setLoading(false)
-          setError(err instanceof Error ? err.message : "Không thể tải thông tin đơn hàng.")
+          setError(resolveErrorMessage(err, { fallback: "Không thể tải thông tin đơn hàng." }))
         }
       }
     }
