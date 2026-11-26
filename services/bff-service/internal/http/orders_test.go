@@ -307,3 +307,75 @@ func TestOrderDetailJSONIncludesFulfillmentFields(t *testing.T) {
 		}
 	}
 }
+
+func TestCustomerOrderEndpointsOmitInternalRefundFields(t *testing.T) {
+	detailWithInternalRefund := func() *orderv1.OrderDetail {
+		d := orderDetailFixture()
+		d.PaymentStatus = "REFUND_FAILED"
+		d.RefundTransId = "momo-ref-42"
+		d.RefundedAt = "2026-11-25T10:00:00Z"
+		d.RefundLastError = "MoMo HTTP 502 raw gateway stack detail"
+		d.RefundActorType = "ADMIN"
+		d.RefundReason = "Internal ops escalation note"
+		return d
+	}
+
+	mux := http.NewServeMux()
+	NewOrdersHandler(&fakeOrderClient{
+		createFn: func(context.Context, *orderv1.CreateOrderRequest) (*orderv1.CreateOrderResponse, error) {
+			d := detailWithInternalRefund()
+			return &orderv1.CreateOrderResponse{OrderId: d.OrderId, Status: d.Status, TotalAmount: d.TotalAmount, Order: d}, nil
+		},
+		listFn: func(context.Context, string, string, int32, int32) (*orderv1.ListOrdersResponse, error) {
+			return &orderv1.ListOrdersResponse{Items: []*orderv1.OrderDetail{detailWithInternalRefund()}, Page: 1, PageSize: 10, TotalItems: 1, TotalPages: 1}, nil
+		},
+		getFn: func(context.Context, string, string) (*orderv1.GetOrderResponse, error) {
+			return &orderv1.GetOrderResponse{Order: detailWithInternalRefund()}, nil
+		},
+		cancelFn: func(context.Context, string, string, string) (*orderv1.CancelOrderResponse, error) {
+			return &orderv1.CancelOrderResponse{Order: detailWithInternalRefund()}, nil
+		},
+	}).Register(mux)
+
+	createBody := `{"paymentMethod":"COD","shippingAddress":{"recipientName":"A","phone":"0901234567","provinceCode":"79","provinceName":"HCM","wardCode":"26740","wardName":"BN","addressLine":"1 LD"},"items":[{"productId":"dt-1","skuId":"dt-1-v1","quantity":1,"unitPrice":1000,"expectedName":"Nova","variantLabel":"Default","expectedProductVersion":1}]}`
+
+	cases := []struct {
+		name           string
+		method         string
+		target         string
+		body           string
+		idempotencyKey string
+	}{
+		{name: "create", method: http.MethodPost, target: "/api/v1/orders", body: createBody, idempotencyKey: "idem-refund-redact"},
+		{name: "list", method: http.MethodGet, target: "/api/v1/orders"},
+		{name: "get", method: http.MethodGet, target: "/api/v1/orders/ord-123"},
+		{name: "cancel", method: http.MethodPost, target: "/api/v1/orders/ord-123/cancel"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(tc.method, tc.target, strings.NewReader(tc.body))
+			req.Header.Set("X-User-Id", "user-1")
+			if tc.idempotencyKey != "" {
+				req.Header.Set("Idempotency-Key", tc.idempotencyKey)
+			}
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK && rec.Code != http.StatusCreated {
+				t.Fatalf("unexpected status %d: %s", rec.Code, rec.Body.String())
+			}
+			raw := rec.Body.String()
+			for _, forbidden := range []string{"refundLastError", "refundActorType", "refundReason"} {
+				if strings.Contains(raw, forbidden) {
+					t.Fatalf("customer %s response must not expose %q:\n%s", tc.name, forbidden, raw)
+				}
+			}
+			for _, expected := range []string{`"refundTransId":"momo-ref-42"`, `"refundedAt":"2026-11-25T10:00:00Z"`} {
+				if !strings.Contains(raw, expected) {
+					t.Fatalf("customer %s response missing %s:\n%s", tc.name, expected, raw)
+				}
+			}
+		})
+	}
+}

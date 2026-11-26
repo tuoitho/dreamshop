@@ -40,8 +40,9 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(request -> isManagementActuatorRequest(request, environment)).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/admin/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh", "/api/v1/auth/logout",
+                                "/api/v1/auth/admin/refresh", "/api/v1/auth/admin/logout").permitAll()
                         .requestMatchers(HttpMethod.GET, "/.well-known/jwks.json", "/api/v1/auth/.well-known/jwks.json").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me", "/api/v1/users/me/permissions").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/users/me").authenticated()

@@ -233,6 +233,20 @@ on Linux/WSL) and verify the listed health endpoint after startup.
 
 Ngoài ra có thể dùng psql để execute db nếu cần.
 
+## Default Local Test Accounts
+
+Always reuse the existing default development accounts when running manual,
+live, or local E2E verification against the local stack (matching `DEV_ACCOUNTS`
+in `admin-fe/src/pages/login-page.tsx` and `ecommerce-fe/src/pages/login-page.tsx`):
+
+- **Admin (`ADMIN`, `SUPER_ADMIN`):** `admin@example.com` / `AdminPassword123!`
+- **Customer (`CUSTOMER`):** `customer1@gmail.com` / `123456123456`
+
+Do not register or bootstrap new/temporary user accounts in the local
+`identity_db` for testing unless the test specifically targets registration,
+admin user creation, or multi-user isolation and explicitly requires a separate
+account.
+
 ## Long-running processes
 
 Do not run long-lived servers or watch commands in the foreground.

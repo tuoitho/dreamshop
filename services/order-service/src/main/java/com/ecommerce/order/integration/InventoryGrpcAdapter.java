@@ -21,11 +21,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 @Component
 public class InventoryGrpcAdapter {
+    private static final Logger log = LoggerFactory.getLogger(InventoryGrpcAdapter.class);
+
     private final InventoryServiceGrpc.InventoryServiceBlockingStub stub;
     private final OrderProperties properties;
 
@@ -61,6 +65,12 @@ public class InventoryGrpcAdapter {
                         msg,
                         info.getMetadataMap());
             }
+            log.warn(
+                    "Downstream inventory reserveStock failed orderId={} grpcStatus={} traceId={} description={}",
+                    orderId,
+                    ex.getStatus().getCode(),
+                    TraceIdProvider.current(),
+                    ex.getStatus().getDescription());
             throw new DomainException(
                     Status.Code.UNAVAILABLE,
                     "INVENTORY_UNAVAILABLE",

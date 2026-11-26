@@ -14,11 +14,15 @@ import io.grpc.StatusRuntimeException;
 import io.grpc.stub.MetadataUtils;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 @Component
 public class CatalogGrpcAdapter {
+    private static final Logger log = LoggerFactory.getLogger(CatalogGrpcAdapter.class);
+
     private final CatalogServiceGrpc.CatalogServiceBlockingStub stub;
     private final OrderProperties properties;
 
@@ -42,6 +46,12 @@ public class CatalogGrpcAdapter {
             if (ex.getStatus().getCode() == Status.Code.NOT_FOUND) {
                 return Optional.empty();
             }
+            log.warn(
+                    "Downstream catalog getProduct failed productId={} grpcStatus={} traceId={} description={}",
+                    productId,
+                    ex.getStatus().getCode(),
+                    TraceIdProvider.current(),
+                    ex.getStatus().getDescription());
             throw new DomainException(
                     Status.Code.UNAVAILABLE,
                     "CATALOG_UNAVAILABLE",

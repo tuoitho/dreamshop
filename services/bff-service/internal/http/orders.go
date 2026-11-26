@@ -205,7 +205,7 @@ func (h *OrdersHandler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orderJSON := newOrderDetailJSON(resp.GetOrder())
+	orderJSON := newCustomerOrderDetailJSON(resp.GetOrder())
 	payURL := resp.GetPayUrl()
 	if payURL == "" {
 		payURL = orderJSON.PayURL
@@ -246,7 +246,7 @@ func (h *OrdersHandler) list(w http.ResponseWriter, r *http.Request) {
 
 	items := make([]orderDetailJSON, 0, len(resp.GetItems()))
 	for _, it := range resp.GetItems() {
-		items = append(items, newOrderDetailJSON(it))
+		items = append(items, newCustomerOrderDetailJSON(it))
 	}
 	writeEnvelope(w, http.StatusOK, orderListDataJSON{
 		Items:      items,
@@ -268,7 +268,7 @@ func (h *OrdersHandler) get(w http.ResponseWriter, r *http.Request) {
 		writeOrderServiceError(w, r, err)
 		return
 	}
-	writeEnvelope(w, http.StatusOK, newOrderDetailJSON(resp.GetOrder()), "Order retrieved.")
+	writeEnvelope(w, http.StatusOK, newCustomerOrderDetailJSON(resp.GetOrder()), "Order retrieved.")
 }
 
 func (h *OrdersHandler) cancel(w http.ResponseWriter, r *http.Request) {
@@ -293,7 +293,7 @@ func (h *OrdersHandler) cancel(w http.ResponseWriter, r *http.Request) {
 		writeOrderServiceError(w, r, err)
 		return
 	}
-	writeEnvelope(w, http.StatusOK, newOrderDetailJSON(resp.GetOrder()), "Đã hủy đơn hàng.")
+	writeEnvelope(w, http.StatusOK, newCustomerOrderDetailJSON(resp.GetOrder()), "Đã hủy đơn hàng.")
 }
 
 func writeOrderServiceError(w http.ResponseWriter, r *http.Request, err error) {
@@ -359,6 +359,14 @@ func writeOrderServiceError(w http.ResponseWriter, r *http.Request, err error) {
 	}
 
 	writeError(w, r, http.StatusBadGateway, "ORDER_SERVICE_UNAVAILABLE", "Dịch vụ đơn hàng tạm thời gián đoạn.", nil)
+}
+
+func newCustomerOrderDetailJSON(detail *orderv1.OrderDetail) orderDetailJSON {
+	out := newOrderDetailJSON(detail)
+	out.RefundLastError = ""
+	out.RefundActorType = ""
+	out.RefundReason = ""
+	return out
 }
 
 func newOrderDetailJSON(detail *orderv1.OrderDetail) orderDetailJSON {

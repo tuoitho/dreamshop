@@ -20,11 +20,15 @@ import io.grpc.stub.MetadataUtils;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 @Component
 public class PaymentGrpcAdapter {
+    private static final Logger log = LoggerFactory.getLogger(PaymentGrpcAdapter.class);
+
     private final PaymentServiceGrpc.PaymentServiceBlockingStub stub;
     private final OrderProperties properties;
 
@@ -74,6 +78,12 @@ public class PaymentGrpcAdapter {
                             "Payment session was already cancelled");
                 }
             }
+            log.warn(
+                    "Downstream payment createPaymentSession failed orderId={} grpcStatus={} traceId={} description={}",
+                    orderId,
+                    ex.getStatus().getCode(),
+                    TraceIdProvider.current(),
+                    ex.getStatus().getDescription());
             throw new DomainException(
                     Status.Code.UNAVAILABLE,
                     "PAYMENT_GATEWAY_UNAVAILABLE",
@@ -120,17 +130,37 @@ public class PaymentGrpcAdapter {
                         Status.Code.FAILED_PRECONDITION,
                         "PAYMENT_GATEWAY_REJECTED",
                         desc.isEmpty() ? "Payment gateway rejected refund" : desc);
-                case "PAYMENT_GATEWAY_UNAVAILABLE" -> throw new DomainException(
-                        Status.Code.UNAVAILABLE,
-                        "PAYMENT_GATEWAY_UNAVAILABLE",
-                        "Payment gateway is temporarily unavailable");
+                case "PAYMENT_GATEWAY_UNAVAILABLE" -> {
+                    log.warn(
+                            "Downstream payment retryRefund unavailable orderId={} grpcStatus={} traceId={} description={}",
+                            orderId,
+                            ex.getStatus().getCode(),
+                            TraceIdProvider.current(),
+                            ex.getStatus().getDescription());
+                    throw new DomainException(
+                            Status.Code.UNAVAILABLE,
+                            "PAYMENT_GATEWAY_UNAVAILABLE",
+                            "Payment gateway is temporarily unavailable");
+                }
                 default -> {
                     if (ex.getStatus().getCode() == Status.Code.INTERNAL) {
+                        log.error(
+                                "Downstream payment retryRefund internal error orderId={} grpcStatus={} traceId={} description={}",
+                                orderId,
+                                ex.getStatus().getCode(),
+                                TraceIdProvider.current(),
+                                ex.getStatus().getDescription());
                         throw new DomainException(
                                 Status.Code.INTERNAL,
                                 "PAYMENT_INTERNAL_ERROR",
                                 "Payment service encountered an internal error");
                     }
+                    log.warn(
+                            "Downstream payment retryRefund failed orderId={} grpcStatus={} traceId={} description={}",
+                            orderId,
+                            ex.getStatus().getCode(),
+                            TraceIdProvider.current(),
+                            ex.getStatus().getDescription());
                     throw new DomainException(
                             Status.Code.UNAVAILABLE,
                             "PAYMENT_GATEWAY_UNAVAILABLE",

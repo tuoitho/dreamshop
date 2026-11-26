@@ -44,62 +44,95 @@ public class AuthController {
 
     @PostMapping("/login")
     ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
-        log.info("login_attempt {}", request);
-        AuthenticatedSession session = loginService.login(new LoginCommand(request.email(), request.password()));
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie(session.rawRefreshToken(), properties.refreshTtl()).toString());
-        return new ApiResponse<>(LoginResponse.from(session.accessToken()), "Login successful");
+        return loginWithCookie(request, response, properties.cookieName(), properties.cookiePath());
+    }
+
+    @PostMapping("/admin/login")
+    ApiResponse<LoginResponse> adminLogin(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
+        return loginWithCookie(request, response, properties.adminCookieName(), properties.adminCookiePath());
     }
 
     @PostMapping("/refresh")
     ApiResponse<LoginResponse> refresh(HttpServletRequest request, HttpServletResponse response) {
-        try {
-            AuthenticatedSession session = refreshTokenService.rotate(refreshToken(request));
-            response.addHeader(HttpHeaders.SET_COOKIE,
-                    cookie(session.rawRefreshToken(), properties.refreshTtl()).toString());
-            return new ApiResponse<>(LoginResponse.from(session.accessToken()), "Token refreshed successfully");
-        } catch (InvalidRefreshTokenException exception) {
-            response.addHeader(HttpHeaders.SET_COOKIE, cookie("", Duration.ZERO).toString());
-            throw exception;
-        }
+        return refreshWithCookie(request, response, properties.cookieName(), properties.cookiePath());
+    }
+
+    @PostMapping("/admin/refresh")
+    ApiResponse<LoginResponse> adminRefresh(HttpServletRequest request, HttpServletResponse response) {
+        return refreshWithCookie(request, response, properties.adminCookieName(), properties.adminCookiePath());
     }
 
     @PostMapping("/logout")
     ApiResponse<LogoutResponse> logout(HttpServletRequest request, HttpServletResponse response) {
-        String rawToken = findRefreshToken(request);
+        return logoutWithCookie(request, response, properties.cookieName(), properties.cookiePath());
+    }
+
+    @PostMapping("/admin/logout")
+    ApiResponse<LogoutResponse> adminLogout(HttpServletRequest request, HttpServletResponse response) {
+        return logoutWithCookie(request, response, properties.adminCookieName(), properties.adminCookiePath());
+    }
+
+    private ApiResponse<LoginResponse> loginWithCookie(
+            LoginRequest request, HttpServletResponse response, String cookieName, String cookiePath) {
+        log.info("login_attempt {}", request);
+        AuthenticatedSession session = loginService.login(new LoginCommand(request.email(), request.password()));
+        response.addHeader(HttpHeaders.SET_COOKIE,
+                cookie(cookieName, cookiePath, session.rawRefreshToken(), properties.refreshTtl()).toString());
+        return new ApiResponse<>(LoginResponse.from(session.accessToken()), "Login successful");
+    }
+
+    private ApiResponse<LoginResponse> refreshWithCookie(
+            HttpServletRequest request, HttpServletResponse response, String cookieName, String cookiePath) {
+        try {
+            AuthenticatedSession session = refreshTokenService.rotate(refreshToken(request, cookieName));
+            response.addHeader(HttpHeaders.SET_COOKIE,
+                    cookie(cookieName, cookiePath, session.rawRefreshToken(), properties.refreshTtl()).toString());
+            return new ApiResponse<>(LoginResponse.from(session.accessToken()), "Token refreshed successfully");
+        } catch (InvalidRefreshTokenException exception) {
+            response.addHeader(HttpHeaders.SET_COOKIE,
+                    cookie(cookieName, cookiePath, "", Duration.ZERO).toString());
+            throw exception;
+        }
+    }
+
+    private ApiResponse<LogoutResponse> logoutWithCookie(
+            HttpServletRequest request, HttpServletResponse response, String cookieName, String cookiePath) {
+        String rawToken = findRefreshToken(request, cookieName);
         if (rawToken != null && !rawToken.isBlank()) {
             refreshTokenService.logout(rawToken);
         }
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie("", Duration.ZERO).toString());
+        response.addHeader(HttpHeaders.SET_COOKIE,
+                cookie(cookieName, cookiePath, "", Duration.ZERO).toString());
         return new ApiResponse<>(new LogoutResponse(), "Logout successful");
     }
 
-    private String refreshToken(HttpServletRequest request) {
-        String rawToken = findRefreshToken(request);
+    private String refreshToken(HttpServletRequest request, String cookieName) {
+        String rawToken = findRefreshToken(request, cookieName);
         if (rawToken == null || rawToken.isBlank()) {
             throw new InvalidRefreshTokenException();
         }
         return rawToken;
     }
 
-    private String findRefreshToken(HttpServletRequest request) {
+    private String findRefreshToken(HttpServletRequest request, String cookieName) {
         Cookie[] cookies = request.getCookies();
         if (cookies == null) {
             return null;
         }
         for (Cookie candidate : cookies) {
-            if (properties.cookieName().equals(candidate.getName())) {
+            if (cookieName.equals(candidate.getName())) {
                 return candidate.getValue();
             }
         }
         return null;
     }
 
-    private ResponseCookie cookie(String value, Duration maxAge) {
-        return ResponseCookie.from(properties.cookieName(), value)
+    private ResponseCookie cookie(String cookieName, String cookiePath, String value, Duration maxAge) {
+        return ResponseCookie.from(cookieName, value)
                 .httpOnly(true)
                 .secure(properties.cookieSecure())
                 .sameSite("Lax")
-                .path(properties.cookiePath())
+                .path(cookiePath)
                 .maxAge(maxAge)
                 .build();
     }
