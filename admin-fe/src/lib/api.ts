@@ -8,6 +8,8 @@ import type {
   AdminProductDetail,
   AdminProductMutationPayload,
   AdminProductsPage,
+  AdminReview,
+  AdminReviewPage,
   AdminUser,
   AdminUserPage,
   ApiError,
@@ -16,6 +18,7 @@ import type {
   ListAdminInventoryParams,
   ListAdminOrdersParams,
   ListAdminProductsParams,
+  ListAdminReviewsParams,
   ListAdminUsersParams,
   LoginRequest,
   LoginResponse,
@@ -545,6 +548,53 @@ export async function removeRbacChild(parent: string, child: string): Promise<vo
     await http.delete(
       `/admin/rbac/items/${encodeURIComponent(parent)}/children/${encodeURIComponent(child)}`
     )
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+// --- Admin Reviews ---
+
+export async function listAdminReviews(
+  params: ListAdminReviewsParams = {},
+  signal?: AbortSignal
+): Promise<AdminReviewPage> {
+  try {
+    const { data } = await http.get<ApiResponse<AdminReviewPage>>("/admin/reviews", {
+      params,
+      signal,
+    })
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function setAdminReviewVisibility(
+  reviewId: string,
+  payload: { hidden: boolean; reason?: string }
+): Promise<AdminReview> {
+  try {
+    const { data } = await http.patch<ApiResponse<AdminReview>>(
+      `/admin/reviews/${encodeURIComponent(reviewId)}/visibility`,
+      payload
+    )
+    return data.data
+  } catch (error) {
+    throw toClientError(error)
+  }
+}
+
+export async function replyAdminReview(
+  reviewId: string,
+  reply: string
+): Promise<AdminReview> {
+  try {
+    const { data } = await http.put<ApiResponse<AdminReview>>(
+      `/admin/reviews/${encodeURIComponent(reviewId)}/reply`,
+      { reply }
+    )
+    return data.data
   } catch (error) {
     throw toClientError(error)
   }

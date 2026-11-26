@@ -10,6 +10,7 @@ import { OrdersPage } from "@/pages/orders-page"
 import { OverviewPage } from "@/pages/overview-page"
 import { ProductsPage } from "@/pages/products-page"
 import { RbacPage } from "@/pages/rbac-page"
+import { ReviewsPage } from "@/pages/reviews-page"
 import { UsersPage } from "@/pages/users-page"
 import { RequireAdminAuth } from "@/routes/require-admin-auth"
 
@@ -66,6 +67,14 @@ export function App() {
                 element={
                   <PermissionGate permission="order.admin.view">
                     <OrdersPage />
+                  </PermissionGate>
+                }
+              />
+              <Route
+                path="reviews"
+                element={
+                  <PermissionGate permission="review.admin.view">
+                    <ReviewsPage />
                   </PermissionGate>
                 }
               />

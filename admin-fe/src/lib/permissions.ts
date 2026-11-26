@@ -7,6 +7,8 @@ export const ADMIN_CONSOLE_PERMISSIONS = [
   "inventory.update",
   "order.admin.view",
   "order.admin.update",
+  "review.admin.view",
+  "review.admin.moderate",
   "user.view",
   "user.status.update",
   "user.role.assign",

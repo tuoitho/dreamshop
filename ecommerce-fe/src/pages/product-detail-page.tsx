@@ -24,6 +24,7 @@ import type { ProductDetail, ProductSummary } from "@/lib/types"
 import { cn, formatVND } from "@/lib/utils"
 import { ProductCard } from "@/components/product-card"
 import { ProductImage } from "@/components/product-image"
+import { ProductReviewsSection } from "@/components/product-reviews-section"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -838,6 +839,23 @@ export default function ProductDetailPage() {
           </ul>
         </div>
       </div>
+
+      <ProductReviewsSection
+        productId={product.id}
+        initialRating={product.rating}
+        initialReviewCount={product.reviewCount}
+        onSummaryChange={(nextSummary) => {
+          setProduct((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  rating: nextSummary.averageRating,
+                  reviewCount: nextSummary.totalReviews,
+                }
+              : prev
+          )
+        }}
+      />
 
       {related !== null && related.length > 0 ? (
         <section className="mt-12">

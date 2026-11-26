@@ -10,6 +10,7 @@ import {
   Plus,
   Search,
   ShieldCheck,
+  Star,
   Users,
   X,
 } from "lucide-react"
@@ -71,6 +72,13 @@ const NAV_GROUPS: NavGroupConfig[] = [
         icon: Boxes,
         permission: "inventory.view",
       },
+      {
+        to: "/reviews",
+        label: "Đánh giá",
+        keywords: "danh gia review rating phan hoi kiem duyet",
+        icon: Star,
+        permission: "review.admin.view",
+      },
     ],
   },
   {
@@ -99,6 +107,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/orders": "Quản lý đơn hàng",
   "/products": "Danh mục sản phẩm & Media",
   "/inventory": "Kiểm kê & Điều phối tồn kho",
+  "/reviews": "Kiểm duyệt đánh giá sản phẩm",
   "/users": "Quản trị tài khoản người dùng",
   "/rbac": "Cây phân quyền RBAC",
 }

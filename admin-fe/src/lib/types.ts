@@ -396,3 +396,46 @@ export interface UpdateOrderStatusPayload {
   shippingCarrier?: string
   trackingNumber?: string
 }
+
+export interface AdminReview {
+  id: string
+  productId: string
+  productName: string
+  userId: string
+  orderId: string
+  skuId: string
+  variantLabel: string
+  authorName: string
+  rating: number
+  comment: string
+  images: string[]
+  verifiedPurchase: boolean
+  hidden: boolean
+  hiddenReason?: string
+  adminReply?: string
+  adminRepliedAt?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AdminReviewPage {
+  items: AdminReview[]
+  page: number
+  pageSize: number
+  totalItems: number
+  totalPages: number
+  visibleCount: number
+  hiddenCount: number
+  unrepliedCount: number
+  averageRating: number
+}
+
+export interface ListAdminReviewsParams {
+  q?: string
+  productId?: string
+  rating?: number
+  status?: "all" | "visible" | "hidden"
+  replyStatus?: "all" | "replied" | "unreplied"
+  page?: number
+  pageSize?: number
+}

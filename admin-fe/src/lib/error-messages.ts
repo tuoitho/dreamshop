@@ -66,6 +66,8 @@ const ADMIN_ERROR_CODE_MESSAGES: Record<string, string> = {
   ORDER_UNAVAILABLE: "Dịch vụ đơn hàng tạm thời gián đoạn. Vui lòng thử lại sau.",
   ORDER_CONFLICT: "Xung đột dữ liệu đơn hàng. Vui lòng tải lại trang.",
   AUTHORIZATION_SERVICE_UNAVAILABLE: "Dịch vụ phân quyền tạm thời gián đoạn. Vui lòng thử lại sau.",
+  REVIEW_NOT_FOUND: "Không tìm thấy đánh giá sản phẩm.",
+  REVIEW_PERMISSION_DENIED: "Bạn không có quyền kiểm duyệt đánh giá sản phẩm.",
 }
 
 function normalizeError(error: unknown): NormalizedErrorShape {

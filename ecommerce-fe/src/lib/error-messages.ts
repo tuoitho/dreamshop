@@ -66,6 +66,15 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   IDEMPOTENCY_KEY_REUSED: "Yêu cầu đặt hàng đã được sử dụng trước đó. Vui lòng bấm đặt hàng lại.",
   REQUEST_IN_PROGRESS: "Đơn hàng đang được xử lý. Vui lòng chờ trong giây lát.",
   AUTHORIZATION_SERVICE_UNAVAILABLE: "Dịch vụ xác thực tạm thời gián đoạn. Vui lòng thử lại sau.",
+
+  // Reviews
+  REVIEW_NOT_FOUND: "Không tìm thấy đánh giá.",
+  REVIEW_NOT_ELIGIBLE: "Bạn cần có đơn hàng đã giao thành công cho sản phẩm này để đánh giá.",
+  REVIEW_ALREADY_EXISTS: "Bạn đã đánh giá sản phẩm này cho đơn hàng này rồi.",
+  REVIEW_FORBIDDEN: "Bạn chỉ có thể chỉnh sửa hoặc xóa đánh giá của chính mình.",
+  REVIEW_PERMISSION_DENIED: "Tài khoản không có quyền thực hiện thao tác đánh giá này.",
+  MEDIA_ALREADY_ATTACHED: "Một hoặc nhiều ảnh tải lên đã được sử dụng ở nơi khác.",
+  MEDIA_STORAGE_UNAVAILABLE: "Dịch vụ lưu trữ hình ảnh tạm thời gián đoạn. Vui lòng thử lại sau.",
 }
 
 function parseNonNegativeInt(raw?: string): number | null {
