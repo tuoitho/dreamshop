@@ -411,7 +411,7 @@ describe("ProductDetailPage", () => {
     expect(screen.getByText("Mua tối đa 10 sản phẩm mỗi lần")).toBeInTheDocument()
   })
 
-  it("shows a color swatch when a variant provides colorHex", async () => {
+  it("renders a variant as a generic label without a color swatch even when legacy colorHex is present", async () => {
     vi.mocked(getProduct).mockResolvedValue({
       ...DETAIL,
       variants: [
@@ -429,7 +429,8 @@ describe("ProductDetailPage", () => {
     renderDetail()
 
     const variantButton = await screen.findByRole("button", { name: "Đen" })
-    expect(variantButton.querySelector("span")).toHaveStyle({ backgroundColor: "#1f2937" })
+    expect(variantButton).toHaveTextContent("Đen")
+    expect(variantButton.querySelector("span")).not.toBeInTheDocument()
   })
 
   it("keeps a capacity variant usable without a color swatch", async () => {

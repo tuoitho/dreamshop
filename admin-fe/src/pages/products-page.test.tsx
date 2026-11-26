@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, describe, expect, it, vi } from "vitest"
@@ -328,16 +328,16 @@ describe("ProductsPage & ProductDrawer", () => {
     expect(createSpy).not.toHaveBeenCalled()
   })
 
-  it("creates multi-variant product with per-variant pricing, color swatches, and representative range summary", async () => {
+  it("creates multi-variant product with per-variant pricing and representative range summary without color pickers", async () => {
     vi.spyOn(api, "listAdminProducts").mockResolvedValue(samplePage)
     const createSpy = vi.spyOn(api, "createAdminProduct").mockResolvedValue({
       ...sampleDetail,
-      id: "p-color-1",
+      id: "p-var-1",
       name: "iPhone 16 Pro",
       variants: [
-        { skuId: "p-color-1-v1", label: "Đen Titan · 256GB", colorHex: "#1c1c1e", price: 28990000 },
-        { skuId: "p-color-1-v2", label: "Xanh Rừng · 512GB", colorHex: "#0f766e", price: 34990000 },
-        { skuId: "p-color-1-v3", label: "Bản Quốc Tế", price: 29990000 },
+        { skuId: "p-var-1-v1", label: "256GB · Tiêu chuẩn", price: 28990000 },
+        { skuId: "p-var-1-v2", label: "512GB · Cao cấp", price: 34990000 },
+        { skuId: "p-var-1-v3", label: "Bản Quốc Tế", price: 29990000 },
       ],
     })
 
@@ -355,36 +355,32 @@ describe("ProductsPage & ProductDrawer", () => {
     await userEvent.type(await screen.findByLabelText(/tên sản phẩm/i), "iPhone 16 Pro")
     await userEvent.type(screen.getByLabelText(/thương hiệu/i), "Apple")
 
-    // Configure variant row 0
+    // Configure variant row 0 (generic variant only, no color picker UI)
     const row0 = screen.getByTestId("variant-row-0")
+    expect(within(row0).queryByText(/màu sắc biến thể/i)).not.toBeInTheDocument()
     const label0 = within(row0).getByLabelText(/tên phân loại/i)
     await userEvent.clear(label0)
-    await userEvent.type(label0, "Đen Titan · 256GB")
+    await userEvent.type(label0, "256GB · Tiêu chuẩn")
     const price0 = within(row0).getByLabelText(/^giá bán/i)
     await userEvent.clear(price0)
     await userEvent.type(price0, "28990000")
     await userEvent.type(within(row0).getByLabelText(/giá niêm yết gốc/i), "30990000")
-    await userEvent.click(within(row0).getByRole("button", { name: /chọn màu đen titan/i }))
 
     // Add variant row 1
     await userEvent.click(screen.getByRole("button", { name: /thêm biến thể/i }))
     const row1 = screen.getByTestId("variant-row-1")
-    await userEvent.type(within(row1).getByLabelText(/tên phân loại/i), "Xanh Rừng · 512GB")
+    await userEvent.type(within(row1).getByLabelText(/tên phân loại/i), "512GB · Cao cấp")
     const price1 = within(row1).getByLabelText(/^giá bán/i)
     await userEvent.clear(price1)
     await userEvent.type(price1, "34990000")
-    fireEvent.change(within(row1).getByLabelText(/bảng màu tùy chỉnh/i), {
-      target: { value: "#0f766e" },
-    })
 
-    // Add variant row 2 without color
+    // Add variant row 2
     await userEvent.click(screen.getByRole("button", { name: /thêm biến thể/i }))
     const row2 = screen.getByTestId("variant-row-2")
     await userEvent.type(within(row2).getByLabelText(/tên phân loại/i), "Bản Quốc Tế")
     const price2 = within(row2).getByLabelText(/^giá bán/i)
     await userEvent.clear(price2)
     await userEvent.type(price2, "29990000")
-    await userEvent.click(within(row2).getByRole("button", { name: /không gắn màu/i }))
 
     expect(
       screen.getByText(/Từ\s+28\.990\.000.*đến\s+34\.990\.000/i)
@@ -398,12 +394,11 @@ describe("ProductsPage & ProductDrawer", () => {
         name: "iPhone 16 Pro",
         variants: [
           {
-            label: "Đen Titan · 256GB",
-            colorHex: "#1c1c1e",
+            label: "256GB · Tiêu chuẩn",
             price: 28990000,
             originalPrice: 30990000,
           },
-          { label: "Xanh Rừng · 512GB", colorHex: "#0f766e", price: 34990000 },
+          { label: "512GB · Cao cấp", price: 34990000 },
           { label: "Bản Quốc Tế", price: 29990000 },
         ],
       })
@@ -531,14 +526,12 @@ describe("ProductsPage & ProductDrawer", () => {
           {
             skuId: "p-macbook-v1",
             label: "Space Black · 16GB/512GB",
-            colorHex: "#1c1c1e",
             price: 39990000,
             originalPrice: 42990000,
           },
           {
             skuId: "p-macbook-v2",
             label: "Silver · 24GB/1TB",
-            colorHex: "#cbd5e1",
             price: 49990000,
           },
         ],

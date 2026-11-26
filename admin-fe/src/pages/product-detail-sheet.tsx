@@ -277,13 +277,7 @@ export function ProductDetailSheet({
                           {detail.variants.map((variant, idx) => (
                             <tr key={variant.skuId ?? `${variant.label}-${idx}`}>
                               <td className="px-3 py-2.5">
-                                <div className="flex items-center gap-1.5 font-medium text-foreground">
-                                  {variant.colorHex && (
-                                    <span
-                                      className="size-2.5 shrink-0 rounded-full border border-black/15"
-                                      style={{ backgroundColor: variant.colorHex }}
-                                    />
-                                  )}
+                                <div className="font-medium text-foreground">
                                   <span>{variant.label}</span>
                                 </div>
                                 {variant.skuId && (

@@ -864,13 +864,7 @@ export function OverviewPage() {
                     <TableRow key={row.skuId}>
                       <TableCell>
                         <div className="font-medium text-foreground">{row.name}</div>
-                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-foreground/80">
-                          {row.variantColorHex && (
-                            <span
-                              className="size-2.5 shrink-0 rounded-full border border-black/15"
-                              style={{ backgroundColor: row.variantColorHex }}
-                            />
-                          )}
+                        <div className="mt-0.5 text-xs text-foreground/80">
                           <span>{row.variantLabel}</span>
                         </div>
                         <div className="font-mono text-[11px] text-muted-foreground">
