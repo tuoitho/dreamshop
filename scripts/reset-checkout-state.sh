@@ -27,7 +27,8 @@ BEGIN
         UPDATE stock SET reserved = 0;
     END IF;
     IF to_regclass('public.schema_migrations') IS NOT NULL THEN
-        DELETE FROM schema_migrations WHERE version LIKE '000003_%';
+        -- 000004 alters the stock_reservations CHECK, so it must re-run with 000003.
+        DELETE FROM schema_migrations WHERE version LIKE '000003_%' OR version LIKE '000004_%';
     END IF;
 END \$\$;
 "

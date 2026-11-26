@@ -30,8 +30,10 @@ Cart chỉ xóa dòng giỏ khi nhận `OrderConfirmed`.
   `PENDING_CONFIRMATION`, `CONFIRMED`, `PREPARING`, `DELIVERY_FAILED` (admin).
 - COD vào `PENDING_CONFIRMATION` với `auto_confirm_at`; một job định kỳ trong
   `order-service` khóa đơn đến hạn bằng `FOR UPDATE SKIP LOCKED`, chuyển `CONFIRMED` và
-  phát `OrderConfirmed`. Khi vào `PENDING_CONFIRMATION`, Order phát `OrderPlaced` để Cart
-  xóa dòng giỏ ngay.
+  phát `OrderConfirmed`. Khi đơn được tạo xong và hiển thị cho khách (`PENDING_CONFIRMATION`
+  với COD hoặc `PENDING_PAYMENT` với MoMo), Order phát `OrderPlaced` để Cart xóa dòng giỏ
+  ngay, còn Inventory vẫn giữ reservation ở trạng thái `ACTIVE` cho đến khi nhận
+  `OrderConfirmed`.
 - Hủy sau xác nhận phát `StockRestockRequested` (`order.stock.restock_requested`).
   Inventory cộng lại `quantity` cho reservation `CONFIRMED` và đánh dấu `RESTOCKED`; gặp
   reservation `ACTIVE` thì release; `ConfirmReservation` trên `RESTOCKED` là no-op để thứ

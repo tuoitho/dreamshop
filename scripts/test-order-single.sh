@@ -65,7 +65,7 @@ ORDER_PAYLOAD=$(cat <<EOF
       "quantity": 1,
       "unitPrice": $PRICE,
       "expectedName": "$PRODUCT_NAME",
-      "brand": "TechShop",
+      "brand": "DreamShop",
       "categoryName": "Thiết bị",
       "variantLabel": "Mặc định",
       "imageUrl": "",

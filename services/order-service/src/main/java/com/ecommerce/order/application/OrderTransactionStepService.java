@@ -185,6 +185,11 @@ public class OrderTransactionStepService {
         return response;
     }
 
+    /**
+     * Moves a MoMo order whose stock is reserved and payment session is created to
+     * PENDING_PAYMENT. Emits OrderPlaced so Cart clears the ordered lines right away
+     * while Inventory keeps the reservation active until OrderConfirmed.
+     */
     @Transactional(noRollbackFor = DomainException.class)
     public CreateOrderResponse markPendingPayment(UUID orderId, UUID userId, String idempotencyKey, String payUrl) {
         OrderEntity order = orderRepository.findByIdForUpdate(orderId)
@@ -221,8 +226,11 @@ public class OrderTransactionStepService {
         orderRepository.saveAndFlush(order);
         recordStatusChange(order, OrderStatus.PENDING_STOCK, ActorType.SYSTEM, null, "", now);
 
+        insertOrderPlacedOutbox(order, now);
+
         CreateOrderResponse response = OrderProtoMapper.toCreateOrderResponse(order);
         markIdempotencyCompleted(userId, idempotencyKey, orderId, response, now);
+        registerOutboxWakeupAfterCommit();
         return response;
     }
 

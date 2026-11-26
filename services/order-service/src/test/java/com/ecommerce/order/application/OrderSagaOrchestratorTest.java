@@ -234,8 +234,23 @@ class OrderSagaOrchestratorTest extends PostgresRabbitIntegrationTestSupport {
         assertThat(momoOk.getPayUrl()).isEqualTo("https://momo.test/pay/ok-1");
         assertThat(historyOf(jdbcTemplate, UUID.fromString(momoOk.getOrderId())))
                 .containsExactly("->PENDING_STOCK:CUSTOMER", "PENDING_STOCK>PENDING_PAYMENT:SYSTEM");
+        List<String> momoOkRoutingKeys = jdbcTemplate.queryForList(
+                "SELECT routing_key FROM outbox_events WHERE aggregate_id = ?",
+                String.class,
+                momoOk.getOrderId());
+        assertThat(momoOkRoutingKeys).containsExactly("order.placed");
+        String momoOkPayload = jdbcTemplate.queryForObject(
+                "SELECT payload::text FROM outbox_events WHERE aggregate_id = ? AND routing_key = 'order.placed'",
+                String.class,
+                momoOk.getOrderId());
+        assertThat(momoOkPayload)
+                .contains("\"OrderPlaced\"")
+                .contains(momoOk.getOrderId())
+                .contains(userId.toString())
+                .contains("ci-p-momo-v1")
+                .contains("p-momo-v1");
 
-        // Timeout on CreatePaymentSession emits BOTH release stock and cancel payment
+        // Timeout on CreatePaymentSession emits BOTH release stock and cancel payment, and never OrderPlaced
         reset(paymentAdapter);
         when(paymentAdapter.createPaymentSession(any(UUID.class), anyString(), eq(userId), anyLong(), any()))
                 .thenThrow(new DomainException(Status.Code.UNAVAILABLE, "PAYMENT_GATEWAY_UNAVAILABLE", "MoMo timeout"));
@@ -246,10 +261,17 @@ class OrderSagaOrchestratorTest extends PostgresRabbitIntegrationTestSupport {
                 .extracting(e -> ((DomainException) e).reason())
                 .isEqualTo("PAYMENT_GATEWAY_UNAVAILABLE");
 
-        List<String> routingKeys = jdbcTemplate.queryForList(
-                "SELECT routing_key FROM outbox_events ORDER BY routing_key ASC",
-                String.class);
-        assertThat(routingKeys).contains("order.payment.cancel_requested", "order.reservation.release_requested");
+        UUID timeoutOrderId = orderRepository.findAll().stream()
+                .filter(o -> "idem-momo-timeout".equals(o.getIdempotencyKey()))
+                .findFirst()
+                .orElseThrow()
+                .getId();
+        List<String> timeoutRoutingKeys = jdbcTemplate.queryForList(
+                "SELECT routing_key FROM outbox_events WHERE aggregate_id = ? ORDER BY routing_key ASC",
+                String.class,
+                timeoutOrderId.toString());
+        assertThat(timeoutRoutingKeys)
+                .containsExactly("order.payment.cancel_requested", "order.reservation.release_requested");
 
         // Mid-flight cancel guard: if order becomes CANCELLED while CreatePaymentSession is in flight, payUrl is NOT saved or returned
         reset(paymentAdapter);
@@ -271,6 +293,11 @@ class OrderSagaOrchestratorTest extends PostgresRabbitIntegrationTestSupport {
         assertThat(midOrder.getStatus()).isEqualTo(OrderStatus.CANCELLED);
         assertThat(midOrder.getPayUrl()).isEmpty();
         assertThat(midOrder.getPaymentStatus()).isNotEqualTo(PaymentStatus.PAID);
+        List<String> midCancelRoutingKeys = jdbcTemplate.queryForList(
+                "SELECT routing_key FROM outbox_events WHERE aggregate_id = ? ORDER BY routing_key ASC",
+                String.class,
+                midOrder.getId().toString());
+        assertThat(midCancelRoutingKeys).containsExactly("order.payment.cancel_requested");
     }
 
     private static GetProductResponse sampleCatalogProduct(

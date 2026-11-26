@@ -119,7 +119,7 @@ func DispatchMessage(ctx context.Context, handler CartCleanupHandler, routingKey
 	if eventID == "" || userID == "" {
 		return fmt.Errorf("%w: missing eventId or userId", ErrPermanentMessage)
 	}
-	// A COD order emits OrderPlaced and later OrderConfirmed with the same items.
+	// Placed orders emit OrderPlaced and later OrderConfirmed with the same items.
 	// Keying cleanup by order makes the second event a no-op, so it cannot remove
 	// a line for the same SKU that the customer added back in between.
 	cleanupKey := eventID

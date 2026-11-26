@@ -1,4 +1,4 @@
-param(
+﻿param(
     [ValidateSet("COD", "MOMO")]
     [string]$Method = "COD",
     [string]$BaseUrl = "http://localhost:8000/api/v1",
@@ -62,7 +62,7 @@ $orderPayload = @{
             quantity               = 1
             unitPrice              = $sku.price
             expectedName           = $prod.name
-            brand                  = $(if ($prod.brand) { $prod.brand } else { "TechShop" })
+            brand                  = $(if ($prod.brand) { $prod.brand } else { "DreamShop" })
             categoryName           = $(if ($prod.categoryName) { $prod.categoryName } else { "Thiết bị" })
             variantLabel           = $(if ($sku.label) { $sku.label } else { "Mặc định" })
             imageUrl               = ""
