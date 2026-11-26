@@ -184,3 +184,104 @@ func TestAdminReviewRoutes(t *testing.T) {
 		t.Fatalf("PUT reply status = %d, want 200; body=%s", recReply.Code, recReply.Body.String())
 	}
 }
+
+func TestReviewUpdateDeletePresignAndErrorCodes(t *testing.T) {
+	cat := &fakeCatalogClient{
+		updateReviewFn: func(_ context.Context, req *catalogv1.UpdateProductReviewRequest) (*catalogv1.UpdateProductReviewResponse, error) {
+			if req.GetReviewId() == "rev-denied" {
+				return nil, catalog.ErrPermissionDenied
+			}
+			if req.GetReviewId() == "rev-auth-down" {
+				return nil, catalog.ErrAuthorizationUnavailable
+			}
+			return &catalogv1.UpdateProductReviewResponse{
+				Review:  &catalogv1.ProductReview{Id: req.GetReviewId(), Rating: req.GetRating(), Comment: req.GetComment()},
+				Summary: &catalogv1.ReviewRatingSummary{AverageRating: 4.5, TotalReviews: 2},
+			}, nil
+		},
+		deleteReviewFn: func(_ context.Context, req *catalogv1.DeleteProductReviewRequest) (*catalogv1.DeleteProductReviewResponse, error) {
+			return &catalogv1.DeleteProductReviewResponse{
+				ReviewId:  req.GetReviewId(),
+				ProductId: "dt-1",
+				Summary:   &catalogv1.ReviewRatingSummary{AverageRating: 5, TotalReviews: 1},
+			}, nil
+		},
+		createRevMediaFn: func(_ context.Context, _ *catalogv1.CreateReviewMediaUploadRequest) (*catalogv1.CreateReviewMediaUploadResponse, error) {
+			return &catalogv1.CreateReviewMediaUploadResponse{
+				UploadId:         "up-1",
+				MediaType:        "IMAGE",
+				UploadUrl:        "http://localhost:9000/product-media/reviews/2026/11/a.png?sig=1",
+				PublicUrl:        "http://localhost:9000/product-media/reviews/2026/11/a.png",
+				ObjectKey:        "reviews/2026/11/a.png",
+				ExpiresInSeconds: 300,
+			}, nil
+		},
+	}
+
+	mux := http.NewServeMux()
+	NewReviewsHandler(cat).Register(mux)
+
+	// Valid PUT update
+	reqUpd := httptest.NewRequest(http.MethodPut, "/api/v1/reviews/rev-1", bytes.NewBufferString(`{"rating":4,"comment":"Updated","images":[]}`))
+	reqUpd.Header.Set("X-User-Id", "user-1")
+	recUpd := httptest.NewRecorder()
+	mux.ServeHTTP(recUpd, reqUpd)
+	if recUpd.Code != http.StatusOK {
+		t.Fatalf("PUT /api/v1/reviews/rev-1 status = %d, want 200", recUpd.Code)
+	}
+
+	// Trailing JSON value rejected
+	reqTrailing := httptest.NewRequest(http.MethodPut, "/api/v1/reviews/rev-1", bytes.NewBufferString(`{"rating":4}{"extra":1}`))
+	reqTrailing.Header.Set("X-User-Id", "user-1")
+	recTrailing := httptest.NewRecorder()
+	mux.ServeHTTP(recTrailing, reqTrailing)
+	if recTrailing.Code != http.StatusBadRequest {
+		t.Fatalf("trailing JSON status = %d, want 400", recTrailing.Code)
+	}
+
+	// 403 REVIEW_PERMISSION_DENIED
+	reqDenied := httptest.NewRequest(http.MethodPut, "/api/v1/reviews/rev-denied", bytes.NewBufferString(`{"rating":4}`))
+	reqDenied.Header.Set("X-User-Id", "user-1")
+	recDenied := httptest.NewRecorder()
+	mux.ServeHTTP(recDenied, reqDenied)
+	if recDenied.Code != http.StatusForbidden {
+		t.Fatalf("permission denied status = %d, want 403", recDenied.Code)
+	}
+	var errBody map[string]any
+	_ = json.Unmarshal(recDenied.Body.Bytes(), &errBody)
+	if errBody["code"] != "REVIEW_PERMISSION_DENIED" {
+		t.Fatalf("permission denied code = %v, want REVIEW_PERMISSION_DENIED", errBody["code"])
+	}
+
+	// 503 AUTHORIZATION_SERVICE_UNAVAILABLE (consistent with all other BFF handlers and FE error maps)
+	reqAuthDown := httptest.NewRequest(http.MethodPut, "/api/v1/reviews/rev-auth-down", bytes.NewBufferString(`{"rating":4}`))
+	reqAuthDown.Header.Set("X-User-Id", "user-1")
+	recAuthDown := httptest.NewRecorder()
+	mux.ServeHTTP(recAuthDown, reqAuthDown)
+	if recAuthDown.Code != http.StatusServiceUnavailable {
+		t.Fatalf("auth down status = %d, want 503", recAuthDown.Code)
+	}
+	errBody = nil
+	_ = json.Unmarshal(recAuthDown.Body.Bytes(), &errBody)
+	if errBody["code"] != "AUTHORIZATION_SERVICE_UNAVAILABLE" {
+		t.Fatalf("auth down code = %v, want AUTHORIZATION_SERVICE_UNAVAILABLE", errBody["code"])
+	}
+
+	// DELETE review
+	reqDel := httptest.NewRequest(http.MethodDelete, "/api/v1/reviews/rev-1", nil)
+	reqDel.Header.Set("X-User-Id", "user-1")
+	recDel := httptest.NewRecorder()
+	mux.ServeHTTP(recDel, reqDel)
+	if recDel.Code != http.StatusOK {
+		t.Fatalf("DELETE /api/v1/reviews/rev-1 status = %d, want 200", recDel.Code)
+	}
+
+	// POST presign
+	reqPresign := httptest.NewRequest(http.MethodPost, "/api/v1/reviews/media/presign", bytes.NewBufferString(`{"filename":"a.png","contentType":"image/png","sizeBytes":1024}`))
+	reqPresign.Header.Set("X-User-Id", "user-1")
+	recPresign := httptest.NewRecorder()
+	mux.ServeHTTP(recPresign, reqPresign)
+	if recPresign.Code != http.StatusOK {
+		t.Fatalf("POST presign status = %d, want 200", recPresign.Code)
+	}
+}

@@ -3,7 +3,9 @@ package store
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
+	"sync"
 	"testing"
 	"time"
 
@@ -145,6 +147,23 @@ func TestReviewsStoreIntegration(t *testing.T) {
 		t.Fatalf("expected rating=5.0 count=1 after hide, got rating=%v count=%d", prodAfterHide.Rating, prodAfterHide.ReviewCount)
 	}
 
+	// Restoring review B recalculates product rating back to 4.0, count 2.
+	restoredB, err := s.SetReviewVisibility(ctx, revB.ID, "admin-1", false, "")
+	if err != nil || restoredB.Hidden || restoredB.HiddenReason != "" {
+		t.Fatalf("restore failed: rev=%+v err=%v", restoredB, err)
+	}
+	prodAfterRestore, err := s.GetByID(ctx, productID)
+	if err != nil {
+		t.Fatalf("get product after restore: %v", err)
+	}
+	if prodAfterRestore.ReviewCount != 2 || math.Abs(prodAfterRestore.Rating-4.0) > 0.001 {
+		t.Fatalf("expected rating=4.0 count=2 after restore, got rating=%v count=%d", prodAfterRestore.Rating, prodAfterRestore.ReviewCount)
+	}
+	// Hide B again before testing A's own update/delete.
+	if _, err := s.SetReviewVisibility(ctx, revB.ID, "admin-1", true, "Re-hidden"); err != nil {
+		t.Fatalf("re-hide B: %v", err)
+	}
+
 	// 5. Admin reply + ListAdminReviews filters.
 	repliedA, err := s.ReplyProductReview(ctx, revA.ID, "admin-1", "Cam on quy khach!")
 	if err != nil || repliedA.AdminReply != "Cam on quy khach!" || repliedA.AdminRepliedAt == nil {
@@ -158,6 +177,18 @@ func TestReviewsStoreIntegration(t *testing.T) {
 	// 6. Another user cannot update or delete review A.
 	if _, _, err := s.UpdateReview(ctx, domain.UpdateReviewInput{UserID: userB, ReviewID: revA.ID, Rating: 1}, 24*time.Hour); !errors.Is(err, domain.ErrReviewForbidden) {
 		t.Fatalf("expected ErrReviewForbidden on update, got %v", err)
+	}
+
+	// Owner updates review A to 4 stars and keeps image -> products.rating becomes 4.0.
+	updatedA, sumAfterUpdate, err := s.UpdateReview(ctx, domain.UpdateReviewInput{
+		UserID:   userA,
+		ReviewID: revA.ID,
+		Rating:   4,
+		Comment:  "Cap nhat sau 1 tuan",
+		Images:   []string{imgURL},
+	}, 24*time.Hour)
+	if err != nil || updatedA.Rating != 4 || sumAfterUpdate.TotalReviews != 1 || math.Abs(sumAfterUpdate.AverageRating-4.0) > 0.001 {
+		t.Fatalf("update review A failed: rev=%+v sum=%+v err=%v", updatedA, sumAfterUpdate, err)
 	}
 
 	// 7. Deleting review A orphans its attached media asset and resets visible product rating to 0/0.
@@ -174,5 +205,64 @@ func TestReviewsStoreIntegration(t *testing.T) {
 	}
 	if assetStatus != domain.MediaStatusOrphaned {
 		t.Fatalf("expected media asset status ORPHANED after review delete, got %q", assetStatus)
+	}
+
+	// 8. Another user cannot hijack userA's ORPHANED review image.
+	if err := s.RecordDeliveredOrder(ctx, "evt-del-c", "ord-review-c", "ORD-C", "user-review-c", "Customer C", deliveredAt, items); err != nil {
+		t.Fatalf("record delivered order C: %v", err)
+	}
+	if _, _, err := s.CreateReview(ctx, domain.CreateReviewInput{
+		UserID:    "user-review-c",
+		ProductID: productID,
+		OrderID:   "ord-review-c",
+		Rating:    5,
+		Images:    []string{imgURL},
+	}, 24*time.Hour); !errors.Is(err, domain.ErrMediaAlreadyAttached) {
+		t.Fatalf("expected ErrMediaAlreadyAttached when hijacking another user's orphaned image, got %v", err)
+	}
+
+	// 9. Concurrent review creations serialize via products FOR UPDATE with zero lost updates.
+	const workers = 6
+	for i := range workers {
+		uid := fmt.Sprintf("conc-user-%d", i)
+		oid := fmt.Sprintf("conc-ord-%d", i)
+		if err := s.RecordDeliveredOrder(ctx, fmt.Sprintf("evt-conc-%d", i), oid, fmt.Sprintf("ORD-C%d", i), uid, uid, deliveredAt, items); err != nil {
+			t.Fatalf("seed concurrent order %d: %v", i, err)
+		}
+	}
+	var wg sync.WaitGroup
+	errCh := make(chan error, workers)
+	for i := range workers {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			rating := int32(4)
+			if idx%2 == 0 {
+				rating = 5
+			}
+			_, _, createErr := s.CreateReview(ctx, domain.CreateReviewInput{
+				UserID:    fmt.Sprintf("conc-user-%d", idx),
+				ProductID: productID,
+				OrderID:   fmt.Sprintf("conc-ord-%d", idx),
+				Rating:    rating,
+				Comment:   "Concurrent check",
+			}, 24*time.Hour)
+			if createErr != nil {
+				errCh <- createErr
+			}
+		}(i)
+	}
+	wg.Wait()
+	close(errCh)
+	for err := range errCh {
+		t.Fatalf("concurrent CreateReview failed: %v", err)
+	}
+	finalProd, err := s.GetByID(ctx, productID)
+	if err != nil {
+		t.Fatalf("get final product: %v", err)
+	}
+	// 3 reviews of 5 stars + 3 reviews of 4 stars = 4.5 average, 6 visible reviews.
+	if finalProd.ReviewCount != workers || math.Abs(finalProd.Rating-4.5) > 0.001 {
+		t.Fatalf("lost update detected under concurrency: got rating=%v count=%d, want rating=4.5 count=%d", finalProd.Rating, finalProd.ReviewCount, workers)
 	}
 }

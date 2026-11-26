@@ -122,4 +122,86 @@ describe("ProductReviewsSection", () => {
     })
     expect(onSummaryChange).toHaveBeenCalledWith(expect.objectContaining({ totalReviews: 2 }))
   })
+
+  it("supports editing, deleting own review, and applying star/image/sort filters", async () => {
+    const ownReview = {
+      ...SAMPLE_REVIEW,
+      id: "rev-own",
+      userId: "user-1",
+      authorName: "Customer One",
+      comment: "Đánh giá ban đầu",
+    }
+    vi.mocked(api.getReviewEligibility).mockResolvedValue({
+      canReview: false,
+      eligibleOrders: [
+        {
+          orderId: "ord-1",
+          orderCode: "ORD-20261126-001",
+          skuId: "dt-1-v1",
+          variantLabel: "256GB · Tiêu chuẩn",
+          deliveredAt: "2026-11-26T03:00:00Z",
+          reviewed: true,
+          reviewId: "rev-own",
+        },
+      ],
+      myReviews: [ownReview],
+    })
+    vi.mocked(api.updateProductReview).mockResolvedValue({
+      review: { ...ownReview, rating: 4, comment: "Đã cập nhật" },
+      summary: {
+        averageRating: 4,
+        totalReviews: 1,
+        breakdown: [{ rating: 5, count: 0 }, { rating: 4, count: 1 }, { rating: 3, count: 0 }, { rating: 2, count: 0 }, { rating: 1, count: 0 }],
+      },
+    })
+    vi.mocked(api.deleteProductReview).mockResolvedValue({
+      reviewId: "rev-own",
+      productId: "dt-1",
+      summary: {
+        averageRating: 0,
+        totalReviews: 0,
+        breakdown: [5, 4, 3, 2, 1].map((rating) => ({ rating, count: 0 })),
+      },
+    })
+
+    render(
+      <MemoryRouter initialEntries={["/san-pham/dt-1"]}>
+        <ProductReviewsSection productId="dt-1" initialRating={5} initialReviewCount={1} />
+      </MemoryRouter>
+    )
+
+    expect(await screen.findByTestId("my-review-rev-own")).toBeInTheDocument()
+
+    // Edit own review
+    await userEvent.click(screen.getByRole("button", { name: "Sửa" }))
+    await userEvent.click(screen.getByRole("radio", { name: "4 sao" }))
+    const input = screen.getByLabelText("Nhận xét của bạn")
+    await userEvent.clear(input)
+    await userEvent.type(input, "Đã cập nhật")
+    await userEvent.click(screen.getByRole("button", { name: "Lưu thay đổi" }))
+    await waitFor(() => {
+      expect(api.updateProductReview).toHaveBeenCalledWith("rev-own", {
+        rating: 4,
+        comment: "Đã cập nhật",
+        images: [],
+      })
+    })
+
+    // Filter by hasImages and sort by highest
+    await userEvent.click(screen.getByRole("button", { name: "Có hình ảnh" }))
+    await userEvent.selectOptions(screen.getByLabelText("Sắp xếp đánh giá"), "highest")
+    await waitFor(() => {
+      expect(api.listProductReviews).toHaveBeenCalledWith(
+        "dt-1",
+        expect.objectContaining({ hasImages: true, sort: "highest" }),
+        expect.any(AbortSignal)
+      )
+    })
+
+    // Delete own review
+    await userEvent.click(screen.getByRole("button", { name: "Xóa" }))
+    await waitFor(() => {
+      expect(api.deleteProductReview).toHaveBeenCalledWith("rev-own")
+    })
+  })
 })

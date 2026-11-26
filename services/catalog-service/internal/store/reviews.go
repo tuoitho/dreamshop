@@ -230,7 +230,7 @@ func (s *Store) CreateReview(ctx context.Context, in domain.CreateReviewInput, o
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	var productName string
-	if err := tx.QueryRow(ctx, `SELECT name FROM products WHERE id = $1 AND deleted_at IS NULL`, in.ProductID).Scan(&productName); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT name FROM products WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`, in.ProductID).Scan(&productName); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil, domain.ErrProductNotFound
 		}
@@ -320,7 +320,7 @@ func (s *Store) UpdateReview(ctx context.Context, in domain.UpdateReviewInput, o
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	review, err := lockReviewByID(ctx, tx, in.ReviewID)
+	review, err := lockProductAndReviewByID(ctx, tx, in.ReviewID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -368,7 +368,7 @@ func (s *Store) DeleteReview(ctx context.Context, userID, reviewID string, orpha
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	review, err := lockReviewByID(ctx, tx, reviewID)
+	review, err := lockProductAndReviewByID(ctx, tx, reviewID)
 	if err != nil {
 		return "", nil, err
 	}
@@ -508,7 +508,7 @@ func (s *Store) SetReviewVisibility(ctx context.Context, reviewID, adminID strin
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	review, err := lockReviewByID(ctx, tx, reviewID)
+	review, err := lockProductAndReviewByID(ctx, tx, reviewID)
 	if err != nil {
 		return nil, err
 	}
@@ -607,6 +607,28 @@ func (s *Store) ReplyProductReview(ctx context.Context, reviewID, adminID, reply
 type queryRunner interface {
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
+// lockProductAndReviewByID acquires the parent products row lock before locking
+// product_reviews so concurrent rating recalculations serialize without lost updates
+// and follow the same lock order (products -> product_reviews) as CreateReview.
+func lockProductAndReviewByID(ctx context.Context, tx pgx.Tx, reviewID string) (*domain.ProductReview, error) {
+	var productID string
+	err := tx.QueryRow(ctx, `SELECT product_id FROM product_reviews WHERE id = $1::uuid`, reviewID).Scan(&productID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.ErrReviewNotFound
+		}
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgInvalidTextRepresentation {
+			return nil, domain.ErrReviewNotFound
+		}
+		return nil, fmt.Errorf("lookup product_id for review %q: %w", reviewID, err)
+	}
+	if _, err := tx.Exec(ctx, `SELECT id FROM products WHERE id = $1 FOR UPDATE`, productID); err != nil {
+		return nil, fmt.Errorf("lock product %q for review %q: %w", productID, reviewID, err)
+	}
+	return lockReviewByID(ctx, tx, reviewID)
 }
 
 func lockReviewByID(ctx context.Context, tx pgx.Tx, reviewID string) (*domain.ProductReview, error) {
@@ -816,6 +838,7 @@ func reconcileReviewMediaAssets(ctx context.Context, tx pgx.Tx, reviewID, userID
 	if len(urls) > 0 {
 		rows, err := tx.Query(ctx, `
 			SELECT public_url,
+			       object_key,
 			       status,
 			       COALESCE(product_id, ''),
 			       COALESCE(review_id::text, ''),
@@ -833,17 +856,21 @@ func reconcileReviewMediaAssets(ctx context.Context, tx pgx.Tx, reviewID, userID
 			return fmt.Errorf("lock review media assets: %w", err)
 		}
 		for rows.Next() {
-			var publicURL, rowStatus, rowProductID, rowReviewID, uploadedBy string
+			var publicURL, objectKey, rowStatus, rowProductID, rowReviewID, uploadedBy string
 			var isExpired bool
-			if err := rows.Scan(&publicURL, &rowStatus, &rowProductID, &rowReviewID, &uploadedBy, &isExpired); err != nil {
+			if err := rows.Scan(&publicURL, &objectKey, &rowStatus, &rowProductID, &rowReviewID, &uploadedBy, &isExpired); err != nil {
 				rows.Close()
 				return fmt.Errorf("scan locked review media asset: %w", err)
+			}
+			if !strings.HasPrefix(objectKey, "reviews/") {
+				rows.Close()
+				return domain.ErrMediaAlreadyAttached
 			}
 			if rowStatus == domain.MediaStatusAttached && (rowProductID != "" || (rowReviewID != "" && rowReviewID != reviewID)) {
 				rows.Close()
 				return domain.ErrMediaAlreadyAttached
 			}
-			if rowStatus == domain.MediaStatusPending && uploadedBy != "" && uploadedBy != userID {
+			if (rowStatus == domain.MediaStatusPending || rowStatus == domain.MediaStatusOrphaned) && uploadedBy != "" && uploadedBy != userID {
 				rows.Close()
 				return domain.ErrMediaAlreadyAttached
 			}

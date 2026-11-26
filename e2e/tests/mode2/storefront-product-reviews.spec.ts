@@ -240,5 +240,10 @@ test.describe("Mode 2 (Shape-Locked Mock): Storefront Product Reviews & Photo Up
     await expect(
       page.getByTestId("review-card-rev-202").getByText("Pin trâu, màn hình đẹp xuất sắc!")
     ).toBeVisible()
+
+    await page.screenshot({
+      path: path.join(IMGS_DIR, "01-storefront-product-reviews-desktop.png"),
+      fullPage: false,
+    })
   })
 })

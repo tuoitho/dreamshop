@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
-	"sync"
 	"time"
 
 	"ecommerce.local/catalog-service/internal/domain"
@@ -79,8 +78,6 @@ type Consumer struct {
 	rabbitURL string
 	queueName string
 	handler   DeliveredOrderHandler
-	readyOnce sync.Once
-	readyCh   chan struct{}
 }
 
 // NewConsumer constructs a Catalog order-event consumer.
@@ -95,7 +92,6 @@ func NewConsumer(rabbitURL string, handler DeliveredOrderHandler, opts ...Consum
 		rabbitURL: strings.TrimSpace(rabbitURL),
 		queueName: DefaultQueueName,
 		handler:   handler,
-		readyCh:   make(chan struct{}),
 	}
 	for _, opt := range opts {
 		if opt != nil {
@@ -204,10 +200,6 @@ func (c *Consumer) consumeSession(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("consume %q: %w", c.queueName, err)
 	}
-
-	c.readyOnce.Do(func() {
-		close(c.readyCh)
-	})
 
 	connClose := conn.NotifyClose(make(chan *amqp.Error, 1))
 	for {

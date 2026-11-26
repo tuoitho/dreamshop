@@ -182,5 +182,10 @@ test.describe("Mode 2 (Shape-Locked Mock): Admin Review Moderation", () => {
     await expect(
       page.getByTestId("admin-review-row-rev-101").getByText("DreamShop cảm ơn đánh giá chi tiết của bạn!")
     ).toBeVisible()
+
+    await page.screenshot({
+      path: path.join(IMGS_DIR, "01-admin-reviews-moderation-desktop.png"),
+      fullPage: false,
+    })
   })
 })

@@ -19,8 +19,8 @@ and accepted architecture that is not wired yet.
 | Surface | Ownership | Runtime | Local/container ports | Health | Exposure | Datastore/resources | Inbound | Outbound | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | identity-service | Credentials, profiles, shipping addresses, locations, roles, sessions, refresh tokens, JWT issuance, and current RBAC authorization evaluation | Java 21 / Spring Boot 4.1 | HTTP `8080`; management `8090`; private gRPC local `127.0.0.1:50054`, container `0.0.0.0:50054` | `:8090/actuator/health` | Canonical `/api/v1/auth`, `/api/v1/users`, `/api/v1/locations`, `/api/v1/admin/users`, and `/api/v1/admin/rbac` through Kong (`strip_path: false`); management `:8090` and authorization gRPC have no Kong route | PostgreSQL `identity_db`, Flyway, RSA signing keys | Frontend through Kong; Catalog, Inventory, Cart, and Order over private gRPC | PostgreSQL | implemented |
-| bff-service | Client-specific commerce REST adaptation | Go 1.24 | Local HTTP `8081`; container default `8080` | `/healthz` | Canonical `/api/v1/storefront/products`, `/api/v1/cart`, `/api/v1/favorites`, `/api/v1/orders`, `/api/v1/payments/momo-redirect`, `/api/v1/payments/momo-ipn`, `/api/v1/admin/products`, `/api/v1/admin/inventory` (`/skus/{skuId}`), and `/api/v1/admin/orders` through Kong (`strip_path: false`) | Stateless | Storefront, Admin frontends, and MoMo callbacks through Kong | Catalog gRPC `50051`; Inventory gRPC `50052`; Cart gRPC `50053`; Order gRPC `50055`; Payment gRPC `50056` | implemented |
-| catalog-service | Product CRUD, monotonic commercial `version`, persistent variant SKU IDs & per-variant pricing (`product_variants`), derived representative product price bounds, media presigning & orphan lifecycle (`product_media_assets`), search, filtering, pagination, and soft-delete | Go 1.24 | Canonical local HTTP `8085`; default/container HTTP `8081`; gRPC `50051` | `/healthz` | Private/local; no direct Kong route | PostgreSQL `catalog_db`, migrations, seed data; MinIO `product-media` bucket | BFF, Cart, and Order over gRPC | Identity authorization `50054`; PostgreSQL; MinIO S3 API `9000` | implemented |
+| bff-service | Client-specific commerce REST adaptation | Go 1.24 | Local HTTP `8081`; container default `8080` | `/healthz` | Canonical `/api/v1/storefront/products` (including `/{id}/reviews`), `/api/v1/reviews`, `/api/v1/cart`, `/api/v1/favorites`, `/api/v1/orders`, `/api/v1/payments/momo-redirect`, `/api/v1/payments/momo-ipn`, `/api/v1/admin/products`, `/api/v1/admin/inventory` (`/skus/{skuId}`), `/api/v1/admin/orders`, and `/api/v1/admin/reviews` through Kong (`strip_path: false`) | Stateless | Storefront, Admin frontends, and MoMo callbacks through Kong | Catalog gRPC `50051`; Inventory gRPC `50052`; Cart gRPC `50053`; Order gRPC `50055`; Payment gRPC `50056` | implemented |
+| catalog-service | Product CRUD, monotonic commercial `version`, persistent variant SKU IDs & per-variant pricing (`product_variants`), derived representative product price bounds, media presigning & orphan lifecycle (`product_media_assets`), verified product reviews & ratings (`product_reviews`, `review_eligibilities`), search, filtering, pagination, and soft-delete | Go 1.24 | Canonical local HTTP `8085`; default/container HTTP `8081`; gRPC `50051` | `/healthz` | Private/local; no direct Kong route | PostgreSQL `catalog_db`, migrations, seed data; MinIO `product-media` bucket; RabbitMQ `catalog.order-events` | BFF, Cart, and Order over gRPC; `OrderDelivered` events via RabbitMQ | Identity authorization `50054`; PostgreSQL; MinIO S3 API `9000`; RabbitMQ | implemented |
 | inventory-service | Per-SKU stock quantities (`sku_id`, `product_id`), atomic order reservations (`stock_reservations`), tombstones, admin SKU stock set/adjust/delete mutations, single/batch SKU availability lookup, and order event consumption | Go 1.24 | HTTP `8082`; gRPC `50052` | `/healthz` | Private/local; no Kong route | PostgreSQL `inventory_db`, migrations, seed data; RabbitMQ `inventory.order-events` | BFF, Cart, and Order over gRPC; Order events via RabbitMQ | Identity authorization `50054`; PostgreSQL; RabbitMQ | implemented |
 | order-service | Order lifecycle, preview-to-order SKU snapshot verification, hybrid checkout saga orchestration, idempotency, reconciliation, payment event consumption, and transactional outbox ownership | Java 21 / Spring Boot 4.1 | HTTP `8083`; management `8093`; private gRPC local `127.0.0.1:50055`, container `0.0.0.0:50055` | `:8093/actuator/health` | Private service; REST is adapted by BFF | PostgreSQL `order_db`, Flyway; RabbitMQ `ecommerce.events` & `order.payment-events` | BFF over gRPC; Payment events via RabbitMQ | Identity `50054`; Catalog `50051`; Inventory `50052`; Payment `50056`; PostgreSQL; RabbitMQ | implemented |
 | payment-service | MoMo v2 `captureWallet` session initiation, constant-time HMAC callback verification, payment tombstones, full-order MoMo v2 refunds (`payment_refunds` 3-attempt auto-retry worker + synchronous `RetryRefund` gRPC manual fallback, `REFUNDED`/`REFUND_FAILED` lifecycle), and transactional outbox ownership | Go 1.24 | HTTP `8086`; private gRPC local `127.0.0.1:50056`, container `0.0.0.0:50056` | `/healthz` | Private service; public MoMo callbacks route through Kong and BFF | PostgreSQL `payment_db`, migrations; RabbitMQ `ecommerce.events` & `payment.order-events` | Order and BFF over gRPC; Order compensation events via RabbitMQ | External MoMo HTTPS API; PostgreSQL; RabbitMQ | implemented |
@@ -36,7 +36,7 @@ and accepted architecture that is not wired yet.
 | PostgreSQL | `5432` | Local/container network | Identity, Catalog, Inventory, Cart, Order, Payment | implemented |
 | MinIO | Local API `9000`, console `127.0.0.1:9001`; container internal `9000` | Local `:9000` with CORS; production Kong `/product-media` (`GET, HEAD, PUT`) | Catalog (`product-media` bucket lifecycle & presigning), Browser (`GET` media & presigned `PUT`) | implemented |
 | Redis | `6379` | Local/container network | No application consumer yet; reserved for catalog/cache experiments | configured |
-| RabbitMQ | AMQP `5672`; management `15672` | Local/container network; management local-only | Order, Payment, Inventory, Cart (`ecommerce.events` topic exchange + DLX/DLQ) | implemented |
+| RabbitMQ | AMQP `5672`; management `15672` | Local/container network; management local-only | Order, Payment, Inventory, Cart, Catalog (`ecommerce.events` topic exchange + DLX/DLQ) | implemented |
 
 ## Route and Dependency Notes
 
@@ -47,20 +47,23 @@ and accepted architecture that is not wired yet.
 - Kong exposes public `/api/v1/auth` routes (anchored endpoints in production)
   and protected `/api/v1/users`, `/api/v1/locations`, `/api/v1/admin/users`, and
   `/api/v1/admin/rbac` routes to `identity-service`.
-- Local Kong exposes `/api/v1/storefront/products`, protected `/api/v1/cart`,
+- Local Kong exposes `/api/v1/storefront/products` (including `/{id}/reviews`),
+  protected `/api/v1/reviews`, protected `/api/v1/cart`,
   protected `/api/v1/favorites`, protected `/api/v1/orders`, public
   `/api/v1/payments/momo-redirect` & `/api/v1/payments/momo-ipn` (with
   `request-transformer` stripping `X-User-Id` and `X-User-Roles`), protected
-  `/api/v1/admin/products`, protected `/api/v1/admin/inventory`, and protected
-  `/api/v1/admin/orders` routes to the host-run BFF at `host.docker.internal:8081`. Production Kong
+  `/api/v1/admin/products`, protected `/api/v1/admin/inventory`, protected
+  `/api/v1/admin/orders`, and protected `/api/v1/admin/reviews` routes to the host-run BFF at `host.docker.internal:8081`. Production Kong
   (`deployments/kong/kong-production.yaml`) exposes `/` (`ecommerce-fe`),
   `/admin` (`admin-fe`), `/product-media` (`GET, HEAD, PUT` to `minio:9000` with
   `preserve_host: false` and 32 MB size limit), `GET /api/v1/storefront/products`,
+  protected `/api/v1/reviews` (`GET, POST, PUT, DELETE`),
   protected `/api/v1/cart`, protected `/api/v1/favorites`, protected
   `/api/v1/orders`, public `/api/v1/payments/momo-redirect` &
   `/api/v1/payments/momo-ipn`, protected `/api/v1/admin/products`
   (`GET, POST, PUT, PATCH, DELETE`), protected `/api/v1/admin/inventory`
-  (`GET, POST, PUT, PATCH`), and protected `/api/v1/admin/orders` (`GET, POST`)
+  (`GET, POST, PUT, PATCH`), protected `/api/v1/admin/orders` (`GET, POST`), and
+  protected `/api/v1/admin/reviews` (`GET, PUT, PATCH`)
   to container `bff-service:8080`.
 - Spring Boot Actuator endpoints run on dedicated internal management ports
   (`8090` on `identity-service`, `8093` on `order-service`) and are not exposed
@@ -68,8 +71,8 @@ and accepted architecture that is not wired yet.
 - Internal service calls do not route through Kong or the BFF. They use direct
   private gRPC for synchronous calls and durable RabbitMQ topic exchange
   `ecommerce.events` (with DLX `ecommerce.events.dlx`) for asynchronous Saga
-  workflows (`OrderPlaced`, `OrderConfirmed`, `ReservationReleaseRequested`,
-  `StockRestockRequested`,
+  and read-model workflows (`OrderPlaced`, `OrderConfirmed`, `OrderDelivered`,
+  `ReservationReleaseRequested`, `StockRestockRequested`,
   `PaymentSucceeded`, `PaymentFailed`, `PaymentCancelRequested`,
   `RefundRequested`, `PaymentRefunded`, `PaymentRefundFailed`). Admin manual
   refund retries route synchronously via BFF (`POST /api/v1/admin/orders/{orderId}/refund`)

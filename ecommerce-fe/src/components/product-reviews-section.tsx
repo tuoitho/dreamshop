@@ -295,8 +295,12 @@ export function ProductReviewsSection({
       setEditingReview(null)
       setFormComment("")
       setFormImages([])
-      setPage(1)
-      await Promise.all([loadReviews(), loadEligibility()])
+      if (page !== 1) {
+        setPage(1)
+        await loadEligibility()
+      } else {
+        await Promise.all([loadReviews(), loadEligibility()])
+      }
     } catch {
       // Error toast is already handled by axios interceptor
     } finally {

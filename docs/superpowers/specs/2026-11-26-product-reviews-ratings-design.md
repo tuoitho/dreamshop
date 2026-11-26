@@ -67,7 +67,7 @@ Thứ tự triển khai: `contracts` → `identity-service` → `order-service` 
   - `DELETE /api/v1/reviews/{id}`
   - `POST /api/v1/reviews/media/presign`
 - Authenticated Admin (`admin-reviews-api`, `caller-context`):
-  - `GET /api/v1/admin/reviews?query=&productId=&rating=&status=&hasReply=&page=&pageSize=`
+  - `GET /api/v1/admin/reviews?q=&productId=&rating=&status=&replyStatus=&page=&pageSize=`
   - `PATCH /api/v1/admin/reviews/{id}/visibility`
   - `PUT /api/v1/admin/reviews/{id}/reply`
 

@@ -1,9 +1,7 @@
 package http
 
 import (
-	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -339,9 +337,8 @@ func (h *ReviewsHandler) presignReviewMedia(w http.ResponseWriter, r *http.Reque
 }
 
 func decodeReviewJSONBody(w http.ResponseWriter, r *http.Request, dst any) bool {
-	dec := json.NewDecoder(io.LimitReader(r.Body, 1<<20))
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(dst); err != nil {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	if err := decodeJSON(r, dst); err != nil {
 		writeError(w, r, http.StatusBadRequest, "INVALID_PARAMETER", "Request body must be valid JSON.", nil)
 		return false
 	}
@@ -411,7 +408,7 @@ func writeReviewError(w http.ResponseWriter, r *http.Request, err error) {
 	case errors.Is(err, catalog.ErrMediaStorageUnavailable):
 		writeError(w, r, http.StatusServiceUnavailable, "MEDIA_STORAGE_UNAVAILABLE", "Media storage is temporarily unavailable.", nil)
 	case errors.Is(err, catalog.ErrAuthorizationUnavailable):
-		writeError(w, r, http.StatusServiceUnavailable, "AUTHORIZATION_UNAVAILABLE", "Authorization service is unavailable.", nil)
+		writeError(w, r, http.StatusServiceUnavailable, "AUTHORIZATION_SERVICE_UNAVAILABLE", "Authorization service is unavailable.", nil)
 	case status.Code(err) == codes.InvalidArgument:
 		writeError(w, r, http.StatusBadRequest, "INVALID_PARAMETER", status.Convert(err).Message(), nil)
 	default:
